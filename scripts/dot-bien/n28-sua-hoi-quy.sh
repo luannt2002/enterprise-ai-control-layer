@@ -8,9 +8,8 @@
 # theo mã mới — đừng xoá dòng cho xanh.
 # Không đưa vào danh mục (đột biến tương đương, đã xét): đổi `len(vals) != 1` của claimedValue thành `< 1` — rivalClaims đã hỏi lại mọi
 # câu có ≥ 2 con số trước khi answerMetric chạy, nên claimedValue không bao giờ thấy ≥ 2 con số.
-# Hai dòng của danh mục KHÁC mà bản sửa làm mất chuỗi gốc (rc=2) và KHÔNG được sửa ở đây (ngoài phạm vi lời giao): g3-g4 "FC2 số người hỏi
-# lấy cả câu" (mã cũ `if len(focused) > 0 {`) — phủ bằng A02h ở đây và S2-4v của n25; w5-rag-hybrid "AG bỏ luật mốc thời gian" (mã cũ
-# `if _, dated := firstPeriod(in); dated {`) — phủ bằng A04c ở đây.
+# Hai dòng của danh mục KHÁC mà bản sửa làm mất chuỗi gốc (rc=2): g3-g4 "FC2 số người hỏi lấy cả câu" và w5-rag-hybrid "AG bỏ luật mốc
+# thời gian" — phiên chính đã đổi chuỗi gốc của hai dòng đó theo mã mới (không xoá dòng); A02h, S2-4v (n25) và A04c phủ thêm.
 cd "$(dirname "$0")/../.." || exit 1
 export PKGS="./core/pipeline/ ./data/entityresolution/ ./data/normalization/ ./intelligence/intent/ ./reliability/validation/ ./tenants/construction/"
 A=core/pipeline/ask.go D=data/normalization/datetime.go E=data/normalization/engine.go I=intelligence/intent/intent.go K=reliability/validation/knowledge.go R=data/entityresolution/resolver.go L=tenants/construction/pack/lexicon.yaml

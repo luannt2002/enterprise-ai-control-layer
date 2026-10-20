@@ -10,7 +10,7 @@ m intelligence/router/router.go 'kdef.Capability != "" && !pol.Allows(pr, kdef.C
 m intelligence/intent/intent.go '		r.Knowledge = k.Intent.Name' '		_ = k' 'AE Classify không gắn Knowledge'
 m intelligence/intent/intent.go 'func missingEntity(d Def, it contracts.Intent) bool {' 'func missingEntity(d Def, it contracts.Intent) bool {
 	return false' 'AF thiếu thực thể không rơi về RAG'
-m intelligence/intent/intent.go '		if _, dated := firstPeriod(in); dated {' '		if _, dated := firstPeriod(in); dated && false {' 'AG bỏ luật mốc thời gian'
+m intelligence/intent/intent.go '		if _, dated := firstPeriod(in); dated || len(in.InvalidDates) > 0 || len(r.Unclear.Entities) > 0 {' '		if _, dated := firstPeriod(in); dated && false || len(in.InvalidDates) > 0 || len(r.Unclear.Entities) > 0 {' 'AG bỏ luật mốc thời gian'
 m core/pipeline/ask.go '	if !marked {
 		return false
 	}' '	if true {

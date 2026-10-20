@@ -129,14 +129,22 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	notes := a.unclearNotes(cls.Unclear, now.Location())
 	names := mentionsOf(res)
 	claims := a.confirmClaims(plan, in, names)
-	rival, doubt := len(claims.values) > 1, len(claims.doubts) > 0
-	if rival || doubt {
+	rival, doubt, group := len(claims.values) > 1, len(claims.doubts) > 0, len(claims.groups) > 0
+	if rival || doubt || group {
 		plan.Route, plan.Template, plan.Outcome, plan.Steps = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired, nil
 	}
 	if rival {
 		plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")
 		plan.Reason = "câu xác nhận nêu nhiều con số khác nhau"
 		notes = append(notes, "Câu hỏi nêu nhiều con số khác nhau; mỗi lượt chỉ xác nhận được một con số.")
+	}
+	if group {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? — không phán quyết theo một cách đọc hệ tự chọn (P5; soát C3, C3-02 / C3-05)
+		if !rival {
+			plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")
+		}
+		plan.Reason = "câu xác nhận có nhóm số chưa phân định"
+		notes = append(notes, "Chưa rõ cách đọc "+strings.Join(claims.groups, ", ")+": một lượng, hay số hiệu đứng trước một lượng? Bạn viết lại con số liền (vd 2500) hoặc có dấu chấm (vd 2.500).")
 	}
 	if doubt {
 		// mốc thời gian người hỏi viết bằng chữ mà bộ chuẩn hoá không đọc được (hay không khớp kỳ đã đọc): kỳ của câu có thể KHÁC kỳ họ nói,
@@ -615,7 +623,7 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, names []mention, metric
 		return contracts.Value{}, false
 	}
 	cs := a.claimNumbers(in, names, def)
-	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 {
+	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 || len(cs.groups) > 0 {
 		return contracts.Value{}, false
 	}
 	return cs.values[0], true
@@ -693,6 +701,8 @@ type claimCand struct {
 	// formatted: số trần viết có hậu tố nhân, dấu nghìn / thập phân hoặc chữ ("4k", "4.000", "bốn ngàn"), hay số trần NỐI với một lượng bằng từ nối
 	// ("từ 3800 đến 3900 L", "3850 hay 4000 L" — xem joinClaims): joinClaims cho số trần nối tiếp với nó ("3800, 3850 hay 3900 L").
 	formatted bool
+	// uncertain: lượng viết nhóm nghìn chưa phân định ("bể 2 500 lít": normalization.UncertainGroups).
+	uncertain bool
 }
 
 // claimSet là kết quả của claimNumbers: các con số xác nhận và các mốc thời gian không kiểm được.
@@ -703,6 +713,9 @@ type claimSet struct {
 	// kỳ nào đã đọc được — kỳ của câu có thể khác kỳ họ nói, nên câu phải hỏi lại, không phán quyết. Mốc nêu thêm KHỚP kỳ đã đọc
 	// ("hôm nay tuần 43", khi hôm nay thuộc tuần 43) là bối cảnh vô hại.
 	doubts []string
+	// groups: chữ của các lượng viết nhóm nghìn CHƯA PHÂN ĐỊNH trong phạm vi câu hỏi ("bể 2 500 lít": 2.500 L hay bể 2 với 500 L?) — câu
+	// phải hỏi lại, không phán quyết theo một cách đọc.
+	groups []string
 }
 
 // claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def, kèm các mốc thời gian không kiểm
@@ -767,7 +780,8 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 				continue
 			}
 		}
-		cands = append(cands, claimCand{start: sp.Start, end: sp.End, orig: sp.Value, v: v, explicit: explicit, formatted: formatted})
+		cands = append(cands, claimCand{start: sp.Start, end: sp.End, orig: sp.Value, v: v, explicit: explicit, formatted: formatted,
+			uncertain: normalization.UncertainGroups(sp)})
 	}
 	a.joinClaims(in, def, cands)
 	lo, hi := 0, len(in.Raw) // [lo, hi): mệnh đề hỏi; từ hi trở đi: các mệnh đề sau nó
@@ -788,6 +802,9 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 			primary = append(primary, c)
 		default:
 			trailing = append(trailing, c)
+		}
+		if raw := in.Raw[c.start:c.end]; c.start >= lo && c.uncertain && !slices.Contains(cs.groups, raw) {
+			cs.groups = append(cs.groups, raw)
 		}
 	}
 	// MỌI con số ứng viên của mệnh đề hỏi và các mệnh đề sau đều tính (trừ số trong tên thực thể, số thuộc kỳ đã đọc, số hiệu sau từ nhãn — đã

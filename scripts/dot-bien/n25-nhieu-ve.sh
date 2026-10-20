@@ -38,13 +38,13 @@ m $E 'sp, next, ok, bad := matchNumericDate(raw, toks, i, opt.Now)' 'sp, next, o
 m $E 'InvalidDates: invalid,' '' 'S2-4t Normalize không trả InvalidDates'
 
 # --- Luồng hỏi (ask.go): câu xác nhận nêu nhiều con số khác nhau
-m $A 'rival, doubt := len(claims.values) > 1, len(claims.doubts) > 0' 'rival, doubt := len(claims.values) > 99, len(claims.doubts) > 0' 'S2-4u bỏ kiểm nhiều con số khác nhau (xác nhận con số của mệnh đề hỏi)'
+m $A 'rival, doubt, group := len(claims.values) > 1,' 'rival, doubt, group := len(claims.values) > 99,' 'S2-4u bỏ kiểm nhiều con số khác nhau (xác nhận con số của mệnh đề hỏi)'
 m $A 'lo, hi = fs, fe' 'lo, hi = 0, fe' 'S2-4v số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi (ngữ cảnh) cũng bị tính'
 m $A $'\t\t\ttrailing = append(trailing, c)' $'\t\t\t_ = c' 'S2-4w số ở các mệnh đề SAU mệnh đề hỏi bị bỏ qua (hành vi cũ)'
 m $A 'v, ok := a.inMetricUnit(sp.Value, def)' 'v, ok := sp.Value, def.Unit != ""' 'S2-4x không đổi về đơn vị chuẩn trước khi so (4k và 4 m3 bị tính là hai số)'
 m $A 'v, ok := a.inMetricUnit(sp.Value, def)' 'v, ok := a.inMetricUnit(sp.Value, def); if !ok { v, ok = sp.Value, true }' 'S2-4y số khác chiều đo (7h) bị tính là con số xác nhận'
 m $A 'sp.Start < m.end && sp.End > m.start' 'false' 'S2-4z số trong tên thực thể (máy xúc 03) bị tính là con số xác nhận'
-m $A 'plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")' '_ = slices.Clone(plan.Intent.Missing)' 'S2-4aa phản hồi không ghi khe claimed vào Missing'
+m $A $'\tif rival {\n\t\tplan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")' $'\tif rival {\n\t\t_ = slices.Clone(plan.Intent.Missing)' 'S2-4aa phản hồi không ghi khe claimed vào Missing'
 m $A 'contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired, nil' 'contracts.RouteClarification, "clarify_missing", contracts.OutcomeResolved, nil' 'S2-4ab hỏi lại nhưng Outcome sai (RESOLVED)'
 m $A '"claimed": "con số cần xác nhận"' '"claimed": "claimed"' 'S2-4ac câu hỏi lại gọi khe bằng mã thay vì nhãn'
 

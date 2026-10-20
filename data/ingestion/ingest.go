@@ -314,6 +314,10 @@ func (c *conformer) quantity(text string, exclude [][2]int) (contracts.Value, st
 	default:
 		return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("có %d lượng trong %q", len(cands), text)
 	}
+	if normalization.UncertainGroups(cands[0]) {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? Không ghi một cách đọc vào nguồn sự thật (P5; soát C3, C3-02)
+		return contracts.Value{}, ReasonUnparseable, "nhóm nghìn chưa phân định trong " + fmt.Sprintf("%q", text)
+	}
 	v := cands[0].Value
 	if v.Kind == contracts.ValueNumber || v.Unit == "" {
 		if c.spec.DefaultUnit == "" {

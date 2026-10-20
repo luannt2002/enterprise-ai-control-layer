@@ -222,12 +222,15 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 	switch t.kind {
 	case tokNum:
 		text := t.text
-		if n := e.spaceGroups(s, toks, i, layout); n > i { // "3 850 lít": nhóm nghìn ngăn bằng một dấu cách
+		if n, certain := e.spaceGroups(s, toks, i, layout); n > i { // "3 850 lít": nhóm nghìn ngăn bằng một dấu cách
 			var b strings.Builder
 			for k := i; k <= n; k += 2 {
 				b.WriteString(toks[k].text)
 			}
-			text, end, rule = b.String(), toks[n].end, "number:digits:space_thousands"
+			text, end, rule = b.String(), toks[n].end, ruleSpaceThousands
+			if !certain {
+				rule = ruleSpaceThousandsUncertain
+			}
 		}
 		v, ambiguousSep, ok := parseLocaleNumber(text)
 		if !ok {
@@ -285,35 +288,27 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 	}, tokenAt(toks, end), true
 }
 
-// identifierBefore báo con số bắt đầu ở pos đứng ngay sau một từ nhãn / từ đếm / từ chỉ kỳ ("đội 3", "phiếu 1", "máy 3",
-// "tuần 2"): khi đó nó là số hiệu hay mốc, không phải phần đầu của một lượng viết nhóm nghìn ("đội 3 500 lít" là đội 3, 500 L).
-// Dùng chung các danh sách của qualifier.go (nợ D-OP-8: danh sách có từ miền, phải dời sang pack).
-func identifierBefore(s string, pos int) bool {
-	ws, we := wordBefore(s, pos)
-	if we == ws {
-		return false
-	}
-	for _, list := range [][]string{labelBefore, countAfter} {
-		for _, w := range list {
-			if wordIs(s, ws, we, w) {
-				return true
-			}
-		}
-	}
-	for _, p := range periodWords {
-		if wordIs(s, ws, we, p.word) {
-			return true
-		}
-	}
-	return false
+// Quy tắc của span lượng viết nhóm nghìn ngăn bằng dấu cách; bản "uncertain" khi con số không đứng đầu văn bản (xem spaceGroups).
+const (
+	ruleSpaceThousands          = "number:digits:space_thousands"
+	ruleSpaceThousandsUncertain = "number:digits:space_thousands:uncertain"
+)
+
+// UncertainGroups báo span là lượng viết nhóm nghìn ngăn bằng dấu cách mà con số KHÔNG đứng đầu văn bản: hai cách đọc ("bể 2 500 lít":
+// 2.500 L, hay bể 2 với 500 L) chưa phân định được. Luồng hỏi hỏi lại, nạp dữ liệu cách ly (P5; soát C3, C3-02 / C3-05).
+func UncertainGroups(sp contracts.Span) bool {
+	return strings.HasPrefix(sp.Rule, ruleSpaceThousandsUncertain)
 }
 
 // spaceGroups trả chỉ số token của nhóm nghìn CUỐI khi toks[i] là phần đầu của một lượng viết nhóm nghìn ngăn bằng MỘT dấu
 // cách ("3 850 lít", "1 234 567 L"; docs/tenants/construction/03-data-map.md:134: `4 000 lít` → 4.000 L): phần đầu 1–3 chữ số
 // không bắt đầu bằng 0, mỗi nhóm sau đúng 3 chữ số, và ngay sau nhóm cuối là một đơn vị. Không phải thì trả i, giữ cách đọc
-// cũ: "bước 3 850" (không có đơn vị), "máy 03 850 lít" (số 0 đầu là số hiệu), "đội 3 500 lít" (số hiệu sau từ nhãn), "3 85 lít",
-// "1234 567 lít".
-func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
+// cũ: "bước 3 850" (không có đơn vị), "máy 03 850 lít" (số 0 đầu là số hiệu), "3 85 lít", "1234 567 lít".
+// certain chỉ đúng khi con số đứng ĐẦU văn bản. Ở chỗ khác phần đầu có thể là số hiệu của chữ / ký hiệu đứng trước ("bể 2 500 lít",
+// "phiếu #1 200 L", "bể: 2 500 lít"): vẫn gộp thành MỘT span — không để phần đầu thành số mồ côi ("12 000 km", "500 000 đồng" giữ
+// nguyên nghĩa cho lớp kiểm số và tiền; soát fd4d19c, F1–F4) — nhưng span mang quy tắc chưa phân định (UncertainGroups). Danh sách từ
+// nhãn không phân định được: nó rò ("tổng số", "bể", "#": C3-02, C3-05, F5).
+func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) (int, bool) {
 	digits := func(t token) bool {
 		for _, r := range t.text {
 			if r < '0' || r > '9' {
@@ -322,8 +317,8 @@ func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
 		}
 		return t.kind == tokNum && t.text != ""
 	}
-	if !digits(toks[i]) || len(toks[i].text) > 3 || toks[i].text[0] == '0' || identifierBefore(s, toks[i].start) {
-		return i
+	if !digits(toks[i]) || len(toks[i].text) > 3 || toks[i].text[0] == '0' {
+		return i, false
 	}
 	last := i
 	for k := i + 2; k < len(toks); k += 2 {
@@ -333,12 +328,12 @@ func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
 		last = k
 	}
 	if last == i {
-		return i
+		return i, false
 	}
 	if _, _, _, ok := e.matchUnit(s, toks[last].end, layout, false); !ok {
-		return i
+		return i, false
 	}
-	return last
+	return last, strings.TrimSpace(s[:toks[i].start]) == ""
 }
 
 // matchMultiplier đọc hậu tố nhân ngay sau số ("4k", "4 nghìn") và phần lẻ dính liền

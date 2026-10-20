@@ -35,6 +35,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -75,6 +76,8 @@ const (
 	// contractMaxTokens, contractMaxRetries: hợp đồng §4 (max_tokens 1024; thử lại 2 lần).
 	contractMaxTokens  = 1024
 	contractMaxRetries = 2
+	// contractSmoke là cỡ thử khói bắt buộc của hợp đồng ("g7run -smoke 3"); COST-PLAN dự phòng đúng 3 ca.
+	contractSmoke = 3
 )
 
 // Dòng kết luận khi luật D5 có thể đã tính xong nhưng KHÔNG được rút kết luận G7.
@@ -109,9 +112,21 @@ func verdict(rule string, in verdictInput) (string, int) {
 	return "G7: " + rule, 1
 }
 
-// officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4). Endpoint khác (máy chủ giả, proxy) là
-// CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
+// officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4), so theo nghĩa (isOfficialEndpoint). Endpoint khác
+// (máy chủ giả, proxy) là CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
 const officialEndpoint = "https://api.anthropic.com"
+
+// isOfficialEndpoint so endpoint với officialEndpoint theo NGHĨA, không theo chuỗi: scheme và tên máy không phân biệt hoa
+// thường, bỏ dấu chấm cuối tên máy, cổng 443 là cổng mặc định của https, path bất kỳ. Cách viết khác của chính máy chủ
+// chính thức vẫn tốn tiền thật nên không được rơi vào nhánh chạy khô (soát C3, C3-04).
+func isOfficialEndpoint(raw string) bool {
+	u, err := url.Parse(raw)
+	o, _ := url.Parse(officialEndpoint)
+	if err != nil || u.Scheme != o.Scheme || (u.Port() != "" && u.Port() != "443") {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSuffix(u.Hostname(), "."), o.Hostname())
+}
 
 const dryLine = "G7: CHẠY KHÔ — endpoint không phải API chính thức của nhà cung cấp; KHÔNG phải bằng chứng G7"
 
@@ -159,10 +174,11 @@ func main() {
 	os.Exit(run(cfg))
 }
 
-// stopBeforeModel: lượt chạy THẬT (không model giả, không chạy khô) mà có hệ cổng bị chặn thì không gọi model —
-// kết luận chắc chắn là KHÔNG ĐẠT, gọi tiếp chỉ tốn tiền (C-04, soát lượt 2).
-func stopBeforeModel(blocked []string, fake, dry bool) bool {
-	return len(blocked) > 0 && !fake && !dry
+// stopBeforeModel: lượt CÓ THỂ TỐN TIỀN (không model giả, endpoint không phải loopback — kể cả proxy) mà có hệ cổng bị
+// chặn thì không gọi model — kết luận chắc chắn là KHÔNG ĐẠT, gọi tiếp chỉ tốn tiền (C-04, soát lượt 2; proxy: soát C3,
+// C3-04). free = endpoint loopback (máy chủ giả).
+func stopBeforeModel(blocked []string, fake, free bool) bool {
+	return len(blocked) > 0 && !fake && !free
 }
 
 // contractDeviations liệt kê chỗ cấu hình HIỆU LỰC lệch hợp đồng G7 §3–§4: model, thinking, effort, max_tokens,
@@ -202,6 +218,15 @@ func contractDeviations(cfg config, gw models.Gateway) []string {
 func preflightReal(cfg config, gw models.Gateway) []string {
 	reasons := contractDeviations(cfg, gw)
 	if cfg.smoke > 0 {
+		// Thử khói rẻ nhưng vẫn tốn tiền: cỡ không vượt hợp đồng, và bằng chứng của nó phải ghi được (soát C3, C3-06).
+		if cfg.smoke > contractSmoke {
+			reasons = append(reasons, fmt.Sprintf("-smoke %d: hợp đồng thử khói %d ca", cfg.smoke, contractSmoke))
+		}
+		if cfg.out != "" {
+			if err := probeWritable(cfg.out); err != nil {
+				reasons = append(reasons, "thư mục -out không ghi được: "+err.Error())
+			}
+		}
 		return reasons
 	}
 	if cfg.grade != gradeContent {
@@ -213,6 +238,15 @@ func preflightReal(cfg config, gw models.Gateway) []string {
 		}
 		if cfg.k != 3 && cfg.k != 5 {
 			reasons = append(reasons, fmt.Sprintf("-k %d: hợp đồng §5 chỉ 3 hoặc 5", cfg.k))
+		}
+		// gatePass đòi mọi hệ cổng: thiếu một hệ trong -systems thì lượt chắc chắn KHÔNG ĐẠT (mã 1, hợp đồng coi là FAIL)
+		// vì quên cờ chứ không vì EACL (soát C3, C3-07). Pilot được chạy một phần hệ.
+		if systems, err := parseSystems(cfg.systems); err == nil {
+			for _, g := range gateSystems {
+				if !slices.Contains(systems, g) {
+					reasons = append(reasons, "lượt chính thiếu hệ cổng "+g+" trong -systems: gatePass đòi mọi hệ cổng nên lượt này chắc chắn KHÔNG ĐẠT")
+				}
+			}
 		}
 	}
 	if cfg.out == "" {
@@ -272,12 +306,15 @@ func run(cfg config) int {
 		fmt.Println(blockedLine)
 	}
 	sink := newEvidenceSink(nil)
-	dry := false
+	dry, costly := false, false
 	if m, ok := gw.(*models.Messages); ok {
 		m.Trace = sink.trace
-		dry = strings.TrimRight(m.BaseURL, "/") != officialEndpoint
+		// dry: không phải endpoint chính thức ⇒ không phải bằng chứng G7. costly: không phải loopback ⇒ lời gọi CÓ THỂ tốn
+		// tiền (cả cách viết khác của endpoint chính thức lẫn proxy), nên phải giữ được trần ngân sách và qua kiểm trước
+		// lời gọi model (soát C3, C3-04).
+		dry, costly = !isOfficialEndpoint(m.BaseURL), !models.LoopbackEndpoint(m.BaseURL)
 		price, priced := priceTable[m.Model]
-		if !priced && !dry {
+		if !priced && costly {
 			fmt.Fprintf(os.Stderr, "LỖI: model %q không có trong bảng giá: không giữ được trần ngân sách\n", m.Model)
 			return 2
 		}
@@ -287,7 +324,7 @@ func run(cfg config) int {
 	if dry {
 		fmt.Println(dryLine)
 	}
-	if !fake && !dry {
+	if !fake && costly {
 		if reasons := preflightReal(cfg, gw); len(reasons) > 0 {
 			fmt.Fprintln(os.Stderr, "LỖI: lượt chạy thật bị từ chối TRƯỚC lời gọi model:", strings.Join(reasons, "; "))
 			return 2
@@ -309,7 +346,7 @@ func run(cfg config) int {
 			return 2
 		}
 	}
-	if stopBeforeModel(s.blocked, fake, dry) {
+	if stopBeforeModel(s.blocked, fake, !costly) {
 		fmt.Fprintln(os.Stderr, "LỖI: hệ cổng không chạy được, không gọi model:", strings.Join(s.blocked, "; "))
 		return 2
 	}

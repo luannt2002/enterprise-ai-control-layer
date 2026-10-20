@@ -44,7 +44,7 @@ m $E '	if r.ModelCalls > 0 {
 m $E '	for _, g := range append([]string{sysEACL}, gateSystems...) {' '	for _, g := range gateSystems {' 'G28 pilot bỏ EACL'
 m $E '	if s.capUSD > 0 && s.spentUSD >= s.capUSD {' '	if false && s.capUSD > 0 && s.spentUSD >= s.capUSD {' 'G29 không ghi chạm trần'
 m $E '	if spent, hit := g.sink.spent(); hit {' '	if spent, hit := g.sink.spent(); hit && false {' 'G30 vẫn gọi model sau khi chạm trần'
-m $M '		dry = strings.TrimRight(m.BaseURL, "/") != officialEndpoint' '		dry = false' 'G31 chạy khô trông như lượt thật'
+m $M '		dry, costly = !isOfficialEndpoint(m.BaseURL), !models.LoopbackEndpoint(m.BaseURL)' '		dry, costly = false, !models.LoopbackEndpoint(m.BaseURL)' 'G31 chạy khô trông như lượt thật'
 m $E '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 0 {' '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 99 {' 'G32 ghi đè bằng chứng cũ'
 m $E '		if filepath.IsAbs(f) { // không ghi đường dẫn tuyệt đối của máy vào bằng chứng công khai' '		if false && filepath.IsAbs(f) {' 'G33 lộ đường dẫn tuyệt đối'
 m $M '						layer = "PROVIDER" // máy gán: ca trượt vì lỗi gọi model, không vì câu trả lời' '						layer = "CHƯA PHÂN LOẠI"' 'G34 không gán nhãn PROVIDER'

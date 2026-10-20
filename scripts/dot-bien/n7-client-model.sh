@@ -19,6 +19,5 @@ m $F '			m.Temperature = &t' '			_ = t' 'MS9 bỏ temperature đã cấu hình'
 m $F '		if c.Thinking != "" && !slices.Contains(ThinkingTypes, c.Thinking) {' '		if false {' 'MS10 không kiểm thinking'
 # soát C2, F-11: URL có thông tin xác thực bị từ chối và không in lại trong lỗi; localhost không phân biệt hoa thường
 m intelligence/models/messages.go '	if err != nil || u.User != nil {' '	if err != nil {' 'K5 nhận URL có user:pass'
-m intelligence/models/messages.go '		if strings.EqualFold(h, "localhost") {' '		if h == "localhost" {' 'K6 LOCALHOST bị từ chối oan'
-m intelligence/models/messages.go '	u.User = nil
-	return u.String()' '	return u.String()' 'K7 thông báo lỗi in lại mật khẩu'
+m intelligence/models/messages.go '	if strings.EqualFold(h, "localhost") {' '	if h == "localhost" {' 'K6 LOCALHOST bị từ chối oan'
+m intelligence/models/messages.go '	return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String()' '	return u.String()' 'K7 thông báo lỗi in lại mật khẩu / path / query (C3-08)'

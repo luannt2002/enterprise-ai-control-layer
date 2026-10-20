@@ -175,15 +175,15 @@ Không chỉ lưu điểm tổng hợp.
 
 ## 12. Lệnh (khi đủ mục 13 và có khoá do chủ môi trường đặt)
 
-**Kiểm trước khi tiêu tiền** (`g7run`, soát C2 F-02 / F-03 / F-05). Lượt chạy THẬT (model thật qua endpoint chính thức) bị từ chối TRƯỚC lời gọi model đầu tiên, mã 2, khi:
+**Kiểm trước khi tiêu tiền** (`g7run`, soát C2 F-02 / F-03 / F-05; soát C3 C3-04 / C3-06 / C3-07). Lượt CÓ THỂ TỐN TIỀN — model thật qua endpoint không phải loopback: endpoint chính thức (so theo nghĩa: `https://api.anthropic.com:443`, chữ hoa, dấu chấm cuối tên máy vẫn là endpoint chính thức) và cả proxy (vẫn là chạy khô, mã 2, nhưng có thể chuyển tiếp và tính tiền) — bị từ chối TRƯỚC lời gọi model đầu tiên, mã 2, khi:
 - tham số hiệu lực lệch §3–§4: model, thinking, effort, max_tokens 1024, có gửi temperature, số lần thử lại khác 2, top-k khác 10;
 - `-grade` khác `content`;
-- lượt chính (không pilot, không thử khói) mà bộ chấm chưa đóng băng (ADR-0007), hoặc `k` không phải 3 / 5;
+- lượt chính (không pilot, không thử khói) mà bộ chấm chưa đóng băng (ADR-0007), hoặc `k` không phải 3 / 5, hoặc `-systems` thiếu một hệ cổng (B2+, B1: thiếu thì lượt chắc chắn KHÔNG ĐẠT vì quên cờ);
 - thiếu `-out`, hoặc `-out` không ghi được;
 - bộ ca sai định dạng (`evals.ValidateWinSuite`), principal lạ, id trùng;
 - có hệ cổng bị chặn.
 
-Thử khói chỉ cần đúng tham số. Pilot được miễn điều kiện bộ chấm đã đóng băng: pilot là để hiệu chỉnh bộ chấm, không phải bằng chứng G7.
+Thử khói chỉ cần đúng tham số, N ≤ 3 (cỡ thử khói của §4), và `-out` ghi được nếu có `-out`. Pilot được miễn điều kiện bộ chấm đã đóng băng và điều kiện đủ hệ cổng: pilot là để hiệu chỉnh bộ chấm, không phải bằng chứng G7. Chỉ máy chủ giả loopback (127.0.0.0/8, ::1, localhost) được chạy không qua các kiểm này. Thông báo lỗi và `manifest.json` chỉ ghi `scheme://host` của endpoint (khoá có thể nằm trong path / query).
 
 ```bash
 # 0. cây sạch, đúng revision đã đóng băng

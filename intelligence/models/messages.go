@@ -326,7 +326,7 @@ var (
 )
 
 // secureEndpoint: https, hoặc http tới loopback (127.0.0.1, ::1, localhost) cho máy chủ giả khi chạy khô. URL mang
-// thông tin xác thực (user:pass@) bị từ chối: endpoint được ghi nguyên văn vào bằng chứng (soát C2, F-11).
+// thông tin xác thực (user:pass@) bị từ chối (soát C2, F-11).
 func secureEndpoint(raw string) bool {
 	u, err := url.Parse(raw)
 	if err != nil || u.User != nil {
@@ -336,24 +336,35 @@ func secureEndpoint(raw string) bool {
 	case "https":
 		return u.Host != ""
 	case "http":
-		h := u.Hostname()
-		if strings.EqualFold(h, "localhost") {
-			return true
-		}
-		ip := net.ParseIP(h)
-		return ip != nil && ip.IsLoopback()
+		return LoopbackEndpoint(raw)
 	}
 	return false
 }
 
-// endpointForLog trả endpoint không kèm thông tin xác thực, để thông báo lỗi không in mật khẩu ra log.
-func endpointForLog(raw string) string {
+// LoopbackEndpoint báo endpoint trỏ về chính máy này (127.0.0.0/8, ::1, localhost): máy chủ giả khi chạy khô, lời gọi tới
+// đó không thể tốn tiền. Endpoint khác — kể cả proxy không phải API chính thức — có thể chuyển tiếp và tính tiền.
+func LoopbackEndpoint(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	if strings.EqualFold(h, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(h)
+	return ip != nil && ip.IsLoopback()
+}
+
+// EndpointForLog trả scheme://host của endpoint, bỏ thông tin xác thực, path, query và fragment: khoá có thể nằm ở bất kỳ
+// phần nào trong số đó ("?api_key=…", "/<token>/"), nên thông báo lỗi và tệp bằng chứng chỉ ghi phần định danh máy chủ
+// (soát C2 F-11, soát C3 C3-08).
+func EndpointForLog(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil {
 		return "(không đọc được URL)"
 	}
-	u.User = nil
-	return u.String()
+	return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String()
 }
 
 // ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
@@ -399,7 +410,7 @@ func New(c Config) (Gateway, error) {
 			m.BaseURL = "https://api.anthropic.com"
 		}
 		if !secureEndpoint(m.BaseURL) {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", endpointForLog(m.BaseURL)))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", EndpointForLog(m.BaseURL)))
 		}
 		if c.MaxTokens < 0 {
 			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_TOKENS phải là số nguyên dương")

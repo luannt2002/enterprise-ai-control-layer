@@ -542,7 +542,7 @@ func newManifest(cfg config, mc models.Config, gw models.Gateway, fake bool, sys
 		gw = bg.inner
 	}
 	if g, ok := gw.(*models.Messages); ok {
-		m.Endpoint = g.BaseURL
+		m.Endpoint = models.EndpointForLog(g.BaseURL) // chỉ scheme://host: khoá có thể nằm trong path / query (C3-08)
 		m.ModelParams = map[string]any{
 			"max_tokens": g.MaxTokens, "temperature": g.Temperature, "thinking": g.Thinking,
 			"effort": g.Effort, "max_retries": g.MaxRetries,

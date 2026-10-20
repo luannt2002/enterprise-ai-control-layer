@@ -8,7 +8,7 @@ m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
 export PKGS="./intelligence/models/"
 F=intelligence/models/messages.go
 m $F ', CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}' '}' 'K1 đi theo chuyển hướng (gửi lại khoá)'
-m $F '		return ip != nil && ip.IsLoopback()' '		return ip != nil || true' 'K2 nhận http không phải loopback'
+m $F '	return ip != nil && ip.IsLoopback()' '	return ip != nil || true' 'K2 nhận http không phải loopback'
 m $F '		if !secureEndpoint(m.BaseURL) {' '		if false {' 'K3 bỏ kiểm endpoint'
 m $F '			c.MaxTokens = -1 // New báo lỗi cấu hình, không lặng lẽ về mặc định' '			c.MaxTokens = 0' 'K4 MAX_TOKENS hỏng về mặc định'
 export PKGS="./tenants/construction/win/g7run/"

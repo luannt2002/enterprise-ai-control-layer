@@ -285,3 +285,17 @@ func TestMaxTokensHongLaLoi(t *testing.T) {
 		}
 	}
 }
+
+// Thông báo lỗi chỉ in scheme://host của endpoint bị từ chối: khoá đặt trong path / query / fragment của URL (gateway kiểu
+// "?api_key=…") không được ra log (soát C3, C3-08; F-11 mới bỏ phần user:pass@).
+func TestLoiEndpointChiInSchemeVaHost(t *testing.T) {
+	for _, u := range []string{"http://gateway.example.com/v1?api_key=BIMAT123", "http://gateway.example.com/BIMAT123/", "http://gateway.example.com/v1#BIMAT123"} {
+		_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: u})
+		if err == nil {
+			t.Fatalf("%s: http tới máy không phải loopback phải bị từ chối", u)
+		}
+		if strings.Contains(err.Error(), "BIMAT123") || !strings.Contains(err.Error(), `"http://gateway.example.com"`) {
+			t.Errorf("%s: thông báo lỗi %q; muốn chỉ có scheme://host", u, err)
+		}
+	}
+}

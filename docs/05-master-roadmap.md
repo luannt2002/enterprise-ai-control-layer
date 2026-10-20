@@ -1,5 +1,7 @@
 # 05 — EAIS Master Roadmap
 
+> **Lịch sử EAIS (D-V3-10, chủ dự án duyệt 20/10/2026):** roadmap hiện hành là EACL V3, xem `docs/v3/`. Giữ tệp này để truy nguồn gốc quyết định; không lập kế hoạch mới theo nó.
+>
 > **Mô tả EAIS có thể tiến hoá tới đâu, với điều kiện năng lực trước đó đã giành được quyền tồn tại.**
 >
 > Trạng thái: hướng đi đã chốt theo user ngày 19/10/2026 ("làm cái win trước, đạt rồi mới mở rộng ra roadmap đầy đủ"). Từng phase là **giả thuyết có điều kiện**, không phải danh sách việc.

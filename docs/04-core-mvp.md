@@ -1,5 +1,7 @@
 # 04 — EAIS Core MVP: Enterprise Truth & Routing Proof
 
+> **Lịch sử EAIS (D-V3-10, chủ dự án duyệt 20/10/2026):** hướng hiện hành là EACL V3, xem `docs/v3/`. Tệp này **vẫn là hợp đồng của R1** (Fuel Truth Benchmark, cổng W-G1…W-G7); luật D5 sửa đổi ở ADR-0005.
+>
 > **Chứng minh phiên bản nhỏ nhất của EAIS đáng được tồn tại.**
 >
 > Trạng thái:

@@ -429,3 +429,12 @@ Cách đo: tôi dựng lại đúng baseline của `g7run` trong một chương 
 - Tôi chỉ tạo tệp trong scratch (`data/`, `data-s43/`, `data-s44/`, `g7run-fake.out`, `g7run-fake.err`, `go.work`, `probe/`). Repo không đổi.
 
 > Ghi chú của phiên chính: thư mục scratch của người soát là tạm. Chương trình đo (`probe/main.go`, 590 dòng) và kết quả chạy model giả đã được giữ ở máy gốc, `docs/sources/g7-review-d5-probe/` (gitignore, **chưa soát nên chưa công khai**). Muốn công khai để ai cũng tái lập được bảng Q3 thì cần soát và bỏ đường dẫn máy trước: câu D-G7-9, mục 15.
+>
+> **Đã công khai 20/10 đêm (D-G7-9 mục 15):** `tenants/construction/win/d5probe/main.go`.
+> - Soát riêng tư: không có khoá, email hay dữ liệu thật; chỉ dữ liệu tổng hợp đã công khai trong repo. Chỗ cần bỏ duy nhất là đường dẫn máy viết cứng (trong `main.go` và `go.work`): thay bằng cờ `-pack` / `-cases`, chạy từ gốc repo, không cần `go.work`. Logic giữ nguyên.
+> - Tái lập ở `7f6711c`, dữ liệu functional seed 42: ra đúng số của bản soát:
+>   - top-10 đọc được đáp án 55/70;
+>   - dòng SOP-INJ trong top-10 ở 99/117 ca (top-3: 56);
+>   - trần oracle top-10 là 95/117; biến thể `ALIASES=1 REWRITE=1` là 114/117;
+>   - EACL trên 37 câu diễn đạt mới: 31/37.
+> - Mã sau `7f6711c` (pipeline, bộ chấm) đổi thì số đổi theo.

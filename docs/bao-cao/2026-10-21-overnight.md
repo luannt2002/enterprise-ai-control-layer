@@ -136,7 +136,7 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 - Lời gọi model thật: **0**. Chi tiêu: **0 USD**.
 - Dự toán G7 (`docs/g7/COST-PLAN.md`, đo bằng chạy khô pilot + H1; token là ƯỚC):
   - hệ cổng, lượt chính k = 3: kỳ vọng 12,74 USD (tối thiểu 10,02 · xấu nhất 27,40);
-  - thêm một lần chạy lại: 16,36; k = 5: 19,82;
+  - thêm một lần chạy lại trọn lượt: 23,44; k = 5: 19,82 (bản đầu ghi 16,36: tính sai thành chạy lại k = 1; soát C2, F-09);
   - B1 chiếm gần hết chi phí;
   - D-G7-18.
 

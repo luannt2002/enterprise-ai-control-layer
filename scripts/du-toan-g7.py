@@ -12,7 +12,8 @@ Giá Sonnet 5.5 (Pricing chính thức, tra 20/10/2026): vào 2 USD, ra 10 USD m
 Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EACL, B1, B2+;
 chỉ báo cáo: B2, B2″, B2-oracle.
 Trần 15 USD là của TOÀN BỘ G7 (hợp đồng §9): cờ vượt trần xét cả tổng hệ cổng, tổng mọi hệ được chạy, và tổng
-kèm dự phòng (thử khói 3 ca + chạy lại MỘT lượt chính k = 1 sau lượt vô hiệu, §10) — bản soát lượt 2, C-17.
+kèm dự phòng (thử khói 3 ca + chạy lại TRỌN lượt chính với cùng k sau lượt vô hiệu, §10: lượt k = 1 không ra
+kết luận vì R0 đòi k ≥ 3, lẻ) — bản soát lượt 2, C-17; soát C2, F-09.
 """
 import argparse
 import json
@@ -77,10 +78,10 @@ def main():
                 _, _, p = cost(pc.get(s, 0), pch.get(s, 0), 5, cpt, opc)
                 _, _, m = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc)
                 row.append(f"{p + m:.2f}")
-                # dự phòng: thử khói 3 ca (theo trung bình mỗi ca của pilot) + chạy lại một lượt chính k = 1
+                # dự phòng: thử khói 3 ca (theo trung bình mỗi ca của pilot) + chạy lại trọn lượt chính cùng k
                 n_pilot = max(1, a.pilot_cases)
                 _, _, sm = cost(pc.get(s, 0) * 3 / n_pilot, pch.get(s, 0) * 3 / n_pilot, 1, cpt, opc)
-                _, _, rr = cost(mc.get(s, 0), mch.get(s, 0), 1, cpt, opc)
+                _, _, rr = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc)
                 spare += sm + rr
                 if s in GATE:
                     spare_gate += sm + rr

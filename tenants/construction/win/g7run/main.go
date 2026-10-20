@@ -72,6 +72,9 @@ const (
 	contractEffort   = "medium"
 	// contractBudgetUSD là trần chi tiêu của TOÀN BỘ G7 (hợp đồng §9, D-G7-3).
 	contractBudgetUSD = 15.0
+	// contractMaxTokens, contractMaxRetries: hợp đồng §4 (max_tokens 1024; thử lại 2 lần).
+	contractMaxTokens  = 1024
+	contractMaxRetries = 2
 )
 
 // Dòng kết luận khi luật D5 có thể đã tính xong nhưng KHÔNG được rút kết luận G7.
@@ -162,6 +165,80 @@ func stopBeforeModel(blocked []string, fake, dry bool) bool {
 	return len(blocked) > 0 && !fake && !dry
 }
 
+// contractDeviations liệt kê chỗ cấu hình HIỆU LỰC lệch hợp đồng G7 §3–§4: model, thinking, effort, max_tokens,
+// temperature, số lần thử lại, top-k của baseline RAG. Rỗng = đúng hợp đồng. Dùng chung cho kiểm trước lượt thật và
+// cho verdict() (soát C2, F-02).
+func contractDeviations(cfg config, gw models.Gateway) []string {
+	if bg, ok := gw.(*budgetGateway); ok {
+		gw = bg.inner
+	}
+	g, ok := gw.(*models.Messages)
+	if !ok {
+		return []string{"không phải client model thật"}
+	}
+	var out []string
+	if g.Model != contractModel || g.Thinking != contractThinking || g.Effort != contractEffort {
+		out = append(out, fmt.Sprintf("model %q / thinking %q / effort %q, hợp đồng %q / %q / %q", g.Model, g.Thinking, g.Effort, contractModel, contractThinking, contractEffort))
+	}
+	if g.MaxTokens != contractMaxTokens {
+		out = append(out, fmt.Sprintf("max_tokens %d, hợp đồng %d", g.MaxTokens, contractMaxTokens))
+	}
+	if g.Temperature != nil {
+		out = append(out, "có gửi temperature, hợp đồng: không gửi")
+	}
+	if g.MaxRetries != contractMaxRetries {
+		out = append(out, fmt.Sprintf("thử lại %d lần, hợp đồng %d", g.MaxRetries, contractMaxRetries))
+	}
+	if cfg.topK != baseline.DefaultTopK {
+		out = append(out, fmt.Sprintf("top-k %d, hợp đồng %d", cfg.topK, baseline.DefaultTopK))
+	}
+	return out
+}
+
+// preflightReal kiểm lượt chạy THẬT (model thật qua endpoint chính thức) TRƯỚC lời gọi model đầu tiên: điều gì chắc
+// chắn làm lượt đó không thành bằng chứng thì từ chối ngay, không tiêu tiền rồi mới in CHẶN (soát C2, F-02, F-03).
+// Thử khói chỉ cần đúng tham số (rẻ, để chứng minh nhà cung cấp nhận chúng); pilot được miễn điều kiện bộ chấm đã
+// đóng băng (pilot là để hiệu chỉnh bộ chấm, không phải bằng chứng G7).
+func preflightReal(cfg config, gw models.Gateway) []string {
+	reasons := contractDeviations(cfg, gw)
+	if cfg.smoke > 0 {
+		return reasons
+	}
+	if cfg.grade != gradeContent {
+		reasons = append(reasons, "-grade khác content: không phải tiêu chí G7")
+	}
+	if !cfg.pilot {
+		if !scorerFrozen {
+			reasons = append(reasons, "bộ chấm nội dung chưa đóng băng (ADR-0007): lượt chính không thể ra kết luận G7")
+		}
+		if cfg.k != 3 && cfg.k != 5 {
+			reasons = append(reasons, fmt.Sprintf("-k %d: hợp đồng §5 chỉ 3 hoặc 5", cfg.k))
+		}
+	}
+	if cfg.out == "" {
+		reasons = append(reasons, "thiếu -out: lượt thật phải lưu bằng chứng thô (hợp đồng §11)")
+	} else if err := probeWritable(cfg.out); err != nil {
+		reasons = append(reasons, "thư mục -out không ghi được: "+err.Error())
+	}
+	return reasons
+}
+
+// probeWritable tạo (nếu chưa có) thư mục rồi thử ghi và xoá một tệp tạm trong đó.
+func probeWritable(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(dir, ".kiem-ghi-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Remove(name)
+}
+
 func run(cfg config) int {
 	started := time.Now()
 	// -budget ≤ 0 từng tắt trần (C-07): trần là bắt buộc và không vượt trần của hợp đồng. Viết dạng phủ định của
@@ -209,6 +286,12 @@ func run(cfg config) int {
 	}
 	if dry {
 		fmt.Println(dryLine)
+	}
+	if !fake && !dry {
+		if reasons := preflightReal(cfg, gw); len(reasons) > 0 {
+			fmt.Fprintln(os.Stderr, "LỖI: lượt chạy thật bị từ chối TRƯỚC lời gọi model:", strings.Join(reasons, "; "))
+			return 2
+		}
 	}
 	s, err := build(cfg, gw, systems)
 	if err != nil {
@@ -330,7 +413,7 @@ func run(cfg config) int {
 		rule = "ĐẠT với mọi baseline cổng (" + strings.Join(gateSystems, ", ") + ")"
 	}
 	line, code := verdict(rule, verdictInput{pass: pass, fake: fake, dry: dry, frozen: scorerFrozen, contentGrade: cfg.grade == gradeContent,
-		contractParams: mc.Model == contractModel && mc.Thinking == contractThinking && mc.Effort == contractEffort})
+		contractParams: len(contractDeviations(cfg, gw)) == 0})
 	say("\n%s\n", line)
 	fmt.Print(out.String())
 
@@ -553,10 +636,19 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 		return nil, fmt.Errorf("không có tệp ca nào khớp %q", cfg.cases)
 	}
 	var cases []evals.WinCase
+	known := map[string]bool{}
+	for id := range principals {
+		known[id] = true
+	}
 	for _, f := range files {
 		suite, err := evals.LoadWinSuite(f)
 		if err != nil {
 			return nil, err
+		}
+		// Kiểm định dạng bộ ca (lớp hỏng, route, outcome, id…) TRƯỚC lời gọi model đầu tiên: trước đây lớp lạ chỉ lộ ở
+		// CompareG7 sau khi đã gọi model đủ k lượt (soát C2, F-03).
+		if probs := evals.ValidateWinSuite(suite, cfg.tenant, known); len(probs) > 0 {
+			return nil, fmt.Errorf("%s: %s", f, strings.Join(probs[:min(len(probs), 5)], "; "))
 		}
 		cases = append(cases, suite.Cases...)
 	}

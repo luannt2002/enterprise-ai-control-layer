@@ -1183,7 +1183,9 @@ func TestBuildTuChoiPrincipalLaVaIdTrung(t *testing.T) {
 	c0, c1 := suite.Cases[0], suite.Cases[1]
 	for name, body := range map[string]string{
 		"principal lạ": fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: u-ma\n    question: \"x\"\n    expect:\n      outcome: PERMISSION_DENIED\n", c0.ID, c0.FailureClass),
-		"id trùng":     fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"x\"\n    expect:\n      outcome: RESOLVED\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"y\"\n    expect:\n      outcome: RESOLVED\n", c0.ID, c0.FailureClass, c0.Principal, c0.ID, c1.FailureClass, c1.Principal),
+		// lớp hỏng lạ: trước đây chỉ lộ ở CompareG7 SAU khi đã gọi model đủ k lượt (soát C2, F-03)
+		"lớp hỏng lạ": fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: bogus_class\n    authored_by: independent\n    principal: %s\n    question: \"x\"\n    expect:\n      outcome: RESOLVED\n", c0.ID, c0.Principal),
+		"id trùng":    fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"x\"\n    expect:\n      outcome: RESOLVED\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"y\"\n    expect:\n      outcome: RESOLVED\n", c0.ID, c0.FailureClass, c0.Principal, c0.ID, c1.FailureClass, c1.Principal),
 	} {
 		cfg := baseCfg(data)
 		cfg.cases = filepath.Join(t.TempDir(), "ca.yaml")

@@ -175,6 +175,16 @@ Không chỉ lưu điểm tổng hợp.
 
 ## 12. Lệnh (khi đủ mục 13 và có khoá do chủ môi trường đặt)
 
+**Kiểm trước khi tiêu tiền** (`g7run`, soát C2 F-02 / F-03 / F-05). Lượt chạy THẬT (model thật qua endpoint chính thức) bị từ chối TRƯỚC lời gọi model đầu tiên, mã 2, khi:
+- tham số hiệu lực lệch §3–§4: model, thinking, effort, max_tokens 1024, có gửi temperature, số lần thử lại khác 2, top-k khác 10;
+- `-grade` khác `content`;
+- lượt chính (không pilot, không thử khói) mà bộ chấm chưa đóng băng (ADR-0007), hoặc `k` không phải 3 / 5;
+- thiếu `-out`, hoặc `-out` không ghi được;
+- bộ ca sai định dạng (`evals.ValidateWinSuite`), principal lạ, id trùng;
+- có hệ cổng bị chặn.
+
+Thử khói chỉ cần đúng tham số. Pilot được miễn điều kiện bộ chấm đã đóng băng: pilot là để hiệu chỉnh bộ chấm, không phải bằng chứng G7.
+
 ```bash
 # 0. cây sạch, đúng revision đã đóng băng
 git status --porcelain                       # phải rỗng

@@ -59,8 +59,12 @@ go run ./tenants/construction/win/g7run -data /tmp/win               # G7: khôn
 | `EAIS_MODEL_PROVIDER` | `""` / `extractive` = model giả tất định; `anthropic` = API kiểu Messages | |
 | `EAIS_MODEL` | tên model | bắt buộc với model thật — không có mặc định |
 | `EAIS_MODEL_API_KEY` | khoá API | **không bao giờ ghi vào repo hay log** |
-| `EAIS_MODEL_BASE_URL` | endpoint, cho dịch vụ tương thích | trống = endpoint chính thức |
-| `EAIS_MODEL_MAX_TOKENS` | trần token đầu ra | trống = 1024 |
+| `EAIS_MODEL_BASE_URL` | endpoint, cho dịch vụ tương thích | trống = endpoint chính thức. Chỉ nhận `https://` hoặc `http://` tới loopback; client không theo chuyển hướng (khoá không đi theo, `d4b80be`). `g7run` coi endpoint khác API chính thức là CHẠY KHÔ |
+| `EAIS_MODEL_MAX_TOKENS` | trần token đầu ra | trống = 1024; giá trị hỏng là lỗi cấu hình, không lặng lẽ về 1024 |
+| `EAIS_MODEL_THINKING` | kiểu thinking gửi cho nhà cung cấp | hợp đồng G7 §4: `between_tools` |
+| `EAIS_MODEL_EFFORT` | `output_config.effort` | hợp đồng G7 §4: `medium` |
+| `EAIS_MODEL_TEMPERATURE` | sampling | trống = KHÔNG gửi (model hiện hành trả 400 với temperature khác mặc định; ADR-0005) |
+| `EAIS_MODEL_MAX_RETRIES` | số lần thử lại lỗi tạm (429, 5xx, quá giờ) | trống = 2, lùi 1 s rồi 2 s, có trần |
 
 ## 5. Mở phiên Claude Code để làm tiếp
 

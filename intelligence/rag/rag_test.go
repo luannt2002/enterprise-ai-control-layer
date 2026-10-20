@@ -123,3 +123,17 @@ func TestRetrieveTatDinh(t *testing.T) {
 		}
 	}
 }
+
+// Tài liệu không có ACL (thiếu trong acl.json ⇒ LoadMarkdown để ACL rỗng) thì KHÔNG AI đọc được, kể cả vai
+// cao nhất: quyền đóng mặc định (bản soát mã độc lập 20/10 đêm: đột biến "ACL rỗng = ai cũng đọc" sống
+// sót vì chưa có test chặn).
+func TestRetrieveACLRongKhongAiDoc(t *testing.T) {
+	docs := []Document{{ID: "SOP-NOACL", Tenant: "a", Title: "Quy trình bảo dưỡng máy xúc", Body: "1. Thay dầu thuỷ lực sau 500 giờ máy."}}
+	ix := NewMemoryIndex("a", docs)
+	for _, role := range []string{"director", "accountant", "site_engineer", "driver", ""} {
+		ev, err := ix.Retrieve(context.Background(), principal("a", role), "Quy trình bảo dưỡng máy xúc thay dầu thuỷ lực", 3)
+		if err != nil || len(ev) != 0 {
+			t.Errorf("vai %q đọc được tài liệu không có ACL: %d đoạn (lỗi %v)", role, len(ev), err)
+		}
+	}
+}

@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -170,5 +171,48 @@ func TestNewKiemThamSo(t *testing.T) {
 	t.Setenv("EAIS_MODEL_MAX_RETRIES", "x")
 	if c := ConfigFromEnv(); c.MaxRetries >= 0 {
 		t.Errorf("EAIS_MODEL_MAX_RETRIES sai: muốn giá trị âm để New chặn, được %d", c.MaxRetries)
+	}
+}
+
+// Thời gian lùi nhân đôi mỗi lần thử lại, có trần, và không tràn số với số lần thử lớn (bản soát mã: S4,
+// M24). Trước đây lần thử thứ 35 tràn thành số âm, tức bắn ngay.
+func TestBackoffDoublesWithCap(t *testing.T) {
+	for _, c := range []struct {
+		base    time.Duration
+		attempt int
+		want    time.Duration
+	}{{time.Second, 1, time.Second}, {time.Second, 5, 16 * time.Second}, {time.Second, 6, maxBackoff}, {time.Second, 35, maxBackoff}, {time.Second, 200, maxBackoff}} {
+		if got := backoffFor(c.base, c.attempt); got != c.want {
+			t.Errorf("backoffFor(%v, %d) = %v, muốn %v", c.base, c.attempt, got, c.want)
+		}
+	}
+	srv, _ := rawBodies(t, func(map[string]any) (int, string) { return http.StatusServiceUnavailable, `{}` })
+	var waits []time.Duration
+	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 3, Backoff: time.Millisecond,
+		sleep: func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }}
+	if _, err := m.Generate(context.Background(), paramsReq); err == nil {
+		t.Fatal("503 mãi: muốn lỗi")
+	}
+	if len(waits) != 3 || waits[0] != time.Millisecond || waits[1] != 2*time.Millisecond || waits[2] != 4*time.Millisecond {
+		t.Errorf("thời gian chờ = %v, muốn [1ms 2ms 4ms]", waits)
+	}
+	if _, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", MaxRetries: MaxRetriesLimit + 1}); contracts.FaultOf(err) != contracts.FaultCode {
+		t.Errorf("MaxRetries > %d: muốn lỗi cấu hình, được %v", MaxRetriesLimit, err)
+	}
+}
+
+// Huỷ ctx trong lúc chờ lùi: trả ngay, lỗi gói đúng ctx.Err() để errors.Is nhận ra huỷ / quá hạn (bản soát
+// mã: S4, M23b); không gửi thêm lần nào.
+func TestBackoffStopsOnContextCancel(t *testing.T) {
+	n, waits := 0, 0
+	srv, _ := rawBodies(t, func(map[string]any) (int, string) { n++; return http.StatusServiceUnavailable, `{}` })
+	ctx, cancel := context.WithCancel(context.Background())
+	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 5, Backoff: time.Hour,
+		sleep: func(c context.Context, _ time.Duration) error { waits++; cancel(); return c.Err() }}
+	_, err := m.Generate(ctx, paramsReq)
+	// Đếm cả số lần chờ: nếu bỏ qua lỗi huỷ, vòng lặp vẫn thử tiếp (lần gửi sau hỏng ngay ở tầng
+	// truyền tải nên máy chủ không thấy) — chỉ số lần chờ lộ ra điều đó.
+	if !errors.Is(err, context.Canceled) || n != 1 || waits != 1 {
+		t.Errorf("huỷ ctx khi chờ: lỗi %v (errors.Is Canceled = %v), %d lần gửi, %d lần chờ; muốn Canceled sau đúng 1 lần gửi, 1 lần chờ", err, errors.Is(err, context.Canceled), n, waits)
 	}
 }

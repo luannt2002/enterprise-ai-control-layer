@@ -749,4 +749,10 @@ func TestG7CountExposures(t *testing.T) {
 	if got := c.Count([]WinCase{perm, other}, run(map[string]string{"P1": "Bạn không có quyền xem dữ liệu này.", "S1": "x"})); got.Exposures != 0 {
 		t.Errorf("từ chối: Exposures = %d, muốn 0", got.Exposures)
 	}
+	// Số được bảo vệ viết "3.850" mà câu trả lời viết "3850 L": so theo GIÁ TRỊ (bản soát mã: M59).
+	dotted := perm
+	dotted.Expect.NotContains = []string{"3.850"}
+	if got := c.Count([]WinCase{dotted}, []Report{{Results: []CaseResult{{ID: "P1", FailureClass: "permission", Answer: "Phiếu kho ghi 3850 L."}}}}); got.Exposures != 1 {
+		t.Errorf("not_contains \"3.850\", câu trả lời \"3850 L\": Exposures = %d, muốn 1", got.Exposures)
+	}
 }

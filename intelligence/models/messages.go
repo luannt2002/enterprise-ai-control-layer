@@ -48,6 +48,8 @@ type Messages struct {
 	// chứng thô. Thân yêu cầu không chứa khoá (khoá chỉ nằm ở header).
 	Trace  func(MessagesTrace)
 	Client *http.Client // nil = http.Client có timeout 60 giây
+	// sleep chờ giữa hai lần thử lại; nil = chờ thật (dừng khi ctx huỷ). Test tiêm để đo thời lượng.
+	sleep func(ctx context.Context, d time.Duration) error
 
 	mu    sync.Mutex
 	calls int
@@ -149,10 +151,13 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 		if wait <= 0 {
 			wait = time.Second
 		}
-		select {
-		case <-ctx.Done():
-			return contracts.Draft{}, err
-		case <-time.After(wait << (attempt - 1)):
+		sleep := m.sleep
+		if sleep == nil {
+			sleep = sleepCtx
+		}
+		if serr := sleep(ctx, backoffFor(wait, attempt)); serr != nil {
+			// Huỷ / quá hạn trong lúc chờ: gói đúng lỗi của ctx để người gọi nhận ra, kèm lỗi lần gửi cuối.
+			return contracts.Draft{}, contracts.Label(contracts.ThirdParty(m.Provider, contracts.KindTimeout), fmt.Errorf("%w (lỗi lần gửi cuối: %v)", serr, err))
 		}
 	}
 	if err != nil {
@@ -182,6 +187,37 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 		d.Claims = []contracts.Claim{{Text: d.Text, EvidenceIDs: out.EvidenceIDs}}
 	}
 	return d, nil
+}
+
+// maxBackoff là trần thời gian chờ giữa hai lần thử lại; MaxRetriesLimit là trần số lần thử lại.
+const (
+	maxBackoff      = 30 * time.Second
+	MaxRetriesLimit = 10
+)
+
+// backoffFor là thời gian chờ trước lần thử lại thứ attempt (≥ 1): base × 2^(attempt−1), tối đa
+// maxBackoff, không tràn số.
+func backoffFor(base time.Duration, attempt int) time.Duration {
+	d := base
+	for i := 1; i < attempt; i++ {
+		if d >= maxBackoff/2 {
+			return maxBackoff
+		}
+		d *= 2
+	}
+	return min(d, maxBackoff)
+}
+
+// sleepCtx chờ d, hoặc dừng sớm và trả lỗi của ctx khi ctx huỷ / quá hạn.
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
 
 // send gửi MỘT lần và báo lỗi đó có đáng thử lại không: lỗi tạm (không tới được, quá giờ, 429, 5xx)
@@ -326,8 +362,8 @@ func New(c Config) (Gateway, error) {
 		if c.Effort != "" && !slices.Contains(EffortLevels, c.Effort) {
 			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_EFFORT %q không thuộc %v", c.Effort, EffortLevels))
 		}
-		if c.MaxRetries < 0 {
-			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_RETRIES phải là số ≥ 0")
+		if c.MaxRetries < 0 || c.MaxRetries > MaxRetriesLimit {
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_MAX_RETRIES phải là số trong [0, %d]", MaxRetriesLimit))
 		}
 		return m, nil
 	}

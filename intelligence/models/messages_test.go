@@ -12,7 +12,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
 )
 
-// Gateway Messages: gửi đúng giao thức (khoá, phiên bản, temperature 0, bằng chứng kèm id), đọc câu
+// Gateway Messages: gửi đúng giao thức (khoá, phiên bản, không gửi temperature — ADR-0005 §1, bằng chứng kèm id), đọc câu
 // trả lời + id bằng chứng thành claim, và gắn nhãn lỗi đúng loại. Máy chủ giả — không gọi mạng thật.
 func TestMessagesGateway(t *testing.T) {
 	var got messagesRequest
@@ -36,7 +36,7 @@ func TestMessagesGateway(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Temperature != 0 || got.Model != "model-cau-hinh" || !strings.Contains(got.Messages[0].Content, "[SOP#0] Lập biên bản") {
+	if got.Temperature != nil || got.Model != "model-cau-hinh" || !strings.Contains(got.Messages[0].Content, "[SOP#0] Lập biên bản") {
 		t.Errorf("thân yêu cầu sai: %+v", got)
 	}
 	if d.Text != "Lập biên bản trong vòng 24 giờ." || len(d.Claims) != 1 || d.Claims[0].EvidenceIDs[0] != "SOP#0" || d.Usage.InputTokens != 120 {

@@ -517,7 +517,7 @@ func newManifest(cfg config, mc models.Config, gw models.Gateway, fake bool, sys
 		OS: runtime.GOOS + "/" + runtime.GOARCH, NumCPU: runtime.NumCPU(), FakeModel: fake,
 		Provider: mc.Provider, Model: mc.Model, SystemPromptSH: textSHA256(models.SystemPrompt()),
 		K: cfg.k, TopK: cfg.topK, Systems: systems, GateSystems: gateSystems, Cases: cases,
-		Files: map[string]string{}, PriceTable: priceTable, BudgetUSD: 15,
+		Files: map[string]string{}, PriceTable: priceTable, BudgetUSD: cfg.budget,
 		ModelParams: map[string]any{},
 	}
 	if bg, ok := gw.(*budgetGateway); ok {

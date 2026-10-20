@@ -135,6 +135,7 @@ DATA · NORMALIZATION · ENTITY · INTENT · SEMANTICS · SOURCE_AUTHORITY · PE
 
 - **Bảng giá đóng băng** (Pricing chính thức, tra 20/10/2026): Sonnet 5.5 vào 2 USD, ra 10 USD mỗi triệu token. Nằm trong `manifest.json`.
 - **Trần 15 USD** cho toàn bộ G7 (pilot + chính, D-G7-3). `docs/g7/COST-PLAN.md` dự toán theo bộ đã đóng băng. Dự toán > 15 USD thì không chạy phần vượt.
+- **Trần là của TỪNG lần chạy `g7run`** (cờ `-budget`, bắt buộc > 0 và ≤ 15, ghi đúng vào `manifest.json`; C-07, soát lượt 2). Chưa có sổ chi tiêu cộng dồn tự động, nên người vận hành đặt `-budget` của lần sau = 15 − tổng `spent_usd` trong `manifest.json` của mọi lần trước (thử khói, pilot, lượt chạy lại). Lời gọi hết hạn phía client có thể vẫn bị tính tiền mà không có usage để cộng: chừa phần dư khi đặt trần.
 - **Ghi lại:**
   - `cost.json`: token vào / ra / cache theo hệ;
   - độ trễ từng câu hỏi và từng lần gửi HTTP trong `raw-runs.jsonl`.

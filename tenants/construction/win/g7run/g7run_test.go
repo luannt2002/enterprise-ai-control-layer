@@ -40,7 +40,7 @@ func genData(t *testing.T) string {
 
 func baseCfg(data string) config {
 	return config{data: data, pack: "../../pack", world: "../world.yaml", cases: "../cases-independent.yaml",
-		tenant: "abc-infra", grade: gradeContent, k: 1, topK: 10, systems: sysB2Plus}
+		tenant: "abc-infra", grade: gradeContent, k: 1, topK: 10, systems: sysB2Plus, budget: 15}
 }
 
 // clearModelEnv đảm bảo test chạy bằng model giả bất kể môi trường của người chạy.
@@ -918,6 +918,44 @@ func TestBudgetCapStopsCalls(t *testing.T) {
 	}
 	if !m.BudgetHit || m.SpentUSD < 15 || len(m.Invalid) == 0 {
 		t.Errorf("manifest: budget_hit %v, spent %.2f, invalid %v; muốn chạm trần và lần chạy vô hiệu", m.BudgetHit, m.SpentUSD, m.Invalid)
+	}
+}
+
+// Trần ngân sách phải là số dương không quá trần hợp đồng (15 USD, §9): -budget 0 hay âm từng TẮT trần, và
+// manifest từng ghi 15 bất kể cờ. Tệp phải băm vào bằng chứng mà không đọc được thì dừng TRƯỚC khi chạy, không
+// ghi băm rỗng (C-07, soát lượt 2).
+func TestRunNganSachVaTepBam(t *testing.T) {
+	data := genData(t)
+	for _, c := range []struct {
+		name     string
+		budget   float64
+		contract string
+		ok       bool
+	}{
+		{"trần 0 tắt trần", 0, "", false},
+		{"trần âm", -5, "", false},
+		{"vượt trần hợp đồng", 15.01, "", false},
+		{"hợp đồng sai đường dẫn", 7.5, "/khong-ton-tai/HOP-DONG.md", false},
+		{"trần hợp lệ", 7.5, "", true},
+	} {
+		clearModelEnv(t)
+		cfg := baseCfg(data)
+		cfg.budget, cfg.contract, cfg.out = c.budget, c.contract, filepath.Join(t.TempDir(), "out")
+		code := run(cfg)
+		b, err := os.ReadFile(filepath.Join(cfg.out, "manifest.json"))
+		if !c.ok {
+			if code != 2 || err == nil {
+				t.Errorf("%s: mã %d, có manifest = %v; muốn 2 và dừng trước khi chạy", c.name, code, err == nil)
+			}
+			continue
+		}
+		var m manifestInfo
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if m.BudgetUSD != 7.5 {
+			t.Errorf("%s: manifest budget_usd = %v; muốn 7.5 (đúng cờ -budget)", c.name, m.BudgetUSD)
+		}
 	}
 }
 

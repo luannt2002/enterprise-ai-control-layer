@@ -63,6 +63,8 @@ const (
 	contractModel    = "claude-sonnet-5-5"
 	contractThinking = "between_tools"
 	contractEffort   = "medium"
+	// contractBudgetUSD là trần chi tiêu của TOÀN BỘ G7 (hợp đồng §9, D-G7-3).
+	contractBudgetUSD = 15.0
 )
 
 // Dòng kết luận khi luật D5 có thể đã tính xong nhưng KHÔNG được rút kết luận G7.
@@ -155,6 +157,11 @@ func stopBeforeModel(blocked []string, fake, dry bool) bool {
 
 func run(cfg config) int {
 	started := time.Now()
+	// -budget ≤ 0 từng tắt trần (C-07): trần là bắt buộc và không vượt trần của hợp đồng.
+	if cfg.budget <= 0 || cfg.budget > contractBudgetUSD {
+		fmt.Fprintf(os.Stderr, "LỖI: -budget %.2f: phải > 0 và ≤ %.0f USD (hợp đồng G7 §9)\n", cfg.budget, contractBudgetUSD)
+		return 2
+	}
 	if cfg.out != "" {
 		if err := checkOutDir(cfg.out); err != nil {
 			fmt.Fprintln(os.Stderr, "LỖI:", err)
@@ -199,6 +206,13 @@ func run(cfg config) int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
 		return 2
+	}
+	// Tệp nào phải băm vào bằng chứng mà không đọc được thì dừng TRƯỚC lời gọi model, không ghi băm rỗng (C-07).
+	for _, f := range append(slices.Clone(s.files), filepath.Join(cfg.data, "manifest.json")) {
+		if _, err := os.ReadFile(f); f != "" && err != nil {
+			fmt.Fprintln(os.Stderr, "LỖI: không đọc được tệp phải băm vào bằng chứng:", err)
+			return 2
+		}
 	}
 	if stopBeforeModel(s.blocked, fake, dry) {
 		fmt.Fprintln(os.Stderr, "LỖI: hệ cổng không chạy được, không gọi model:", strings.Join(s.blocked, "; "))

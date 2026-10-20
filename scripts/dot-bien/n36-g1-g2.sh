@@ -14,6 +14,9 @@ m $I '	if err := c.def.InRange(value.Number); err != nil {' '	if err := c.def.In
 W=tenants/construction/win/winrun/winrun.go
 m $W '			if o.Entity != r.Entity || o.Metric != r.Semantic' '			if o.Metric != r.Semantic' 'G1d bộ kiểm bỏ so thực thể'
 m $W '			if !ok || q.Reason != r.Reason {' '			if !ok {' 'G1e bộ kiểm bỏ so lý do cách ly'
+m $W '|| o.Metric != r.Semantic ||' '||' 'G1h bộ kiểm bỏ so chỉ số (soát C2, F-08)'
+m $W '|| o.Source != r.Source ||' '||' 'G1i bộ kiểm bỏ so nguồn (soát C2, F-08)'
+m $W '|| o.On.Format("2006-01-02") != r.On ||' '||' 'G1j bộ kiểm bỏ so ngày (soát C2, F-08)'
 m $W '		if !seen[k] {
 			problems = append(problems, k+": quan sát THỪA, manifest không có")' '		if false && !seen[k] {
 			problems = append(problems, k+": quan sát THỪA, manifest không có")' 'G1f bộ kiểm không bắt quan sát THỪA'

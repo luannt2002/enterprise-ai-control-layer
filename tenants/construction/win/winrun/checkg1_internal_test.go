@@ -12,8 +12,9 @@ import (
 )
 
 // Bộ kiểm manifest của G1 (docs/04 §6: thiếu hoặc thừa id là KHÔNG ĐẠT, 0 bản ghi rơi im lặng) phải bắt được
-// từng kiểu lệch. Kết quả nạp đúng thì 0 vấn đề; mỗi kiểu hỏng cố ý thì có vấn đề nêu đúng khoá. Trước đây bộ kiểm
-// chỉ chạy trên dữ liệu đúng (TestWinRatchet), nên đột biến làm nó lỏng đi vẫn sống (n36 G1d–G1g).
+// từng kiểu lệch, ở MỌI trường được so (thực thể, chỉ số, nguồn, ngày, giá trị). Kết quả nạp đúng thì 0 vấn đề;
+// mỗi kiểu hỏng cố ý thì có vấn đề nêu đúng khoá. Trước đây bộ kiểm chỉ chạy trên dữ liệu đúng (TestWinRatchet),
+// nên đột biến làm nó lỏng đi vẫn sống (n36 G1d–G1j).
 func TestCheckG1BatDuocLech(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "manifest.json")
 	if err := os.WriteFile(path, []byte(`{"records":[
@@ -31,6 +32,11 @@ func TestCheckG1BatDuocLech(t *testing.T) {
 		return ingestion.Observation{Key: key, Tenant: "a", Entity: entity, Metric: "issued_fuel", Source: "warehouse_slip", On: on,
 			Value: contracts.Value{Kind: contracts.ValueQuantity, Number: value, Unit: "L"}}
 	}
+	with := func(f func(*ingestion.Observation)) ingestion.Result {
+		o := obs("k1", "EX-03", "3850")
+		f(&o)
+		return ingestion.Result{Observations: []ingestion.Observation{o}, Quarantined: []ingestion.Quarantine{{Key: "k2", Tenant: "a", Reason: ingestion.ReasonUnknownEntity}}}
+	}
 	good := ingestion.Result{
 		Observations: []ingestion.Observation{obs("k1", "EX-03", "3850")},
 		Quarantined:  []ingestion.Quarantine{{Key: "k2", Tenant: "a", Reason: ingestion.ReasonUnknownEntity}},
@@ -44,6 +50,9 @@ func TestCheckG1BatDuocLech(t *testing.T) {
 		{"thiếu quan sát", ingestion.Result{Quarantined: good.Quarantined}, "k1: muốn quan sát"},
 		{"sai thực thể", ingestion.Result{Observations: []ingestion.Observation{obs("k1", "EX-07", "3850")}, Quarantined: good.Quarantined}, "k1: được EX-07"},
 		{"sai giá trị", ingestion.Result{Observations: []ingestion.Observation{obs("k1", "EX-03", "3851")}, Quarantined: good.Quarantined}, "k1: được EX-03"},
+		{"sai chỉ số", with(func(o *ingestion.Observation) { o.Metric = "measured_consumption" }), "k1: được EX-03/measured_consumption"},
+		{"sai nguồn", with(func(o *ingestion.Observation) { o.Source = "erp" }), "k1: được EX-03/issued_fuel/erp"},
+		{"sai ngày", with(func(o *ingestion.Observation) { o.On = on.AddDate(0, 0, 1) }), "k1: được EX-03/issued_fuel/warehouse_slip/2026-10-20"},
 		{"sai lý do cách ly", ingestion.Result{Observations: good.Observations, Quarantined: []ingestion.Quarantine{{Key: "k2", Tenant: "a", Reason: ingestion.ReasonUnparseable}}}, "k2: muốn cách ly unknown_entity"},
 		{"quan sát THỪA", ingestion.Result{Observations: append(append([]ingestion.Observation(nil), good.Observations...), obs("k9", "EX-03", "1")), Quarantined: good.Quarantined}, "k9: quan sát THỪA"},
 		{"cách ly THỪA", ingestion.Result{Observations: good.Observations, Quarantined: append(append([]ingestion.Quarantine(nil), good.Quarantined...), ingestion.Quarantine{Key: "k8", Tenant: "a", Reason: ingestion.ReasonUnparseable})}, "k8: cách ly THỪA"},

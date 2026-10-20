@@ -34,6 +34,8 @@ func TestNhomNghinNganBangDauCach(t *testing.T) {
 		{"phiếu 1 200 lít", []string{"200"}, []string{"1"}},
 		{"máy 3 850 lít", []string{"850"}, []string{"3"}},
 		{"tuần 2 400 lít", []string{"400"}, []string{"2"}},
+		// số 0 đầu không phải phần đầu của nhóm nghìn kể cả khi không có từ nhãn đứng trước
+		{"cấp 03 850 lít", []string{"850"}, []string{"3"}},
 	} {
 		in := e.Normalize(c.in, Options{Now: now})
 		var qty, nums []string

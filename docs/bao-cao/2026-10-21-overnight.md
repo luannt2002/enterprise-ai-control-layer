@@ -134,7 +134,26 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 ## 12. Lời gọi model và chi phí
 
 - Lời gọi model thật: **0**. Chi tiêu: **0 USD**.
-- Dự toán G7: (sau H1, chạy khô qua máy chủ giả; B1 là hệ đắt nhất).
+- Dự toán G7 (`docs/g7/COST-PLAN.md`, đo bằng chạy khô pilot + H1; token là ƯỚC):
+  - hệ cổng, lượt chính k = 3: kỳ vọng 12,74 USD (tối thiểu 10,02 · xấu nhất 27,40);
+  - thêm một lần chạy lại: 16,36; k = 5: 19,82;
+  - B1 chiếm gần hết chi phí;
+  - D-G7-18.
+
+**8 điều kiện của quyền chi 15 USD** (quyết định chủ dự án 20/10, mục PAID EXECUTION AUTHORIZATION). Kiểm 21/10 02:12:
+
+| # | Điều kiện | Trạng thái | Bằng chứng |
+|---|---|---|---|
+| 1 | `EAIS_MODEL_API_KEY` có trong môi trường | **KHÔNG** | Kiểm có / không, không in giá trị, lúc 19:37 và 02:12. Không tìm khoá ở nơi khác (D-G7-8) |
+| 2 | Hợp đồng FROZEN | **KHÔNG** | Hợp đồng §13: bộ chấm v2 chưa đóng băng (ADR-0007); pilot cần khoá; tập lượt chính chờ D-H1-3 |
+| 3 | Dự toán ≤ 15 USD | CHỈ khi hệ cổng, k = 3, không chạy lại (12,74 kỳ vọng). Chưa chắc: token chưa đo | `COST-PLAN.md` |
+| 4 | Pilot + lượt chính trong cùng trần | như dòng 3 (đã gồm pilot k = 5). Trần là của từng lần chạy; luật cộng dồn ở hợp đồng §9 | `9de63d2` (C-07) |
+| 5 | Model chính là Sonnet 5.5 | ĐẠT về cấu hình: hợp đồng §4; `g7run` không ra kết luận khi model / thinking / effort lệch hợp đồng | `d4b80be` (C-06) |
+| 6 | Baseline và EACL cùng model | ĐẠT: một gateway chung cho mọi hệ | `g7run` build |
+| 7 | Lưu bằng chứng thô | ĐẠT: `-out` (gồm bản ghi quyết định của EACL) | `a1a5b6b`, `50b1499` |
+| 8 | Không có secret trong đầu ra / git | ĐẠT trong mọi lần chạy khô:<br>- test kiểm khoá không có trong `-out`;<br>- client không theo chuyển hướng HTTP, chỉ https hoặc loopback;<br>- quét riêng tư trước mỗi lần push | `TestSmokeThroughFakeProvider`, `d4b80be` |
+
+⇒ **Paid G7 = BLOCKED** (điều kiện 1 và 2 không đạt). Không gọi model, không chi tiền.
 
 ## 13. Baseline công bằng
 

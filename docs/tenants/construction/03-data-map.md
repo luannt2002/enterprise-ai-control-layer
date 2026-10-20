@@ -131,7 +131,7 @@ Mỗi dòng trả lời bảy câu hỏi của brief: đâu là representation /
 | 11 | `tầm 4 khối` | estimate | `reported_fuel` | ~4.000 L cờ estimate | normalize + giữ cờ |
 | 12 | `dầu 4k` rồi `dầu 4 khối` (cùng người, cùng ngày) | representation (trùng) | `reported_fuel` | một fact 4.000 L | dedupe, giữ cả hai observation |
 | 13 | `dau 4K` | representation | `reported_fuel` | 4.000 L | normalize (không dấu, viết hoa) |
-| 14 | `4 000 lít` | representation | `reported_fuel` | 4.000 L | normalize (khoảng trắng nghìn) — chỉ khi KHÔNG có chữ đứng ngay trước; `bể 2 500 lít`, `dầu 4 000 lít` mơ hồ (số hiệu + lượng hay một lượng?) ⇒ cách ly (P5; soát C3, C3-02; D-OP-9) |
+| 14 | `4 000 lít` | representation | `reported_fuel` | 4.000 L | normalize (khoảng trắng nghìn) |
 | 15 | `4000l` | representation | `reported_fuel` | 4.000 L | normalize |
 | 16 | `4k5 dầu` | representation | `reported_fuel` | 4.500 L | normalize ("4k5" = 4,5 nghìn) |
 | 17 | `2,5 khối dầu` | representation | `reported_fuel` | 2.500 L | normalize (phẩy thập phân) |

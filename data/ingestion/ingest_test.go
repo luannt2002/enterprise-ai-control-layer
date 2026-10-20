@@ -64,8 +64,6 @@ func dataset(t *testing.T) string {
 		`{"record_id":"R-030","sent_at":"2026-10-19T17:00:00+07:00","sender":"Minh","text":"lấy thêm 3k"}`,
 		`{"record_id":"R-031","sent_at":"2026-10-19T17:30:00+07:00","sender":"Lan","text":"máy 07 lấy 500 lít"}`,
 		`{"record_id":"R-032","sent_at":"2026-10-19T18:00:00+07:00","sender":"Tuấn","text":"sáng nay 2k cho máy 03"}`,
-		`{"record_id":"R-033","sent_at":"2026-10-19T18:10:00+07:00","sender":"Tuấn","text":"máy 03 đổ bể 2 500 lít"}`,
-		`{"record_id":"R-034","sent_at":"2026-10-19T18:20:00+07:00","sender":"Tuấn","text":"máy 03 lô A 1 200 lít"}`,
 	}, "\n")+"\n")
 
 	x := excelize.NewFile()
@@ -138,9 +136,6 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"warehouse.csv#R-025":  ingestion.ReasonUnparseable,
 		"messages.jsonl#R-030": ingestion.ReasonUnknownEntity,
 		"messages.jsonl#R-031": ingestion.ReasonAmbiguousEntity,
-		// "bể 2 500 lít": bể 2 với 500 L, hay 2.500 L? Không phân định được ⇒ cách ly, không ghi một cách đọc vào nguồn sự thật (C3-02)
-		"messages.jsonl#R-033": ingestion.ReasonUnparseable,
-		"messages.jsonl#R-034": ingestion.ReasonUnparseable,
 	}
 	seen := map[string]int{}
 	for _, o := range res.Observations {

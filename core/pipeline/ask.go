@@ -715,9 +715,10 @@ type claimSet struct {
 //   - mệnh đề chứa cụm xác nhận mà không có con số nào ("3850 L và 4000 L, đúng không?") thì câu hỏi áp cho các con số đứng trước
 //     trong CÙNG câu (tách bởi . ? !; "..." không phải hết câu), không phải cho câu trước đó.
 //
-// Mọi số trần khác đều là con số ứng viên ("tháng 10 năm 2026 … 3850 L đúng không?" chỉ có MỘT vì 2026 là năm; "định mức 5.000 L nên … 3850" có
-// hai), kể cả số trần đứng ngay trước nhóm ba chữ số của một lượng ("tổng số 3 850 lít": xem thousandsHead). Số trần nối với một lượng bằng từ nối
-// dùng chung đơn vị của lượng đó (joinClaims). Cùng một giá trị viết hai cách ("4k", "4000 L") chỉ tính một lần.
+// Số trần khác chỉ tính khi chính mệnh đề hỏi không có lượng nào viết rõ đơn vị — "3850 đúng không, 4000 thì sao?" có hai con số;
+// còn "tháng 10 năm 2026 … 3850 L đúng không?" chỉ có MỘT (2026 là năm). Số trần có dạng một lượng ("4k", "4.000"), nối với một lượng bằng từ nối
+// ("từ 3800 đến 3900 L", "3850 chứ không phải 4000 L") hoặc đứng đầu một mệnh đề ("3850 L đúng không, 4000 thì sao?") vẫn là con số cạnh tranh. Cùng một
+// giá trị viết hai cách ("4k", "4000 L") chỉ tính một lần.
 func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def sourceoftruth.MetricDef) claimSet {
 	var cs claimSet
 	periods := readPeriods(in)
@@ -752,7 +753,7 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 			explicit = false // "5.000 L/ngày": tốc độ, không phải lượng đã cấp
 		}
 		formatted := !explicit && strings.ContainsFunc(sp.Raw, func(r rune) bool { return unicode.IsLetter(r) || r == '.' || r == ',' })
-		if !explicit && !formatted && !thousandsHead(in.Raw, in.Spans, i) {
+		if !explicit && !formatted {
 			// số trần trơn: mốc thời gian viết bằng chữ, nhãn / số đếm, hay một con số? Mốc xét TRƯỚC: "Quý 3 dự án A", "Tuần 41 máy xúc"
 			// là mốc dù ngay sau là danh từ đếm (soát R, R-A01 / B-01); "phiếu 912 tháng 9" vẫn là số phiếu vì "phiếu" không phải từ chỉ kỳ.
 			if q, ok := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End); ok && !(q.Kind == normalization.QualifierSpan && inReadPeriod(in, q.Word)) {
@@ -850,26 +851,6 @@ func prevClauseStart(text string, lo int) int {
 		}
 	}
 	return 0
-}
-
-// thousandsHead báo span i là số trần 1–3 chữ số đứng cách ĐÚNG MỘT dấu cách trước một lượng mở đầu bằng đúng ba chữ số ("số 3 850 lít",
-// "bể 2 500 lít"): dạng nhóm nghìn mà bộ chuẩn hoá không gộp vì có chữ đứng trước. Số đó có thể là số hiệu / mốc của chữ đứng trước, có thể
-// là phần nghìn của lượng — không được bỏ như nhãn hay mốc (bỏ thì câu đúng "tổng số 3 850 lít" thành "không phải 850 L": soát C3, C3-05),
-// nên nó là một con số ứng viên và câu được hỏi lại.
-func thousandsHead(raw string, spans []contracts.Span, i int) bool {
-	sp := spans[i]
-	if i+1 >= len(spans) || sp.Raw == "" || len(sp.Raw) > 3 || strings.Trim(sp.Raw, "0123456789") != "" {
-		return false
-	}
-	nx := spans[i+1]
-	if nx.Kind != contracts.ValueQuantity || nx.Start != sp.End+1 || raw[sp.End] != ' ' {
-		return false
-	}
-	d := 0
-	for d < len(nx.Raw) && nx.Raw[d] >= '0' && nx.Raw[d] <= '9' {
-		d++
-	}
-	return d == 3
 }
 
 // joinClaims cho số trần NỐI với một lượng (hay một số trần đã nối) bằng từ nối dùng chung đơn vị của lượng đó — "từ 3800 đến 3900 L", "3800-3900 L",

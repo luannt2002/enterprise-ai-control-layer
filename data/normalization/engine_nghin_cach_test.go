@@ -29,6 +29,11 @@ func TestNhomNghinNganBangDauCach(t *testing.T) {
 		{"3 8500 lít", []string{"8500"}, []string{"3"}},     // nhóm sau quá 3 chữ số
 		{"1234 567 lít", []string{"567"}, []string{"1234"}}, // phần đầu quá 3 chữ số
 		{"3  850 lít", []string{"850"}, []string{"3"}},      // hai dấu cách: không chắc là một số
+		// số đứng sau từ nhãn / từ đếm / từ chỉ kỳ là số hiệu, không phải phần đầu của lượng: "đội 3, 500 lít"
+		{"đội 3 500 lít", []string{"500"}, []string{"3"}},
+		{"phiếu 1 200 lít", []string{"200"}, []string{"1"}},
+		{"máy 3 850 lít", []string{"850"}, []string{"3"}},
+		{"tuần 2 400 lít", []string{"400"}, []string{"2"}},
 	} {
 		in := e.Normalize(c.in, Options{Now: now})
 		var qty, nums []string

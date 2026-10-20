@@ -285,10 +285,34 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 	}, tokenAt(toks, end), true
 }
 
+// identifierBefore báo con số bắt đầu ở pos đứng ngay sau một từ nhãn / từ đếm / từ chỉ kỳ ("đội 3", "phiếu 1", "máy 3",
+// "tuần 2"): khi đó nó là số hiệu hay mốc, không phải phần đầu của một lượng viết nhóm nghìn ("đội 3 500 lít" là đội 3, 500 L).
+// Dùng chung các danh sách của qualifier.go (nợ D-OP-8: danh sách có từ miền, phải dời sang pack).
+func identifierBefore(s string, pos int) bool {
+	ws, we := wordBefore(s, pos)
+	if we == ws {
+		return false
+	}
+	for _, list := range [][]string{labelBefore, countAfter} {
+		for _, w := range list {
+			if wordIs(s, ws, we, w) {
+				return true
+			}
+		}
+	}
+	for _, p := range periodWords {
+		if wordIs(s, ws, we, p.word) {
+			return true
+		}
+	}
+	return false
+}
+
 // spaceGroups trả chỉ số token của nhóm nghìn CUỐI khi toks[i] là phần đầu của một lượng viết nhóm nghìn ngăn bằng MỘT dấu
 // cách ("3 850 lít", "1 234 567 L"; docs/tenants/construction/03-data-map.md:134: `4 000 lít` → 4.000 L): phần đầu 1–3 chữ số
 // không bắt đầu bằng 0, mỗi nhóm sau đúng 3 chữ số, và ngay sau nhóm cuối là một đơn vị. Không phải thì trả i, giữ cách đọc
-// cũ: "bước 3 850" (không có đơn vị), "máy 03 850 lít" (số 0 đầu là số hiệu), "3 85 lít", "1234 567 lít".
+// cũ: "bước 3 850" (không có đơn vị), "máy 03 850 lít" (số 0 đầu là số hiệu), "đội 3 500 lít" (số hiệu sau từ nhãn), "3 85 lít",
+// "1234 567 lít".
 func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
 	digits := func(t token) bool {
 		for _, r := range t.text {
@@ -298,7 +322,7 @@ func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
 		}
 		return t.kind == tokNum && t.text != ""
 	}
-	if !digits(toks[i]) || len(toks[i].text) > 3 || toks[i].text[0] == '0' {
+	if !digits(toks[i]) || len(toks[i].text) > 3 || toks[i].text[0] == '0' || identifierBefore(s, toks[i].start) {
 		return i
 	}
 	last := i

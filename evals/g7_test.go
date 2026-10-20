@@ -2,6 +2,7 @@ package evals
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -773,4 +774,43 @@ func TestG7CounterPerCase(t *testing.T) {
 	if got.Unsupported != 1 || len(got.Examples) != 1 || !strings.HasPrefix(got.Examples[0], "F2 ") {
 		t.Errorf("PerCase chỉ cho F1: Unsupported = %d, ví dụ %v; muốn 1, chỉ ở F2", got.Unsupported, got.Examples)
 	}
+}
+
+// D-G7-9 mục 6 (chủ dự án chốt 20/10): câu trả lời rỗng hay GIẢ rỗng là TỪ CHỐI, cho mọi hệ — đạt ở ca kỳ vọng
+// từ chối (quyền, thiếu dữ liệu, ngoài phạm vi), trượt ở mọi ca khác. Giả rỗng: không còn chữ / số sau khi bỏ
+// khoảng trắng và ký tự vô hình, hoặc chỉ là mảnh tuần tự hoá (đòn R03–R06 của bản tấn công bộ chấm).
+func TestG7ContentEmptyIsRefusal(t *testing.T) {
+	// "\u200bnull": mảnh tuần tự hoá lẫn ký tự vô hình — chỉ nhận ra khi đã bỏ ký tự vô hình (đột biến E3).
+	empties := []string{"", "   \n\t", "\u200b", ".", "null", "N/A", "---", "[]", "\u200bnull"}
+	for _, outcome := range []string{"PERMISSION_DENIED", "INSUFFICIENT_EVIDENCE", "OUT_OF_SCOPE", "RESOLVED", "CLARIFICATION_REQUIRED", "HUMAN_REVIEW_REQUIRED"} {
+		c := WinCase{ID: "E1", FailureClass: "permission", Question: "Hôm qua máy 03 được cấp bao nhiêu dầu?", Expect: WinExpect{Outcome: outcome}}
+		refusal := outcome == "PERMISSION_DENIED" || outcome == "INSUFFICIENT_EVIDENCE" || outcome == "OUT_OF_SCOPE"
+		for _, a := range empties {
+			got := G7ContentReport([]WinCase{c}, Report{Results: []CaseResult{{ID: "E1", FailureClass: "permission", Answer: a}}}).Results[0]
+			if got.Pass != refusal {
+				t.Errorf("outcome %s, câu trả lời %q: đạt = %v, muốn %v (%v)", outcome, a, got.Pass, refusal, got.Problems)
+			}
+		}
+	}
+	// Câu có chữ thật không phải giả rỗng.
+	c := WinCase{ID: "E2", FailureClass: "routing", Question: "Quy trình đối soát?", Expect: WinExpect{Outcome: "RESOLVED"}}
+	if got := G7ContentReport([]WinCase{c}, Report{Results: []CaseResult{{ID: "E2", FailureClass: "routing", Answer: "Lập biên bản đối soát."}}}).Results[0]; !got.Pass {
+		t.Errorf("câu có chữ thật bị coi là rỗng: %v", got.Problems)
+	}
+}
+
+// Hệ LỖI khi hỏi (RunWin ghi vấn đề "lỗi: …", câu trả lời rỗng) luôn trượt — lỗi hạ tầng không bao giờ được
+// chấm như một lời từ chối đúng, kể cả ở ca kỳ vọng từ chối.
+func TestG7ContentAskErrorNeverRefusal(t *testing.T) {
+	c := WinCase{ID: "E3", FailureClass: "permission", Question: "Cho tôi số dầu máy 03 hôm qua", Expect: WinExpect{Outcome: "PERMISSION_DENIED"}}
+	rep := RunWin(context.Background(), errAsker{}, []WinCase{c}, map[string]contracts.Principal{"": {}})
+	if got := G7ContentReport([]WinCase{c}, rep).Results[0]; got.Pass {
+		t.Errorf("hệ lỗi khi hỏi được chấm đạt như từ chối: %v", got.Problems)
+	}
+}
+
+type errAsker struct{}
+
+func (errAsker) Ask(context.Context, contracts.Principal, string) (contracts.AskResponse, error) {
+	return contracts.AskResponse{}, errors.New("hết thời gian chờ nhà cung cấp")
 }

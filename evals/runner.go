@@ -36,6 +36,10 @@ type Report struct {
 	Results []CaseResult
 }
 
+// AskErrorProblem là tiền tố vấn đề RunWin ghi khi hệ LỖI khi hỏi (không phải câu trả lời của hệ). Bộ chấm nội
+// dung G7 dựa vào nó để không bao giờ chấm lỗi hạ tầng như một lời từ chối.
+const AskErrorProblem = "lỗi: "
+
 // RunWin chấm từng ca bằng các kỳ vọng NHỊ PHÂN của ca — không so chuỗi nguyên văn, không dùng
 // model làm giám khảo. principals ánh xạ id principal của ca → Principal đã xác thực.
 func RunWin(ctx context.Context, a Asker, cases []WinCase, principals map[string]contracts.Principal) Report {
@@ -56,7 +60,7 @@ func RunWin(ctx context.Context, a Asker, cases []WinCase, principals map[string
 		r, err := a.Ask(ctx, pr, c.Question)
 		if err != nil {
 			r = contracts.AskResponse{Outcome: contracts.OutcomeSystemFailure}
-			bad("lỗi: %v", err)
+			bad("%s%v", AskErrorProblem, err)
 		}
 		res.Answer = r.Answer
 		e := c.Expect

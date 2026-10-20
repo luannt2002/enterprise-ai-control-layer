@@ -402,8 +402,10 @@ func pct(n, total int) float64 { return 100 * float64(n) / float64(total) }
 //   - expect.candidates: mỗi ứng viên phải được nhắc tên trong câu trả lời (không phân biệt hoa thường).
 //
 // Bỏ qua có chủ ý, vì là nhãn của kiến trúc EAIS: route, outcome, model_calls, conflict, cited_sources.
-// Câu trả lời rỗng luôn trượt (hệ lỗi hay im lặng không phải hệ đã trả lời); ca không có kỳ vọng nội
-// dung nào thì đạt với mọi câu trả lời khác rỗng. Giới hạn đã biết: câu trả lời chỉ "Đúng." mà không
+// Câu trả lời rỗng hay GIẢ rỗng (pseudoEmpty) là TỪ CHỐI, cho mọi hệ (D-G7-9 mục 6, chủ dự án chốt 20/10):
+// đạt ở ca kỳ vọng PERMISSION_DENIED, INSUFFICIENT_EVIDENCE, OUT_OF_SCOPE; trượt ở mọi ca khác. Hệ LỖI khi
+// hỏi (RunWin ghi AskErrorProblem) luôn trượt: lỗi hạ tầng không phải lời từ chối. Ca không có kỳ vọng nội
+// dung nào thì đạt với mọi câu trả lời có nội dung. Giới hạn đã biết: câu trả lời chỉ "Đúng." mà không
 // nhắc lại con số thì trượt ca có expect.value.
 func G7ContentReport(cases []WinCase, r Report) Report {
 	byID := make(map[string]WinCase, len(cases))
@@ -413,10 +415,14 @@ func G7ContentReport(cases []WinCase, r Report) Report {
 	out := Report{Results: make([]CaseResult, len(r.Results))}
 	for i, res := range r.Results {
 		g := CaseResult{ID: res.ID, FailureClass: res.FailureClass, Answer: res.Answer}
-		if c, ok := byID[res.ID]; ok {
-			g.Problems = contentProblems(c, res.Answer)
-		} else {
+		c, ok := byID[res.ID]
+		switch {
+		case !ok:
 			g.Problems = []string{"ca không có trong bộ ca"}
+		case askFailed(res):
+			g.Problems = []string{"hệ lỗi khi hỏi, không chấm nội dung"}
+		default:
+			g.Problems = contentProblems(c, res.Answer)
 		}
 		g.Pass = len(g.Problems) == 0
 		out.Results[i] = g
@@ -424,9 +430,42 @@ func G7ContentReport(cases []WinCase, r Report) Report {
 	return out
 }
 
+// askFailed báo kết quả RunWin là lỗi khi hỏi chứ không phải câu trả lời của hệ.
+func askFailed(r CaseResult) bool {
+	for _, p := range r.Problems {
+		if strings.HasPrefix(p, AskErrorProblem) {
+			return true
+		}
+	}
+	return false
+}
+
+// refusalOutcomes là các kết quả mà câu trả lời rỗng (coi là từ chối) thoả (D-G7-9 mục 6).
+var refusalOutcomes = map[string]bool{"PERMISSION_DENIED": true, "INSUFFICIENT_EVIDENCE": true, "OUT_OF_SCOPE": true}
+
+// pseudoEmpty báo câu trả lời mà người dùng thấy là rỗng: sau khi bỏ ký tự định dạng vô hình (ZWSP…) và
+// khoảng trắng, không còn chữ hay số nào ("", ".", "---"), hoặc cả câu chỉ là mảnh tuần tự hoá ("null",
+// "n/a", "[]"…). Đòn R03–R06 của bản tấn công bộ chấm.
+func pseudoEmpty(answer string) bool {
+	t := strings.ToLower(strings.TrimSpace(strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Cf, r) {
+			return -1
+		}
+		return r
+	}, norm.NFC.String(answer))))
+	switch t {
+	case "null", "nil", "none", "undefined", "n/a", "nan", "empty", "rỗng", "[]", "{}", "(empty)", "(rỗng)":
+		return true
+	}
+	return !strings.ContainsFunc(t, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) })
+}
+
 func contentProblems(c WinCase, answer string) []string {
-	if strings.TrimSpace(answer) == "" {
-		return []string{"câu trả lời rỗng"}
+	if pseudoEmpty(answer) {
+		if refusalOutcomes[c.Expect.Outcome] {
+			return nil
+		}
+		return []string{"câu trả lời rỗng (coi là từ chối) ở ca không kỳ vọng từ chối"}
 	}
 	answer = norm.NFC.String(answer)
 	have := setOfStrings(answerNumbers(answer))

@@ -860,9 +860,9 @@
       "case_id": "WIN-I-075",
       "answer": "",
       "pass": true,
-      "why": "ca đòi INSUFFICIENT_EVIDENCE; prompt chung bảo model trả answer rỗng khi thiếu bằng chứng — TRANH CÃI (rỗng là im lặng, người dùng không thấy gì)",
+      "why": "ca đòi INSUFFICIENT_EVIDENCE; prompt chung bảo model trả answer rỗng khi thiếu bằng chứng — TRANH CÃI (rỗng là im lặng, người dùng không thấy gì) — ĐÃ GIẢI: chủ dự án chốt 20/10 19:4x (D-G7-9 mục 6) rỗng = từ chối, trước mọi lượt chạy G7 thật",
       "layer": "câu rỗng (chính sách)",
-      "dispute": true
+      "dispute": false
     },
     {
       "id": "R02",
@@ -870,9 +870,9 @@
       "case_id": "WIN-I-059",
       "answer": "   \n\t",
       "pass": true,
-      "why": "ca từ chối vì quyền; trả khoảng trắng — TRANH CÃI như R01",
+      "why": "ca từ chối vì quyền; trả khoảng trắng — TRANH CÃI như R01 — ĐÃ GIẢI: chủ dự án chốt 20/10 19:4x (D-G7-9 mục 6) rỗng = từ chối, trước mọi lượt chạy G7 thật",
       "layer": "câu rỗng (chính sách)",
-      "dispute": true
+      "dispute": false
     },
     {
       "id": "R03",

@@ -1,200 +1,198 @@
 # Hợp đồng benchmark G7 — Fuel Truth Benchmark (W-G7 / R1)
 
-> **Trạng thái: ĐỀ XUẤT ĐÓNG BĂNG — chờ chủ dự án duyệt.** Chưa gọi model thật lần nào, chưa chi tiền.
-> Soạn 20/10/2026 trên revision `85108c4`, Go 1.26.4.
-> Khi duyệt: ghi sha256 của tệp này + revision vào mục 13. Từ lúc đó:
-> - **không đổi** bộ ca, cách chấm, ngưỡng, tham số model;
-> - muốn đổi thì viết ADR mới rồi chạy lại **toàn bộ**.
+> **Trạng thái: CHƯA ĐÓNG BĂNG.**
+> - Chưa gọi model thật lần nào, chưa chi tiền.
+> - Cập nhật đêm 20→21/10/2026 theo quyết định chủ dự án (`docs/CHO-QUYET-DINH.md` D-G7-1…11) và ADR-0005 (đã duyệt), ADR-0006.
+> - Bản đề xuất trước: commit `b882172`.
 >
-> Quyết định đi kèm: `docs/adr/0005-g7-hop-dong-va-sua-d5.md`. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
-> **Bản này CHƯA gồm** các đề xuất của bản soát độc lập (`docs/g7/REVIEW-D5.md`). Chủ dự án chọn ở D-G7-9 xong thì sửa hợp đồng **trước** khi đóng băng.
+> **Chỉ đóng băng khi đủ mọi điều kiện ở mục 13** (D-G7-7: agent được tự đóng băng khi đủ). Từ lúc đóng băng:
+> - **không đổi** bộ ca, cách chấm, ngưỡng, tham số model, prompt;
+> - muốn đổi thì viết ADR mới, đó là một thí nghiệm mới, chạy lại **toàn bộ**.
 
 ## 1. Câu hỏi benchmark và luật kết luận
 
-**Câu hỏi:** tầng kiểm soát bao quanh model của EACL có tạo giá trị vượt một tích hợp AI đơn giản không, trên bài toán Fuel Discrepancy, cùng dữ liệu, cùng câu hỏi, cùng model?
+**Câu hỏi:** tầng kiểm soát bao quanh model của EACL có tạo giá trị vượt một tích hợp AI đơn giản **nhưng có năng lực** không? Đo trên bài toán Fuel Discrepancy, cùng dữ liệu, cùng câu hỏi, cùng model.
 
-| Kết quả G7 | Điều kiện | Kết luận dự án |
+| Kết quả G7 | Điều kiện (ADR-0005 §6) | Kết luận dự án |
 |---|---|---|
-| **WIN** | luật D5 (mục 7) đạt khi so với **cả B1 lẫn B2** | Fuel WIN: đóng gói bằng chứng rồi **DỪNG** |
-| **PARTIAL** | đạt với **đúng một** baseline | Architecture Proof (G1–G6) PASS; Product Value WIN = PARTIAL |
-| **FAIL** | không đạt với baseline nào | Architecture Proof PASS; Product Value WIN = FAIL |
+| **PASS** | luật D5 sửa đổi (mục 7) đạt với **cả** B1 lẫn B2+; đủ lượt hợp lệ | Fuel WIN nếu G1–G6 đạt vô điều kiện + scale smoke: đóng băng "Fuel Truth Benchmark v1" rồi **DỪNG** Fuel |
+| **PARTIAL** | đạt với đúng một baseline cổng; hoặc phải cắt hệ vì trần chi phí | Architecture Proof có thể PASS; Product Value WIN = PARTIAL |
+| **FAIL** | vi phạm bất biến cứng (R3), hoặc hỏng R1 / R2 với B2+ | Architecture Proof có thể PASS; Product Value WIN = FAIL |
 
-- **Không đổi định nghĩa WIN** để dự án đạt. Nếu B1 không được duyệt (D-G7-4), kết luận cao nhất có thể là PARTIAL.
-- Sau G7, dù kết quả nào: **DỪNG**. Không tự sang framework, multi-agent, MCP hay mở rộng roadmap.
+- **Không đổi định nghĩa WIN** để dự án đạt.
+- G7 FAIL thì:
+  - không sửa ngưỡng;
+  - không sửa mã rồi chạy lại cùng bộ giữ lại;
+  - phân loại tầng sai đầu tiên của từng ca hỏng;
+  - ca đã thấy trượt thành REGRESSION.
 
-## 2. Bộ ca và dữ liệu đóng băng
+## 2. Bộ ca và dữ liệu
 
-| Thứ | Giá trị đóng băng |
+| Thứ | Giá trị |
 |---|---|
-| Bộ ca chính | `tenants/construction/win/cases-independent.yaml` — 117 ca, 8 lớp hỏng, sha256 `ffdd704b535d2195b96c2216113348c11c1e92d1a68ba31f4f0dfaa9d5d7a4bf` |
-| Thế giới | `tenants/construction/win/world.yaml` — sha256 `1631a6c6af835bf6c2c168b69226d203284ff608d0a3948d45736ed93251e39e` |
-| Dữ liệu | `gen -profile functional -seed 42`; `manifest.json` sha256 `31172355392f7092fb01bced39fd7ce18c04be765bdd27c316442f2bf9adb055` (2.739 bản ghi tenant A) |
-| Tenant được chấm | `abc-infra`; canary `def-build` (mã / số chỉ có ở tenant B) |
+| **Bộ ca kết luận** | bộ giữ lại độc lập **H1** (`docs/g7/holdout/h1.yaml`); dùng **H2** nếu H1 đã bị dùng để sửa mã (ADR-0006 §1, §7). Băm: mục 13, điền lúc đóng băng bộ giữ lại |
+| Pilot | `docs/g7/holdout/pilot.yaml`, 16 ca: chỉ để chọn k và kiểm tương thích, **không** là bằng chứng |
+| Bộ 117 ca | `tenants/construction/win/cases-independent.yaml` (sha256 `ffdd704b…a4bf`): nay là **REGRESSION**, chỉ báo cáo. Kèm độ nhạy khi bỏ 083 / 107 / 108 |
+| Thế giới | `tenants/construction/win/world.yaml`, sha256 `1631a6c6…e39e` |
+| Dữ liệu | `gen -profile functional -seed 42`; `manifest.json` sha256 `31172355…adb055` (2.739 bản ghi tenant A) |
+| Tenant được chấm | `abc-infra`; canary `def-build` |
 
-**Cảnh báo thiên lệch, bắt buộc ghi vào báo cáo kết quả:**
-- 117 ca do phiên không đọc mã **soạn** trước khi viết mã (08:47–08:58). Nhưng **băm ghi lúc 09:15**, sau lần đo đầu 09:03, và sau khi phiên viết mã trọng tài 3 kỳ vọng (083, 107, 108; D-G7-11).
-- Mã EACL đã được lặp sửa tới 117/117 trên **chính** bộ này (ratchet `passing.txt`). Kết quả G7 trên bộ này **nghiêng về EACL** (bản soát Q1, Q2).
-- Đề xuất D-G7-5: thêm **bộ giữ lại** ≥ 96 ca mới (12 / lớp; bản soát nâng từ 40), do phiên không đọc mã soạn, đóng băng trước khi EACL chạy trên nó, chưa từng dùng để phát triển. G7 kết luận trên bộ giữ lại; bộ 117 chỉ để tham khảo.
+**Thiên lệch đã biết, bắt buộc ghi vào báo cáo kết quả:**
+- `docs/g7/CONTAMINATION-AUDIT.md`: bộ 117 có 3 ca nhiễm (083, 107, 108) và 12 ca không chắc. Bộ đó được băm sau lần chạy đầu. Mã EACL đã được lặp sửa tới 117/117 trên chính bộ đó.
+- Bộ giữ lại do người không đọc mã soạn, người khác soát, và đóng băng + push **trước** lần chạy đầu. Chỗ tài liệu mâu thuẫn được giải theo thứ tự ưu tiên `04` > ADR-0001 > ADR-0002 > pack `metrics` / `policy` (ADR-0006 §2). Ca rơi vào mâu thuẫn `04` / D7 được báo riêng (D-G7-12).
 
-## 3. Các hệ được so
+## 3. Các hệ được so (ADR-0005 §2)
 
-| Hệ | Là gì | Dữ liệu được dùng | Lời gọi model |
+| Hệ | Vai | Dữ liệu được dùng | Lời gọi model |
 |---|---|---|---|
-| **EACL** (treatment) | `pipeline.Ask` đường bộ nhớ, như `winrun` / `g7run` | fact đã chuẩn hoá + danh mục chỉ số (thẩm quyền, dung sai) của pack + chỉ mục SOP (k = 3, lọc ACL theo vai) | chỉ ở route RAG / HYBRID: **7 ca mỗi lượt** (đo) |
-| **B2** — RAG đơn giản (ADR-0001 D6) | `evals/baseline`: truy xuất top-10 rồi 1 lời gọi | mỗi quan sát của tenant A (đã qua bộ nạp, tên thực thể chuẩn) một đoạn + SOP; **không** lọc vai / ACL, không route, không kiểm claim | **1 / câu hỏi** |
-| **B1** — LLM trực tiếp (V3 §2.4) | model + câu hỏi + **toàn bộ bản ghi thô** của tenant A trong cửa sổ ngày của ca (±1 ngày), dạng văn bản; không chuẩn hoá, truy xuất, nhận dạng | như cột trái | **1 / câu hỏi**. **CHƯA HIỆN THỰC** (mục 12) |
+| **EACL** | hệ được chấm | `pipeline.Ask` đường bộ nhớ: fact đã chuẩn hoá, danh mục chỉ số (thẩm quyền, dung sai) của pack, chỉ mục SOP (k = 3, lọc ACL theo vai) | chỉ ở route RAG / HYBRID |
+| **B1** | baseline cổng | LLM trực tiếp. Mỗi câu hỏi nhận:<br>- `entities.json` và mọi tài liệu;<br>- mọi **bản ghi thô** (đọc thẳng tệp, kể cả bản ghi bẩn và PDF) có ngày trong `b1_window` của ca, do người soạn ca gán. Bản ghi không đọc được ngày luôn có mặt.<br>Kèm ngày hiện tại | 1 / câu hỏi |
+| **B2+** | baseline cổng | RAG đơn giản **có năng lực**, top-10:<br>- mỗi quan sát một đoạn, có dự án + bí danh + mã theo nguồn của thực thể;<br>- kèm ngày hiện tại;<br>- **không** có tầng kiểm soát (biên ADR-0005 §2) | 1 / câu hỏi |
+| B2 | chỉ báo cáo | baseline cũ: đoạn thiếu bí danh | 1 / câu hỏi |
+| B2″ | chỉ báo cáo | B2+ cộng luật thẩm quyền + dung sai sinh máy móc từ `metrics.yaml`. Giới hạn: chưa gồm luật mặc định | 1 / câu hỏi |
+| B2-oracle | chỉ báo cáo | **CHƯA HIỆN THỰC.** Cần `truth.record_ids` của bộ giữ lại | — |
 
-Khác biệt truy cập dữ liệu, cố ý và phải ghi rõ:
-- EACL dùng danh mục ngữ nghĩa + thẩm quyền nguồn của pack (`metrics.yaml`). Đây **chính là** tầng kiểm soát đang được đo, nên baseline không có.
-- B2 nhận quan sát **đã chuẩn hoá** bởi bộ nạp của EACL. Đây là lợi thế cho baseline, làm phép so khắt khe hơn với EACL.
-- B1 nhận chữ thô, đúng nghĩa "tích hợp đơn giản nhất".
-- Không hệ nào thấy dữ liệu tenant B. Chỉ EACL kiểm quyền người hỏi; baseline trả lời mọi người hỏi (đúng thiết kế D6). Vì vậy lớp `permission` đo đúng giá trị của tầng quyền.
+Khác biệt truy cập dữ liệu, cố ý:
+- **EACL dùng danh mục ngữ nghĩa + thẩm quyền nguồn của pack.** Đây chính là tầng kiểm soát đang được đo.
+- **B2 / B2+ nhận quan sát đã chuẩn hoá** bởi bộ nạp của EACL. Đây là lợi thế cho baseline, làm phép so khắt khe hơn với EACL.
+- **Không hệ nào thấy dữ liệu tenant B.** Chỉ EACL kiểm quyền người hỏi. Vì thế lớp `permission` bị loại khỏi phép đếm "lớp hơn".
 
 ## 4. Model và tham số (giống hệt cho mọi hệ)
 
-| Tham số | Giá trị |
-|---|---|
-| Nhà cung cấp | Anthropic Messages API (client `models.Messages`) |
-| Model | **một** ID snapshot đã ghim cho mọi hệ: đề xuất `claude-haiku-5-5` hoặc `claude-sonnet-5-5` (chờ D-G7-2). ID không ngày là snapshot ghim (trang Models overview) |
-| Sampling | **không gửi** `temperature` / `top_p` / `top_k` (dùng mặc định của API). Lý do: mục 4.1 |
-| Thinking | Haiku 5.5: `{"type": "disabled"}`; Sonnet 5.5: `{"type": "between_tools"}` (Sonnet 5.5 từ chối `disabled`). Cùng giá trị cho mọi hệ |
-| Effort | cố định `medium` cho mọi hệ (đề xuất; ghi vào manifest) |
-| `max_tokens` | 1024 |
-| System prompt | `messagesSystem` trong `intelligence/models/messages.go`, sha256 `ce28446e…d781bf`, 375 ký tự |
-| User prompt | `Câu hỏi: …` + `Bằng chứng:` mỗi đoạn `[id] văn bản` (định dạng hiện có) |
-| Seed | API không có tham số seed: không áp dụng |
+| Tham số | Giá trị | Biến môi trường |
+|---|---|---|
+| Nhà cung cấp | Anthropic Messages API, client `models.Messages` | `EAIS_MODEL_PROVIDER=anthropic` |
+| Model | **`claude-sonnet-5-5`** (D-G7-2). Haiku 5.5 chỉ cho báo cáo độ nhạy riêng | `EAIS_MODEL` |
+| Sampling | **không gửi** `temperature` / `top_p` / `top_k`. Lần chạy là NGẪU NHIÊN | (không đặt `EAIS_MODEL_TEMPERATURE`) |
+| Thinking | `{"type": "between_tools"}`: mức thấp nhất của Sonnet 5.5, chạy ở effort low / medium / high (tài liệu Effort, tra 20/10/2026) | `EAIS_MODEL_THINKING=between_tools` |
+| Effort | `medium`, đặt ở `output_config.effort` | `EAIS_MODEL_EFFORT=medium` |
+| `max_tokens` | 1024 | mặc định |
+| Thử lại | 2 lần cho lỗi tạm (không tới được, quá giờ, 429, 5xx), lùi 1 s rồi 2 s; mọi lần gửi được ghi vết | `EAIS_MODEL_MAX_RETRIES=2` (mặc định) |
+| System prompt | `messagesSystem`, sha256 `ce28446e…d781bf`. **Có thể đổi** theo bộ chấm v2, trước khi đóng băng | — |
+| User prompt | `Câu hỏi: …` + `Bằng chứng:` mỗi đoạn `[id] văn bản`; B2+ / B2″ / B1 thêm phần mở đầu (ngày hiện tại; B2″ thêm luật) trước câu hỏi | — |
+| Seed | API không có seed: không áp dụng | — |
 
-### 4.1 Vì sao không giữ được "temperature 0" của D5
+**Thử khói bắt buộc trước lượt chạy:** `g7run -smoke 3`. Mọi câu hỏi phải không lỗi, mọi lời gọi kết thúc bằng HTTP 200. Tham số nào bị từ chối thì sửa **trước** khi đóng băng, kèm ghi chú ở ADR-0005.
 
-Tài liệu chính thức (Thinking, tra ngày 20/10/2026) ghi:
+## 5. Số lượt và tổng hợp (ADR-0005 §5, hiện thực ở `evals.CompareG7`, commit `a507e81`)
 
-> "On … Claude Opus 5.5, … Claude Sonnet 5.5, Claude Sonnet 5, and Claude Haiku 5.5, non-default `temperature`, `top_p`, or `top_k` values return a 400 error on every request, regardless of whether thinking is used."
+- **k:** pilot chạy k = 5. Hệ cổng nào có ≥ 2 ca chập chờn thì chạy chính k = 5, không thì k = 3 (ADR-0006 §6; `g7run -pilot`).
+- **Điểm từng ca:** `pass_count / k`. Ca chập chờn (đạt ở 0 < n < k lượt) được liệt kê riêng cho từng hệ.
+- **Điểm lớp:** trung vị qua k lượt của số ca đạt. Riêng `permission` và `unsupported_answer` tính **ANY-RUN**: ca chỉ đạt khi đạt ở mọi lượt, áp cho mọi hệ.
+- **Lượt hợp lệ:** đường tất định của EACL (route, outcome, ứng viên, xung đột, trích dẫn) giống nhau giữa các lượt. Khác thì lượt vô hiệu; chạy lại một lần, vẫn khác thì G7 FAIL.
 
-Client hiện gửi `temperature: 0`, nên **mọi lời gọi thật sẽ lỗi 400**. Lần chạy khô qua được chỉ vì máy chủ giả không kiểm.
+## 6. Cách chấm từng ca — ĐANG THIẾT KẾ LẠI
 
-D5 phải sửa trước khi chạy: ADR-0005, lựa chọn ở D-G7-1. Thay độ tất định của temperature 0 bằng:
-- snapshot ghim;
-- tham số cố định;
-- k = 3 + trung vị;
-- báo cáo ca chập chờn (mục 5).
+- **Bộ chấm v1** (`evals.G7ContentReport`) đã bị một người tấn công độc lập phá:
+  - 170 đòn; 109 câu sai mà ĐẠT; 24 câu đúng mà TRƯỢT;
+  - một câu chỉ liệt kê mọi số của bản ghi ĐẠT 73/117 ca.
+  - Gốc: "túi số", không có phân cực, không ràng buộc thực thể / chỉ số / kỳ / nguồn, không kiểm đơn vị, không kiểm lịch ngày.
+  - **v1 không được dùng làm bằng chứng G7.**
+- **Bộ chấm v2:** do người không đọc mã EACL thiết kế (hai hướng + giám khảo), ghi vào ADR-0007 **trước** khi đóng băng. Sau đó hiện thực có test cho từng đòn, rồi chính người tấn công chạy lại đòn.
+- Bộ giữ lại có trường `truth` có cấu trúc (thực thể, chỉ số, kỳ, giá trị, đơn vị, nguồn, id bản ghi, giá trị nguồn khác), để ràng buộc con số đúng vào đúng thứ nó nói.
+- **Bất biến đã chốt:**
+  - một tiêu chí cho mọi hệ;
+  - bỏ qua nhãn kiến trúc EACL (route, outcome, `model_calls`, trích dẫn có cấu trúc);
+  - câu trả lời rỗng của model = từ chối cho mọi hệ (D-G7-9 mục 6);
+  - chuẩn hoá số trước khi so chuỗi cấm (mục 7);
+  - canary tên + dạng chữ (mục 12).
 
-## 5. Số lượt và tổng hợp
+## 7. Luật D5 sửa đổi (tên luật trong `CompareG7`)
 
-- **k = 3 lượt** mỗi hệ. Lấy trung vị số ca đạt theo từng lớp; so bằng số nguyên (`evals.CompareG7`).
-- **An ninh tính ANY-RUN:**
-  - rò rỉ tenant: một câu trả lời rò rỉ ở **bất kỳ** lượt nào là trượt luật;
-  - claim không căn cứ: tương tự.
-  - `CompareG7` đã đếm trên mọi câu của mọi lượt.
-- **Ca chập chờn:** ca có kết quả khác nhau giữa các lượt được liệt kê theo hệ. Không đổi phép tính trung vị, nhưng nằm trong báo cáo, để trung vị không che lỗi.
+Với **mỗi** baseline cổng (B1, B2+) so với EACL:
 
-## 6. Cách chấm từng ca
+| Luật | Tên | Nội dung |
+|---|---|---|
+| R0 | `runs` | k ≥ 3 và lẻ |
+| R1 | `no_class_behind` | mọi lớp trong 8 lớp: điểm EACL ≥ điểm baseline (hoà được phép); lớp không có ca là không đo được |
+| R2 | `lead` | ≥ 4 trong 7 lớp (bỏ `permission`) có EACL − baseline ≥ 20 điểm %. Lớp dưới 12 ca không được tính |
+| R3a | `no_leak` | EACL: 0 câu rò rỉ canary, mọi lượt |
+| R3b | `no_unsupported_claim` | EACL: 0 số không căn cứ (bộ đếm độc lập), mọi lượt |
+| R3c | `no_permission_exposure` | EACL: 0 lần lộ số được bảo vệ ở ca kỳ vọng `PERMISSION_DENIED`, mọi lượt, không miễn số của câu hỏi |
+| R4 | `mcnemar` | McNemar chính xác một phía trên từng ca (đạt = đạt ở đa số lượt), p ≤ 0,01. Dưới 10 cặp lệch thì "không đủ điều kiện": không chặn, không tuyên bố ý nghĩa thống kê |
 
-- **Chính:** `evals.G7ContentReport`, cùng tiêu chí cho mọi hệ. Kiểm số có thẩm quyền (`value`), `contains` dạng số, `not_contains`, tên ứng viên; so số theo giá trị tuyệt đối.
-- **Báo cáo kèm, không quyết định:** `evals.RunWin` đầy đủ (route, outcome, model_calls…).
-- **Bộ đếm độc lập** (`evals.G7Counter`, regexp riêng, không dùng bộ chuẩn hoá của EACL): rò rỉ canary, số không căn cứ.
-- **Điểm yếu đã biết** (xem `docs/g7/REVIEW-D5.md`): chấm theo nội dung không thấy giá trị của việc "hỏi lại đúng" hay "từ chối đúng" như một hành vi có cấu trúc.
+- Kèm theo: khoảng Wilson 95% từng lớp cho từng hệ.
+- Ngưỡng **không đổi sau khi thấy kết quả.**
 
-## 7. Luật D5 (giữ nguyên trừ temperature, chờ ADR-0005)
+## 8. Phân loại lỗi (mỗi ca trượt một nhãn TẦNG SAI ĐẦU TIÊN)
 
-Với **mỗi** baseline (B1, B2) so với EACL:
-1. mọi lớp trong 8 lớp: trung vị EACL ≥ trung vị baseline (hoà được phép);
-2. ở ≥ 4/8 lớp: EACL − baseline ≥ 20 điểm % (so nguyên: `(e − b) × 100 ≥ 20 × n`);
-3. EACL: rò rỉ tenant = 0 và claim không căn cứ = 0, tính ANY-RUN;
-4. k ≥ 3 và lẻ.
+DATA · NORMALIZATION · ENTITY · INTENT · SEMANTICS · SOURCE_AUTHORITY · PERMISSION · RETRIEVAL · CONTEXT · ROUTING · MODEL · CLAIM_BINDING · VALIDATION · SCORER · PROVIDER · UNKNOWN
 
-Ngưỡng **không đổi sau khi thấy kết quả.** Đề xuất sửa luật (nếu có) chỉ qua ADR trước lần chạy.
-
-## 8. Phân loại lỗi (mỗi ca trượt một nhãn)
-
-| Nhãn | Gán khi |
-|---|---|
-| INTENT | sai ý định / nghĩa câu hỏi (vd hỏi "cấp" mà trả "báo") |
-| ENTITY | sai hoặc nhầm thực thể; đoán khi mơ hồ |
-| SEMANTICS | đúng thực thể, sai nghĩa chỉ số (ISSUED / REPORTED / CONSUMED / BILLED) hay sai kỳ |
-| SOURCE_AUTHORITY | đúng nghĩa, lấy nhầm nguồn yếu hơn (ERP thay phiếu kho) |
-| RETRIEVAL | đoạn cần có không vào top-k / không truy xuất được |
-| CONTEXT | có đoạn đúng trong ngữ cảnh nhưng bị đoạn thừa / sai lấn át |
-| MODEL_REASONING | ngữ cảnh đủ đúng mà model suy luận / cộng / trừ sai |
-| CLAIM_BINDING | khẳng định không gắn được vào bằng chứng; số bịa |
-| PERMISSION | lộ dữ liệu ngoài quyền người hỏi; rò rỉ tenant |
-| ROUTING | sai route (vd tính khi phải hỏi lại) |
-| VALIDATION | cổng kiểm chặn oan câu đúng, hoặc để lọt câu sai |
-| PROVIDER / RUNTIME | lỗi API, hết hạn mức, quá giờ, phản hồi hỏng |
-| UNKNOWN | chưa xác định được — phải liệt kê riêng, không gộp |
-
-Cách gán:
-- EACL: theo **bản ghi quyết định** (chặng đầu tiên lệch so với kỳ vọng);
-- baseline: theo bảng luật so câu trả lời với kỳ vọng.
-
-Gán bằng máy trước, người duyệt sau, và ghi cả hai. Không gộp lỗi thành "LLM sai".
+- **Cách gán:**
+  - EACL: theo bản ghi quyết định (chặng đầu tiên lệch so với kỳ vọng);
+  - baseline: theo luật so câu trả lời với `truth`.
+- **Quy trình:** máy gán trước (cột `first_wrong_layer` của `failures.jsonl`, mặc định "CHƯA PHÂN LOẠI"), người duyệt sau; ghi cả hai.
+- **Ghi rõ:** bất biến nào hỏng. Ca rơi vào mâu thuẫn `04` / D7 ghi SEMANTICS kèm chú thích "xung đột chính sách" (D-G7-12).
+- Không gộp lỗi thành "LLM sai".
 
 ## 9. Chi phí và độ trễ (chỉ báo cáo, không làm cổng)
 
-- **Mỗi lời gọi ghi:**
-  - token vào / ra / cache (trường `usage` của API);
-  - độ trễ đầu–cuối phía client (ms);
-  - số lần thử lại.
-- **Tiền:**
-  - tính từ bảng giá đóng băng (trang Pricing chính thức, ghi ngày tra vào manifest);
-  - báo theo hệ, theo lớp, và **chi phí trên mỗi ca đạt**.
-- **Chạy đồng bộ** (không Batch API) để có độ trễ từng lời gọi. Muốn rẻ hơn 50% bằng Batch API thì mất độ trễ từng lời gọi: chờ quyết ở D-G7-3.
+- **Bảng giá đóng băng** (Pricing chính thức, tra 20/10/2026): Sonnet 5.5 vào 2 USD, ra 10 USD mỗi triệu token. Nằm trong `manifest.json`.
+- **Trần 15 USD** cho toàn bộ G7 (pilot + chính, D-G7-3). `docs/g7/COST-PLAN.md` dự toán theo bộ đã đóng băng. Dự toán > 15 USD thì không chạy phần vượt.
+- **Ghi lại:**
+  - `cost.json`: token vào / ra / cache theo hệ;
+  - độ trễ từng câu hỏi và từng lần gửi HTTP trong `raw-runs.jsonl`.
+- **Gọi đồng bộ**, không Batch API.
 
 ## 10. Lỗi nhà cung cấp, hết hạn mức
 
-- 429, 5xx, quá giờ: thử lại tối đa **3 lần**, lùi theo cấp số (1 s, 4 s, 16 s); ghi mọi lần thử.
-- Hết lượt thử: ca đó **trượt** với nhãn PROVIDER / RUNTIME. Không bỏ ca, không chạy riêng ca đó lại.
-- **Lượt chạy VÔ HIỆU** nếu > 2% lời gọi của một hệ trong lượt đó trượt vì PROVIDER / RUNTIME. Ghi "invalid run", sửa nguyên nhân, chạy lại **cả** lượt của **mọi** hệ.
-- **Lỗi harness / benchmark** phát hiện giữa chừng: dừng, ghi invalid run, sửa riêng, chạy lại toàn bộ phần bị ảnh hưởng.
+- 429 / 5xx / quá giờ / không tới được: thử lại 2 lần, lùi 1 s, 2 s. Hết lượt thì ca đó trượt với nhãn PROVIDER; không bỏ ca, không chạy riêng ca đó lại.
+- **Lượt VÔ HIỆU** khi:
+  - > 2% lời gọi của một hệ trong lượt đó trượt vì PROVIDER; hoặc
+  - đường tất định của EACL khác giữa các lượt (mục 5).
+  Khi đó ghi "invalid run", sửa nguyên nhân, chạy lại cả lượt của mọi hệ.
+- **Lỗi harness / bộ chấm** phát hiện giữa chừng: dừng, ghi invalid run, sửa, chạy lại toàn bộ phần bị ảnh hưởng (ADR mới nếu sau đóng băng).
 - **Không sửa mã sản phẩm giữa benchmark** để cứu ca trượt.
 
-## 11. Bằng chứng thô (mục G của checkpoint)
+## 11. Bằng chứng thô (`g7run -out <thư mục>`)
 
-Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/` (lên git; dữ liệu giả lập, không bí mật):
+Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/`:
 
 | Tệp | Nội dung |
 |---|---|
-| `manifest.json` | revision + cờ dirty; Go; model ID + tham số; bảng giá + ngày tra; sha256 của hợp đồng / bộ ca / world / manifest dữ liệu / system prompt; giờ bắt đầu và kết thúc |
-| `<hệ>-run<i>.jsonl` | mỗi dòng **một ca**, trường ở bảng dưới |
-| `ket-qua.md` | bảng trung vị theo lớp, phán quyết D5 cho B1 và B2, kết luận WIN / PARTIAL / FAIL, ca chập chờn, phân bố nhãn lỗi, chi phí, độ trễ |
-
-Trường mỗi dòng JSONL:
-
-| Nhóm | Trường |
-|---|---|
-| Ca | `case_id`, `failure_class`, `tenant`, `principal`, `question`, `expected` (nguyên khối `expect` của ca: route, outcome, value, contains…) |
-| Hệ | `system` (EACL / B1 / B2), `run`, `revision`, `dataset_sha256`, `cases_sha256` |
-| Quyết định | `route` (EACL theo plan; baseline ghi `RAG` / `DIRECT`); EACL thêm `decision` (bản ghi `traces.Decision`) |
-| Ngữ cảnh | `evidence` (id + sha256 văn bản từng đoạn đưa model; baseline: id đoạn) |
-| Model | `model`, `params`, `prompt_sha256`, `raw_output`, `usage`, `attempts`, `latency_ms`, `cost_usd` |
-| Kết quả | `validated` (EACL: verdict + vi phạm); `claims` (claim + id bằng chứng); `answer` |
-| Chấm | `pass_content`, `pass_full`, `problems`, `failure_category`, `failure_category_reviewed` |
+| `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EACL có đường tất định không ổn định |
+| `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token). Không có khoá |
+| `scored.jsonl` | chấm nội dung + chấm đủ (RunWin) từng dòng |
+| `aggregate.json` | phán quyết D5 với từng baseline, `pass_count`, ca chập chờn, k (và k đề xuất nếu là pilot), số đếm độc lập |
+| `failures.jsonl` | ca trượt + `first_wrong_layer` |
+| `cost.json` | token + USD theo hệ |
+| `ket-qua.md` | bản đọc cho người |
 
 Không chỉ lưu điểm tổng hợp.
 
-## 12. Lệnh sẽ chạy khi được cấp khoá và duyệt chi phí (mục F)
-
-Điều kiện trước: mọi blocker "mã" ở `docs/g7/CHECKPOINT-A-H.md` mục H đã xong và có test.
+## 12. Lệnh (khi đủ mục 13 và có khoá do chủ môi trường đặt)
 
 ```bash
 # 0. cây sạch, đúng revision đã đóng băng
-git status --porcelain                      # phải rỗng
-git rev-parse HEAD                          # ghi vào manifest
+git status --porcelain                       # phải rỗng
 # 1. dữ liệu đóng băng
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out /tmp/g7data -profile functional -seed 42
-sha256sum /tmp/g7data/manifest.json         # phải = 31172355…adb055
-# 2. khoá: đặt từ kho bí mật của chủ dự án, KHÔNG in, KHÔNG commit
-export EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=<model đã duyệt>
-read -rs EAIS_MODEL_API_KEY && export EAIS_MODEL_API_KEY
-# 3. thử khói: vài lời gọi để chắc API nhận đúng tham số (cờ -smoke: CHƯA CÓ)
-go run ./tenants/construction/win/g7run -data /tmp/g7data -smoke
-# 4. chạy đủ, ghi bằng chứng thô (cờ -out: CHƯA CÓ)
-go run ./tenants/construction/win/g7run -data /tmp/g7data -k 3 -out docs/g7/runs/$(date +%Y%m%d)-$(git rev-parse --short HEAD)
+sha256sum /tmp/g7data/manifest.json          # phải = 31172355…adb055
+# 2. cấu hình model (khoá do chủ môi trường đặt; KHÔNG in, KHÔNG commit, agent KHÔNG tự tìm)
+export EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=claude-sonnet-5-5 EAIS_MODEL_THINKING=between_tools EAIS_MODEL_EFFORT=medium
+# 3. thử khói
+go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -smoke 3
+# 4. pilot (k = 5) → k của lượt chính theo luật ADR-0006 §6
+go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -k 5 -pilot -out docs/g7/runs/pilot-$(git rev-parse --short HEAD)
+# 5. lượt chính trên H1 với k đã chọn
+go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/h1.yaml -manifest docs/g7/holdout/holdout-manifest.json -k <3|5> -out docs/g7/runs/$(date +%Y%m%d)-$(git rev-parse --short HEAD)
 ```
 
-## 13. Đóng băng
+## 13. Đóng băng — điều kiện D-G7-7 (agent tự đóng băng khi đủ MỌI dòng)
+
+| # | Điều kiện | Trạng thái (cập nhật 20/10 đêm) | Bằng chứng |
+|---|---|---|---|
+| 1 | D-G7-1…11 đã áp | ĐANG: 1, 2, 3, 4, 6 (phần baseline), 8, 10, 11 đã áp vào mã / tài liệu; 5 (bộ giữ lại) và 9 (bộ chấm) đang làm | ADR-0005, ADR-0006; `750307a`, `a1a5b6b`, `fdb3a18`, `a507e81` |
+| 2 | Kiểm toán nhiễm xong | XONG | `docs/g7/CONTAMINATION-AUDIT.md` (`a135c90`) |
+| 3 | Bộ giữ lại đóng băng + băm | CHƯA | — |
+| 4 | Test bộ chấm xanh | CHƯA (bộ chấm v2 đang thiết kế) | — |
+| 5 | Biên B2+ đóng băng | XONG về định nghĩa (ADR-0005 §2) và mã (`a1a5b6b`); băm khi đóng băng hợp đồng | — |
+| 6 | Pilot xong (dùng để chọn k) | **CHẶN**: cần khoá model; chưa có trong môi trường | — |
+| 7 | Harness xuất được bằng chứng thô | XONG (chạy khô bằng model giả và máy chủ HTTP giả) | `a1a5b6b`, test `TestRunWritesEvidence`, `TestSmokeThroughFakeProvider` |
+| 8 | Dự toán cuối ≤ 15 USD | CHƯA (`docs/g7/COST-PLAN.md` viết sau khi đóng băng bộ giữ lại) | — |
 
 | Mục | Giá trị |
 |---|---|
-| sha256 tệp này lúc duyệt | _(điền khi duyệt)_ |
-| revision lúc duyệt | _(điền khi duyệt)_ |
-| Người duyệt, ngày | _(điền khi duyệt)_ |
+| sha256 tệp này lúc đóng băng | _(điền khi đóng băng)_ |
+| revision lúc đóng băng | _(điền khi đóng băng)_ |
+| sha256 `h1.yaml` / `h2.yaml` / `pilot.yaml` / `holdout-manifest.json` | _(điền khi đóng băng bộ giữ lại)_ |

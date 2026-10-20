@@ -11,7 +11,8 @@ m $F '	if !ok {
 		return o.inner.Ask(ctx, pr, question)' '	if ok || !ok {
 		return o.inner.Ask(ctx, pr, question)' 'OR3 luôn hỏi B2+ (bỏ bằng chứng vàng)'
 m $F '		q = o.preamble + "\n" + question' '		q = question' 'OR4 bỏ dòng ngày hiện tại'
-m $F '			ids[i] = fmt.Sprintf("P-%06d", n)' '			ids[i] = fmt.Sprintf("P-%06d", i)' 'OR5 id đoạn lệch chỉ mục B2+'
+m $F '			ids[i] = fmt.Sprintf("P-%06d#0", n)' '			ids[i] = fmt.Sprintf("P-%06d#0", i)' 'OR5 id đoạn lệch chỉ mục B2+'
+m $F '			ids[i] = fmt.Sprintf("P-%06d#0", n)' '			ids[i] = fmt.Sprintf("P-%06d", n)' 'OR12 id thiếu số dòng #0 của chỉ mục B2+ (C-10)'
 m $F 'if old, dup := byQ[k]; dup && (' 'if old, dup := byQ[k]; false && dup && (' 'OR6 bỏ kiểm hai ca cùng câu hỏi'
 m $F 'return int(o.calls.Load()) + o.inner.ModelCalls()' 'return int(o.calls.Load())' 'OR7 không đếm lời gọi của B2+ bên trong'
 m $F '	o.inner.ResetModelCalls()' '	_ = o.inner' 'OR8 không đặt lại bộ đếm B2+ bên trong'

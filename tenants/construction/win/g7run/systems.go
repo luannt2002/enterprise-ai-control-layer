@@ -586,14 +586,15 @@ type oracleRAG struct {
 }
 
 // newOracleRAG dựng B2-oracle cho các ca đã nạp. obs và paras cùng thứ tự (paras[i] là đoạn B2+ của
-// obs[i]), đúng thứ tự B2+ dựng chỉ mục, nên id "P-%06d" khớp id của chỉ mục B2+.
+// obs[i]), đúng thứ tự B2+ dựng chỉ mục, nên id "P-%06d#0" khớp id của chỉ mục B2+: baseline.New gộp
+// khoảng trắng nên mỗi đoạn là MỘT dòng, và chỉ mục đặt id đoạn "<tài liệu>#<số dòng>" (rag.go).
 func newOracleRAG(inner *baseline.RAG, gw models.Gateway, cases []evals.WinCase, keys map[string]map[string]bool, obs []ingestion.Observation, paras []string, preamble string) (*oracleRAG, error) {
 	ids := make([]string, len(paras))
 	n := 0
 	for i, p := range paras {
 		if strings.Join(strings.Fields(p), " ") != "" {
 			n++
-			ids[i] = fmt.Sprintf("P-%06d", n)
+			ids[i] = fmt.Sprintf("P-%06d#0", n)
 		}
 	}
 	o := &oracleRAG{inner: inner, model: gw, evidence: map[string][]contracts.Evidence{}, preamble: preamble}

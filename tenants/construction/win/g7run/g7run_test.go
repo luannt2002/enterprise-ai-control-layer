@@ -461,7 +461,7 @@ func TestOracleRAG(t *testing.T) {
 		t.Fatal(err)
 	}
 	req := gw.reqs[len(gw.reqs)-1]
-	want := map[string]string{"P-000004": strings.Join(strings.Fields(paras[3]), " "), "P-000011": strings.Join(strings.Fields(paras[10]), " ")}
+	want := map[string]string{"P-000004#0": strings.Join(strings.Fields(paras[3]), " "), "P-000011#0": strings.Join(strings.Fields(paras[10]), " ")}
 	if len(req.Evidence) != 2 || req.Question != "Hôm nay là X.\nCâu A?" {
 		t.Fatalf("ca A: %d đoạn, câu hỏi %q; muốn 2 đoạn và dòng ngày trước câu hỏi", len(req.Evidence), req.Question)
 	}
@@ -475,6 +475,12 @@ func TestOracleRAG(t *testing.T) {
 	}
 	if inner.ModelCalls() != 1 || o.ModelCalls() != 2 || len(gw.lastIDs()) != baseline.DefaultTopK {
 		t.Errorf("ca B phải đi qua B2+: B2+ %d lời gọi, oracle %d, %d đoạn; muốn 1, 2, %d", inner.ModelCalls(), o.ModelCalls(), len(gw.lastIDs()), baseline.DefaultTopK)
+	}
+	// Id đoạn bản ghi mà chỉ mục B2+ thật trả về phải cùng dạng với id của B2-oracle (soát lượt 2, C-10).
+	for id := range gw.lastIDs() {
+		if strings.HasPrefix(id, "P-") && !strings.HasSuffix(id, "#0") {
+			t.Errorf("B2+ trả đoạn %q; B2-oracle đặt id dạng P-xxxxxx#0 nên hai hệ lệch id", id)
+		}
 	}
 	if o.ResetModelCalls(); o.ModelCalls() != 0 {
 		t.Errorf("sau ResetModelCalls: %d lời gọi; muốn 0", o.ModelCalls())

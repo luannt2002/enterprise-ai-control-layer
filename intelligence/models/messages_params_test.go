@@ -223,11 +223,26 @@ func TestNewChiNhanHTTPSHoacLoopback(t *testing.T) {
 	for url, ok := range map[string]bool{
 		"https://api.anthropic.com": true, "http://127.0.0.1:25480": true, "http://localhost:8080": true, "http://[::1]:9": true,
 		"http://example.com": false, "http://10.0.0.5:8080": false, "ftp://127.0.0.1": false,
+		// thông tin xác thực trong URL sẽ bị ghi nguyên văn vào manifest.json của bằng chứng (soát C2, F-11)
+		"https://user:pw@api.anthropic.com": false, "http://nguoidung:matkhau@127.0.0.1:25490": false, "https://user@api.anthropic.com": false,
+		// tên máy không phân biệt hoa thường
+		"http://LOCALHOST:25490": true,
 	} {
 		_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: url})
 		if (err == nil) != ok {
 			t.Errorf("BaseURL %s: lỗi %v; muốn nhận = %v", url, err, ok)
 		}
+	}
+}
+
+// Từ chối URL có thông tin xác thực mà không in lại mật khẩu trong thông báo lỗi (soát C2, F-11).
+func TestLoiEndpointKhongInMatKhau(t *testing.T) {
+	_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: "http://nguoidung:matkhau-bi-mat@127.0.0.1:25490"})
+	if err == nil {
+		t.Fatal("URL có thông tin xác thực phải bị từ chối")
+	}
+	if strings.Contains(err.Error(), "matkhau-bi-mat") || strings.Contains(err.Error(), "nguoidung") {
+		t.Errorf("thông báo lỗi lộ thông tin xác thực: %v", err)
 	}
 }
 

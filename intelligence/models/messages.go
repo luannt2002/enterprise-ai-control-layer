@@ -105,7 +105,8 @@ type messagesResponse struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
 	} `json:"content"`
-	Usage struct {
+	StopReason string `json:"stop_reason"`
+	Usage      struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`
 		CacheRead    int `json:"cache_read_input_tokens"`
@@ -171,10 +172,19 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 		return contracts.Draft{}, contracts.Label(contracts.ThirdParty(m.Provider, contracts.KindBadResponse), err)
 	}
 	var text strings.Builder
+	hasText := false
 	for _, c := range mr.Content {
 		if c.Type == "text" {
+			hasText = true
 			text.WriteString(c.Text)
 		}
+	}
+	// Phản hồi 200 không có khối chữ, bị cắt vì max_tokens, hay bị nhà cung cấp từ chối không phải câu trả lời của model:
+	// coi là lỗi như thân không phải JSON, không thành bản nháp rỗng ("rỗng = từ chối" sẽ cho ĐẠT oan; soát C2, F-04).
+	// Usage của lời gọi đã được ghi trong send(), nên sổ chi phí vẫn đủ.
+	if !hasText || mr.StopReason == "max_tokens" || mr.StopReason == "refusal" {
+		return contracts.Draft{}, contracts.Label(contracts.ThirdParty(m.Provider, contracts.KindBadResponse),
+			fmt.Errorf("phản hồi không có câu trả lời trọn vẹn của model (stop_reason %q, có khối chữ: %v)", mr.StopReason, hasText))
 	}
 	usage := contracts.Usage{InputTokens: mr.Usage.InputTokens, OutputTokens: mr.Usage.OutputTokens, CacheRead: mr.Usage.CacheRead, CacheWrite: mr.Usage.CacheWrite}
 	var out struct {
@@ -315,13 +325,11 @@ var (
 	EffortLevels  = []string{"low", "medium", "high", "xhigh", "max"}
 )
 
-// ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
-// EAIS_MODEL_API_KEY, EAIS_MODEL_MAX_TOKENS, EAIS_MODEL_TEMPERATURE, EAIS_MODEL_THINKING,
-// EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
-// secureEndpoint: https, hoặc http tới loopback (127.0.0.1, ::1, localhost) cho máy chủ giả khi chạy khô.
+// secureEndpoint: https, hoặc http tới loopback (127.0.0.1, ::1, localhost) cho máy chủ giả khi chạy khô. URL mang
+// thông tin xác thực (user:pass@) bị từ chối: endpoint được ghi nguyên văn vào bằng chứng (soát C2, F-11).
 func secureEndpoint(raw string) bool {
 	u, err := url.Parse(raw)
-	if err != nil {
+	if err != nil || u.User != nil {
 		return false
 	}
 	switch u.Scheme {
@@ -329,7 +337,7 @@ func secureEndpoint(raw string) bool {
 		return u.Host != ""
 	case "http":
 		h := u.Hostname()
-		if h == "localhost" {
+		if strings.EqualFold(h, "localhost") {
 			return true
 		}
 		ip := net.ParseIP(h)
@@ -337,6 +345,20 @@ func secureEndpoint(raw string) bool {
 	}
 	return false
 }
+
+// endpointForLog trả endpoint không kèm thông tin xác thực, để thông báo lỗi không in mật khẩu ra log.
+func endpointForLog(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "(không đọc được URL)"
+	}
+	u.User = nil
+	return u.String()
+}
+
+// ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
+// EAIS_MODEL_API_KEY, EAIS_MODEL_MAX_TOKENS, EAIS_MODEL_TEMPERATURE, EAIS_MODEL_THINKING,
+// EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
 
 func ConfigFromEnv() Config {
 	c := Config{
@@ -377,7 +399,7 @@ func New(c Config) (Gateway, error) {
 			m.BaseURL = "https://api.anthropic.com"
 		}
 		if !secureEndpoint(m.BaseURL) {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô)", m.BaseURL))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", endpointForLog(m.BaseURL)))
 		}
 		if c.MaxTokens < 0 {
 			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_TOKENS phải là số nguyên dương")

@@ -74,6 +74,21 @@ func TestMessagesGateway(t *testing.T) {
 	if d, err := m.Generate(ctx, req); err != nil || d.Text != "" || len(d.Claims) != 0 {
 		t.Errorf("answer rỗng: được %+v (lỗi %v)", d, err)
 	}
+	// Phản hồi 200 mà model KHÔNG viết chữ nào, hoặc bị cắt / bị từ chối ở tầng nhà cung cấp, không phải câu trả lời
+	// của model. Trước đây chúng thành bản nháp rỗng, rồi "rỗng = từ chối" cho baseline ĐẠT oan các ca từ chối và
+	// không vào ngưỡng lượt vô hiệu (soát C2, F-04). Nay là lỗi (KindBadResponse), như thân không phải JSON.
+	for _, bad := range []string{
+		`{"content":[{"type":"thinking","thinking":"..."}],"stop_reason":"max_tokens","usage":{"output_tokens":1024}}`,
+		`{"content":[],"stop_reason":"end_turn"}`,
+		`{}`,
+		`{"content":[{"type":"text","text":"Tôi không thể"}],"stop_reason":"refusal"}`,
+		`{"content":[{"type":"text","text":"{\"answer\": \"3.85"}],"stop_reason":"max_tokens"}`,
+	} {
+		status, reply = http.StatusOK, bad
+		if d, err := m.Generate(ctx, req); contracts.FaultOf(err) != contracts.ThirdParty("anthropic", contracts.KindBadResponse) {
+			t.Errorf("HTTP 200 %s: được %+v, nhãn lỗi %q (lỗi %v); muốn lỗi KindBadResponse", bad, d, contracts.FaultOf(err), err)
+		}
+	}
 }
 
 // New: model giả khi không cấu hình; model thật thiếu model / khoá là lỗi cấu hình (không rơi về

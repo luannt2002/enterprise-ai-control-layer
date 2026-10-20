@@ -1,0 +1,91 @@
+suite: win
+tenant: abc-infra
+reference_date: 2026-10-20
+cases:
+  - id: WIN-I-225
+    failure_class: semantic
+    authored_by: independent
+    principal: u-director
+    question: "đội trưởng báo máy 03 hôm qua bao nhiêu dầu?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "4000", unit: L}
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-003 (báo cáo ngày PDF 'Machine 03 ≈ 4 m³', hạng 1) = 4.000 L; hai tin nhắn R-001 và R-002 (2k + 2k, hạng 2) cũng cộng ra 4.000 L. 'đội trưởng báo' = REPORTED; số này chỉ để tham khảo (SOP-FUEL-01 dòng 2), không phải lượng xuất."
+  - id: WIN-I-287
+    failure_class: representation
+    authored_by: independent
+    principal: u-accountant
+    question: "lu rung 02 hôm qua được cấp 1.2 khối dầu phải không?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "1200", unit: L}
+      conflict: false
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-016 (phiếu PX-0913 trong warehouse.xlsx, ghi '1,2 m3' = 1.200 L, hạng 1) là nguồn duy nhất của issued_fuel. '1.2 khối' có đúng một chữ số sau dấu chấm → thập phân = 1,2 m³ = 1.200 L (03-data-map §4 dòng 18), không phải 1.200 'nghìn'."
+  - id: WIN-I-293
+    failure_class: representation
+    authored_by: independent
+    principal: u-accountant
+    question: "hoá đơn dầu hôm qua của máy 03 ghi 4,1 khối đúng không?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "4100", unit: L}
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-007 (hoá đơn HD-5521) = 4.100 L là nguồn duy nhất của billed_fuel. '4,1 khối' = 4,1 m³ chất lỏng = 4.100 L (03-data-map §4 dòng 47); nghĩa của câu là billed_fuel (hoá đơn), không phải xuất kho."
+  - id: WIN-I-331
+    failure_class: unsupported_answer
+    authored_by: independent
+    principal: u-director
+    question: "Theo quy trình, kỹ sư phải chốt giờ máy trong mấy ngày?"
+    expect:
+      route: RAG
+      outcome: RESOLVED
+      contains: ["2 ngày làm việc"]
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      cited_sources: ["SOP-FUEL-01"]
+      model_calls: 1
+    note: "SOP-FUEL-01 dòng 3: 'Kỹ sư công trường kiểm tra nhật ký vận hành máy và xác nhận số giờ máy trong 2 ngày làm việc'. '2 ngày làm việc' là số của quy trình, đơn vị là ngày (không phải L, m³) nên được giao kèm nhãn 'trích văn bản quy trình' (G5, ADR-0002 D17); chặn nó là chặn oan."
+  - id: WIN-I-360
+    failure_class: representation
+    authored_by: independent
+    principal: u-accountant
+    question: "may 03 hom qua duoc cap 4 khoi dau dung ko?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "3850", unit: L}
+      conflict: true
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-004 (phiếu xuất kho PX-0912, hạng 1) = 3.850 L; R-005 (ERP-77812, hạng 2) = 3.900 L, lệch 50 L > dung sai 10 L của issued_fuel → RESOLVED 3.850 L và conflict=true (docs/04 §3). Không dấu + viết tắt 'ko'; '4 khối dầu' = 4 m³ chất lỏng = 4.000 L (BR-UNIT-02), vẫn không phải số xuất kho."
+  - id: WIN-I-397
+    failure_class: entity
+    authored_by: independent
+    principal: u-accountant
+    question: "Machine 03 hôm qua báo bao nhiêu dầu?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "4000", unit: L}
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-003 (báo cáo ngày PDF 'Machine 03 ≈ 4 m³', hạng 1) = 4.000 L; hai tin nhắn R-001 và R-002 (2k + 2k, hạng 2) cũng cộng ra 4.000 L. 'Machine 03' là mã của mẫu báo cáo hiện trường (source_ids.site_report_form) → EX-03; 'báo' = reported_fuel."
+  - id: WIN-I-400
+    failure_class: representation
+    authored_by: independent
+    principal: u-accountant
+    question: "báo cáo ngày ghi máy 03 hôm qua khoảng 4 khối dầu đúng không?"
+    expect:
+      route: SQL_QUERY
+      outcome: RESOLVED
+      value: {number: "4000", unit: L}
+      not_contains: ["9999", "9.999", "B-CANARY-7731"]
+      model_calls: 0
+    note: "R-003 (báo cáo ngày PDF 'Machine 03 ≈ 4 m³', hạng 1) = 4.000 L; hai tin nhắn R-001 và R-002 (2k + 2k, hạng 2) cũng cộng ra 4.000 L. 'khoảng 4 khối dầu' = ~4.000 L (BR-UNIT-02: khối của chất lỏng = m³ = 1.000 L; BR-EST-01: 'khoảng' mang cờ ước lượng); nghĩa là reported_fuel nguồn hạng 1 (báo cáo ngày), nên 4.000 L đúng với nghĩa này dù xuất kho là 3.850 L."

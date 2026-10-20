@@ -128,12 +128,22 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	// khác nhau: không xác nhận con số nào thay người hỏi (P5).
 	notes := a.unclearNotes(cls.Unclear, now.Location())
 	names := mentionsOf(res)
-	rival := len(a.rivalClaims(plan, in, names)) > 1
-	if rival {
+	claims := a.confirmClaims(plan, in, names)
+	rival, doubt := len(claims.values) > 1, len(claims.doubts) > 0
+	if rival || doubt {
 		plan.Route, plan.Template, plan.Outcome, plan.Steps = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired, nil
+	}
+	if rival {
 		plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")
 		plan.Reason = "câu xác nhận nêu nhiều con số khác nhau"
 		notes = append(notes, "Câu hỏi nêu nhiều con số khác nhau; mỗi lượt chỉ xác nhận được một con số.")
+	}
+	if doubt {
+		// mốc thời gian người hỏi viết bằng chữ mà bộ chuẩn hoá không đọc được (hay không khớp kỳ đã đọc): kỳ của câu có thể KHÁC kỳ họ nói,
+		// nên không phán quyết "Đúng." / "Không." cho một kỳ khác (P5)
+		plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "period")
+		plan.Reason = "câu xác nhận nêu mốc thời gian không đọc được"
+		notes = append(notes, "Chưa đọc được mốc thời gian: "+strings.Join(claims.doubts, ", ")+". Bạn cho biết ngày hoặc khoảng ngày cụ thể.")
 	}
 
 	resp := contracts.AskResponse{
@@ -145,8 +155,8 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	switch plan.Route {
 	case contracts.RouteClarification:
 		visible := a.visibleCandidates(ctx, pr, append(slices.Clone(cls.Candidates), cls.Unclear.Entities...))
-		if rival {
-			// hỏi lại về CON SỐ: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
+		if rival || doubt {
+			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
 			visible = nil
 		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
@@ -604,11 +614,11 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, names []mention, metric
 	if !a.confirming(in.Raw) || !ok {
 		return contracts.Value{}, false
 	}
-	vals := a.claimNumbers(in, names, def)
-	if len(vals) != 1 {
+	cs := a.claimNumbers(in, names, def)
+	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 {
 		return contracts.Value{}, false
 	}
-	return vals[0], true
+	return cs.values[0], true
 }
 
 // confirming báo câu có cụm xác nhận của pack ("đúng không").
@@ -637,20 +647,20 @@ func (a *Ask) inMetricUnit(v contracts.Value, def sourceoftruth.MetricDef) (cont
 	return v, true
 }
 
-// rivalClaims trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà một câu xác nhận nêu ("3850 L đúng không, 4000 L
-// thì sao?", "3850 L và 4000 L, đúng không?"); từ hai con số trở lên là câu không xác nhận được con số nào thay người hỏi. Chỉ xét
-// route số liệu có chỉ số gốc và không phải câu so sánh — đúng những câu mà answerMetric coi là câu xác nhận — và dùng CÙNG định
-// nghĩa "con số xác nhận" (claimNumbers) với claimedValue, để hai nơi không bao giờ lệch nhau.
-func (a *Ask) rivalClaims(plan contracts.RoutePlan, in contracts.NormalizedInput, names []mention) []contracts.Value {
+// confirmClaims trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà một câu xác nhận nêu ("3850 L đúng không, 4000 L thì sao?",
+// "3850 L và 4000 L, đúng không?"; từ hai con số trở lên là câu không xác nhận được con số nào thay người hỏi) và các mốc thời gian chưa đọc được
+// (xem claimSet.doubts). Chỉ xét route số liệu có chỉ số gốc và không phải câu so sánh — đúng những câu mà answerMetric coi là câu xác nhận —
+// và dùng CÙNG định nghĩa "con số xác nhận" (claimNumbers) với claimedValue, để hai nơi không bao giờ lệch nhau.
+func (a *Ask) confirmClaims(plan contracts.RoutePlan, in contracts.NormalizedInput, names []mention) claimSet {
 	switch plan.Route {
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
 	default:
-		return nil
+		return claimSet{}
 	}
 	it := plan.Intent
 	def, ok := a.RT.Metrics.Metric(it.Slots["metric"].Text)
 	if !ok || it.Slots["compare_metric"].Text != "" || !a.confirming(in.Raw) {
-		return nil
+		return claimSet{}
 	}
 	return a.claimNumbers(in, names, def)
 }
@@ -673,34 +683,65 @@ func mentionsOf(res contracts.Resolution) []mention {
 
 // claimCand là một con số ứng viên của câu xác nhận, đã đổi về đơn vị chuẩn của chỉ số.
 type claimCand struct {
-	start int
-	v     contracts.Value
-	// explicit: lượng có đơn vị VIẾT RÕ cùng chiều đo ("3850 L", "4 m3"). Số trần và đơn vị suy từ thuật ngữ ("dầu 2" → 2 L)
-	// thì không — chúng có thể chỉ là nhãn ("ca 2", "phiếu 912", "năm 2026", "2 lần").
+	start, end int
+	orig       contracts.Value // giá trị người hỏi viết, CHƯA đổi đơn vị (số trần nối với một lượng lấy đơn vị của lượng đó)
+	v          contracts.Value
+	// explicit: lượng có đơn vị VIẾT RÕ cùng chiều đo ("3850 L", "4 m3"). Số trần và đơn vị suy từ thuật ngữ ("dầu 2" → 2 L) thì không — chúng
+	// có thể chỉ là nhãn ("ca 2", "phiếu 912", "năm 2026", "2 lần"). Lượng viết kèm mẫu số ("5.000 L/ngày": tốc độ / định mức) cũng không: nó
+	// không cho phép bỏ thầm số trần của câu.
 	explicit bool
-	// formatted: số trần viết có hậu tố nhân, dấu nghìn / thập phân hoặc chữ ("4k", "4.000", "bốn ngàn") — giống một lượng hơn
-	// là một nhãn, nên vẫn là con số cạnh tranh dù cạnh một lượng viết rõ.
+	// formatted: số trần viết có hậu tố nhân, dấu nghìn / thập phân hoặc chữ ("4k", "4.000", "bốn ngàn"), hay số trần NỐI với một lượng bằng từ nối
+	// ("từ 3800 đến 3900 L", "3850 hay 4000 L" — xem joinClaims) — giống một lượng hơn là một nhãn, nên vẫn là con số cạnh tranh dù cạnh một lượng
+	// viết rõ đơn vị.
 	formatted bool
 }
 
-// claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def. Một con số là ứng
-// viên khi: là lượng hay số trần, KHÔNG nằm trong tên một thực thể ("03" của "máy 03"), và đổi được về đơn vị chuẩn ("7h", "2 ca"
-// khác chiều đo nên bỏ). Phạm vi:
+// claimSet là kết quả của claimNumbers: các con số xác nhận và các mốc thời gian không kiểm được.
+type claimSet struct {
+	// values: các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra.
+	values []contracts.Value
+	// doubts: chữ người hỏi viết cho các mốc thời gian mà bộ chuẩn hoá KHÔNG đọc được ("tuần 41", "năm 2025", "ngày 12", "7 ngày") và không khớp
+	// kỳ nào đã đọc được — kỳ của câu có thể khác kỳ họ nói, nên câu phải hỏi lại, không phán quyết. Mốc nêu thêm KHỚP kỳ đã đọc
+	// ("hôm nay tuần 43", khi hôm nay thuộc tuần 43) là bối cảnh vô hại.
+	doubts []string
+}
+
+// claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def, kèm các mốc thời gian không kiểm
+// được. Một con số là ứng viên khi: là lượng hay số trần, KHÔNG nằm trong tên một thực thể ("03" của "máy 03"), và đổi được về đơn vị chuẩn
+// ("7h", "2 ca" khác chiều đo nên bỏ). Số trần đứng cạnh một từ chỉ kỳ ("tuần 43", "năm 2025", "ngày 12", "7 ngày qua") là mốc thời gian, không phải
+// con số (xem normalization.PeriodQualifier); số trần là nhãn hay số đếm ("phiếu 912", "ca 2", "2 máy") cũng vậy (normalization.LabelContext).
+// Phạm vi:
 //   - mệnh đề chứa cụm xác nhận và MỌI mệnh đề sau nó ("3850 L đúng không, 4000 L thì sao?"); số ở mệnh đề đứng TRƯỚC là ngữ cảnh
 //     ("đội báo 2k, vậy tổng báo 4k đúng không?");
 //   - mệnh đề chứa cụm xác nhận mà không có con số nào ("3850 L và 4000 L, đúng không?") thì câu hỏi áp cho các con số đứng trước
-//     trong CÙNG câu (tách bởi . ? !), không phải cho câu trước đó.
+//     trong CÙNG câu (tách bởi . ? !; "..." không phải hết câu), không phải cho câu trước đó.
 //
 // Số trần khác chỉ tính khi chính mệnh đề hỏi không có lượng nào viết rõ đơn vị — "3850 đúng không, 4000 thì sao?" có hai con số;
-// còn "tháng 10 năm 2026 … 3850 L đúng không?" chỉ có MỘT (2026 là năm). Số trần có dạng một lượng ("4k", "4.000") hoặc đứng đầu một
-// mệnh đề ("3850 L đúng không, 4000 thì sao?") vẫn là con số cạnh tranh. Cùng một giá trị viết hai cách ("4k", "4000 L") chỉ tính một lần.
-func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def sourceoftruth.MetricDef) []contracts.Value {
+// còn "tháng 10 năm 2026 … 3850 L đúng không?" chỉ có MỘT (2026 là năm). Số trần có dạng một lượng ("4k", "4.000"), nối với một lượng bằng từ nối
+// ("từ 3800 đến 3900 L", "3850 chứ không phải 4000 L") hoặc đứng đầu một mệnh đề ("3850 L đúng không, 4000 thì sao?") vẫn là con số cạnh tranh. Cùng một
+// giá trị viết hai cách ("4k", "4000 L") chỉ tính một lần.
+func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def sourceoftruth.MetricDef) claimSet {
+	var cs claimSet
+	periods := readPeriods(in)
 	var cands []claimCand
-	for _, sp := range in.Spans {
+	skip := 0 // số span còn lại thuộc một cụm ngày dd-mm đã ghi là mốc chưa đọc được
+	for i, sp := range in.Spans {
+		if skip > 0 {
+			skip--
+			continue
+		}
 		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
 			continue
 		}
 		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
+			continue
+		}
+		if text, n := normalization.DashDateAt(in.Raw, in.Spans, i); n > 1 {
+			// "19-10", "19-10-26": ngày viết dd-mm mà bộ chuẩn hoá không đọc khi thiếu chữ "ngày" — kỳ của câu có thể khác kỳ họ nói
+			if !slices.Contains(cs.doubts, text) {
+				cs.doubts = append(cs.doubts, text)
+			}
+			skip = n - 1
 			continue
 		}
 		v, ok := a.inMetricUnit(sp.Value, def)
@@ -708,12 +749,31 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 			continue
 		}
 		explicit := sp.Kind == contracts.ValueQuantity && !strings.Contains(sp.Rule, "unit_from_term")
+		if explicit && rateAfter(in.Raw, sp.End) {
+			explicit = false // "5.000 L/ngày": tốc độ, không phải lượng đã cấp
+		}
 		formatted := !explicit && strings.ContainsFunc(sp.Raw, func(r rune) bool { return unicode.IsLetter(r) || r == '.' || r == ',' })
-		cands = append(cands, claimCand{start: sp.Start, v: v, explicit: explicit, formatted: formatted})
+		if !explicit && !formatted {
+			// số trần trơn: nhãn / số đếm, mốc thời gian viết bằng chữ, hay một con số? (nhãn xét trước: "phiếu 912 tháng 9" là số phiếu rồi tháng 9)
+			if normalization.LabelContext(in.Raw, sp.Start, sp.End) {
+				continue
+			}
+			if q, ok := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End); ok && !(q.Kind == normalization.QualifierSpan && inReadPeriod(in, q.Word)) {
+				if !qualifierHolds(q, periods) && !slices.Contains(cs.doubts, q.Raw) {
+					cs.doubts = append(cs.doubts, q.Raw)
+				}
+				continue
+			}
+		}
+		cands = append(cands, claimCand{start: sp.Start, end: sp.End, orig: sp.Value, v: v, explicit: explicit, formatted: formatted})
 	}
+	a.joinClaims(in, def, cands)
 	lo, hi := 0, len(in.Raw) // [lo, hi): mệnh đề hỏi; từ hi trở đi: các mệnh đề sau nó
 	if fs, fe, focus := intent.FocusClause(in.Raw, a.RT.ConfirmMarkers); focus {
 		lo, hi = fs, fe
+		for lo > 0 && contrastLeading(in.Raw[lo:hi]) { // "…3850 L, hay 4000 L đúng không?": mệnh đề hỏi nối tiếp mệnh đề trước
+			lo = prevClauseStart(in.Raw, lo)
+		}
 		if !slices.ContainsFunc(cands, func(c claimCand) bool { return c.start >= lo && c.start < hi }) {
 			lo = sentenceStart(in.Raw, fs)
 		}
@@ -745,7 +805,154 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 			add(c)
 		}
 	}
+	cs.values = out
+	return cs
+}
+
+// claimConnectors là các từ / dấu nối hai con số của MỘT lời xác nhận: dải ("từ 3800 đến 3900 L", "3800-3900 L"), lựa chọn ("3850 hay 4000 L"),
+// liệt kê ("3850 và 4000 L") và phủ định vế ("3850 chứ không phải 4000 L").
+var claimConnectors = []string{"-", "–", "—", "/", "đến", "tới", "hay", "hoặc", "hay là", "hoặc là", "và", "chứ không phải", "không phải", "chứ không", "so với", "thay vì"}
+
+// claimConnector báo đoạn chữ giữa hai con số CHỈ gồm một từ nối của claimConnectors (không phân biệt hoa thường, dấu; ngoặc quanh từ nối được bỏ:
+// "3850 L (hoặc 4000)").
+func claimConnector(gap string) bool {
+	g := normalization.Fold(normalization.CollapseSpaces(strings.NewReplacer("(", " ", ")", " ", "[", " ", "]", " ").Replace(gap)))
+	return g != "" && slices.ContainsFunc(claimConnectors, func(c string) bool { return g == normalization.Fold(c) })
+}
+
+// contrastLeads là các từ nối LỰA CHỌN / PHỦ ĐỊNH vế: mệnh đề hỏi mở đầu bằng một trong chúng ("…3850 L, hay 4000 L đúng không?"; "hay là" thuộc "hay",
+// "hoặc là" thuộc "hoặc", "chứ không phải" thuộc "chứ không") nối tiếp mệnh đề liền trước, nên con số của mệnh đề đó là một vế của câu hỏi chứ không phải
+// ngữ cảnh. ("vậy", "và", "còn" mở đầu mệnh đề mới: ngữ cảnh vẫn là ngữ cảnh.)
+var contrastLeads = []string{"hay", "hoặc", "chứ không", "không phải"}
+
+// contrastLeading báo mệnh đề clause mở đầu bằng một từ nối của contrastLeads.
+func contrastLeading(clause string) bool {
+	clause = strings.TrimLeft(clause, " \t\n")
+	return slices.ContainsFunc(contrastLeads, func(c string) bool {
+		return slices.ContainsFunc(normalization.PhraseSpans(clause, c), func(sp [2]int) bool { return sp[0] == 0 })
+	})
+}
+
+// prevClauseStart trả đầu mệnh đề liền trước vị trí lo — lo là đầu một mệnh đề, ngay sau một dấu , ; . ? ! (ranh giới như FocusClause; "..." không cắt).
+func prevClauseStart(text string, lo int) int {
+	for i := lo - 2; i >= 0; i-- {
+		if strings.IndexByte(",;.?!", text[i]) >= 0 && (text[i+1] == ' ' || text[i+1] == '\n') && !ellipsisAt(text, i) {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// joinClaims cho số trần NỐI với một lượng (hay một số trần đã nối) bằng từ nối dùng chung đơn vị của lượng đó — "từ 3800 đến 3900 L", "3800-3900 L",
+// "3850 hay 4000 L", "3850 chứ không phải 4000 L", "3850 L hay 4000": nó là một con số của câu, không phải nhãn ("năm 2026", "ca 2") nên không được bỏ
+// thầm khi câu đã có một lượng viết rõ đơn vị. Số trần nối về phía SAU (đứng trước lượng) hay về phía TRƯỚC (đứng sau lượng; chỉ khi ngay sau nó
+// không phải một chữ khác — "3850 L và 4 xe" là số đếm, "3850 L hay 4000 đúng không?" thì không). Số nối được đánh dấu formatted và lấy đơn vị của
+// lượng nối với nó ("từ 3 đến 4 m3": 3 m3).
+func (a *Ask) joinClaims(in contracts.NormalizedInput, def sourceoftruth.MetricDef, cands []claimCand) {
+	plain := func(c claimCand) bool { return !c.explicit && !c.formatted }
+	gap := func(from, to claimCand) string {
+		if from.end > to.start {
+			return "" // hai span chồng nhau: không có đoạn chữ giữa
+		}
+		return in.Raw[from.end:to.start]
+	}
+	join := func(k, n int) {
+		c := &cands[k]
+		c.formatted = true
+		if u := cands[n].orig.Unit; u != "" && c.orig.Unit == "" {
+			if v, ok := a.inMetricUnit(contracts.Value{Kind: contracts.ValueQuantity, Number: c.orig.Number, Unit: u}, def); ok {
+				c.v = v
+			}
+		}
+	}
+	for k := len(cands) - 2; k >= 0; k-- { // đứng TRƯỚC lượng: "từ 3800 đến 3900 L"
+		if !cands[k].explicit && !plain(cands[k+1]) && claimConnector(gap(cands[k], cands[k+1])) {
+			join(k, k+1)
+		}
+	}
+	for k := 1; k < len(cands); k++ { // đứng SAU lượng: "3850 L hay 4000"
+		if !cands[k].explicit && !plain(cands[k-1]) && claimConnector(gap(cands[k-1], cands[k])) && !a.wordFollows(in.Raw, cands[k].end) {
+			join(k, k-1)
+		}
+	}
+}
+
+// wordFollows báo ngay sau vị trí pos (chỉ cách khoảng trắng) là một CHỮ không thuộc cụm xác nhận: số đứng trước một danh từ ("4 xe") là số đếm.
+func (a *Ask) wordFollows(text string, pos int) bool {
+	rest := strings.TrimLeft(text[pos:], " \t\n")
+	r, _ := utf8.DecodeRuneInString(rest)
+	if rest == "" || !unicode.IsLetter(r) {
+		return false
+	}
+	for _, m := range a.RT.ConfirmMarkers {
+		for _, sp := range normalization.PhraseSpans(rest, m) {
+			if sp[0] == 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// rateAfter báo lượng kết thúc ở end được viết kèm MẪU SỐ ("5.000 L/ngày", "5 m3/ca"): đó là tốc độ hay định mức, không phải số lượng đã cấp.
+func rateAfter(text string, end int) bool {
+	if end < 0 || end+1 >= len(text) || text[end] != '/' {
+		return false
+	}
+	r, _ := utf8.DecodeRuneInString(text[end+1:])
+	return unicode.IsLetter(r)
+}
+
+// inReadPeriod báo đoạn byte word nằm trong một mốc / khoảng thời gian bộ chuẩn hoá đã đọc: "tuần" của "tuần này" không phải từ chỉ kỳ mà con số đứng
+// trước nó ("3850 tuần này") đếm. Chỉ dùng cho khoảng đếm ("N tuần"): "tháng" của "15 tháng 9" cũng nằm trong kỳ đã đọc (tháng 9) nhưng 15 là NGÀY
+// của tháng đó — mốc chưa đọc được.
+func inReadPeriod(in contracts.NormalizedInput, word [2]int) bool {
+	return slices.ContainsFunc(in.SpansOf(contracts.ValuePeriod, contracts.ValueDate), func(sp contracts.Span) bool { return sp.Start <= word[0] && word[1] <= sp.End })
+}
+
+// readPeriods trả khoảng ngày [từ, đến] của mọi mốc / khoảng thời gian bộ chuẩn hoá đã ĐỌC được trong câu.
+func readPeriods(in contracts.NormalizedInput) [][2]time.Time {
+	var out [][2]time.Time
+	for _, sp := range in.SpansOf(contracts.ValuePeriod, contracts.ValueDate) {
+		if from, to, err := parseBounds(sp.Value.Text, time.UTC); err == nil {
+			out = append(out, [2]time.Time{from, to})
+		}
+	}
 	return out
+}
+
+// qualifierHolds báo mốc thời gian người hỏi viết bằng chữ mà bộ chuẩn hoá không đọc được ("tuần 43", "quý 4", "năm 2026", "ngày 19") KHỚP mọi kỳ đã
+// đọc được trong câu — kỳ đã đọc nằm trọn trong mốc đó, nên mốc chỉ là bối cảnh rộng hơn của kỳ hẹp ("hôm nay tuần 43"). Không có kỳ nào đọc được,
+// kỳ nằm ngoài hay RỘNG hơn mốc ("tháng 10 ngày 12": cả tháng không nằm trong ngày 12), hay mốc là một khoảng đếm ("7 ngày qua") thì không khớp.
+// Tuần là tuần ISO 8601 (thứ Hai là đầu tuần, như "tuần này"), quý là quý dương lịch.
+func qualifierHolds(q normalization.Qualifier, periods [][2]time.Time) bool {
+	if len(periods) == 0 {
+		return false
+	}
+	quarter := func(t time.Time) int { return (int(t.Month())-1)/3 + 1 }
+	for _, p := range periods {
+		from, to := p[0], p[1]
+		var ok bool
+		switch q.Kind {
+		case normalization.QualifierDay:
+			ok = from.Equal(to) && from.Day() == q.Value
+		case normalization.QualifierWeek:
+			y1, w1 := from.ISOWeek()
+			y2, w2 := to.ISOWeek()
+			ok = y1 == y2 && w1 == w2 && w1 == q.Value
+		case normalization.QualifierMonth:
+			ok = from.Year() == to.Year() && from.Month() == to.Month() && int(from.Month()) == q.Value
+		case normalization.QualifierQuarter:
+			ok = from.Year() == to.Year() && quarter(from) == quarter(to) && quarter(from) == q.Value
+		case normalization.QualifierYear:
+			ok = from.Year() == q.Value && to.Year() == q.Value
+		default: // QualifierSpan ("7 ngày qua"): khoảng đếm bằng số, không kiểm được với kỳ nào
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // clauseInitial báo vị trí at là ĐẦU một mệnh đề: trước nó, chỉ cách khoảng trắng, là một dấu , ; . ? ! hoặc đầu văn bản. Một số trần
@@ -756,15 +963,21 @@ func clauseInitial(text string, at int) bool {
 	return before == "" || strings.IndexByte(",;.?!", before[len(before)-1]) >= 0
 }
 
-// sentenceStart trả vị trí đầu CÂU (tách bởi . ? ! theo sau là khoảng trắng — "3.850", "0,5" không cắt) chứa vị trí at.
+// sentenceStart trả vị trí đầu CÂU (tách bởi . ? ! theo sau là khoảng trắng — "3.850", "0,5" không cắt; dấu chấm lửng "..." giữa câu cũng không cắt)
+// chứa vị trí at.
 func sentenceStart(text string, at int) int {
 	start := 0
 	for i := 0; i < at && i < len(text); i++ {
-		if strings.IndexByte(".?!", text[i]) >= 0 && i+1 < len(text) && (text[i+1] == ' ' || text[i+1] == '\n') {
+		if strings.IndexByte(".?!", text[i]) >= 0 && i+1 < len(text) && (text[i+1] == ' ' || text[i+1] == '\n') && !ellipsisAt(text, i) {
 			start = i + 1
 		}
 	}
 	return start
+}
+
+// ellipsisAt báo dấu chấm ở vị trí i thuộc một dấu chấm lửng ("...", "....": liền sau hay liền trước nó là một dấu chấm khác).
+func ellipsisAt(text string, i int) bool {
+	return text[i] == '.' && ((i > 0 && text[i-1] == '.') || (i+1 < len(text) && text[i+1] == '.'))
 }
 
 // otherMetrics kê tổng các chỉ số GỐC khác của cùng thực thể, cùng kỳ (đã qua thẩm quyền), kèm

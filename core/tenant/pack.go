@@ -194,6 +194,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				IgnorePhrases:     append(append([]string(nil), inf.IgnorePhrases...), inf.ConfirmMarkers...),
 				DefaultTerms:      inf.DefaultTerms,
 				FocusMarkers:      inf.ConfirmMarkers,
+				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)

@@ -2,6 +2,7 @@ package normalization
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -76,7 +77,7 @@ func periodValue(from, to time.Time) contracts.Value {
 	return contracts.Value{Kind: contracts.ValuePeriod, Text: from.Format("2006-01-02") + "/" + to.Format("2006-01-02")}
 }
 
-// matchRelativeDate thử các cụm "hôm nay", "tháng trước"… và "tháng 9", "tháng 9/2026".
+// matchRelativeDate thử các cụm "hôm nay", "tháng trước"… và "tháng 9", "tháng 9/2026", "tháng 9 năm 2025".
 func matchRelativeDate(s string, toks []token, i int, now time.Time) (contracts.Span, int, bool) {
 	start := toks[i].start
 	for _, rd := range relativeDates {
@@ -90,41 +91,26 @@ func matchRelativeDate(s string, toks []token, i int, now time.Time) (contracts.
 			Value: periodValue(from, to), Confidence: 1, Rule: "date:relative",
 		}, tokenAt(toks, end), true
 	}
-	// "tháng 9" hoặc "tháng 9/2026"
-	end, ok := matchAliasAt(s, start, "tháng", false)
-	if !ok {
+	// "tháng 9", "tháng 9/2026", "tháng 9 năm 2025": cùng một bộ đọc tháng–năm với matchDayMonth (monthYearAt). Trước đây chỉ đọc "tháng 9/2026"
+	// nên "tháng 9 năm 2025" thành tháng 9 của năm nay — im lặng sai năm.
+	month, year, explicitYear, after, ok := monthYearAt(s, toks, i)
+	if !ok || month < 1 || month > 12 {
 		return contracts.Span{}, i, false
-	}
-	j := tokenAt(toks, end)
-	if j < len(toks) && toks[j].kind == tokSpace {
-		j++
-	}
-	if j >= len(toks) || toks[j].kind != tokNum {
-		return contracts.Span{}, i, false
-	}
-	month, err := strconv.Atoi(toks[j].text)
-	if err != nil || month < 1 || month > 12 {
-		return contracts.Span{}, i, false
-	}
-	year := now.Year()
-	explicitYear := false
-	k := j + 1
-	if k+1 < len(toks) && toks[k].kind == tokSym && toks[k].text == "/" && toks[k+1].kind == tokNum && len(toks[k+1].text) == 4 {
-		y, _ := strconv.Atoi(toks[k+1].text)
-		year, explicitYear = y, true
-		k += 2
 	}
 	// Không ghi năm: lấy lần gần nhất KHÔNG ở tương lai ("tháng 11" hỏi vào tháng 10
 	// là tháng 11 năm trước). Báo cáo vận hành hỏi về quá khứ.
-	if !explicitYear && month > int(now.Month()) {
-		year--
+	if !explicitYear {
+		year = now.Year()
+		if month > int(now.Month()) {
+			year--
+		}
 	}
 	from, to := monthRange(year, month, now.Location())
-	endByte := toks[k-1].end
+	endByte := toks[after-1].end
 	return contracts.Span{
 		Kind: contracts.ValuePeriod, Raw: s[start:endByte], Start: start, End: endByte,
 		Value: periodValue(from, to), Confidence: 1, Rule: "date:month",
-	}, k, true
+	}, after, true
 }
 
 func valueKindOf(from, to time.Time) contracts.ValueKind {
@@ -218,17 +204,31 @@ func matchNumericDate(s string, toks []token, i int, now time.Time) (sp contract
 }
 
 // dateLike báo một cụm số (ngày d, tháng m) CÓ DẠNG ngày, nên khi không đọc được thành ngày trên lịch thì đáng bị ghi là ngày hỏng
-// thay vì lặng lẽ rơi về hôm nay: ngày 1–31 và tháng 1–12 (chỉ sai vì lịch: "31/02", "29/02/2026", "31/04"). Cụm khác ("24/24",
-// "60/40", "12/34/56": tỉ lệ, số phiếu, hợp đồng) chỉ là hai hay ba số. Người hỏi đã nói đây là ngày — chữ "ngày" đứng trước, hay năm
+// thay vì lặng lẽ rơi về hôm nay: ngày 1–31 và tháng 1–12 (chỉ sai vì lịch: "31/02", "29/02/2026", "31/04"); hai vế đảo chỗ ("10/19" là
+// 19/10 viết kiểu tháng/ngày: ngày 1–12, "tháng" 13–31); và ngày lố một chút ("32/10" … "39/10": gõ nhầm một phím, tháng hợp lệ). Cụm khác
+// ("24/24", "60/40", "12/34/56": tỉ lệ, số phiếu, hợp đồng) chỉ là hai hay ba số. Người hỏi đã nói đây là ngày — chữ "ngày" đứng trước, hay năm
 // bốn chữ số kèm theo ("2026-13-01") — thì lỏng hơn: mỗi phần ≤ 99 ("ngày 32/10", "ngày 15/13").
+//
+// Đánh đổi (không phân biệt được bằng cấu trúc): "19/13", "24/24" (một vế hợp lệ, vế kia chỉ hơn mức một chút) không bị ghi là ngày hỏng khi không có
+// chữ "ngày"; ngược lại tỉ lệ / số phiếu nhỏ-trên-lớn ("5/20", "1/25") bị ghi — hỏi lại thừa còn hơn rơi im lặng về hôm nay.
 func dateLike(d, m, yearDigits int, ctx bool) bool {
-	if d >= 1 && d <= 31 && m >= 1 && m <= 12 {
+	switch {
+	case d >= 1 && d <= 31 && m >= 1 && m <= 12:
+		return true
+	case d >= 1 && d <= 12 && m >= 13 && m <= 31: // đảo vế: "10/19" là ngày 19 tháng 10
+		return true
+	case d >= 32 && d <= 39 && m >= 1 && m <= 12: // ngày lố một chút: "32/10"
 		return true
 	}
 	return (ctx || yearDigits == 4) && d >= 0 && d <= 99 && m >= 0 && m <= 99
 }
 
-// afterDayWord báo từ "ngày" đứng ngay trước token i (chỉ cách khoảng trắng): người hỏi đã nói đây là một ngày.
+// rateWords đứng trước "ngày" thì "ngày" là đơn vị thời gian của một TỐC ĐỘ ("mỗi ngày 3-4 chuyến", "hàng ngày 10-12 xe", "một ngày 2.5
+// chuyến"), không phải chữ báo một ngày cụ thể.
+var rateWords = []string{"mỗi", "hàng", "mọi", "từng", "một", "cứ"}
+
+// afterDayWord báo từ "ngày" đứng ngay trước token i (chỉ cách khoảng trắng): người hỏi đã nói đây là một ngày. "mỗi ngày", "hàng ngày"… không
+// tính: số theo sau là một lượng đếm theo ngày ("mỗi ngày 3-4 chuyến" không phải ngày 03/04).
 func afterDayWord(s string, toks []token, i int) bool {
 	k := i - 1
 	if k >= 0 && toks[k].kind == tokSpace {
@@ -237,8 +237,17 @@ func afterDayWord(s string, toks []token, i int) bool {
 	if k < 0 || toks[k].kind != tokWord {
 		return false
 	}
-	_, ok := matchAliasAt(s, toks[k].start, "ngày", false)
-	return ok
+	if _, ok := matchAliasAt(s, toks[k].start, "ngày", false); !ok {
+		return false
+	}
+	p := k - 1
+	if p >= 0 && toks[p].kind == tokSpace {
+		p--
+	}
+	if p >= 0 && toks[p].kind == tokWord && slices.ContainsFunc(rateWords, func(w string) bool { return isWordAt(s, toks[p], w) }) {
+		return false
+	}
+	return true
 }
 
 // gluedBefore báo cụm số bắt đầu ở start dính vào thứ đứng ngay trước nó: sau một chữ cái và dấu nối ("PX-12/10", "BB-24/50",

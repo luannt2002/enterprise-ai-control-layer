@@ -85,13 +85,13 @@ func isGap(r rune) bool { return r == ' ' || unicode.Is(unicode.Cf, r) }
 // ngoặc cũng tính khi phần sau nó là phần cuối của chú thích đơn vị ("5.000 (L)", "5.000 (lít/ngày)", "5.000 (lít dầu)", xem
 // bracketTail); "3 (khối lượng công việc)" thì không. enclosed: số đứng trong ngoặc, đơn vị đứng sau ngoặc đóng ("(4.000) lít").
 func unitAfter(rest string, words []string, enclosed bool) (string, bool) {
-	rest = strings.TrimLeftFunc(rest, isGap)
+	rest, cell := skipDecoration(rest)
 	if r, w := utf8.DecodeRuneInString(rest); enclosed && (r == ')' || r == ']' || r == '}') {
-		rest = strings.TrimLeftFunc(rest[w:], isGap)
+		rest, cell = skipDecoration(rest[w:])
 	}
 	bracketed := false
 	if r, w := utf8.DecodeRuneInString(rest); r == '(' || r == '[' || r == '{' {
-		rest, bracketed = strings.TrimLeftFunc(rest[w:], isGap), true
+		rest, bracketed = skipUnitLabel(strings.TrimLeftFunc(rest[w:], isGap)), true
 	}
 	for _, w := range words {
 		after, ok := cutPrefixFold(rest, w)
@@ -105,9 +105,81 @@ func unitAfter(rest string, words []string, enclosed bool) (string, bool) {
 		} else if r, _ := utf8.DecodeRuneInString(after); after != "" && isWordRune(r) {
 			continue
 		}
+		if cell && !cellEndsAfter(after) {
+			continue
+		}
 		return w, true
 	}
 	return "", false
+}
+
+// skipDecoration bỏ phần TRANG TRÍ giữa một số và đơn vị của nó: khoảng đệm, dấu nhấn Markdown (`**4.000** lít`, `4.000` lít, `*4.000* *lít*`),
+// thẻ HTML (`<b>4.000</b> lít`) và dấu phẩy ngăn (`4.000, lít`) — người đọc thấy "4.000 lít", bộ đếm chỉ thấy một dấu lạ chen giữa. Dấu "|" (ranh giới ô
+// của bảng Markdown: `| 4.000 | lít/ca |`) cũng bỏ, nhưng cell báo true: lúc đó đơn vị phải là TOÀN BỘ ô tiếp theo (cellEndsAfter), vì ô sau chứa chữ khác
+// ("| 2 | Khối Kế hoạch |") thì không phải đơn vị.
+func skipDecoration(rest string) (string, bool) {
+	cell := false
+	for {
+		rest = strings.TrimLeftFunc(rest, isGap)
+		switch {
+		case rest == "":
+			return rest, cell
+		case strings.IndexByte("*_`~,", rest[0]) >= 0:
+			rest = rest[1:]
+		case rest[0] == '|':
+			rest, cell = rest[1:], true
+		case rest[0] == '<':
+			end := strings.IndexByte(rest, '>') // thẻ ngắn: <b>, </b>, <span class="x">
+			if end < 2 || end > 24 || strings.ContainsAny(rest[1:end], "<\n") {
+				return rest, cell
+			}
+			if r, _ := utf8.DecodeRuneInString(rest[1:]); !unicode.IsLetter(r) && r != '/' {
+				return rest, cell
+			}
+			rest = rest[end+1:]
+		default:
+			return rest, cell
+		}
+	}
+}
+
+// cellEndsAfter báo ô của bảng Markdown kết thúc ngay sau đơn vị (phần after là hết ô hoặc chỉ còn mẫu số "/ca"): "| lít/ca |", "| L |".
+func cellEndsAfter(after string) bool {
+	after = trimDenominatorHead(strings.TrimLeftFunc(after, isGap))
+	after = strings.TrimLeftFunc(after, isGap)
+	return after == "" || after[0] == '|' || after[0] == '\n'
+}
+
+// trimDenominatorHead bỏ mẫu số "/ca" ở ĐẦU s (một lần).
+func trimDenominatorHead(s string) string {
+	if !strings.HasPrefix(s, "/") {
+		return s
+	}
+	i := 1
+	for i < len(s) {
+		r, w := utf8.DecodeRuneInString(s[i:])
+		if !isWordRune(r) {
+			break
+		}
+		i += w
+	}
+	return s[i:]
+}
+
+// unitLabels là nhãn đứng trước đơn vị trong ngoặc ("(đơn vị: lít)", "(ĐVT: lít)", "(tính bằng lít)"): bỏ nhãn rồi đọc đơn vị như "(lít)".
+var unitLabels = []string{"đơn vị tính", "đơn vị", "đvt", "đv", "tính bằng", "tính theo", "theo đơn vị"}
+
+// skipUnitLabel bỏ nhãn đơn vị (unitLabels) và dấu hai chấm / khoảng đệm theo sau ở đầu rest; không có nhãn thì trả rest nguyên.
+func skipUnitLabel(rest string) string {
+	for _, l := range unitLabels {
+		if after, ok := cutPrefixFold(rest, l); ok {
+			if r, _ := utf8.DecodeRuneInString(after); after != "" && isWordRune(r) {
+				continue
+			}
+			return strings.TrimLeftFunc(after, func(r rune) bool { return isGap(r) || r == ':' || r == '=' })
+		}
+	}
+	return rest
 }
 
 // bracketTail báo phần đứng sau một từ đơn vị MỞ ĐẦU một cặp ngoặc có đúng là phần cuối của chú thích đơn vị không: ngoặc đóng, "/" (mẫu

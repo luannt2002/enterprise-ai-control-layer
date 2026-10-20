@@ -53,6 +53,9 @@ type Options struct {
 	// FocusMarkers: cụm đánh dấu mệnh đề HỎI trong câu nhiều mệnh đề (cụm xác nhận "đúng không"):
 	// từ khoá ý định lấy trong mệnh đề đó, các mệnh đề trước là ngữ cảnh (xem FocusClause).
 	FocusMarkers []string
+	// QuantityMarkers: cụm cho biết câu hỏi đòi một LƯỢNG ("bao nhiêu", "định mức"): cùng FocusMarkers là dấu hiệu của một câu hỏi SỐ LIỆU, để câu hỏi
+	// quy trình thuần có từ khoá số liệu yếu ("Thủ tục xin cấp dầu cho dự án A và dự án B?") không bị hỏi lại "máy hoặc dự án" (xem Set.asksData).
+	QuantityMarkers []string
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -253,8 +256,10 @@ func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	if def, _ := s.Def(r.Intent.Name); missingEntity(def, r.Intent) {
 		// Người hỏi ĐÃ nêu thứ của một câu hỏi số liệu: một mốc thời gian (kể cả nhiều kỳ hay ngày hỏng) hoặc nhiều thực thể cùng
 		// loại tranh nhau cho khe chủ thể (khe thiếu vì không chọn được một, không phải vì vắng) — hỏi lại, không chuyển sang câu hỏi
-		// quy trình rồi bỏ thầm phần số liệu và các thực thể đã nêu (P5).
-		if _, dated := firstPeriod(in); dated || len(in.InvalidDates) > 0 || len(r.Unclear.Entities) > 0 {
+		// quy trình rồi bỏ thầm phần số liệu và các thực thể đã nêu (P5). Nhiều thực thể mà câu không có dấu hiệu hỏi số liệu nào (asksData) thì
+		// chúng chỉ là chủ đề của một câu hỏi quy trình thuần ("Khi lệch phiếu kho của EX-03 và RL-02 thì phải làm gì?"): hỏi lại "máy hoặc dự án"
+		// ở đó là hỏi OAN.
+		if _, dated := firstPeriod(in); dated || len(in.InvalidDates) > 0 || (len(r.Unclear.Entities) > 0 && s.asksData(in.Raw)) {
 			return r
 		}
 		return s.build(knowledge, score, first, in, res, now, implicit)
@@ -264,6 +269,51 @@ func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		r.Knowledge = k.Intent.Name
 	}
 	return r
+}
+
+// asksData báo câu có dấu hiệu hỏi SỐ LIỆU chứ không chỉ nhắc một từ khoá số liệu trong câu hỏi quy trình: cụm hỏi lượng ("bao nhiêu"), cụm xác nhận
+// ("đúng không"), hoặc một MỆNH ĐỀ riêng chỉ có từ khoá số liệu mà không có từ khoá quy trình ("…được cấp dầu thế nào, quy trình xử lý khi lệch là gì?":
+// vế số liệu của câu ghép). Pack không khai dấu hiệu nào (SetOptions chưa gọi hay để trống) thì không có căn cứ coi câu là thuần quy trình: trả true (hỏi lại).
+// Đánh đổi: câu quy trình tách mệnh đề bằng dấu phẩy mà một mệnh đề chỉ có từ khoá số liệu ("Việc cấp dầu cho EX-03 và RL-02 phải làm thế nào, khi lệch phiếu
+// kho thì xử lý ra sao?") vẫn bị hỏi lại.
+func (s *Set) asksData(text string) bool {
+	markers := append(slices.Clone(s.opt.QuantityMarkers), s.opt.FocusMarkers...)
+	if len(markers) == 0 {
+		return true
+	}
+	if slices.ContainsFunc(markers, func(m string) bool { return normalization.ContainsPhrase(text, m) }) {
+		return true
+	}
+	for _, clause := range clausesOf(text) {
+		counts, _ := keywordHits(s.defs, clause, s.opt.IgnorePhrases)
+		data, knowledge := 0, 0
+		for i, d := range s.defs {
+			switch contracts.RouteKind(d.Route) {
+			case contracts.RouteRAG:
+				knowledge += counts[i]
+			case contracts.RouteClarification, contracts.RouteReject: // chào hỏi: không phải từ khoá số liệu
+			default:
+				data += counts[i]
+			}
+		}
+		if data > 0 && knowledge == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// clausesOf tách câu thành các mệnh đề (ranh giới như FocusClause: , ; . ? ! theo sau là khoảng trắng hoặc hết câu).
+func clausesOf(text string) []string {
+	var out []string
+	start := 0
+	for i := 0; i < len(text); i++ {
+		if strings.IndexByte(",;.?!", text[i]) >= 0 && (i+1 >= len(text) || text[i+1] == ' ' || text[i+1] == '\n') {
+			out = append(out, text[start:i])
+			start = i + 1
+		}
+	}
+	return append(out, text[start:])
 }
 
 // missingEntity báo ý định còn thiếu khe thực thể bắt buộc.

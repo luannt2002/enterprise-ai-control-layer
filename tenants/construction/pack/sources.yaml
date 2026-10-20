@@ -1,0 +1,60 @@
+# Ánh xạ nguồn (chặng SOURCE MAPPING, docs/03 §5): mỗi loại nguồn đọc tệp nào, định dạng gì, cột
+# nào là trường chuẩn nào, và mang NGHĨA nghiệp vụ (chỉ số) nào. Nghĩa gắn theo loại nguồn — tất
+# định, không đoán: phiếu kho luôn là lượng XUẤT, cảm biến luôn là lượng TIÊU THỤ.
+# Bố cục tệp khớp tenants/construction/win/CONTRACT.md.
+
+entities_file: entities.json
+
+sources:
+  - type: warehouse_slip
+    metric: issued_fuel
+    files:
+      - {path: warehouse.csv, format: csv}
+      - {path: warehouse.xlsx, format: xlsx, sheet: PhieuXuat}
+      - {path: warehouse.json, format: json}
+    fields: {record_id: record_id, entity: equipment_code, date: issue_date, quantity: quantity, unit: unit}
+    entity_namespace: warehouse_slip
+
+  - type: excel_summary
+    metric: issued_fuel
+    files: [{path: excel_summary.xlsx, format: xlsx, sheet: TongHop}]
+    fields: {record_id: record_id, entity: equipment_code, date: date, quantity: quantity_l}
+    default_unit: L
+    entity_namespace: warehouse_slip
+
+  - type: erp
+    metric: issued_fuel
+    files: [{path: erp.json, format: json}]
+    fields: {record_id: record_id, entity: asset_id, date: posting_date, quantity: quantity, unit: uom}
+    entity_namespace: erp
+
+  - type: fuel_sensor
+    metric: measured_consumption
+    files: [{path: sensor.csv, format: csv}]
+    fields: {record_id: record_id, entity: device_id, date: date, quantity: consumed_l}
+    default_unit: L
+    entity_namespace: fuel_sensor
+
+  - type: invoice
+    metric: billed_fuel
+    files: [{path: invoices.csv, format: csv}]
+    fields: {record_id: record_id, entity: equipment_code, date: date, quantity: quantity_l}
+    default_unit: L
+    entity_namespace: warehouse_slip
+
+  # Tin nhắn hiện trường: chữ tự do. "2k" không đơn vị → lít (đơn vị của chỉ số).
+  - type: chat_message
+    metric: reported_fuel
+    files: [{path: messages.jsonl, format: jsonl}]
+    fields: {record_id: record_id, text: text, datetime: sent_at, sender: sender}
+    default_unit: L
+    free_text: true
+    carry_entity: true
+
+  # Báo cáo ngày (PDF): mỗi dòng "<n>. <chữ>"; ngày lấy từ tên tệp; tên máy viết theo kiểu của báo cáo.
+  - type: site_report_form
+    metric: reported_fuel
+    files: [{path: "reports/*.pdf", format: pdf_lines}]
+    default_unit: L
+    entity_namespace: site_report_form
+    free_text: true

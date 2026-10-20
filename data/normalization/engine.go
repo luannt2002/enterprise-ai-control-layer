@@ -1,0 +1,483 @@
+// Package normalization là chặng S2: biến cách người dùng VIẾT thành giá trị có kiểu.
+//
+// "4k", "4.000L", "bốn ngàn lít", "4 khối" là các cách viết; nghĩa nghiệp vụ là một
+// lượng có đơn vị. Chặng này tất định, có luật truy được cho từng span, và KHÔNG đoán:
+// chỗ nào không tự phân định được thì ghi Ambiguity để các chặng sau hỏi lại.
+package normalization
+
+import (
+	"math/big"
+	"sort"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+)
+
+// Options là ngữ cảnh của một lần chuẩn hoá.
+type Options struct {
+	// Now là thời điểm tham chiếu ĐÃ Ở MÚI GIỜ của tenant: "hôm nay" là ngày của tenant,
+	// không phải ngày của máy chủ.
+	Now time.Time
+	// Scope là phạm vi văn bản (fuel_report, site_report…) do kênh hoặc đường nạp quyết.
+	// Dùng để phân định viết tắt nhiều nghĩa.
+	Scope string
+}
+
+// builtinMultipliers là từ chỉ hàng tiếng Việt đứng sau chữ số: "3 trăm", "4 nghìn".
+// Đây là tri thức ngôn ngữ, dùng chung; tiếng lóng ("k", "tr", "củ") do pack khai báo.
+var builtinMultipliers = []multAlias{
+	{"nghìn", "1000"}, {"ngàn", "1000"}, {"triệu", "1000000"}, {"trăm", "100"},
+	{"chục", "10"}, {"tỷ", "1000000000"}, {"tỉ", "1000000000"},
+}
+
+// Normalize chuẩn hoá một văn bản.
+func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
+	if opt.Now.IsZero() {
+		opt.Now = time.Now()
+	}
+	raw := NFC(text)
+	toks := tokenize(raw)
+
+	var spans []contracts.Span
+	approxUntil := -1
+	for i := 0; i < len(toks); {
+		t := toks[i]
+		if t.kind == tokSpace || !isBoundaryBefore(raw, t.start) {
+			i++
+			continue
+		}
+		if sp, next, ok := e.matchCode(raw, toks, i); ok {
+			spans, i = append(spans, sp), next
+			continue
+		}
+		if t.kind == tokNum {
+			if sp, next, ok := matchNumericDate(raw, toks, i, opt.Now); ok {
+				spans, i = append(spans, sp), next
+				continue
+			}
+			if sp, next, ok := matchClock(raw, toks, i); ok {
+				spans, i = append(spans, sp), next
+				continue
+			}
+		}
+		if t.kind == tokWord {
+			if sp, next, ok := matchRelativeDate(raw, toks, i, opt.Now); ok {
+				spans, i = append(spans, sp), next
+				continue
+			}
+		}
+		if end, ok := e.matchApprox(raw, t); ok {
+			i = tokenAt(toks, end)
+			approxUntil = i + 3 // dấu ước lượng áp cho lượng đứng ngay sau (cho phép 1 từ xen)
+			continue
+		}
+		if t.kind == tokNum || t.kind == tokWord {
+			if sp, next, ok := e.matchQuantity(raw, toks, i); ok {
+				if i <= approxUntil {
+					sp.Value.Approx = true
+				}
+				spans, i = append(spans, sp), next
+				continue
+			}
+		}
+		if t.kind == tokWord {
+			if ab, ok := e.abbrs[t.text]; ok && isBoundaryAfter(raw, t.end) {
+				spans = append(spans, contracts.Span{
+					Kind: contracts.ValueTerm, Raw: t.text, Start: t.start, End: t.end,
+					Value: contracts.Value{Kind: contracts.ValueTerm}, Rule: "abbr:pending:" + ab.Abbr,
+				})
+				i++
+				continue
+			}
+			if sp, next, ok := e.matchTerm(raw, toks, i); ok {
+				spans, i = append(spans, sp), next
+				continue
+			}
+		}
+		i++
+	}
+
+	spans, ambs := e.resolveAbbreviations(raw, spans, opt)
+	spans = e.unitsFromTerms(raw, spans)
+
+	lower := strings.ToLower(CollapseSpaces(raw))
+	return contracts.NormalizedInput{
+		Raw:         raw,
+		Text:        lower,
+		Folded:      Fold(lower),
+		Canonical:   e.canonicalText(raw, spans),
+		Spans:       spans,
+		Ambiguities: ambs,
+	}
+}
+
+// matchCode thử các mẫu mã của pack tại token i.
+func (e *Engine) matchCode(s string, toks []token, i int) (contracts.Span, int, bool) {
+	start := toks[i].start
+	for _, c := range e.codes {
+		loc := c.re.FindStringSubmatchIndex(s[start:])
+		if loc == nil || loc[1] == 0 {
+			continue
+		}
+		end := start + loc[1]
+		if !isBoundaryAfter(s, end) {
+			continue
+		}
+		canon := s[start:end]
+		if c.def.Format != "" {
+			canon = c.def.Format
+			for _, name := range placeholders(c.def.Format) {
+				idx := c.re.SubexpIndex(name)
+				var part string
+				if loc[2*idx] >= 0 {
+					part = s[start+loc[2*idx] : start+loc[2*idx+1]]
+				}
+				canon = strings.ReplaceAll(canon, "{"+name+"}", part)
+			}
+		}
+		if c.def.Upper {
+			canon = strings.ToUpper(canon)
+		}
+		return contracts.Span{
+			Kind: contracts.ValueCode, Raw: s[start:end], Start: start, End: end,
+			Value:      contracts.Value{Kind: contracts.ValueCode, Text: canon},
+			Confidence: 1, Rule: "code:" + c.def.Type,
+		}, tokenAt(toks, end), true
+	}
+	return contracts.Span{}, i, false
+}
+
+func (e *Engine) matchApprox(s string, t token) (int, bool) {
+	if t.kind == tokSym && t.text == "~" {
+		return t.end, true
+	}
+	if t.kind != tokWord {
+		return 0, false
+	}
+	for _, m := range e.approx {
+		if end, ok := matchAliasAt(s, t.start, m, false); ok {
+			return end, true
+		}
+	}
+	return 0, false
+}
+
+// matchQuantity đọc một con số (chữ số hoặc chữ), hậu tố nhân, rồi đơn vị nếu có.
+func (e *Engine) matchQuantity(s string, toks []token, i int) (contracts.Span, int, bool) {
+	t := toks[i]
+	var val *big.Rat
+	end := t.end
+	rule := "number:digits"
+	needUnit := false
+	conf := 1.0
+
+	switch t.kind {
+	case tokNum:
+		v, ambiguousSep, ok := parseLocaleNumber(t.text)
+		if !ok {
+			return contracts.Span{}, i, false
+		}
+		val, _ = parseDecimal(v)
+		if ambiguousSep {
+			rule = "number:digits:vi_thousands"
+		}
+	case tokWord:
+		v, n, hasScale, ok := parseViNumberWords(toks, i)
+		if !ok {
+			return contracts.Span{}, i, false
+		}
+		val, end, rule = v, toks[n-1].end, "number:words"
+		// "năm" một mình còn là "năm (year)": dãy chữ không có hàng chỉ là số khi đứng
+		// ngay trước một đơn vị ("năm người").
+		needUnit = !hasScale
+	}
+
+	if mEnd, factor, frac, ok := e.matchMultiplier(s, end); ok {
+		f, _ := parseDecimal(factor)
+		val = new(big.Rat).Mul(new(big.Rat).Add(val, frac), f)
+		end = mEnd
+		rule += "+multiplier"
+		needUnit = false
+	}
+
+	var unit *UnitDef
+	if uEnd, u, extra, ok := e.matchUnit(s, end); ok {
+		unit = &u
+		end = uEnd
+		if extra != nil { // "7h30" thời lượng → 7,5 giờ
+			val = new(big.Rat).Add(val, extra)
+		}
+	}
+	if needUnit && unit == nil {
+		return contracts.Span{}, i, false
+	}
+	if !isBoundaryAfter(s, end) {
+		return contracts.Span{}, i, false
+	}
+
+	value := contracts.Value{Kind: contracts.ValueNumber, Number: formatDecimal(val)}
+	kind := contracts.ValueNumber
+	if unit != nil {
+		kind = contracts.ValueKind(unit.Kind)
+		value.Kind, value.Unit = kind, unit.Unit
+		rule += "+unit"
+	}
+	return contracts.Span{
+		Kind: kind, Raw: s[t.start:end], Start: t.start, End: end,
+		Value: value, Confidence: conf, Rule: rule,
+	}, tokenAt(toks, end), true
+}
+
+// matchMultiplier đọc hậu tố nhân ngay sau số ("4k", "4 nghìn") và phần lẻ dính liền
+// ("1tr6" = 1,6 triệu, "1tr499" = 1.499.000, "4k5" = 4.500).
+func (e *Engine) matchMultiplier(s string, pos int) (end int, factor string, frac *big.Rat, ok bool) {
+	starts := []int{pos}
+	if pos < len(s) && s[pos] == ' ' {
+		starts = append(starts, pos+1)
+	}
+	all := append(append([]multAlias{}, e.mults...), builtinMultipliers...)
+	sort.SliceStable(all, func(a, b int) bool { return len(all[a].alias) > len(all[b].alias) })
+	for _, p := range starts {
+		for _, m := range all {
+			mEnd, ok := matchAliasPrefix(s, p, m.alias, false)
+			if !ok {
+				continue
+			}
+			// Phần lẻ dính liền, chỉ khi hậu tố viết sát số: "1tr6".
+			if p == pos && mEnd < len(s) && isDigitAt(s, mEnd) {
+				d := mEnd
+				for d < len(s) && isDigitAt(s, d) {
+					d++
+				}
+				if isBoundaryAfter(s, d) {
+					digits := s[mEnd:d]
+					num, _ := new(big.Int).SetString(digits, 10)
+					den := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(len(digits))), nil)
+					return d, m.factor, new(big.Rat).SetFrac(num, den), true
+				}
+				continue
+			}
+			if isBoundaryAfter(s, mEnd) {
+				return mEnd, m.factor, new(big.Rat), true
+			}
+		}
+	}
+	return 0, "", nil, false
+}
+
+// matchUnit đọc đơn vị ngay sau số, cho phép một dấu cách ("4000 L", "4000L").
+// extra khác nil khi "7h30": phần phút cộng vào thời lượng.
+func (e *Engine) matchUnit(s string, pos int) (end int, def UnitDef, extra *big.Rat, ok bool) {
+	starts := []int{pos}
+	if pos < len(s) && s[pos] == ' ' {
+		starts = append(starts, pos+1)
+	}
+	for _, p := range starts {
+		for _, u := range e.units {
+			if uEnd, ok := matchAliasAt(s, p, u.alias, u.def.CaseSensitive); ok {
+				return uEnd, u.def, nil, true
+			}
+			// "7h30": đơn vị thời lượng viết dính phút.
+			if u.def.Dimension == "duration" {
+				if uEnd, ok := matchAliasPrefix(s, p, u.alias, u.def.CaseSensitive); ok && uEnd+2 <= len(s) &&
+					isDigitAt(s, uEnd) && isDigitAt(s, uEnd+1) && isBoundaryAfter(s, uEnd+2) {
+					min := new(big.Rat).SetFrac64(int64((s[uEnd]-'0')*10+(s[uEnd+1]-'0')), 60)
+					return uEnd + 2, u.def, min, true
+				}
+			}
+		}
+	}
+	return 0, UnitDef{}, nil, false
+}
+
+// matchTerm thử bí danh thuật ngữ, dài trước.
+func (e *Engine) matchTerm(s string, toks []token, i int) (contracts.Span, int, bool) {
+	start := toks[i].start
+	for _, ta := range e.terms {
+		end, ok := matchAliasAt(s, start, ta.alias, false)
+		if !ok {
+			continue
+		}
+		conf, rule := 1.0, "term:exact"
+		if !strings.EqualFold(s[start:end], ta.alias) {
+			conf, rule = 0.9, "term:folded" // người gõ không dấu
+		}
+		return contracts.Span{
+			Kind: contracts.ValueTerm, Raw: s[start:end], Start: start, End: end,
+			Value:      contracts.Value{Kind: contracts.ValueTerm, Text: ta.def.Term},
+			Confidence: conf, Rule: rule,
+		}, tokenAt(toks, end), true
+	}
+	return contracts.Span{}, i, false
+}
+
+// resolveAbbreviations phân định nghĩa viết tắt. Không phân định được thì KHÔNG đoán.
+func (e *Engine) resolveAbbreviations(s string, spans []contracts.Span, opt Options) ([]contracts.Span, []contracts.Ambiguity) {
+	var out []contracts.Span
+	var ambs []contracts.Ambiguity
+	for k, sp := range spans {
+		abbr, pending := strings.CutPrefix(sp.Rule, "abbr:pending:")
+		if !pending {
+			out = append(out, sp)
+			continue
+		}
+		def := e.abbrs[abbr]
+		var next *contracts.Span
+		if k+1 < len(spans) && tightGap(s[sp.End:spans[k+1].Start]) {
+			next = &spans[k+1]
+		}
+		chosen, rule, conf := "", "", 0.0
+		if len(def.Meanings) == 1 {
+			// Một nghĩa thì không có gì để đoán ("NC 22" = nhân công 22).
+			chosen, rule, conf = def.Meanings[0].Term, "abbr:single", 0.9
+		}
+		if chosen == "" && next != nil && (next.Kind == contracts.ValueQuantity || next.Kind == contracts.ValueMoney) {
+			dim := e.unitDefs[next.Value.Unit].Dimension
+			for _, m := range def.Meanings {
+				if m.WhenNextDimension != "" && m.WhenNextDimension == dim {
+					chosen, rule, conf = m.Term, "abbr:next_dimension", 1
+					break
+				}
+			}
+		}
+		if chosen == "" && opt.Scope != "" {
+			for _, m := range def.Meanings {
+				for _, sc := range m.Scopes {
+					if sc == opt.Scope {
+						chosen, rule, conf = m.Term, "abbr:scope", 0.9
+					}
+				}
+			}
+		}
+		// Đứng trước một số trần mà chưa phân định được: hai nghĩa đều có thể đúng
+		// ("DA: 4.000" — dầu hay dự án?). Mặc định ở đây là đoán, nên không dùng.
+		beforeBareNumber := next != nil && next.Kind == contracts.ValueNumber
+		if chosen == "" && !beforeBareNumber {
+			for _, m := range def.Meanings {
+				if m.Default {
+					chosen, rule, conf = m.Term, "abbr:default", 0.7
+				}
+			}
+		}
+		if chosen == "" {
+			amb := contracts.Ambiguity{Raw: sp.Raw, Reason: "viết tắt nhiều nghĩa, ngữ cảnh không đủ để chọn"}
+			for _, m := range def.Meanings {
+				amb.Candidates = append(amb.Candidates, contracts.Value{Kind: contracts.ValueTerm, Text: m.Term})
+			}
+			ambs = append(ambs, amb)
+			continue
+		}
+		sp.Value.Text, sp.Rule, sp.Confidence = chosen, rule, conf
+		out = append(out, sp)
+	}
+	return out, ambs
+}
+
+// unitsFromTerms gắn đơn vị mặc định của thuật ngữ cho số trần đứng cạnh nó
+// ("dầu 4k" → 4000 L, "NC 22" → 22 người). Là suy luận, nên độ tin cậy 0,8.
+func (e *Engine) unitsFromTerms(s string, spans []contracts.Span) []contracts.Span {
+	for k := range spans {
+		if spans[k].Kind != contracts.ValueNumber {
+			continue
+		}
+		term := ""
+		// thuật ngữ đứng trước, cùng mệnh đề, cách tối đa 2 từ
+		for p := k - 1; p >= 0; p-- {
+			if spans[p].Kind != contracts.ValueTerm {
+				continue
+			}
+			gap := s[spans[p].End:spans[k].Start]
+			if sameClause(gap) && wordCount(gap) <= 2 {
+				term = spans[p].Value.Text
+			}
+			break
+		}
+		// hoặc thuật ngữ đứng ngay sau ("4k dầu")
+		if term == "" && k+1 < len(spans) && spans[k+1].Kind == contracts.ValueTerm && tightGap(s[spans[k].End:spans[k+1].Start]) {
+			term = spans[k+1].Value.Text
+		}
+		def, ok := e.termDefs[term]
+		if !ok || def.DefaultUnit == "" {
+			continue
+		}
+		u := e.unitDefs[def.DefaultUnit]
+		spans[k].Kind = contracts.ValueKind(u.Kind)
+		spans[k].Value.Kind = contracts.ValueKind(u.Kind)
+		spans[k].Value.Unit = u.Unit
+		spans[k].Confidence = 0.8
+		spans[k].Rule += "+unit_from_term:" + term
+	}
+	return spans
+}
+
+// tightGap: giữa hai span chỉ có khoảng trắng hoặc dấu nối ngắn (":", "-", "=").
+func tightGap(gap string) bool {
+	if utf8.RuneCountInString(gap) > 3 {
+		return false
+	}
+	return strings.Trim(gap, " :-=\t") == ""
+}
+
+// sameClause: đoạn giữa không có dấu ngắt mệnh đề.
+func sameClause(gap string) bool { return !strings.ContainsAny(gap, "\n,;.!?") }
+
+func wordCount(s string) int { return len(strings.Fields(strings.Trim(s, " :-="))) }
+
+func isDigitAt(s string, i int) bool { return i < len(s) && s[i] >= '0' && s[i] <= '9' }
+
+// canonicalText thay mỗi span bằng dạng chuẩn: "dầu 4k" → "dầu 4000 L".
+func (e *Engine) canonicalText(s string, spans []contracts.Span) string {
+	var b strings.Builder
+	prev := 0
+	for _, sp := range spans {
+		if sp.Start < prev {
+			continue
+		}
+		b.WriteString(s[prev:sp.Start])
+		b.WriteString(e.render(sp))
+		prev = sp.End
+	}
+	b.WriteString(s[prev:])
+	return CollapseSpaces(b.String())
+}
+
+func (e *Engine) render(sp contracts.Span) string {
+	v := sp.Value
+	switch sp.Kind {
+	case contracts.ValueQuantity, contracts.ValueMoney:
+		return v.Number + " " + v.Unit
+	case contracts.ValueNumber:
+		return v.Number
+	case contracts.ValueTerm:
+		if d, ok := e.termDefs[v.Text]; ok && d.Label != "" {
+			return d.Label
+		}
+		return sp.Raw
+	default:
+		return v.Text
+	}
+}
+
+// Convert đổi một lượng sang đơn vị khác CÙNG chiều ("4 m3" → "4000 L").
+func (e *Engine) Convert(v contracts.Value, to string) (contracts.Value, error) {
+	from, ok1 := e.unitDefs[v.Unit]
+	target, ok2 := e.unitDefs[to]
+	if !ok1 || !ok2 {
+		return v, contracts.Errorf(contracts.FaultCode, "đơn vị chưa khai báo: "+v.Unit+" → "+to)
+	}
+	if from.Dimension != target.Dimension {
+		return v, contracts.Errorf(contracts.FaultData, "không đổi được "+from.Dimension+" sang "+target.Dimension)
+	}
+	n, ok := parseDecimal(v.Number)
+	if !ok {
+		return v, contracts.Errorf(contracts.FaultData, "số không hợp lệ: "+v.Number)
+	}
+	fb, _ := parseDecimal(from.ToBase)
+	tb, _ := parseDecimal(target.ToBase)
+	out := new(big.Rat).Mul(n, fb)
+	out.Quo(out, tb)
+	v.Number, v.Unit = formatDecimal(out), target.Unit
+	return v, nil
+}

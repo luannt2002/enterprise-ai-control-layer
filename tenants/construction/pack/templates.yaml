@@ -1,0 +1,32 @@
+# Mẫu câu do tenant viết. Ứng dụng không tự sáng tác chữ cho người dùng; mọi con số trong
+# câu sau khi điền đều bị kiểm lại với bằng chứng trước khi giao.
+templates:
+  metric_total: "{metric_label} của {entity_name} {period}: {value} {unit}.{approx_note}{conflict_note}"
+  derived_total: "{metric_label} của {entity_name} {period}: {value} {unit}."
+  # Câu so sánh hai nghĩa: hiệu = vế nhắc trước − vế nhắc sau, kèm cả hai số để người đọc tự đối chiếu.
+  compare_total: "{left_label} của {entity_name} {period} chênh {value} {unit} so với {right_label} ({left_value} {unit} so với {right_value} {unit}).{approx_note}{conflict_note}"
+  greeting: "Chào bạn. Bạn cần tra số liệu dầu của máy hay dự án nào?"
+  out_of_scope: "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  clarify_intent: "Bạn muốn hỏi {options}?"
+  clarify_missing: "Bạn cho biết thêm {missing}. {candidates}"
+  forbidden: "Bạn không có quyền xem dữ liệu này."
+  no_data: "Chưa có dữ liệu {metric_label} của {entity_name} {period}."
+  # Ngang thẩm quyền: KHÔNG đưa con số nào ra như sự thật; chi tiết hai nguồn nằm trong trường
+  # conflicts có cấu trúc của phản hồi, không nằm trong câu chữ.
+  needs_review: "Số liệu {metric_label} của {entity_name} {period} đang có hai nguồn ngang thẩm quyền mâu thuẫn nên chưa đưa ra con số; đã chuyển người phụ trách đối soát."
+  fallback_unverified: "Hệ thống chưa kiểm được số liệu cho câu trả lời này nên chưa gửi, đã ghi nhận để người phụ trách xem."
+  approx_note: " Trong tổng có số liệu ước lượng."
+  conflict_note: " Nguồn khác lệch số: {conflicts}{conflict_more}; đã dùng nguồn có thẩm quyền cao nhất."
+  conflict_more: " và {count} chỗ khác"
+  # Câu xác nhận ("4k đúng không?"): so BẰNG TUYỆT ĐỐI với số có thẩm quyền.
+  confirm_yes: "Đúng. {metric_label} của {entity_name} {period} theo nguồn có thẩm quyền là {value} {unit}.{approx_note}{conflict_note}{others_note}"
+  confirm_no: "Không. {metric_label} của {entity_name} {period} theo nguồn có thẩm quyền là {value} {unit}, không phải {claimed}.{approx_note}{conflict_note}{others_note}"
+  others_note: " Các số khác cùng kỳ: {others}."
+  approx_mark: " (ước lượng)"
+  # Câu hỏi quy trình: {procedure} là phần model diễn đạt từ đoạn tài liệu (đã qua kiểm), {title}
+  # là tên tài liệu được trích dẫn. Nhãn "trích văn bản quy trình" cho người đọc biết số trong phần
+  # này (hạn "24 giờ", số bước) là chữ của tài liệu, không phải số liệu vận hành (docs/04 G5).
+  # Câu HYBRID nối mẫu này sau câu số liệu.
+  knowledge_answer: " Trích văn bản quy trình ({title}): {procedure}"
+  no_knowledge: "Chưa có tài liệu bạn được xem trả lời được câu hỏi này."
+  hybrid_no_knowledge: " Chưa có tài liệu bạn được xem trả lời phần quy trình."

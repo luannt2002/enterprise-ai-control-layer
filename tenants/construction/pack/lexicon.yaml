@@ -1,0 +1,47 @@
+# Cách người ở ABC Infrastructure viết số, đơn vị, thuật ngữ, viết tắt và mã.
+# Chỉ là dữ liệu: core không biết "dầu" hay "khối" là gì cho tới khi đọc tệp này.
+
+units:
+  - {unit: L, kind: quantity, dimension: volume, to_base: "1", aliases: [L, l, lít, lit, litre, liter]}
+  # "4 khối dầu" = 4 m³ = 4.000 L
+  - {unit: m3, kind: quantity, dimension: volume, to_base: "1000", aliases: [m3, m³, khối]}
+  - {unit: m, kind: quantity, dimension: length, to_base: "1", aliases: [m, mét, met]}
+  - {unit: km, kind: quantity, dimension: length, to_base: "1000", aliases: [km, cây số]}
+  - {unit: m2, kind: quantity, dimension: area, to_base: "1", aliases: [m2, m², mét vuông]}
+  - {unit: h, kind: quantity, dimension: duration, to_base: "1", aliases: [h, giờ, tiếng]}
+  - {unit: shift, kind: quantity, dimension: machine_shift, to_base: "1", aliases: [ca]}
+  - {unit: person, kind: quantity, dimension: headcount, to_base: "1", aliases: [người]}
+  # "22 công" = 22 công lao động (ngày công), khác "22 người"
+  - {unit: manday, kind: quantity, dimension: labor, to_base: "1", aliases: [công]}
+  - {unit: kg, kind: quantity, dimension: mass, to_base: "1", aliases: [kg, ký]}
+  - {unit: t, kind: quantity, dimension: mass, to_base: "1000", aliases: [tấn]}
+  - {unit: "%", kind: quantity, dimension: ratio, to_base: "1", aliases: ["%", phần trăm]}
+  - {unit: VND, kind: money, dimension: currency, to_base: "1", aliases: [đ, đồng, vnđ, vnd]}
+
+multipliers:
+  - {factor: "1000", aliases: [k]}
+  - {factor: "1000000", aliases: [tr, củ]}
+
+approx_markers: [khoảng, tầm, cỡ, gần, chừng, ước, xấp xỉ, hơn, "≈", "~"]
+
+terms:
+  - {term: diesel_fuel, label: dầu, aliases: [dầu, dầu diesel, dầu DO, nhiên liệu], default_unit: L}
+  - {term: work_quantity, label: khối lượng, aliases: [khối lượng]}
+  - {term: workforce, label: nhân công, aliases: [nhân công, công nhân], default_unit: person}
+  - {term: machine_hours, label: giờ máy, aliases: [giờ máy, ca máy], default_unit: h}
+  - {term: project, label: dự án, aliases: [dự án, công trình]}
+  - {term: price, label: giá, aliases: [giá, đơn giá], default_unit: VND}
+
+abbreviations:
+  # "DA 4.000L" → dầu (lượng thể tích đứng sau); "DA cầu A" → dự án; "DA: 4.000" → hỏi lại.
+  - abbr: DA
+    meanings:
+      - {term: diesel_fuel, when_next_dimension: volume, scopes: [fuel_report]}
+      - {term: project, default: true}
+  - {abbr: KL, meanings: [{term: work_quantity}]}
+  - {abbr: NC, meanings: [{term: workforce}]}
+  - {abbr: CM, meanings: [{term: machine_hours}]}
+
+codes:
+  - {type: issue_slip, pattern: '(?i)PX-?(?P<n>\d{3,6})', format: 'PX-{n}', upper: true}
+  - {type: equipment, pattern: '(?P<p>EX|DZ|RL|TR)-?(?P<n>\d{2})', format: '{p}-{n}'}

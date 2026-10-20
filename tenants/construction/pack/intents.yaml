@@ -1,0 +1,126 @@
+# Ý định theo LUẬT. Một ý định khớp khi có ít nhất một keyword VÀ (nếu khai báo) ít nhất một
+# term. Hai ý định cùng priority cùng khớp → hỏi lại, không chọn bừa.
+
+unmatched_route: REJECT
+unmatched_template: out_of_scope
+
+# Câu hỏi số liệu kèm một con số người dùng đưa ra + cụm dưới đây là câu XÁC NHẬN: trả "Đúng/Không"
+# theo nguồn có thẩm quyền, kèm các số khác cùng kỳ (đều có nhãn) — không xác nhận theo cảm tính.
+confirm_markers: [đúng không, phải không, có đúng, đúng chưa, đúng ko, phải ko, đúng hông]
+
+# Cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" không phải "dùng" = tiêu thụ).
+ignore_phrases: [người dùng, người sử dụng]
+
+# Trợ lý nhiên liệu: câu nhắc máy/dự án mà không nói vật tư, và không có đại lượng nào khác
+# ("giá", "nhân công"…), thì hiểu là DẦU. Chính sách của tenant, viết ra rõ ràng (ADR-0001 D7).
+default_terms: [diesel_fuel]
+
+# Cụm cho biết câu hỏi đòi một LƯỢNG. Câu hỏi lượng dầu mà chỉ có tài liệu trả lời ("theo quy trình
+# được cấp tối đa bao nhiêu lít?") thì báo thiếu bằng chứng: tài liệu không phải nguồn của số liệu.
+quantity_markers: [bao nhiêu, định mức]
+
+# Câu nhắc HAI nghĩa số liệu kèm cụm dưới đây ("đội báo nhiều hơn kho xuất bao nhiêu") là phép tính
+# hiệu theo thứ tự nhắc (vế trước − vế sau), không phải câu mơ hồ. Không có cụm so sánh thì vẫn hỏi lại.
+comparison_markers: [nhiều hơn, ít hơn, so với]
+
+intents:
+  - name: fuel_variance
+    label: chênh lệch dầu giữa kho xuất và tiêu thụ đo được
+    route: CALCULATION
+    keywords: [chênh lệch, chênh, lệch, hao hụt]
+    terms: [diesel_fuel]
+    derived: issue_vs_measured
+    priority: 30
+    template: derived_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  - name: fuel_issued
+    label: dầu kho xuất
+    route: SQL_QUERY
+    keywords: [nhận, được cấp, cấp, xuất kho, kho xuất, phiếu kho]
+    terms: [diesel_fuel]
+    metric_by_term: {diesel_fuel: issued_fuel}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  - name: fuel_reported
+    label: dầu đội báo
+    route: SQL_QUERY
+    keywords: [báo, báo cáo, đội báo]
+    terms: [diesel_fuel]
+    metric_by_term: {diesel_fuel: reported_fuel}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  - name: fuel_consumed
+    label: dầu tiêu thụ đo được
+    route: SQL_QUERY
+    # "dùng / sử dụng" = tiêu thụ (ADR-0001 D3)
+    keywords: [tiêu thụ, đốt, đo được, cảm biến, dùng, sử dụng]
+    terms: [diesel_fuel]
+    metric_by_term: {diesel_fuel: measured_consumption}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  - name: fuel_billed
+    label: dầu theo hoá đơn
+    route: SQL_QUERY
+    keywords: [hoá đơn, hóa đơn, thanh toán]
+    terms: [diesel_fuel]
+    metric_by_term: {diesel_fuel: billed_fuel}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  # Câu hỏi dầu chung chung: quy ước nghiệp vụ của tenant là trả lời bằng dầu KHO XUẤT —
+  # đây là lựa chọn của pack, viết ra rõ ràng, không phải model đoán.
+  - name: fuel_generic
+    label: dầu (kho xuất)
+    route: SQL_QUERY
+    keywords: [bao nhiêu, tổng, hết bao nhiêu]
+    weak: true   # "bao nhiêu" một mình không đủ coi là câu về dầu ("VN-Index bao nhiêu?")
+    terms: [diesel_fuel]
+    metric_by_term: {diesel_fuel: issued_fuel}
+    priority: 10
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: máy hoặc dự án, from: entity, types: [equipment, project], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  # Câu hỏi QUY TRÌNH: trả lời bằng đoạn tài liệu (SOP) người hỏi được đọc. Khớp cùng một ý định
+  # số liệu ĐÃ có máy/dự án thì router ghép thành HYBRID_RETRIEVAL (số từ fact + quy trình từ tài
+  # liệu). Các cụm "xử lý chênh lệch", "khi lệch" thuộc về câu hỏi quy trình — luật khớp dài nhất
+  # giữ chúng không bị đếm thành ý định chênh lệch số liệu.
+  - name: sop_question
+    label: quy trình xử lý
+    route: RAG
+    keywords: [quy trình, quy định, thủ tục, phải làm gì, làm gì, trong bao lâu, bao lâu, sau bước nào, bước nào, biên bản, tài liệu, xử lý chênh lệch, khi lệch, khi chênh lệch]
+    priority: 25
+    template: knowledge_answer
+    capability: documents.read
+
+  - name: greeting
+    label: chào hỏi
+    route: CLARIFICATION
+    keywords: [xin chào, chào bạn, chào anh, chào chị, hello]
+    priority: 1
+    template: greeting

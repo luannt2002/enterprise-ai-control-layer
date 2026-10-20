@@ -1,0 +1,52 @@
+# Bốn chỉ số nhiên liệu là BỐN thứ khác nhau, không phải bốn phiên bản của một số:
+#   reported_fuel        — đội trưởng báo (tin nhắn, mẫu báo cáo)
+#   issued_fuel          — kho xuất (phiếu kho, ERP, bảng tổng hợp)
+#   measured_consumption — cảm biến/đồng hồ đo
+#   billed_fuel          — hoá đơn nhà cung cấp
+# Thẩm quyền chỉ so giữa các nguồn CÙNG một chỉ số. Chênh lệch giữa hai chỉ số là chỉ số dẫn xuất.
+
+metrics:
+  - id: reported_fuel
+    label: Dầu đội báo
+    unit: L
+    entity_types: [equipment]
+    tolerance: "0"
+    min: "0"
+    max: "20000"
+    sources:
+      - {type: site_report_form, authority: 1, label: báo cáo ngày}
+      - {type: chat_message, authority: 2, label: tin nhắn hiện trường}
+
+  - id: issued_fuel
+    label: Dầu kho xuất
+    unit: L
+    entity_types: [equipment]
+    tolerance: "10"
+    min: "0"
+    max: "20000"
+    sources:
+      - {type: warehouse_slip, authority: 1, label: phiếu xuất kho}
+      - {type: erp, authority: 2, label: ERP}
+      - {type: excel_summary, authority: 2, label: bảng tổng hợp}
+
+  - id: measured_consumption
+    label: Dầu tiêu thụ đo được
+    unit: L
+    entity_types: [equipment]
+    min: "0"
+    max: "20000"
+    sources:
+      - {type: fuel_sensor, authority: 1, label: cảm biến}
+
+  - id: billed_fuel
+    label: Dầu theo hoá đơn
+    unit: L
+    entity_types: [equipment]
+    min: "0"
+    max: "50000"
+    sources:
+      - {type: invoice, authority: 1, label: hoá đơn}
+
+derived:
+  - {id: issue_vs_measured, label: Chênh lệch dầu kho xuất và dầu tiêu thụ đo được, op: subtract, left: issued_fuel, right: measured_consumption}
+  - {id: reported_vs_issued, label: Chênh lệch dầu đội báo và dầu kho xuất, op: subtract, left: reported_fuel, right: issued_fuel}

@@ -1,0 +1,10 @@
+# Vai nghiệp vụ → capability + phạm vi dữ liệu. Đây là quyền của PHẦN MỀM; "vai" trong
+# prompt của model không bao giờ được dùng để phân quyền.
+# scope: all = xem mọi thực thể; attribute = chỉ thực thể (hoặc con cháu của thực thể)
+# có khoá trong thuộc tính entity_scope của người dùng.
+roles:
+  director: {capabilities: [metrics.read, documents.read], scope: all}
+  accountant: {capabilities: [metrics.read], scope: all}
+  project_manager: {capabilities: [metrics.read, documents.read], scope: attribute}
+  site_engineer: {capabilities: [metrics.read, documents.read], scope: attribute}
+  driver: {capabilities: [], scope: attribute}

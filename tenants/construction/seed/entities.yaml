@@ -1,0 +1,12 @@
+# Danh mục thực thể GIẢ LẬP của ABC Infrastructure (mọi tên đều hư cấu).
+# Lưu ý cố ý: bí danh "máy 03" thuộc HAI máy khác loại (EX-03 và DZ-03) — câu hỏi chỉ ghi
+# "máy 03" phải được hỏi lại, không được đoán.
+entities:
+  - {id: PRJ-A, type: project, key: PRJ-A, name: Cầu A, aliases: [dự án A, cầu A, công trình A]}
+  - {id: PRJ-B, type: project, key: PRJ-B, name: Đường B, aliases: [dự án B, đường B]}
+  - {id: PRJ-C, type: project, key: PRJ-C, name: Hạ tầng đô thị C, aliases: [dự án C, hạ tầng C]}
+  - {id: PRJ-D, type: project, key: PRJ-D, name: Bảo trì D, aliases: [dự án D, bảo trì D]}
+  - {id: EX-03, type: equipment, key: EX-03, name: Máy xúc EX-03, parent: PRJ-A, aliases: [máy xúc 03, MX-03, máy 03]}
+  - {id: DZ-03, type: equipment, key: DZ-03, name: Máy ủi DZ-03, parent: PRJ-B, aliases: [máy ủi 03, máy 03]}
+  - {id: RL-02, type: equipment, key: RL-02, name: Lu rung RL-02, parent: PRJ-A, aliases: [lu 02, lu rung 02]}
+  - {id: EX-07, type: equipment, key: EX-07, name: Máy xúc EX-07, parent: PRJ-C, aliases: [máy xúc 07, máy 07]}

@@ -1,0 +1,24 @@
+# Fact GIẢ LẬP. Mỗi dòng là một quan sát đã chuẩn hoá thành một chỉ số ngữ nghĩa.
+# Ngày tham chiếu của bộ ca: 19/10/2026.
+facts:
+  # EX-03 ngày 19/10: BỐN chỉ số khác nhau — 4.000 (báo) · 3.850 (kho) · 3.782 (cảm biến) · 4.100 (hoá đơn)
+  - {id: f01, metric: reported_fuel, entity: EX-03, on: 2026-10-19, value: "2000", unit: L, source: chat_message, ref: ZL-1001, raw: "máy 03 lấy 2k sáng", at: "2026-10-19T07:30:00+07:00", by: đội trưởng Hùng}
+  - {id: f02, metric: reported_fuel, entity: EX-03, on: 2026-10-19, value: "2000", unit: L, source: chat_message, ref: ZL-1002, raw: "chiều lấy thêm 2k", at: "2026-10-19T15:10:00+07:00", by: đội trưởng Hùng}
+  - {id: f03, metric: issued_fuel, entity: EX-03, on: 2026-10-19, value: "3850", unit: L, source: warehouse_slip, ref: PX-0912, raw: "PX-0912 xuất 3.850 L cho EX-03", at: "2026-10-19T07:00:00+07:00"}
+  # ERP nhập SAU phiếu kho và lệch 50 L (> dung sai 10): phiếu kho vẫn thắng vì thẩm quyền, không vì thời gian.
+  - {id: f04, metric: issued_fuel, entity: EX-03, on: 2026-10-19, value: "3900", unit: L, source: erp, ref: ERP-77812, raw: "ERP ghi nhận xuất 3900 L", at: "2026-10-19T18:00:00+07:00"}
+  - {id: f05, metric: measured_consumption, entity: EX-03, on: 2026-10-19, value: "3782", unit: L, source: fuel_sensor, ref: SNS-EX03-1019, at: "2026-10-19T23:59:00+07:00"}
+  - {id: f06, metric: billed_fuel, entity: EX-03, on: 2026-10-19, value: "4100", unit: L, source: invoice, ref: HD-5521, at: "2026-10-19T09:00:00+07:00"}
+
+  # RL-02 (cùng dự án A): phiếu kho ghi theo khối — 1,2 khối = 1.200 L sau quy đổi.
+  - {id: f07, metric: issued_fuel, entity: RL-02, on: 2026-10-19, value: "1.2", unit: m3, source: warehouse_slip, ref: PX-0913, raw: "cấp 1,2 khối dầu cho lu 02", at: "2026-10-19T07:10:00+07:00"}
+  # Đội báo ước lượng: "khoảng 1k2".
+  - {id: f08, metric: reported_fuel, entity: RL-02, on: 2026-10-19, value: "1200", unit: L, approx: true, source: chat_message, ref: ZL-1003, raw: "lu 02 khoảng 1k2", at: "2026-10-19T16:00:00+07:00"}
+
+  # DZ-03 (dự án B): hai nguồn NGANG thẩm quyền lệch nhau → không được tự chọn.
+  - {id: f09, metric: issued_fuel, entity: DZ-03, on: 2026-10-19, value: "3000", unit: L, source: erp, ref: ERP-77830}
+  - {id: f10, metric: issued_fuel, entity: DZ-03, on: 2026-10-19, value: "3200", unit: L, source: excel_summary, ref: XLS-T10}
+
+  # Tháng 9 cho câu hỏi theo tháng (dự án A = EX-03 + RL-02).
+  - {id: f11, metric: issued_fuel, entity: EX-03, on: 2026-09-15, value: "3500", unit: L, source: warehouse_slip, ref: PX-0850}
+  - {id: f12, metric: issued_fuel, entity: RL-02, on: 2026-09-20, value: "1100", unit: L, source: warehouse_slip, ref: PX-0861}

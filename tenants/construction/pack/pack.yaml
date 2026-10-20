@@ -1,0 +1,6 @@
+# Pack của tenant tham chiếu #01 — ABC Infrastructure JSC (hư cấu): cầu, đường, hạ tầng, bảo trì.
+id: construction
+tenant: abc-infra
+version: 0.1.0
+language: vi
+timezone: Asia/Ho_Chi_Minh

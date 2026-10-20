@@ -221,7 +221,15 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 
 	switch t.kind {
 	case tokNum:
-		v, ambiguousSep, ok := parseLocaleNumber(t.text)
+		text := t.text
+		if n := e.spaceGroups(s, toks, i, layout); n > i { // "3 850 lít": nhóm nghìn ngăn bằng một dấu cách
+			var b strings.Builder
+			for k := i; k <= n; k += 2 {
+				b.WriteString(toks[k].text)
+			}
+			text, end, rule = b.String(), toks[n].end, "number:digits:space_thousands"
+		}
+		v, ambiguousSep, ok := parseLocaleNumber(text)
 		if !ok {
 			return contracts.Span{}, i, false
 		}
@@ -275,6 +283,38 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 		Kind: kind, Raw: s[t.start:end], Start: t.start, End: end,
 		Value: value, Confidence: conf, Rule: rule,
 	}, tokenAt(toks, end), true
+}
+
+// spaceGroups trả chỉ số token của nhóm nghìn CUỐI khi toks[i] là phần đầu của một lượng viết nhóm nghìn ngăn bằng MỘT dấu
+// cách ("3 850 lít", "1 234 567 L"; docs/tenants/construction/03-data-map.md:134: `4 000 lít` → 4.000 L): phần đầu 1–3 chữ số
+// không bắt đầu bằng 0, mỗi nhóm sau đúng 3 chữ số, và ngay sau nhóm cuối là một đơn vị. Không phải thì trả i, giữ cách đọc
+// cũ: "bước 3 850" (không có đơn vị), "máy 03 850 lít" (số 0 đầu là số hiệu), "3 85 lít", "1234 567 lít".
+func (e *Engine) spaceGroups(s string, toks []token, i int, layout bool) int {
+	digits := func(t token) bool {
+		for _, r := range t.text {
+			if r < '0' || r > '9' {
+				return false
+			}
+		}
+		return t.kind == tokNum && t.text != ""
+	}
+	if !digits(toks[i]) || len(toks[i].text) > 3 || toks[i].text[0] == '0' {
+		return i
+	}
+	last := i
+	for k := i + 2; k < len(toks); k += 2 {
+		if toks[k-1].kind != tokSpace || toks[k-1].text != " " || !digits(toks[k]) || len(toks[k].text) != 3 {
+			break
+		}
+		last = k
+	}
+	if last == i {
+		return i
+	}
+	if _, _, _, ok := e.matchUnit(s, toks[last].end, layout, false); !ok {
+		return i
+	}
+	return last
 }
 
 // matchMultiplier đọc hậu tố nhân ngay sau số ("4k", "4 nghìn") và phần lẻ dính liền

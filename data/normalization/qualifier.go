@@ -260,7 +260,7 @@ func DashDateAt(raw string, spans []contracts.Span, i int) (text string, n int) 
 		last, parts = nx, parts+1
 	}
 	// số ĐẦU là số hiệu sau từ nhãn ("phiếu 12-10", "ca 2-3"): không phải một ngày (soát R, R-A14)
-	if parts < 2 || LabelContext(raw, last.Start, last.End) || LabelContext(raw, first.Start, first.End) || isDigitAt(raw, last.End) {
+	if parts < 2 || LabelContext(raw, last.Start, last.End) || isDigitAt(raw, last.End) {
 		return "", 0
 	}
 	if next, w := utf8.DecodeRuneInString(raw[last.End:]); (next == '-' || next == '–') && isDigitAt(raw, last.End+w) {

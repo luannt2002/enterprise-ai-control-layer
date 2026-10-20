@@ -85,12 +85,7 @@ func isGap(r rune) bool { return r == ' ' || unicode.Is(unicode.Cf, r) }
 // ngoặc cũng tính khi phần sau nó là phần cuối của chú thích đơn vị ("5.000 (L)", "5.000 (lít/ngày)", "5.000 (lít dầu)", xem
 // bracketTail); "3 (khối lượng công việc)" thì không. enclosed: số đứng trong ngoặc, đơn vị đứng sau ngoặc đóng ("(4.000) lít").
 func unitAfter(rest string, words []string, enclosed, quantityShaped bool) (string, bool) {
-	gapOnly := strings.TrimLeftFunc(rest, isGap)
 	rest, cell := skipDecoration(rest)
-	// Có dấu trang trí giữa số và chữ sau, số không có dáng lượng, và chữ là đơn vị MƠ HỒ ("khối" còn là khối phòng ban, "l" / "L" còn là chữ
-	// cái): số thứ tự / nhãn ("Bước 2, Khối Kế hoạch"), không phải "2 khối" (soát R, R-A15). Đơn vị không mơ hồ ("**5** mét khối", "**4** lít")
-	// vẫn bị chặn.
-	labelLike := rest != gapOnly && !quantityShaped
 	if r, w := utf8.DecodeRuneInString(rest); enclosed && (r == ')' || r == ']' || r == '}') {
 		rest, cell = skipDecoration(rest[w:])
 	}
@@ -113,7 +108,10 @@ func unitAfter(rest string, words []string, enclosed, quantityShaped bool) (stri
 		if cell && !cellEndsAfter(after) {
 			continue
 		}
-		if labelLike && ambiguousUnitWord(w) {
+		// "Khối" mở đầu một TÊN RIÊNG ("Bước 2, Khối Kế hoạch") là khối phòng ban, không phải đơn vị của số thứ tự đứng trước (soát R, R-A15).
+		// Chỉ miễn khi số không có dáng lượng, chữ đơn vị VIẾT HOA và chữ kế tiếp cũng viết hoa: "**5** khối", "**5** Khối mỗi ca", "| 5 | khối |"
+		// vẫn bị chặn (soát 37e8a08, RM-1 / F7 — bản miễn trước đó theo dấu trang trí làm lọt chúng).
+		if !quantityShaped && ambiguousUnitWord(w) && properNameStart(rest, after) {
 			continue
 		}
 		return w, true
@@ -121,9 +119,17 @@ func unitAfter(rest string, words []string, enclosed, quantityShaped bool) (stri
 	return "", false
 }
 
-// ambiguousUnitWord báo chữ đơn vị w còn là một danh từ / chữ cái thường gặp ngoài nghĩa đơn vị: "khối" (khối phòng ban), "l" / "L" (chữ cái).
+// ambiguousUnitWord báo chữ đơn vị w còn là một danh từ thường gặp ngoài nghĩa đơn vị: "khối" (khối phòng ban). "L" / "l" là ký hiệu đơn vị nên
+// không mơ hồ.
 func ambiguousUnitWord(w string) bool {
-	return strings.EqualFold(w, "khối") || strings.EqualFold(w, "khoi") || strings.EqualFold(w, "l")
+	return strings.EqualFold(w, "khối") || strings.EqualFold(w, "khoi")
+}
+
+// properNameStart báo chữ ở đầu text viết hoa và chữ đầu tiên của after (phần sau chữ đó) cũng viết hoa: "Khối Kế hoạch", "Khối Vận hành".
+func properNameStart(text, after string) bool {
+	r, _ := utf8.DecodeRuneInString(text)
+	n, _ := utf8.DecodeRuneInString(strings.TrimLeft(after, " \t"))
+	return unicode.IsUpper(r) && unicode.IsUpper(n)
 }
 
 // skipDecoration bỏ phần TRANG TRÍ giữa một số và đơn vị của nó: khoảng đệm, dấu nhấn Markdown (`**4.000** lít`, `4.000` lít, `*4.000* *lít*`),

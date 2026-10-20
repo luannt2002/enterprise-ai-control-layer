@@ -41,6 +41,12 @@ func TestCauXacNhanMocChuaDocDuocThiHoiLai(t *testing.T) {
 		"EX-03 tháng 9 2025 được cấp 3500 L đúng không?",
 		"Hôm 15 máy xúc 03 đã nhận 3850 L đúng không?",
 		"EX-03 15 thg 9 được cấp 3850 L đúng không?",
+		// "N-M" sau từ nhãn: số hiệu hay ngày dd-mm? Không phân định được ⇒ hỏi lại (soát 37e8a08, F6: bản miễn của R-A14 làm "phiếu 15-9"
+		// rơi im lặng về hôm nay). Hỏi lại thừa ở "phiếu 12-10" là giá đã chấp nhận.
+		"RL-02 phiếu 20-9 được cấp 1100 L đúng không?",
+		"EX-03 phiếu 15-9 được cấp 3500 L đúng không?",
+		"EX-03 đợt 12-10 được cấp 3850 L đúng không?",
+		"EX-03 hôm nay theo phiếu 12-10 được cấp 3850 L đúng không?",
 	} {
 		r := ask(t, a, user("director", ""), q).Response
 		if r.Outcome != contracts.OutcomeClarificationRequired {
@@ -49,8 +55,8 @@ func TestCauXacNhanMocChuaDocDuocThiHoiLai(t *testing.T) {
 	}
 }
 
-// Đối chứng: câu xác nhận rõ nghĩa một vế vẫn được phán quyết, kể cả khi có số hiệu sau từ nhãn ("phiếu 912", "ca 2", "phiếu 12-10" —
-// R-A14: không hỏi lại oan "12-10" như một ngày).
+// Đối chứng: câu xác nhận rõ nghĩa một vế vẫn được phán quyết, kể cả khi có số hiệu sau từ nhãn ("phiếu 912", "ca 2", "phiếu 12-45" — "N-M"
+// không có dạng ngày thì phần "-M" thuộc số hiệu).
 func TestCauXacNhanMotVeVanPhanQuyet(t *testing.T) {
 	a := newAsk(t)
 	for _, c := range []struct{ q, prefix string }{
@@ -59,7 +65,7 @@ func TestCauXacNhanMotVeVanPhanQuyet(t *testing.T) {
 		{"EX-03 hôm nay được cấp 3850 đúng không?", "Đúng."},
 		{"EX-03 hôm nay theo phiếu 912 được cấp 3850 L đúng không?", "Đúng."},
 		{"EX-03 hôm nay ca 2 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay theo phiếu 12-10 được cấp 3850 L đúng không?", "Đúng."},
+		{"EX-03 hôm nay theo phiếu 12-45 được cấp 3850 L đúng không?", "Đúng."},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.q).Response, c.q, c.prefix)
 	}

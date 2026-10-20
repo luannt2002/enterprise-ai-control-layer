@@ -10,6 +10,9 @@
 # câu có ≥ 2 con số trước khi answerMetric chạy, nên claimedValue không bao giờ thấy ≥ 2 con số.
 # Hai dòng của danh mục KHÁC mà bản sửa làm mất chuỗi gốc (rc=2): g3-g4 "FC2 số người hỏi lấy cả câu" và w5-rag-hybrid "AG bỏ luật mốc
 # thời gian" — phiên chính đã đổi chuỗi gốc của hai dòng đó theo mã mới (không xoá dòng); A02h, S2-4v (n25) và A04c phủ thêm.
+# 37e8a08 GỠ HẲN luật A-02 (lọc hasExplicit / clauseInitial — số trần bị bỏ khi mệnh đề có lượng viết rõ đơn vị): mã đích của A02c, A02d,
+# A02e, A02j, A02k, A02l không còn nên các dòng đó được bỏ (không phải để xanh: hành vi chúng canh nay là hành vi CỐ Ý — mọi con số ứng viên
+# đều tính). Đột biến đưa luật A-02 trở lại nằm ở n38 (AT4, AT5).
 cd "$(dirname "$0")/../.." || exit 1
 export PKGS="./core/pipeline/ ./data/entityresolution/ ./data/normalization/ ./intelligence/intent/ ./reliability/validation/ ./tenants/construction/"
 A=core/pipeline/ask.go D=data/normalization/datetime.go E=data/normalization/engine.go I=intelligence/intent/intent.go K=reliability/validation/knowledge.go R=data/entityresolution/resolver.go L=tenants/construction/pack/lexicon.yaml
@@ -22,13 +25,12 @@ m $A 'claimedValue(in, names, metric)' 'claimedValue(in, nil, metric)' 'A01d câ
 m $A 'visible = nil' '_ = visible' 'A01e hỏi lại về con số vẫn kể ra các máy ứng viên'
 m $A 'sp.Start < m.end && sp.End > m.start' false 'A01f số trong tên máy bị tính là con số xác nhận'
 m $A 'explicit := sp.Kind == contracts.ValueQuantity && !strings.Contains(sp.Rule, "unit_from_term")' 'explicit := sp.Kind == contracts.ValueQuantity' 'A02a đơn vị suy từ thuật ngữ (dầu 2 → 2 L) bị coi là lượng viết rõ đơn vị'
-m $A 'formatted := !explicit &&' 'formatted := false &&' 'A02b số trần có hậu tố nhân (4k) bị coi là nhãn'
-m $A 'hasExplicit := slices.ContainsFunc(primary, func(c claimCand) bool { return c.explicit })' 'hasExplicit := false' 'A02c số trần luôn tính là con số xác nhận (năm 2026, ca 2, phiếu 912)'
-m $A 'if !hasExplicit || c.explicit || c.formatted || clauseInitial(in.Raw, c.start) {' 'if true {' 'A02d số trần trong mệnh đề hỏi luôn được tính'
-m $A 'if c.explicit || c.formatted || !hasExplicit || clauseInitial(in.Raw, c.start) {' 'if c.explicit || c.formatted || clauseInitial(in.Raw, c.start) {' 'A02e câu xác nhận chỉ toàn số trần không tính số trần ở mệnh đề sau (3850 đúng không, 4000 thì sao?)'
-m $A 'if !hasExplicit || c.explicit || c.formatted || clauseInitial(in.Raw, c.start) {' 'if !hasExplicit || c.explicit || c.formatted {' 'A02j số trần đứng đầu mệnh đề hỏi (…; 4000 hay 3850 L đúng không?) bị coi là nhãn'
-m $A 'if c.explicit || c.formatted || !hasExplicit || clauseInitial(in.Raw, c.start) {' 'if c.explicit || c.formatted || !hasExplicit {' 'A02k số trần đứng đầu mệnh đề sau (3850 L đúng không, 4000 thì sao?) bị coi là nhãn'
-m $A 'return before == "" || strings.IndexByte(",;.?!", before[len(before)-1]) >= 0' 'return before == ""' 'A02l clauseInitial chỉ nhận đầu văn bản, không nhận đầu mệnh đề sau dấu câu'
+# A02b (formatted ban đầu = false) TƯƠNG ĐƯƠNG từ 37e8a08 (với pack hiện tại): giá trị ban đầu của formatted chỉ còn được joinClaims đọc
+# khi số đó là bên CHO đơn vị để nối. Số formatted không explicit chỉ mang đơn vị khi là lượng tốc độ ("5.000 L/ngày": đoạn giữa nó với số
+# trần chứa "/<mẫu số>" nên không phải từ nối) hoặc đơn vị suy từ thuật ngữ ("dầu 2.000": đơn vị L của thuật ngữ trùng đơn vị gốc mà
+# inMetricUnit gán cho số trần, nên giá trị nối không đổi). Pack có thuật ngữ mang đơn vị khác đơn vị gốc thì phải viết lại dòng này.
+# Dòng cũ giữ dưới dạng chú thích:
+# m $A 'formatted := !explicit &&' 'formatted := false &&' 'A02b số trần có hậu tố nhân (4k) bị coi là nhãn'
 m $A $'\t\tv, ok := a.inMetricUnit(sp.Value, def)\n\t\tif !ok {' $'\t\tv, ok := a.inMetricUnit(sp.Value, def)\n\t\tif !ok && false {' 'A02f số khác chiều đo (7h, 2 ca) bị tính là con số xác nhận'
 m $A 'return err == nil && n == 0 }) {' '_, _ = n, err; return false }) {' 'A02g cùng một giá trị viết hai cách (4k, 4000 lít) bị tính là hai con số'
 m $A 'lo, hi = fs, fe' 'lo, hi = 0, fe' 'A02h số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi (ngữ cảnh) bị tính'

@@ -691,8 +691,7 @@ type claimCand struct {
 	// không cho phép bỏ thầm số trần của câu.
 	explicit bool
 	// formatted: số trần viết có hậu tố nhân, dấu nghìn / thập phân hoặc chữ ("4k", "4.000", "bốn ngàn"), hay số trần NỐI với một lượng bằng từ nối
-	// ("từ 3800 đến 3900 L", "3850 hay 4000 L" — xem joinClaims) — giống một lượng hơn là một nhãn, nên vẫn là con số cạnh tranh dù cạnh một lượng
-	// viết rõ đơn vị.
+	// ("từ 3800 đến 3900 L", "3850 hay 4000 L" — xem joinClaims): joinClaims cho số trần nối tiếp với nó ("3800, 3850 hay 3900 L").
 	formatted bool
 }
 
@@ -964,14 +963,6 @@ func qualifierHolds(q normalization.Qualifier, periods [][2]time.Time) bool {
 		}
 	}
 	return true
-}
-
-// clauseInitial báo vị trí at là ĐẦU một mệnh đề: trước nó, chỉ cách khoảng trắng, là một dấu , ; . ? ! hoặc đầu văn bản. Một số trần
-// đứng đầu mệnh đề ("…3850 L đúng không, 4000 thì sao?") là một giá trị được đem ra so; số trần đứng sau một chữ ("ca 2", "phiếu 912",
-// "Đội 3") là nhãn của chữ đó.
-func clauseInitial(text string, at int) bool {
-	before := strings.TrimRight(text[:at], " \t\n")
-	return before == "" || strings.IndexByte(",;.?!", before[len(before)-1]) >= 0
 }
 
 // sentenceStart trả vị trí đầu CÂU (tách bởi . ? ! theo sau là khoảng trắng — "3.850", "0,5" không cắt; dấu chấm lửng "..." giữa câu cũng không cắt)

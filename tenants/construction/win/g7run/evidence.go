@@ -205,6 +205,51 @@ func unstablePaths(recs []askRecord) []string {
 	return out
 }
 
+// passCounts đếm số lượt đạt của từng ca, mỗi hệ (ADR-0005 §5: điểm từng ca là pass_count / k).
+func passCounts(graded map[string][]evals.Report) map[string]map[string]int {
+	out := map[string]map[string]int{}
+	for sys, runs := range graded {
+		out[sys] = map[string]int{}
+		for _, r := range runs {
+			for _, x := range r.Results {
+				if _, ok := out[sys][x.ID]; !ok {
+					out[sys][x.ID] = 0
+				}
+				if x.Pass {
+					out[sys][x.ID]++
+				}
+			}
+		}
+	}
+	return out
+}
+
+// flakyCases trả, cho từng hệ, các ca CHẬP CHỜN: đạt ở một số lượt nhưng không phải mọi lượt
+// (0 < pass_count < k). Đã sắp theo id.
+func flakyCases(counts map[string]map[string]int, k int) map[string][]string {
+	out := map[string][]string{}
+	for sys, byCase := range counts {
+		for id, n := range byCase {
+			if n > 0 && n < k {
+				out[sys] = append(out[sys], id)
+			}
+		}
+		sort.Strings(out[sys])
+	}
+	return out
+}
+
+// pilotK là luật chọn k đăng ký trước (ADR-0006 §6): pilot chạy k = 5; hệ cổng nào có ≥ 2 ca chập
+// chờn thì lượt chính k = 5, không thì k = 3.
+func pilotK(flaky map[string][]string) int {
+	for _, g := range gateSystems {
+		if len(flaky[g]) >= 2 {
+			return 5
+		}
+	}
+	return 3
+}
+
 // costRow là token + tiền của một hệ.
 type costRow struct {
 	System       string  `json:"system"`

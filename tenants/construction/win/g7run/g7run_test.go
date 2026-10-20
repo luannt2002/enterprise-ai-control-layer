@@ -445,3 +445,37 @@ func TestSmokeFailsOnBadResponse(t *testing.T) {
 		t.Fatalf("thân phản hồi hỏng: mã thoát = %d, muốn 1", code)
 	}
 }
+
+// pass_count / k từng ca; ca chập chờn = đạt ở một số lượt; luật k của pilot: hệ cổng có ≥ 2 ca chập
+// chờn ⇒ 5, không thì 3 — hệ chỉ-báo-cáo không ảnh hưởng.
+func TestFlakyAndPilotK(t *testing.T) {
+	rep := func(pass ...bool) evals.Report {
+		var r evals.Report
+		for i, p := range pass {
+			r.Results = append(r.Results, evals.CaseResult{ID: string(rune('A' + i)), Pass: p})
+		}
+		return r
+	}
+	graded := map[string][]evals.Report{
+		sysEACL:   {rep(true, true, false), rep(true, true, false), rep(true, true, false)},
+		sysB2Plus: {rep(true, false, true), rep(false, false, true), rep(true, true, true)},
+		sysB2:     {rep(true, false, false), rep(false, true, false), rep(true, true, false)},
+	}
+	pc := passCounts(graded)
+	if pc[sysB2Plus]["A"] != 2 || pc[sysB2Plus]["C"] != 3 || pc[sysEACL]["C"] != 0 {
+		t.Errorf("pass_count = %v", pc)
+	}
+	f := flakyCases(pc, 3)
+	if len(f[sysEACL]) != 0 || strings.Join(f[sysB2Plus], ",") != "A,B" || strings.Join(f[sysB2], ",") != "A,B" {
+		t.Errorf("ca chập chờn = %v, muốn EACL [], B2+ [A B], B2 [A B]", f)
+	}
+	if pilotK(f) != 5 {
+		t.Errorf("B2+ có 2 ca chập chờn: muốn k = 5")
+	}
+	if pilotK(map[string][]string{sysB2Plus: {"A"}, sysB2: {"A", "B", "C"}, sysB1: {"X"}}) != 3 {
+		t.Errorf("hệ cổng chỉ 1 ca chập chờn mỗi hệ (B2 chỉ báo cáo): muốn k = 3")
+	}
+	if pilotK(map[string][]string{sysB1: {"X", "Y"}}) != 5 {
+		t.Errorf("B1 có 2 ca chập chờn: muốn k = 5")
+	}
+}

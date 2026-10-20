@@ -66,6 +66,7 @@ type config struct {
 	data, pack, world, cases, tenant, provider, grade string
 	systems, manifest, out, contract                  string
 	k, topK, smoke                                    int
+	pilot                                             bool
 }
 
 func main() {
@@ -83,10 +84,11 @@ func main() {
 	flag.StringVar(&cfg.manifest, "manifest", "", "hồ sơ ca có b1_window của từng ca (bắt buộc cho B1)")
 	flag.StringVar(&cfg.out, "out", "", "thư mục ghi bằng chứng thô: manifest.json, raw-runs.jsonl, scored.jsonl, aggregate.json, failures.jsonl, cost.json, ket-qua.md")
 	flag.StringVar(&cfg.contract, "contract", "docs/g7/HOP-DONG-G7.md", "hợp đồng G7 — băm vào manifest")
+	flag.BoolVar(&cfg.pilot, "pilot", false, "lượt pilot (ADR-0006 §6): cần -k 5; in k của lượt chính theo luật đăng ký trước")
 	flag.IntVar(&cfg.smoke, "smoke", 0, "thử khói: chạy N ca đầu MỘT lượt mỗi hệ để kiểm provider nhận tham số, rồi thoát")
 	flag.Parse()
-	if cfg.data == "" || cfg.k < 1 || cfg.topK < 1 || cfg.smoke < 0 || (cfg.grade != gradeContent && cfg.grade != gradeFull) {
-		fmt.Fprintln(os.Stderr, `thiếu -data, hoặc -k < 1, hoặc -topk < 1, hoặc -smoke < 0, hoặc -grade không phải "content" / "full"`)
+	if cfg.data == "" || cfg.k < 1 || cfg.topK < 1 || cfg.smoke < 0 || (cfg.pilot && cfg.k != 5) || (cfg.grade != gradeContent && cfg.grade != gradeFull) {
+		fmt.Fprintln(os.Stderr, `thiếu -data, hoặc -k < 1, hoặc -topk < 1, hoặc -smoke < 0, hoặc -pilot mà -k khác 5, hoặc -grade không phải "content" / "full"`)
 		os.Exit(2)
 	}
 	os.Exit(run(cfg))
@@ -197,6 +199,13 @@ func run(cfg config) int {
 		say("Bộ đếm độc lập, %s (chỉ báo cáo): %d câu · rò rỉ canary %d · số không căn cứ %d\n", sysLabel[b], counts[b].Answers, counts[b].Leaks, counts[b].Unsupported)
 	}
 	pass := gatePass(s.order, s.blocked, unstable, verdicts)
+	flaky := flakyCases(passCounts(graded), cfg.k)
+	for _, sys := range s.order {
+		say("ca chập chờn của %s (đạt ở 0 < n < %d lượt): %d %s\n", sysLabel[sys], cfg.k, len(flaky[sys]), strings.Join(flaky[sys], " "))
+	}
+	if cfg.pilot {
+		say("PILOT (ADR-0006 §6): k của lượt chính = %d (hệ cổng có ≥ 2 ca chập chờn thì 5, không thì 3). Pilot KHÔNG phải bằng chứng G7.\n", pilotK(flaky))
+	}
 	say("\nBộ đếm độc lập, EACL: %d câu · rò rỉ canary %d · số không căn cứ %d\n", counts[sysEACL].Answers, counts[sysEACL].Leaks, counts[sysEACL].Unsupported)
 	for _, e := range counts[sysEACL].Examples {
 		say("  - %s\n", e)
@@ -263,7 +272,12 @@ func saveRun(cfg config, mc models.Config, gw models.Gateway, fake bool, s *setu
 			}
 		}
 	}
-	agg := map[string]any{"verdicts": verdicts, "counts": counts, "eacl_unstable_cases": unstable, "blocked": s.blocked, "fake_model": fake}
+	pc := passCounts(graded)
+	agg := map[string]any{"verdicts": verdicts, "counts": counts, "eacl_unstable_cases": unstable, "blocked": s.blocked, "fake_model": fake,
+		"pass_count": pc, "flaky_cases": flakyCases(pc, cfg.k), "k": cfg.k, "pilot": cfg.pilot}
+	if cfg.pilot {
+		agg["pilot_main_k"] = pilotK(flakyCases(pc, cfg.k))
+	}
 	return writeEvidence(cfg.out, m, sink.recs, scored, agg, failures, costs(sink.recs, mc.Model, s.order), summary)
 }
 

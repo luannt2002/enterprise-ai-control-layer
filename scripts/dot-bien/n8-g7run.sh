@@ -29,6 +29,11 @@ m $M '			case sysB2Plus:
 ' '			case sysB2Plus:
 				_ = ref
 ' 'G17 B2+ không biết ngày hiện tại'
+m $E '			if n > 0 && n < k {' '			if n > 0 && n <= k {' 'G20 ca đạt mọi lượt bị tính chập chờn'
+m $E '		if len(flaky[g]) >= 2 {' '		if len(flaky[g]) >= 3 {' 'G21 ngưỡng pilot sai'
+m $E '	for _, g := range gateSystems {
+		if len(flaky[g]) >= 2 {' '	for _, g := range []string{sysB2Plus, sysB1, sysB2} {
+		if len(flaky[g]) >= 2 {' 'G22 hệ chỉ-báo-cáo quyết k'
 export PKGS="./evals/baseline/"
 B=evals/baseline/baseline.go
 m $B '		mq = b.Preamble + "\n" + question' '		mq = question' 'G18 phần mở đầu không tới model'

@@ -27,6 +27,7 @@
 3. **Điều kiện đóng băng v2** (thiếu một điều kiện là không đóng băng):
    - hiện thực trong `evals/` không import gói EACL;
    - bảng 170 đòn đạt mức đặc tả §7.2;
+   - có test hồi quy cho mọi ca thử ở đặc tả §12 (bản soát harness lượt 2, chiều C);
    - hiệu chỉnh trên đầu ra pilot THẬT, có người chấm mù (D-G7-16);
    - tỉ lệ trượt oan và đạt nhầm ngoài mẫu ≤ 2 %;
    - băm mã chấm + danh sách từ + hồ sơ chính sách ghi vào mọi Report.

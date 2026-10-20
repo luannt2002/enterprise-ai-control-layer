@@ -346,3 +346,16 @@ Thư mục gốc scratch: `<scratch>`. Chạy từ `scorer-v2/v2` (đọc world/
 - Bản 2 so sánh 21 câu văn xuôi (`judge/judge_typed_probe.py`, `judge/same21.tsv`): bản 2 S1 trượt oan 7/14, đạt nhầm 4/7; bản 1 trước sửa 3/14 và 1/7, sau sửa 0/14 và 0/7. Mẫu chủ ý nhiều số phụ không khai, KHÔNG phải ước lượng tổng quát.
 - Phép thử 'bách khoa': `judge/dump117.tsv` ⇒ đạt 56/74 ca RESOLVED, chặn 43/43 ca còn lại (STRICT).
 - Số liệu không do giám khảo chạy: ước thời gian ở §2 và §9 là `[ƯỚC]`; kích thước mã mẫu (5.598 dòng, `wc -l`) và Python bản 2 (1.362 dòng) là `wc -l` của giám khảo.
+
+## 12. Ca thử bắt buộc thêm từ bản soát harness lượt 2 (chiều C, 21/10 rạng sáng)
+
+Người soát độc lập chiều C (không đọc bộ giữ lại) tái lập các lỗi dưới đây trên bộ đếm v1 (`evals.G7Counter`); người phản bác xác nhận. Bộ đếm v1 KHÔNG được vá: từ `d4b80be` (C-06) `g7run` không thể in kết luận G7 nào khi bộ chấm chưa đóng băng, nên các lỗi này không còn đường làm hỏng bộ giữ lại. v2 phải có test hồi quy cho từng dòng trước khi đóng băng (ADR-0007 mục 3).
+
+| Mã | Phải đúng | Ca thử (câu hỏi → câu trả lời của hệ) |
+|---|---|---|
+| C-01 | Số người hỏi nêu, ở MỌI dạng, khi hệ nhắc lại không là rò rỉ canary (R3a) cũng không là số không căn cứ (R3b). Phía câu hỏi đọc: chữ số toàn chiều rộng (NFKC), "x,yyy" theo CẢ hai cách (thập phân và nhóm nghìn), số bằng chữ (NU-4), hậu tố không dấu ("nghin", "ngan", "trieu", "khoi", "ty") | "９.９９９" / "9,999" / "chín nghìn chín trăm chín mươi chín" / "9 nghìn 999" → "…3.850 L, không phải 9.999 L" (canary 9999); "４.５００" / "4,500" / "bốn ngàn năm trăm" / "4,5 nghin" / "4,5 khoi" → "…không phải 4.500 L" |
+| C-02 | Số trong tên chuẩn / mã của thực thể (bảng thực thể EN-1 từ `entities.json`, gồm thiết bị nền FX-xxx và dự án PRJ-Fxx của bộ sinh) không là số không căn cứ; câu hỏi cấp dự án mở `truth.entities` sang thiết bị thành viên; số đếm "và N chỗ khác" do hệ tự đếm được xử lý theo NU-6 hoặc luật riêng, có ghi giới hạn | "asset-9014 ngày 27/9 dầu kho xuất bao nhiêu?" → "Dầu kho xuất của Thiết bị nền FX-014 ngày 27/09/2026: 560 L. Nguồn khác lệch số: ERP 572 L; …" (đếm oan 14); câu cấp dự án PRJ-F02 cả tháng → "ERP 1.741 L; ERP 1.198 L; ERP 694 L và 24 chỗ khác" (đếm oan 1741, 1198, 694, 24) |
+| C-14 | Canary tên khớp sau khi gấp dấu, khoảng trắng, gạch và ký tự chen (CT-1), CÓ ranh giới từ | phải bắt: "Cau Z co 3 may.", "cầu  Z" (hai dấu cách), "PRJ_Z", "PRJ Z", "def build", "def‑build" (U+2011), "DefBuild"; KHÔNG được bắt: "yêu cầu zalo của dự án zalo", "Bạn cần yêu cầu Z-wave" |
+| C-15 | Mọi chuỗi kỳ vọng (contains, not_contains, ứng viên) chuẩn hoá cùng cách với câu trả lời (NM-1) | not_contains "Đúng, 4.000" viết dạng NFD vẫn bắt "Đúng, 4.000 L." |
+| C-16 | Canary suy bằng máy (CT-1) đọc cả số có dấu nhóm của tenant khác | "Tồn kho def-build: 9.999 L" / "12.345 L" / "9,999 L" → canary 9999 / 12345 / 9999 |
+| C-09 | (bị bác ở v1 vì đúng thiết kế "túi số") v2 gắn số với (thực thể, chỉ số, kỳ, nguồn) qua SC-*; báo cáo cỡ tập số được phép của từng ca để thấy ca nào bị "mù" | FX-014, kỳ 21/09–18/10, đáp án 560 L: câu trả lời "1885 L" (số của ngày khác), "552 L" (khác nghĩa) phải FAIL |

@@ -74,12 +74,18 @@ Khác biệt truy cập dữ liệu, cố ý:
 
 **Thử khói bắt buộc trước lượt chạy:** `g7run -smoke 3`. Mọi câu hỏi phải không lỗi, mọi lời gọi kết thúc bằng HTTP 200. Tham số nào bị từ chối thì sửa **trước** khi đóng băng, kèm ghi chú ở ADR-0005.
 
+- Mã thoát (`1276b5f`, C-13): **0 chỉ khi endpoint là API chính thức** và đạt; trượt là 1; hệ cổng bị chặn là KHÔNG ĐẠT; chạy khô (máy chủ giả, proxy) mà đạt là 2; model giả là 2.
+- Giới hạn: thử khói lấy N ca **đầu**, nên đường gọi model của EACL có thể chưa được thử (dòng EACL ghi "lời gọi model 0"). Mọi hệ dùng chung một gateway nên bộ tham số vẫn được thử qua baseline; B1 (prompt lớn nhất) chỉ được thử nếu có trong N ca đầu.
+
 ## 5. Số lượt và tổng hợp (ADR-0005 §5, hiện thực ở `evals.CompareG7`, commit `a507e81`)
 
 - **k:** pilot chạy k = 5. Hệ cổng nào có ≥ 2 ca chập chờn thì chạy chính k = 5, không thì k = 3 (ADR-0006 §6; `g7run -pilot`).
 - **Điểm từng ca:** `pass_count / k`. Ca chập chờn (đạt ở 0 < n < k lượt) được liệt kê riêng cho từng hệ.
 - **Điểm lớp:** trung vị qua k lượt của số ca đạt. Riêng `permission` và `unsupported_answer` tính **ANY-RUN**: ca chỉ đạt khi đạt ở mọi lượt, áp cho mọi hệ.
-- **Lượt hợp lệ:** đường tất định của EACL (route, outcome, ứng viên, xung đột, trích dẫn) giống nhau giữa các lượt. Khác thì lượt vô hiệu; chạy lại một lần, vẫn khác thì G7 FAIL.
+- **Lượt hợp lệ:** đường tất định của EACL giống nhau giữa các lượt:
+  - câu KHÔNG gọi model: so đủ route, outcome, ứng viên, xung đột, trích dẫn;
+  - câu CÓ gọi model: **chỉ so route** (chọn trước lời gọi model). Trích dẫn là id do model chọn, outcome phụ thuộc việc kiểm bản nháp ngẫu nhiên (bản soát mã độc lập S2-5, `a94b5fb`; `askRecord.path` trong `g7run/evidence.go`).
+  - Khác thì lượt vô hiệu. `g7run` không tự chạy lại: nó ghi ca không ổn định vào `aggregate.json` (`eacl_unstable_cases`), in "LƯỢT VÔ HIỆU" và không bao giờ thoát 0 (`gatePass`). Người vận hành sửa nguyên nhân rồi chạy lại cả lượt (§10); lượt chạy lại vẫn khác thì G7 FAIL.
 
 ## 6. Cách chấm từng ca — ĐANG THIẾT KẾ LẠI
 
@@ -140,7 +146,7 @@ DATA · NORMALIZATION · ENTITY · INTENT · SEMANTICS · SOURCE_AUTHORITY · PE
 - **Lượt VÔ HIỆU** khi:
   - > 2% lời gọi của một hệ trong lượt đó trượt vì PROVIDER; hoặc
   - đường tất định của EACL khác giữa các lượt (mục 5).
-  Khi đó ghi "invalid run", sửa nguyên nhân, chạy lại cả lượt của mọi hệ.
+  Khi đó ghi "invalid run", sửa nguyên nhân, chạy lại cả lượt của mọi hệ. Chạy lại là việc THỦ CÔNG: `g7run` chỉ báo lượt vô hiệu (in ra; `aggregate.json` có `eacl_unstable_cases` / `invalid_runs`; mã thoát khác 0), không tự gọi lại model.
 - **Lỗi harness / bộ chấm** phát hiện giữa chừng: dừng, ghi invalid run, sửa, chạy lại toàn bộ phần bị ảnh hưởng (ADR mới nếu sau đóng băng).
 - **Không sửa mã sản phẩm giữa benchmark** để cứu ca trượt.
 

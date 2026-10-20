@@ -401,7 +401,7 @@ func TestCauQuyTrinhCoDonGiaVaNhanBoPhanVanDuocGiao(t *testing.T) {
 
 // A-13 — hậu tố nhân cách số bằng nhiều dấu cách hay ký tự vô hình ("5  k lít", "5<ZWSP>k lít") là cùng lượng với "5k lít".
 func TestLuongCoHauToNhanCachNhieuKhoangDemKhongLot(t *testing.T) {
-	for _, form := range []string{"5k lít", "5 k lít", "5  k lít", "5​k lít", "5 k  lít", "5  k lít"} {
+	for _, form := range []string{"5k lít", "5 k lít", "5  k lít", "5\u200bk lít", "5 k  lít", "5\u00a0\u00a0k lít"} {
 		body := "Định mức cấp phát cho máy xúc là " + form + " mỗi ngày."
 		a := askVoiTaiLieu(t, body, &models.Extractive{})
 		r := ask(t, a, user("director", ""), hoiQuyTrinh).Response

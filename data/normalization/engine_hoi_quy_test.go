@@ -243,7 +243,7 @@ func TestNgaySoDinhSauMaHoacDaySoKhongPhaiNgay(t *testing.T) {
 // A-13 — hậu tố nhân cách số bằng nhiều dấu cách hoặc ký tự vô hình ("5  k lít", "5<ZWSP>k lít") là cùng một lượng với "5k lít".
 func TestHauToNhanCachNhieuKhoangDem(t *testing.T) {
 	e := mustEngine(t)
-	for _, in := range []string{"5k lít", "5 k lít", "5  k lít", "5​k lít", "5  k lít", "5 ​ k lít", "5 k  lít", "5k​lít"} {
+	for _, in := range []string{"5k lít", "5 k lít", "5  k lít", "5\u200bk lít", "5\u00a0\u00a0k lít", "5 \u200b k lít", "5 k  lít", "5k\u200blít"} {
 		q := quantities(e.Normalize("cấp "+in, Options{Now: now}))
 		if len(q) != 1 || q[0].Value.Number != "5000" || q[0].Value.Unit != "L" {
 			t.Errorf("%q: muốn đúng một lượng 5000 L, được %+v", in, q)
@@ -267,7 +267,7 @@ func TestNormalizeChuoiNgayNgauNhienKhongPanicVaToaDoDung(t *testing.T) {
 	pieces := []string{
 		"ngày", "Ngày", "tháng", "năm", "đến", "tới", "từ", "hôm nay", "hôm qua", "tuần này", "ngay", "thang",
 		"0", "1", "5", "10", "12", "19", "26", "31", "32", "99", "100", "2026", "205", "4.000", "3,5", "19.10", "19.10.26",
-		"/", "-", ".", ",", ":", "(", ")", " ", "  ", " ", "​", "\n", "PX", "TK-", "k", "lít", "ca", "đ", "ℓ", "５", "é", "́",
+		"/", "-", ".", ",", ":", "(", ")", " ", "  ", "\u00a0", "\u200b", "\n", "PX", "TK-", "k", "lít", "ca", "đ", "ℓ", "５", "é", "́",
 	}
 	rng := rand.New(rand.NewPCG(20261021, 7))
 	for n := 0; n < 30000; n++ {

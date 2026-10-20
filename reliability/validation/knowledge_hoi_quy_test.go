@@ -126,7 +126,7 @@ func TestCacDangDaChanTruocDoVanBiChanSauKhiSua(t *testing.T) {
 		"Định mức là 5.000 L.", "Định mức là 5000 lít.", "Định mức là 5.000L.", "Định mức là 5,000 L.", "Định mức là 5.000  lít.",
 		"Định mức là 5.000 LÍT.", "Định mức là 5 khối.", "Định mức là 5.000 lít/ngày.", "Định mức là 5 m3.", "Định mức là 4 m³.",
 		"Định mức: L 5.000 mỗi ngày.", "Định mức: lít: 5.000 mỗi ngày.", "Định mức (lít): 5.000 mỗi ngày.", "Định mức là 5.000 (lít/ngày).",
-		"Định mức là 5.000 (L).", "Định mức là 5.000 ℓ mỗi ngày.", "Định mức: L​5.000 mỗi ngày.", "Định mức là ５.０００ Ｌ mỗi ngày.",
+		"Định mức là 5.000 (L).", "Định mức là 5.000 ℓ mỗi ngày.", "Định mức: L\u200b5.000 mỗi ngày.", "Định mức là ５.０００ Ｌ mỗi ngày.",
 	} {
 		if n, w := haiLop(e, text); !n || !w {
 			t.Errorf("%q: chuẩn hoá bắt=%v, bộ đếm bắt=%v — dạng này cả hai lớp đều phải bắt", text, n, w)

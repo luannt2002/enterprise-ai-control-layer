@@ -724,7 +724,8 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 	var cs claimSet
 	periods := readPeriods(in)
 	var cands []claimCand
-	skip := 0 // số span còn lại thuộc một cụm ngày dd-mm đã ghi là mốc chưa đọc được
+	skip := 0      // số span còn lại thuộc một cụm ngày dd-mm đã ghi là mốc chưa đọc được
+	labelEnd := -1 // cuối số hiệu vừa bỏ ("phiếu 12-10": phần "-10" thuộc cùng số hiệu)
 	for i, sp := range in.Spans {
 		if skip > 0 {
 			skip--
@@ -754,14 +755,16 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		}
 		formatted := !explicit && strings.ContainsFunc(sp.Raw, func(r rune) bool { return unicode.IsLetter(r) || r == '.' || r == ',' })
 		if !explicit && !formatted {
-			// số trần trơn: nhãn / số đếm, mốc thời gian viết bằng chữ, hay một con số? (nhãn xét trước: "phiếu 912 tháng 9" là số phiếu rồi tháng 9)
-			if normalization.LabelContext(in.Raw, sp.Start, sp.End) {
-				continue
-			}
+			// số trần trơn: mốc thời gian viết bằng chữ, nhãn / số đếm, hay một con số? Mốc xét TRƯỚC: "Quý 3 dự án A", "Tuần 41 máy xúc"
+			// là mốc dù ngay sau là danh từ đếm (soát R, R-A01 / B-01); "phiếu 912 tháng 9" vẫn là số phiếu vì "phiếu" không phải từ chỉ kỳ.
 			if q, ok := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End); ok && !(q.Kind == normalization.QualifierSpan && inReadPeriod(in, q.Word)) {
 				if !qualifierHolds(q, periods) && !slices.Contains(cs.doubts, q.Raw) {
 					cs.doubts = append(cs.doubts, q.Raw)
 				}
+				continue
+			}
+			if normalization.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {
+				labelEnd = sp.End
 				continue
 			}
 		}
@@ -788,7 +791,10 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 			trailing = append(trailing, c)
 		}
 	}
-	hasExplicit := slices.ContainsFunc(primary, func(c claimCand) bool { return c.explicit })
+	// MỌI con số ứng viên của mệnh đề hỏi và các mệnh đề sau đều tính (trừ số trong tên thực thể, số thuộc kỳ đã đọc, số hiệu sau từ nhãn — đã
+	// loại ở trên). Luật A-02 cũ bỏ số trần khi mệnh đề có lượng viết rõ đơn vị; nó đổi câu mơ hồ ("định mức 5.000 L nên … 3850", "3800 ~ 3900 L",
+	// "4000 L hay 3850") thành phán quyết SAI, và vá bằng danh sách đóng vẫn rò (soát R: R-A06, R-A07, B-02, B-03). Hai con số trở lên thì hỏi lại,
+	// như trước bản sửa A.
 	var out []contracts.Value
 	add := func(c claimCand) {
 		if !slices.ContainsFunc(out, func(o contracts.Value) bool { n, err := decimal.Cmp(o.Number, c.v.Number); return err == nil && n == 0 }) {
@@ -796,17 +802,22 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		}
 	}
 	for _, c := range primary {
-		if !hasExplicit || c.explicit || c.formatted || clauseInitial(in.Raw, c.start) {
-			add(c)
-		}
+		add(c)
 	}
 	for _, c := range trailing {
-		if c.explicit || c.formatted || !hasExplicit || clauseInitial(in.Raw, c.start) {
-			add(c)
-		}
+		add(c)
 	}
 	cs.values = out
 	return cs
+}
+
+// dashTail báo con số bắt đầu ở start là phần nối bằng "-" / "–" ngay sau số hiệu kết thúc ở labelEnd ("phiếu 12-10", "ca 2-3").
+func dashTail(raw string, labelEnd, start int) bool {
+	if labelEnd < 0 || start <= labelEnd || start > len(raw) {
+		return false
+	}
+	gap := raw[labelEnd:start]
+	return gap == "-" || gap == "–"
 }
 
 // claimConnectors là các từ / dấu nối hai con số của MỘT lời xác nhận: dải ("từ 3800 đến 3900 L", "3800-3900 L"), lựa chọn ("3850 hay 4000 L"),

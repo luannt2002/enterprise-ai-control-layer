@@ -48,7 +48,7 @@ func ForbidUnitWords(text string, words []string) []contracts.Violation {
 	masked := dateRe.ReplaceAllStringFunc(text, func(s string) string { return strings.Repeat(" ", len(s)) })
 	for _, m := range numRe.FindAllStringSubmatchIndex(masked, -1) {
 		num := masked[m[2]:m[3]]
-		w, ok := unitAfter(masked[m[3]:], words, quantityLike(num) && opensBefore(masked[:m[2]]))
+		w, ok := unitAfter(masked[m[3]:], words, quantityLike(num) && opensBefore(masked[:m[2]]), quantityLike(num))
 		if !ok {
 			w, ok = unitBefore(masked[:m[2]], num, words)
 		}
@@ -84,8 +84,13 @@ func isGap(r rune) bool { return r == ' ' || unicode.Is(unicode.Cf, r) }
 // thường ("LÍT"); từ đơn vị phải TRỌN từ ("L" của "Lập", "m" của "máy" không phải đơn vị). Đơn vị MỞ ĐẦU một cặp
 // ngoặc cũng tính khi phần sau nó là phần cuối của chú thích đơn vị ("5.000 (L)", "5.000 (lít/ngày)", "5.000 (lít dầu)", xem
 // bracketTail); "3 (khối lượng công việc)" thì không. enclosed: số đứng trong ngoặc, đơn vị đứng sau ngoặc đóng ("(4.000) lít").
-func unitAfter(rest string, words []string, enclosed bool) (string, bool) {
+func unitAfter(rest string, words []string, enclosed, quantityShaped bool) (string, bool) {
+	gapOnly := strings.TrimLeftFunc(rest, isGap)
 	rest, cell := skipDecoration(rest)
+	// Có dấu trang trí giữa số và chữ sau, số không có dáng lượng, và chữ là đơn vị MƠ HỒ ("khối" còn là khối phòng ban, "l" / "L" còn là chữ
+	// cái): số thứ tự / nhãn ("Bước 2, Khối Kế hoạch"), không phải "2 khối" (soát R, R-A15). Đơn vị không mơ hồ ("**5** mét khối", "**4** lít")
+	// vẫn bị chặn.
+	labelLike := rest != gapOnly && !quantityShaped
 	if r, w := utf8.DecodeRuneInString(rest); enclosed && (r == ')' || r == ']' || r == '}') {
 		rest, cell = skipDecoration(rest[w:])
 	}
@@ -108,9 +113,17 @@ func unitAfter(rest string, words []string, enclosed bool) (string, bool) {
 		if cell && !cellEndsAfter(after) {
 			continue
 		}
+		if labelLike && ambiguousUnitWord(w) {
+			continue
+		}
 		return w, true
 	}
 	return "", false
+}
+
+// ambiguousUnitWord báo chữ đơn vị w còn là một danh từ / chữ cái thường gặp ngoài nghĩa đơn vị: "khối" (khối phòng ban), "l" / "L" (chữ cái).
+func ambiguousUnitWord(w string) bool {
+	return strings.EqualFold(w, "khối") || strings.EqualFold(w, "khoi") || strings.EqualFold(w, "l")
 }
 
 // skipDecoration bỏ phần TRANG TRÍ giữa một số và đơn vị của nó: khoảng đệm, dấu nhấn Markdown (`**4.000** lít`, `4.000` lít, `*4.000* *lít*`),

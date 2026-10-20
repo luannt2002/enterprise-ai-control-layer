@@ -110,12 +110,20 @@ func TestCauXacNhanTuNoiKhongBienNhanThanhConSo(t *testing.T) {
 		"EX-03 hôm nay đội 3 và đội 4 được cấp 3850 L đúng không?",
 		"EX-03 hôm nay ca 2 hay ca 3 được cấp 3850 L đúng không?",
 		"EX-03 hôm nay được cấp 3850 L và phiếu 912 đúng không?",
-		// danh từ ngoài danh sách đóng của nhãn / số đếm: vẫn theo luật A-02 (số trần bị bỏ khi câu có lượng viết rõ đơn vị)
+	} {
+		xacNhan(t, ask(t, a, user("director", ""), text).Response, text, "Đúng.")
+	}
+	// Danh từ NGOÀI danh sách đóng của nhãn / số đếm: trước đây theo luật A-02 (số trần bị bỏ khi câu có lượng viết rõ đơn vị) nên ra "Đúng.".
+	// Luật A-02 đã bỏ vì nó cũng đổi câu mơ hồ thành phán quyết SAI (soát R: R-A06, R-A07, B-02, B-03); số đi với danh từ lạ nay là con số thứ
+	// hai ⇒ hỏi lại (hỏi lại thừa, không phán quyết sai). Kỳ vọng cũ "Đúng." đổi có chủ ý.
+	for _, text := range []string{
 		"EX-03 hôm nay được cấp 3850 L và 4 bể đúng không?",
 		"EX-03 hôm nay được cấp 3850 L cho bể 7 đúng không?",
 		"EX-03 hôm nay bể 7 được cấp 3850 L đúng không?",
 	} {
-		xacNhan(t, ask(t, a, user("director", ""), text).Response, text, "Đúng.")
+		if r := ask(t, a, user("director", ""), text).Response; r.Outcome != contracts.OutcomeClarificationRequired {
+			t.Errorf("%q: muốn hỏi lại, được [%s/%s] %q", text, r.Route, r.Outcome, r.Answer)
+		}
 	}
 }
 

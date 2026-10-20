@@ -72,6 +72,16 @@ func PeriodQualifier(raw string, start, end int) (Qualifier, bool) {
 				return Qualifier{Kind: pw.kind, Value: value, Raw: raw[ws:end], Word: [2]int{ws, we}}, true
 			}
 		}
+		// "tuần thứ 41", "ngày số 12": từ chỉ kỳ, rồi "thứ" / "số", rồi con số — vẫn là một mốc (soát R, R-A02)
+		if wordIs(raw, ws, we, "thứ") || wordIs(raw, ws, we, "số") {
+			if ps, pe := wordBefore(raw, ws); pe > ps && !rateWordAt(raw, ps) {
+				for _, pw := range periodWords {
+					if wordIs(raw, ps, pe, pw.word) {
+						return Qualifier{Kind: pw.kind, Value: value, Raw: raw[ps:end], Word: [2]int{ps, pe}}, true
+					}
+				}
+			}
+		}
 	}
 	// từ chỉ kỳ đứng ngay sau: "7 ngày qua", "19 tháng 10"
 	if ws, we := wordAfter(raw, end); we > ws {
@@ -249,7 +259,8 @@ func DashDateAt(raw string, spans []contracts.Span, i int) (text string, n int) 
 		}
 		last, parts = nx, parts+1
 	}
-	if parts < 2 || LabelContext(raw, last.Start, last.End) || isDigitAt(raw, last.End) {
+	// số ĐẦU là số hiệu sau từ nhãn ("phiếu 12-10", "ca 2-3"): không phải một ngày (soát R, R-A14)
+	if parts < 2 || LabelContext(raw, last.Start, last.End) || LabelContext(raw, first.Start, first.End) || isDigitAt(raw, last.End) {
 		return "", 0
 	}
 	if next, w := utf8.DecodeRuneInString(raw[last.End:]); (next == '-' || next == '–') && isDigitAt(raw, last.End+w) {

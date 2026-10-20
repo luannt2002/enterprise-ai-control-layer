@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -57,11 +58,14 @@ func g7Clean(runs []Report) G7Counts {
 
 // Mỗi luật D5 phải ĐỎ ĐÚNG MỘT MÌNH khi bị vi phạm riêng nó, và cả bộ phải xanh khi không vi phạm gì:
 // một luật không bao giờ đỏ thì chưa chứng minh nó chặn được gì (CLAUDE.md §1).
+//
+// ADR-0005 §5 (20/10 đêm) đổi hai điều so với D5 cũ, nên fixture dùng lớp 12 ca: lớp dưới G7LeadMinCases
+// ca không được tính "lớp hơn", và permission không vào phép đếm "lớp hơn".
 func TestCompareG7EachRuleBlocksAlone(t *testing.T) {
-	// Nền xanh: EAIS 10/10 ở mọi lớp, baseline 5/10 ở 4 lớp (hơn 50 điểm) và hoà 10/10 ở 4 lớp còn lại.
-	baseOK := map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}
-	threeLeads := map[string]int{"representation": 5, "entity": 5, "ambiguity": 5}
-	rules := []string{G7RuleRuns, G7RuleNoClassBehind, G7RuleLead, G7RuleNoLeak, G7RuleNoUnsupported}
+	// Nền xanh: EAIS 12/12 ở mọi lớp, baseline 6/12 ở 4 lớp (hơn 50 điểm) và hoà 12/12 ở 4 lớp còn lại.
+	baseOK := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}
+	threeLeads := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6}
+	rules := []string{G7RuleRuns, G7RuleNoClassBehind, G7RuleLead, G7RuleNoLeak, G7RuleNoUnsupported, G7RuleNoExposure, G7RuleMcNemar}
 
 	cases := []struct {
 		name      string
@@ -71,42 +75,51 @@ func TestCompareG7EachRuleBlocksAlone(t *testing.T) {
 		failing   string // luật duy nhất được phép đỏ; rỗng = cả bộ xanh
 		reason    string // đoạn phải có trong lý do của luật đỏ
 	}{
-		{name: "tất cả đúng", k: 3, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK)},
+		{name: "tất cả đúng", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK)},
 		{name: "EAIS thua một lớp", k: 3,
-			eais:    g7Classes(10, map[string]int{"source_conflict": 4}),
-			bas:     g7Classes(10, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5, "source_conflict": 6}),
+			eais:    g7Classes(12, map[string]int{"source_conflict": 5}),
+			bas:     g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6, "source_conflict": 7}),
 			failing: G7RuleNoClassBehind, reason: "source_conflict"},
 		{name: "EAIS thua đúng 1 ca", k: 3,
-			eais:    g7Classes(10, map[string]int{"routing": 9}),
-			bas:     g7Classes(10, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}),
+			eais:    g7Classes(12, map[string]int{"routing": 11}),
+			bas:     g7Classes(12, baseOK),
 			failing: G7RuleNoClassBehind, reason: "routing"},
 		{name: "chỉ 3 lớp hơn >= 20 điểm, các lớp khác hoà", k: 3,
-			eais: g7Classes(10, nil), bas: g7Classes(10, threeLeads),
-			failing: G7RuleLead, reason: "3/8"},
+			eais: g7Classes(12, nil), bas: g7Classes(12, threeLeads),
+			failing: G7RuleLead, reason: "3/7"},
+		{name: "permission hơn không được tính", k: 3,
+			eais: g7Classes(12, nil), bas: g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "permission": 0}),
+			failing: G7RuleLead, reason: "3/7"},
+		{name: "lớp dưới 12 ca không được tính là lớp hơn", k: 3,
+			eais: g7Classes(11, nil), bas: g7Classes(11, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}),
+			failing: G7RuleLead, reason: "dưới 12 ca"},
 		{name: "đúng 20 điểm thì tính (biên)", k: 3,
-			eais: g7Classes(10, map[string]int{"representation": 7, "entity": 7, "ambiguity": 7, "semantic": 7}),
-			bas:  g7Classes(10, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5})},
+			eais: g7Classes(15, map[string]int{"representation": 9, "entity": 9, "ambiguity": 9, "semantic": 9}),
+			bas:  g7Classes(15, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6})},
 		{name: "18,2 điểm chưa đủ 20 (biên)", k: 3,
-			eais:    g7Classes(11, map[string]int{"representation": 7, "entity": 7, "ambiguity": 7, "semantic": 7}),
-			bas:     g7Classes(11, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}),
-			failing: G7RuleLead, reason: "0/8"},
+			eais:    g7Classes(22, map[string]int{"representation": 10, "entity": 10, "ambiguity": 10, "semantic": 10}),
+			bas:     g7Classes(22, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}),
+			failing: G7RuleLead, reason: "0/7"},
 		{name: "27,3 điểm đủ (biên)", k: 3,
-			eais: g7Classes(11, map[string]int{"representation": 8, "entity": 8, "ambiguity": 8, "semantic": 8}),
-			bas:  g7Classes(11, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5})},
-		{name: "có rò rỉ canary", k: 3, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK),
+			eais: g7Classes(22, map[string]int{"representation": 12, "entity": 12, "ambiguity": 12, "semantic": 12}),
+			bas:  g7Classes(22, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6})},
+		{name: "có rò rỉ canary", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Leaks = 1; return c },
 			failing: G7RuleNoLeak, reason: "1/"},
-		{name: "có claim không căn cứ", k: 3, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK),
+		{name: "có claim không căn cứ", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Unsupported = 2; return c },
 			failing: G7RuleNoUnsupported, reason: "2 số"},
-		{name: "bộ đếm chưa nhìn câu nào thì không tính là sạch", k: 3, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK),
+		{name: "lộ số được bảo vệ ở ca từ chối quyền", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
+			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Exposures = 1; return c },
+			failing: G7RuleNoExposure, reason: "1 lần"},
+		{name: "bộ đếm chưa nhìn câu nào thì không tính là sạch", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func([]Report) G7Counts { return G7Counts{} },
-			failing: G7RuleNoLeak + "+" + G7RuleNoUnsupported, reason: "mới đếm 0/240"},
-		{name: "k = 1", k: 1, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK), failing: G7RuleRuns, reason: "k = 1"},
-		{name: "k chẵn", k: 4, eais: g7Classes(10, nil), bas: g7Classes(10, baseOK), failing: G7RuleRuns, reason: "k = 4"},
+			failing: G7RuleNoLeak + "+" + G7RuleNoUnsupported + "+" + G7RuleNoExposure, reason: "mới đếm 0/288"},
+		{name: "k = 1", k: 1, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 1"},
+		{name: "k chẵn", k: 4, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 4"},
 		{name: "lớp không có ca thì không đo được", k: 3,
-			eais:    map[string][2]int{"representation": {10, 10}, "entity": {10, 10}, "ambiguity": {10, 10}, "semantic": {10, 10}, "source_conflict": {10, 10}, "permission": {10, 10}, "unsupported_answer": {10, 10}},
-			bas:     map[string][2]int{"representation": {5, 10}, "entity": {5, 10}, "ambiguity": {5, 10}, "semantic": {5, 10}, "source_conflict": {10, 10}, "permission": {10, 10}, "unsupported_answer": {10, 10}},
+			eais:    map[string][2]int{"representation": {12, 12}, "entity": {12, 12}, "ambiguity": {12, 12}, "semantic": {12, 12}, "source_conflict": {12, 12}, "permission": {12, 12}, "unsupported_answer": {12, 12}},
+			bas:     map[string][2]int{"representation": {6, 12}, "entity": {6, 12}, "ambiguity": {6, 12}, "semantic": {6, 12}, "source_conflict": {12, 12}, "permission": {12, 12}, "unsupported_answer": {12, 12}},
 			failing: G7RuleNoClassBehind, reason: "routing"},
 	}
 	for _, c := range cases {
@@ -149,25 +162,25 @@ func TestCompareG7EachRuleBlocksAlone(t *testing.T) {
 // Trung vị (không phải trung bình hay lớn nhất) qua k = 3 lượt, từng hệ từng lớp.
 func TestCompareG7UsesMedianOfThreeRuns(t *testing.T) {
 	run := func(semantic int) Report {
-		per := g7Classes(10, nil)
-		per["semantic"] = [2]int{semantic, 10}
+		per := g7Classes(12, nil)
+		per["semantic"] = [2]int{semantic, 12}
 		return g7Report(per)
 	}
 	base := func(semantic int) Report {
-		per := g7Classes(10, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5})
-		per["semantic"] = [2]int{semantic, 10}
+		per := g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6})
+		per["semantic"] = [2]int{semantic, 12}
 		return g7Report(per)
 	}
-	// EAIS có một lượt hỏng (0): trung vị 10. Baseline 2, 9, 3: trung vị 3 (trung bình 4,7, lớn nhất 9).
-	eais := []Report{run(10), run(0), run(10)}
-	bas := []Report{base(2), base(9), base(3)}
+	// EAIS có một lượt hỏng (0): trung vị 12. Baseline 2, 11, 3: trung vị 3 (trung bình 5,3, lớn nhất 11).
+	eais := []Report{run(12), run(0), run(12)}
+	bas := []Report{base(2), base(11), base(3)}
 	v, err := CompareG7(eais, bas, g7Clean(eais))
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := v.Classes[3] // semantic
-	if got.Class != "semantic" || got.EAISPass != 10 || got.BaselinePass != 3 || got.EAIS != 100 || got.Baseline != 30 || got.Lead != 70 {
-		t.Errorf("semantic = %+v, muốn EAIS 10/10 (100%%), baseline 3/10 (30%%), chênh 70", got)
+	if got.Class != "semantic" || got.EAISPass != 12 || got.BaselinePass != 3 || got.EAIS != 100 || got.Baseline != 25 || got.Lead != 75 {
+		t.Errorf("semantic = %+v, muốn EAIS 12/12 (100%%), baseline 3/12 (25%%), chênh 75", got)
 	}
 	if !v.Pass {
 		t.Errorf("4 lớp hơn >= 20 điểm, không lớp nào thua, đếm sạch: muốn ĐẠT\n%s", v.Format())
@@ -185,6 +198,8 @@ func TestCompareG7RejectsInputsThatAreNotComparable(t *testing.T) {
 	other := g7Report(g7Classes(9, nil))
 	stray := g7Report(g7Classes(10, nil))
 	stray.Results[0].FailureClass = "semantics" // lớp gõ sai
+	relabel := g7Report(g7Classes(10, nil))
+	relabel.Results[0].FailureClass = "routing" // lớp có thật, nhưng khác nhãn của EAIS cho cùng id (bản tấn công F11)
 	cases := []struct {
 		name      string
 		eais, bas []Report
@@ -195,6 +210,8 @@ func TestCompareG7RejectsInputsThatAreNotComparable(t *testing.T) {
 		{"EAIS lượt 2 khác bộ ca", []Report{ok, other, ok}, g7Repeat(3, ok), "EAIS lượt 2"},
 		{"baseline lượt 3 khác bộ ca", g7Repeat(3, ok), []Report{ok, ok, other}, "baseline lượt 3"},
 		{"lớp lạ", g7Repeat(3, stray), g7Repeat(3, stray), `"semantics"`},
+		{"lớp lạ chỉ ở baseline", g7Repeat(3, ok), g7Repeat(3, stray), `baseline lượt 1: lớp hỏng lạ "semantics"`},
+		{"cùng id mà baseline gắn lớp khác", g7Repeat(3, ok), g7Repeat(3, relabel), "baseline lượt 1 không cùng bộ ca (id + lớp)"},
 	}
 	for _, c := range cases {
 		if _, err := CompareG7(c.eais, c.bas, G7Counts{}); err == nil || !strings.Contains(err.Error(), c.want) {
@@ -204,14 +221,14 @@ func TestCompareG7RejectsInputsThatAreNotComparable(t *testing.T) {
 }
 
 func TestG7VerdictFormat(t *testing.T) {
-	eais := g7Repeat(3, g7Report(g7Classes(10, nil)))
-	bad, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(10, nil))), g7Clean(eais)) // hoà hết: không lớp nào hơn
+	eais := g7Repeat(3, g7Report(g7Classes(12, nil)))
+	bad, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(12, nil))), g7Clean(eais)) // hoà hết: không lớp nào hơn
 	for _, want := range []string{"TRUNG VỊ QUA 3 LƯỢT", "representation", "LUẬT D5", G7RuleLead, "KHÔNG ĐẠT", "D5: KHÔNG ĐẠT"} {
 		if !strings.Contains(bad.Format(), want) {
 			t.Errorf("Format thiếu %q:\n%s", want, bad.Format())
 		}
 	}
-	good, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(10, map[string]int{"representation": 0, "entity": 0, "ambiguity": 0, "semantic": 0}))), g7Clean(eais))
+	good, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(12, map[string]int{"representation": 0, "entity": 0, "ambiguity": 0, "semantic": 0}))), g7Clean(eais))
 	if f := good.Format(); !strings.Contains(f, "D5: ĐẠT") || !strings.Contains(f, "≥ 20") {
 		t.Errorf("Format của bản ĐẠT thiếu phán quyết / dấu lớp hơn:\n%s", f)
 	}
@@ -283,8 +300,10 @@ func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 	zero := 0
 	var cases []WinCase
 	for i, fc := range FailureClasses {
-		cases = append(cases, WinCase{ID: fmt.Sprintf("WIN-A-%03d", i+1), FailureClass: fc, Principal: "p", Question: q,
-			Expect: WinExpect{Route: "SQL_QUERY", Outcome: "RESOLVED", Value: &WinValue{Number: "3850", Unit: "L"}, ModelCalls: &zero}})
+		for j := 0; j < G7LeadMinCases; j++ { // đủ ca để mọi lớp được tính "lớp hơn" (ADR-0005 §5)
+			cases = append(cases, WinCase{ID: fmt.Sprintf("WIN-A-%03d", i*G7LeadMinCases+j+1), FailureClass: fc, Principal: "p", Question: q,
+				Expect: WinExpect{Route: "SQL_QUERY", Outcome: "RESOLVED", Value: &WinValue{Number: "3850", Unit: "L"}, ModelCalls: &zero}})
+		}
 	}
 	eaisAsk := &countingAsker{fixedAsker: fixedAsker{q: {Route: "SQL_QUERY", Outcome: "RESOLVED", Answer: "Dầu kho xuất của EX-03 ngày 19/10/2026: 3.850 L."}}}
 	ragAsk := &countingAsker{fixedAsker: fixedAsker{q: {Route: "RAG", Outcome: "RESOLVED", Answer: "Theo phiếu xuất kho, EX-03 hôm qua được cấp 3850 lít."}}, calls: 1}
@@ -576,13 +595,13 @@ func TestCompareG7LeadBoundary(t *testing.T) {
 		total, eais, base int
 		leads             bool
 	}{
-		{10, 10, 8, true},   // +20,00 điểm: đúng biên, tính
+		{15, 15, 12, true},  // +20,00 điểm: đúng biên, tính
 		{21, 21, 17, false}, // +19,05 điểm: dưới biên, không tính
 		{21, 21, 16, true},  // +23,81 điểm
-		{5, 5, 4, true},     // +20,00 điểm với lớp nhỏ
+		{11, 11, 8, false},  // +27,3 điểm nhưng lớp 11 ca < 12: không được tính (ADR-0005 §5)
 	} {
 		eais := g7Report(g7Classes(c.total, nil))
-		base := g7Report(g7Classes(c.total, map[string]int{"entity": c.base, "semantic": c.base, "routing": c.base, "permission": c.base}))
+		base := g7Report(g7Classes(c.total, map[string]int{"entity": c.base, "semantic": c.base, "routing": c.base, "source_conflict": c.base}))
 		er, br := g7Repeat(3, eais), g7Repeat(3, base)
 		v, err := CompareG7(er, br, g7Clean(er))
 		if err != nil {
@@ -609,5 +628,125 @@ func TestG7ContentReportSoAm(t *testing.T) {
 	r := G7ContentReport(cases, Report{Results: []CaseResult{{ID: "c1", FailureClass: "routing", Answer: "Chênh 68 L."}}})
 	if r.Results[0].Pass {
 		t.Error("câu trả lời không có số của đáp án phải trượt")
+	}
+}
+
+// Lớp an ninh tính ANY-RUN: EAIS hỏng một ca permission ở MỘT lượt thì ca đó hỏng (trung vị không che),
+// và EAIS thua baseline đạt mọi lượt. Cùng mẫu ở lớp thường (semantic) thì trung vị che — đúng thiết kế.
+func TestCompareG7AnyRunSecurityClasses(t *testing.T) {
+	baseLow := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}
+	for _, c := range []struct {
+		class  string
+		behind bool
+	}{{"permission", true}, {"unsupported_answer", true}, {"semantic", false}} {
+		good := g7Report(g7Classes(12, nil))
+		flaky := g7Report(g7Classes(12, nil))
+		for i := range flaky.Results {
+			if flaky.Results[i].FailureClass == c.class {
+				flaky.Results[i].Pass = false // hỏng đúng một ca của lớp ở lượt 2
+				break
+			}
+		}
+		eais := []Report{good, flaky, good}
+		bp := map[string]int{}
+		for k, v := range baseLow {
+			bp[k] = v
+		}
+		if c.class == "semantic" {
+			bp["semantic"] = 12
+		}
+		bas := g7Repeat(3, g7Report(g7Classes(12, bp)))
+		v, err := CompareG7(eais, bas, g7Clean(eais))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r, _ := v.Rule(G7RuleNoClassBehind)
+		if r.Pass == c.behind {
+			t.Errorf("%s: no_class_behind = %v, muốn %v (%s)", c.class, r.Pass, !c.behind, r.Reason)
+		}
+	}
+}
+
+// McNemar: đủ cặp lệch và p nhỏ thì đạt; p lớn thì đỏ; ít cặp lệch thì "không đủ điều kiện" — ghi
+// giới hạn, không chặn, không tuyên bố ý nghĩa thống kê.
+func TestCompareG7McNemar(t *testing.T) {
+	mk := func(pass []bool) Report {
+		var r Report
+		for i, p := range pass {
+			r.Results = append(r.Results, CaseResult{ID: fmt.Sprintf("c%02d", i), FailureClass: "routing", Pass: p})
+		}
+		return r
+	}
+	pattern := func(both, eOnly, bOnly, none int) (e, b []bool) {
+		add := func(n int, ev, bv bool) {
+			for i := 0; i < n; i++ {
+				e, b = append(e, ev), append(b, bv)
+			}
+		}
+		add(both, true, true)
+		add(eOnly, true, false)
+		add(bOnly, false, true)
+		add(none, false, false)
+		return
+	}
+	for _, c := range []struct {
+		name               string
+		both, eOnly, bOnly int
+		evaluable, pass    bool
+		p                  float64
+	}{
+		{"10 cặp lệch đều nghiêng EAIS", 5, 10, 0, true, true, 1.0 / 1024},
+		{"7 so với 3", 5, 7, 3, true, false, 176.0 / 1024},
+		{"9 cặp lệch: chưa đủ điều kiện", 5, 6, 3, false, true, -1},
+	} {
+		e, b := pattern(c.both, c.eOnly, c.bOnly, 2)
+		er, br := g7Repeat(3, mk(e)), g7Repeat(3, mk(b))
+		m := mcnemar(er, br)
+		if m.Evaluable != c.evaluable || m.EAISOnly != c.eOnly || m.BaselineOnly != c.bOnly || math.Abs(m.P-c.p) > 1e-9 {
+			t.Errorf("%s: %+v, muốn đánh giá được %v, b %d, c %d, p %.6f", c.name, m, c.evaluable, c.eOnly, c.bOnly, c.p)
+		}
+	}
+	v, _ := CompareG7(g7Repeat(3, mk([]bool{true, true})), g7Repeat(3, mk([]bool{true, false})), G7Counts{Answers: 6})
+	if r, _ := v.Rule(G7RuleMcNemar); !r.Pass || !strings.Contains(r.Reason, "không đủ điều kiện") {
+		t.Errorf("1 cặp lệch: luật mcnemar phải đạt kèm lý do 'không đủ điều kiện', được %+v", r)
+	}
+	// Đủ điều kiện mà p > 0,01 (7 so với 3): luật đỏ và kéo cả phán quyết đỏ.
+	e, b := pattern(5, 7, 3, 2)
+	v, _ = CompareG7(g7Repeat(3, mk(e)), g7Repeat(3, mk(b)), G7Counts{Answers: 3 * len(e)})
+	if r, _ := v.Rule(G7RuleMcNemar); r.Pass || v.Pass || !strings.Contains(r.Reason, "p một phía") {
+		t.Errorf("7 so với 3: luật mcnemar phải ĐỎ, được %+v (Pass chung %v)", r, v.Pass)
+	}
+}
+
+// Khoảng Wilson 95%: giá trị đã biết.
+func TestWilson(t *testing.T) {
+	for _, c := range []struct {
+		pass, total int
+		lo, hi      float64
+	}{{12, 12, 75.75, 100}, {0, 12, 0, 24.25}, {6, 12, 25.38, 74.62}} {
+		lo, hi := wilson(c.pass, c.total)
+		if math.Abs(lo-c.lo) > 0.01 || math.Abs(hi-c.hi) > 0.01 {
+			t.Errorf("wilson(%d, %d) = (%.2f, %.2f), muốn (%.2f, %.2f)", c.pass, c.total, lo, hi, c.lo, c.hi)
+		}
+	}
+}
+
+// Lộ số được bảo vệ ở ca kỳ vọng PERMISSION_DENIED: đếm theo giá trị, KHÔNG miễn số của câu hỏi (người
+// không có quyền tự nêu số rồi được xác nhận là đã lộ); từ chối thì không lộ; ca khác thì không áp.
+func TestG7CountExposures(t *testing.T) {
+	c := newTestCounter()
+	perm := WinCase{ID: "P1", FailureClass: "permission", Question: "Hôm qua máy 03 được cấp 3850 lít đúng không?",
+		Expect: WinExpect{Outcome: "PERMISSION_DENIED", NotContains: []string{"3.850", "3850"}}}
+	other := WinCase{ID: "S1", FailureClass: "semantic", Question: "Hôm qua máy 03 được cấp bao nhiêu?",
+		Expect: WinExpect{Outcome: "RESOLVED", NotContains: []string{"3.850"}}}
+	run := func(ans map[string]string) []Report {
+		return []Report{{Results: []CaseResult{{ID: "P1", FailureClass: "permission", Answer: ans["P1"]}, {ID: "S1", FailureClass: "semantic", Answer: ans["S1"]}}}}
+	}
+	got := c.Count([]WinCase{perm, other}, run(map[string]string{"P1": "Đúng, 3.850 L.", "S1": "3.850 L"}))
+	if got.Exposures != 1 {
+		t.Errorf("xác nhận số người không có quyền tự nêu: Exposures = %d, muốn 1 (ca khác không tính)", got.Exposures)
+	}
+	if got := c.Count([]WinCase{perm, other}, run(map[string]string{"P1": "Bạn không có quyền xem dữ liệu này.", "S1": "x"})); got.Exposures != 0 {
+		t.Errorf("từ chối: Exposures = %d, muốn 0", got.Exposures)
 	}
 }

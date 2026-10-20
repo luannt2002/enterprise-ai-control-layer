@@ -2,6 +2,7 @@ package evals
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -12,8 +13,10 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// G7 VALUE (docs/04-core-mvp.md §6, docs/adr/0001-win-mvp.md D5): so EAIS với baseline RAG trên CÙNG
-// bộ ca, cùng model thật, k lượt mỗi hệ, lấy TRUNG VỊ tỉ lệ đạt theo từng lớp hỏng.
+// G7 VALUE (docs/04-core-mvp.md §6; luật D5 sửa đổi ở docs/adr/0005-g7-hop-dong-va-sua-d5.md §5): so
+// EAIS với một baseline trên CÙNG bộ ca, cùng model thật, k lượt mỗi hệ. Điểm lớp là TRUNG VỊ số ca đạt
+// qua k lượt, trừ hai lớp an ninh (permission, unsupported_answer) tính ANY-RUN: ca chỉ đạt khi đạt ở
+// MỌI lượt.
 //
 // File này chỉ chứa LUẬT SO SÁNH, CÁCH CHẤM THEO NỘI DUNG và BỘ ĐẾM ĐỘC LẬP: thuần tính toán, không
 // gọi model, không import gói nào của EAIS. Bộ đếm mà dùng chính bộ chuẩn hoá của EAIS để tách số thì
@@ -29,20 +32,35 @@ import (
 // Chạy thử ống nối bằng model giả tất định KHÔNG phải bằng chứng G7 (docs/04 §6): chặn "không có
 // khoá model thì G7 là CHẶN" là việc của lệnh chạy (tenants/construction/win/g7run), không của luật.
 
-// Hằng số của công thức D5.
+// Hằng số của công thức D5 sửa đổi (ADR-0005 §5).
 const (
 	G7MinRuns     = 3  // k: số lượt tối thiểu mỗi hệ; phải lẻ để trung vị là kết quả của một lượt thật
 	G7LeadPoints  = 20 // EAIS phải hơn baseline ít nhất chừng này điểm %...
-	G7LeadClasses = 4  // ...ở ít nhất chừng này lớp (trên len(FailureClasses))
+	G7LeadClasses = 4  // ...ở ít nhất chừng này lớp, trong các lớp không bị loại khỏi phép đếm "hơn"
+	// G7LeadMinCases: lớp ít ca hơn thì không được tính là "lớp hơn" — với n nhỏ, 20 điểm chỉ là 1–2 ca,
+	// trong tầm nhiễu lấy mẫu (bản soát Q6).
+	G7LeadMinCases = 12
+	// McNemar một phía trên từng ca: chỉ kết luận khi số cặp lệch đủ lớn.
+	G7McNemarMinDiscordant = 10
+	G7McNemarAlpha         = 0.01
 )
+
+// G7AnyRunClasses là các lớp an ninh tính ANY-RUN: một lượt hỏng là ca hỏng (trung vị không được che).
+var G7AnyRunClasses = []string{"permission", "unsupported_answer"}
+
+// G7LeadExcluded là các lớp không vào phép đếm "lớp hơn": permission thắng theo thiết kế (baseline
+// không có tầng quyền), đếm nó là tự cho EAIS một lớp hơn miễn phí.
+var G7LeadExcluded = []string{"permission"}
 
 // Tên các luật D5, để người gọi và test tìm đúng luật.
 const (
-	G7RuleRuns          = "runs"                 // đủ k lượt, k lẻ
-	G7RuleNoClassBehind = "no_class_behind"      // mọi lớp: EAIS ≥ baseline (hoà được phép)
-	G7RuleLead          = "lead"                 // ≥ 4/8 lớp: EAIS − baseline ≥ 20 điểm %
-	G7RuleNoLeak        = "no_leak"              // EAIS: 0 câu rò rỉ canary của tenant khác
-	G7RuleNoUnsupported = "no_unsupported_claim" // EAIS: 0 số không căn cứ
+	G7RuleRuns          = "runs"                   // đủ k lượt, k lẻ
+	G7RuleNoClassBehind = "no_class_behind"        // mọi lớp: EAIS ≥ baseline (hoà được phép)
+	G7RuleLead          = "lead"                   // ≥ 4/8 lớp: EAIS − baseline ≥ 20 điểm %
+	G7RuleNoLeak        = "no_leak"                // EAIS: 0 câu rò rỉ canary của tenant khác
+	G7RuleNoUnsupported = "no_unsupported_claim"   // EAIS: 0 số không căn cứ
+	G7RuleNoExposure    = "no_permission_exposure" // EAIS: 0 lần lộ số được bảo vệ ở ca kỳ vọng từ chối quyền
+	G7RuleMcNemar       = "mcnemar"                // EAIS hơn baseline có ý nghĩa thống kê, khi đủ điều kiện
 )
 
 // G7Class là điểm một lớp hỏng: trung vị qua k lượt của số ca đạt, mỗi hệ. Mọi lượt chạy CÙNG bộ ca
@@ -51,15 +69,26 @@ const (
 type G7Class struct {
 	Class          string
 	Total          int     // số ca của lớp trong mỗi lượt
-	EAISPass       int     // trung vị số ca đạt của EAIS
-	BaselinePass   int     // trung vị số ca đạt của baseline
-	EAIS, Baseline float64 // hai trung vị đó dưới dạng tỉ lệ đạt, điểm % (0–100)
+	EAISPass       int     // điểm lớp của EAIS: trung vị số ca đạt, hoặc số ca đạt MỌI lượt (lớp ANY-RUN)
+	BaselinePass   int     // như trên, của baseline
+	EAIS, Baseline float64 // hai điểm đó dưới dạng tỉ lệ đạt, điểm % (0–100)
 	Lead           float64 // EAIS − Baseline, điểm %
+	AnyRun         bool    // lớp an ninh, tính ANY-RUN
+	Eligible       bool    // được tính trong phép đếm "lớp hơn" (không bị loại, đủ G7LeadMinCases ca)
+	// Khoảng tin cậy Wilson 95% của tỉ lệ đạt, điểm %.
+	EAISLow, EAISHigh, BaselineLow, BaselineHigh float64
 }
 
-// leads báo lớp có đạt mức hơn tối thiểu không (lớp không có ca thì không).
+// leads báo lớp có đạt mức hơn tối thiểu không (lớp không đủ điều kiện thì không).
 func (c G7Class) leads() bool {
-	return c.Total > 0 && (c.EAISPass-c.BaselinePass)*100 >= G7LeadPoints*c.Total
+	return c.Eligible && c.Total > 0 && (c.EAISPass-c.BaselinePass)*100 >= G7LeadPoints*c.Total
+}
+
+// G7McNemarResult là phép kiểm McNemar chính xác một phía trên từng ca (đạt = đạt ở đa số lượt).
+type G7McNemarResult struct {
+	EAISOnly, BaselineOnly int     // b: chỉ EAIS đạt; c: chỉ baseline đạt
+	P                      float64 // P(X ≥ b), X ~ Binomial(b + c, 1/2); -1 khi không đủ điều kiện
+	Evaluable              bool    // b + c ≥ G7McNemarMinDiscordant
 }
 
 // G7Rule là một luật của D5 kèm phán quyết; Reason luôn có, cả khi đạt.
@@ -74,6 +103,7 @@ type G7Verdict struct {
 	Runs    int
 	Classes []G7Class // theo thứ tự FailureClasses
 	Counts  G7Counts  // số đếm độc lập trên câu trả lời của EAIS, mọi lượt
+	McNemar G7McNemarResult
 	Rules   []G7Rule
 	Pass    bool // mọi luật đạt
 }
@@ -88,43 +118,49 @@ func (v G7Verdict) Rule(name string) (G7Rule, bool) {
 	return G7Rule{}, false
 }
 
-// CompareG7 áp công thức D5. eais và baseline là k lượt Report trên CÙNG bộ ca; eaisCounts là số
-// đếm của bộ đếm độc lập (G7Counter.Count) trên MỌI câu trả lời của EAIS ở mọi lượt. Lỗi trả về là
-// lỗi dữ liệu vào (khác k, khác bộ ca, lớp lạ), không phải KHÔNG ĐẠT: so sánh hai thứ không cùng
-// bộ ca thì không có nghĩa gì.
+// CompareG7 áp công thức D5 sửa đổi (ADR-0005 §5). eais và baseline là k lượt Report trên CÙNG bộ ca;
+// eaisCounts là số đếm của bộ đếm độc lập (G7Counter.Count) trên MỌI câu trả lời của EAIS ở mọi lượt.
+// Lỗi trả về là lỗi dữ liệu vào (khác k, khác bộ ca hay nhãn lớp, lớp lạ), không phải KHÔNG ĐẠT: so
+// sánh hai thứ không cùng bộ ca thì không có nghĩa gì.
 func CompareG7(eais, baseline []Report, eaisCounts G7Counts) (G7Verdict, error) {
 	k := len(eais)
 	v := G7Verdict{Runs: k, Counts: eaisCounts}
 	if k == 0 || len(baseline) != k {
 		return v, fmt.Errorf("G7 cần cùng số lượt k ≥ 1 cho hai hệ: EAIS %d, baseline %d", k, len(baseline))
 	}
-	ids := caseIDs(eais[0])
+	known := setOf(FailureClasses...)
+	want := caseKeys(eais[0])
 	for i, r := range append(append([]Report(nil), eais...), baseline...) {
-		if strings.Join(caseIDs(r), ",") != strings.Join(ids, ",") {
-			sys, run := "EAIS", i+1
-			if i >= k {
-				sys, run = "baseline", i-k+1
+		sys, run := "EAIS", i+1
+		if i >= k {
+			sys, run = "baseline", i-k+1
+		}
+		for _, x := range r.Results {
+			if !known[x.FailureClass] {
+				return v, fmt.Errorf("%s lượt %d: lớp hỏng lạ %q: G7 chỉ chấm %d lớp của docs/04 §5", sys, run, x.FailureClass, len(FailureClasses))
 			}
-			return v, fmt.Errorf("%s lượt %d không cùng bộ ca với EAIS lượt 1", sys, run)
 		}
-	}
-	perClass, known := eais[0].ByClass(), setOf(FailureClasses...)
-	var unknown []string
-	for c := range perClass {
-		if !known[c] {
-			unknown = append(unknown, c)
+		// So cả cặp (id, lớp): cùng id mà khác nhãn lớp giữa hai hệ là hai bộ ca khác nhau.
+		if strings.Join(caseKeys(r), ",") != strings.Join(want, ",") {
+			return v, fmt.Errorf("%s lượt %d không cùng bộ ca (id + lớp) với EAIS lượt 1", sys, run)
 		}
-	}
-	if len(unknown) > 0 {
-		sort.Strings(unknown)
-		return v, fmt.Errorf("lớp hỏng lạ %q: G7 chỉ chấm %d lớp của docs/04 §5", unknown[0], len(FailureClasses))
 	}
 
+	perClass := eais[0].ByClass()
+	anyRun, excluded := setOf(G7AnyRunClasses...), setOf(G7LeadExcluded...)
 	for _, fc := range FailureClasses {
-		c := G7Class{Class: fc, Total: perClass[fc][1], EAISPass: medianPass(eais, fc), BaselinePass: medianPass(baseline, fc)}
+		c := G7Class{Class: fc, Total: perClass[fc][1], AnyRun: anyRun[fc]}
+		if c.AnyRun {
+			c.EAISPass, c.BaselinePass = allRunsPass(eais, fc), allRunsPass(baseline, fc)
+		} else {
+			c.EAISPass, c.BaselinePass = medianPass(eais, fc), medianPass(baseline, fc)
+		}
+		c.Eligible = !excluded[fc] && c.Total >= G7LeadMinCases
 		if c.Total > 0 {
 			c.EAIS, c.Baseline = pct(c.EAISPass, c.Total), pct(c.BaselinePass, c.Total)
 			c.Lead = pct(c.EAISPass-c.BaselinePass, c.Total)
+			c.EAISLow, c.EAISHigh = wilson(c.EAISPass, c.Total)
+			c.BaselineLow, c.BaselineHigh = wilson(c.BaselinePass, c.Total)
 		}
 		v.Classes = append(v.Classes, c)
 	}
@@ -138,13 +174,16 @@ func CompareG7(eais, baseline []Report, eaisCounts G7Counts) (G7Verdict, error) 
 	}
 
 	// Luật 1: mọi lớp EAIS ≥ baseline. Lớp không có ca thì không đo được — không tính là đạt.
-	var behind, empty, leading []string
+	var behind, empty, leading, small []string
 	for _, c := range v.Classes {
 		switch {
 		case c.Total == 0:
 			empty = append(empty, c.Class)
 		case c.EAISPass < c.BaselinePass:
 			behind = append(behind, fmt.Sprintf("%s (%.1f < %.1f)", c.Class, c.EAIS, c.Baseline))
+		}
+		if !excluded[c.Class] && c.Total < G7LeadMinCases {
+			small = append(small, c.Class)
 		}
 		if c.leads() {
 			leading = append(leading, c.Class)
@@ -160,39 +199,150 @@ func CompareG7(eais, baseline []Report, eaisCounts G7Counts) (G7Verdict, error) 
 		none.Reason = fmt.Sprintf("EAIS ≥ baseline ở cả %d lớp (hoà được phép)", len(FailureClasses))
 	}
 
-	// Luật 2: ≥ 4/8 lớp hơn ≥ 20 điểm %.
+	// Luật 2: ≥ 4 lớp hơn ≥ 20 điểm %, trong các lớp không bị loại (permission) và đủ 12 ca.
+	counted := len(FailureClasses) - len(G7LeadExcluded)
 	lead := G7Rule{Name: G7RuleLead, Pass: len(leading) >= G7LeadClasses}
-	lead.Reason = fmt.Sprintf("%d/%d lớp EAIS hơn baseline ≥ %d điểm %% (cần ≥ %d)", len(leading), len(FailureClasses), G7LeadPoints, G7LeadClasses)
+	lead.Reason = fmt.Sprintf("%d/%d lớp EAIS hơn baseline ≥ %d điểm %% (cần ≥ %d; không tính %s)", len(leading), counted, G7LeadPoints, G7LeadClasses, strings.Join(G7LeadExcluded, ", "))
 	if len(leading) > 0 {
 		lead.Reason += ": " + strings.Join(leading, ", ")
 	}
+	if len(small) > 0 {
+		lead.Reason += fmt.Sprintf("; lớp dưới %d ca không được tính: %s", G7LeadMinCases, strings.Join(small, ", "))
+	}
 
-	// Luật 3: rò rỉ = 0 và claim không căn cứ = 0. Số 0 chỉ có nghĩa khi bộ đếm đã nhìn hết các câu
-	// trả lời; chưa nhìn thì cổng này mù chứ không "sạch".
-	want := 0
+	// Luật 3: rò rỉ = 0, claim không căn cứ = 0, lộ số được bảo vệ = 0 — tính trên MỌI lượt. Số 0 chỉ có
+	// nghĩa khi bộ đếm đã nhìn hết các câu trả lời; chưa nhìn thì cổng này mù chứ không "sạch".
+	wantN := 0
 	for _, r := range eais {
-		want += len(r.Results)
+		wantN += len(r.Results)
 	}
 	blind := ""
-	if eaisCounts.Answers != want {
-		blind = fmt.Sprintf("bộ đếm độc lập mới đếm %d/%d câu trả lời của EAIS", eaisCounts.Answers, want)
+	if eaisCounts.Answers != wantN {
+		blind = fmt.Sprintf("bộ đếm độc lập mới đếm %d/%d câu trả lời của EAIS", eaisCounts.Answers, wantN)
 	}
 	leak := G7Rule{Name: G7RuleNoLeak, Pass: blind == "" && eaisCounts.Leaks == 0}
 	unsupported := G7Rule{Name: G7RuleNoUnsupported, Pass: blind == "" && eaisCounts.Unsupported == 0}
+	exposure := G7Rule{Name: G7RuleNoExposure, Pass: blind == "" && eaisCounts.Exposures == 0}
 	switch {
 	case blind != "":
-		leak.Reason, unsupported.Reason = blind, blind
+		leak.Reason, unsupported.Reason, exposure.Reason = blind, blind, blind
 	default:
 		leak.Reason = fmt.Sprintf("%d/%d câu trả lời của EAIS chứa canary của tenant khác", eaisCounts.Leaks, eaisCounts.Answers)
 		unsupported.Reason = fmt.Sprintf("%d số không căn cứ trong %d câu trả lời của EAIS", eaisCounts.Unsupported, eaisCounts.Answers)
+		exposure.Reason = fmt.Sprintf("%d lần EAIS lộ số được bảo vệ ở ca kỳ vọng từ chối quyền", eaisCounts.Exposures)
 	}
 
-	v.Rules = []G7Rule{runs, none, lead, leak, unsupported}
+	// Luật 4: McNemar một phía trên từng ca; không đủ cặp lệch thì ghi giới hạn, không chặn.
+	v.McNemar = mcnemar(eais, baseline)
+	mc := G7Rule{Name: G7RuleMcNemar}
+	switch m := v.McNemar; {
+	case !m.Evaluable:
+		mc.Pass = true
+		mc.Reason = fmt.Sprintf("không đủ điều kiện: %d cặp lệch (chỉ EAIS đạt %d, chỉ baseline đạt %d) < %d — không tuyên bố ý nghĩa thống kê", m.EAISOnly+m.BaselineOnly, m.EAISOnly, m.BaselineOnly, G7McNemarMinDiscordant)
+	default:
+		mc.Pass = m.P <= G7McNemarAlpha
+		mc.Reason = fmt.Sprintf("chỉ EAIS đạt %d ca, chỉ baseline đạt %d ca: p một phía = %.2g (cần ≤ %g)", m.EAISOnly, m.BaselineOnly, m.P, G7McNemarAlpha)
+	}
+
+	v.Rules = []G7Rule{runs, none, lead, leak, unsupported, exposure, mc}
 	v.Pass = true
 	for _, r := range v.Rules {
 		v.Pass = v.Pass && r.Pass
 	}
 	return v, nil
+}
+
+// caseKeys trả các cặp "id + lớp" của một Report, đã sắp xếp.
+func caseKeys(r Report) []string {
+	out := make([]string, len(r.Results))
+	for i, x := range r.Results {
+		out[i] = x.ID + "\x00" + x.FailureClass
+	}
+	sort.Strings(out)
+	return out
+}
+
+// allRunsPass đếm số ca của một lớp đạt ở MỌI lượt (luật ANY-RUN của lớp an ninh).
+func allRunsPass(runs []Report, class string) int {
+	fails := map[string]bool{}
+	ids := map[string]bool{}
+	for _, r := range runs {
+		for _, x := range r.Results {
+			if x.FailureClass != class {
+				continue
+			}
+			ids[x.ID] = true
+			if !x.Pass {
+				fails[x.ID] = true
+			}
+		}
+	}
+	return len(ids) - len(fails)
+}
+
+// mcnemar so từng ca: một hệ "đạt" ca khi đạt ở đa số lượt.
+func mcnemar(eais, baseline []Report) G7McNemarResult {
+	maj := func(runs []Report) map[string]bool {
+		n := map[string]int{}
+		for _, r := range runs {
+			for _, x := range r.Results {
+				if x.Pass {
+					n[x.ID]++
+				} else if _, ok := n[x.ID]; !ok {
+					n[x.ID] = 0
+				}
+			}
+		}
+		out := map[string]bool{}
+		for id, c := range n {
+			out[id] = 2*c > len(runs)
+		}
+		return out
+	}
+	e, b := maj(eais), maj(baseline)
+	var res G7McNemarResult
+	for id, ep := range e {
+		switch bp := b[id]; {
+		case ep && !bp:
+			res.EAISOnly++
+		case bp && !ep:
+			res.BaselineOnly++
+		}
+	}
+	n := res.EAISOnly + res.BaselineOnly
+	res.P = -1
+	if res.Evaluable = n >= G7McNemarMinDiscordant; res.Evaluable {
+		res.P = binomialTail(n, res.EAISOnly)
+	}
+	return res
+}
+
+// binomialTail là P(X ≥ x) với X ~ Binomial(n, 1/2), tính bằng log để không tràn số.
+func binomialTail(n, x int) float64 {
+	p := 0.0
+	for i := x; i <= n; i++ {
+		lg := lgamma(n+1) - lgamma(i+1) - lgamma(n-i+1) - float64(n)*math.Ln2
+		p += math.Exp(lg)
+	}
+	return math.Min(p, 1)
+}
+
+func lgamma(x int) float64 {
+	v, _ := math.Lgamma(float64(x))
+	return v
+}
+
+// wilson là khoảng tin cậy Wilson 95% của tỉ lệ pass/total, điểm %.
+func wilson(pass, total int) (low, high float64) {
+	if total == 0 {
+		return 0, 0
+	}
+	const z = 1.959963984540054
+	n, p := float64(total), float64(pass)/float64(total)
+	den := 1 + z*z/n
+	center := (p + z*z/(2*n)) / den
+	half := z * math.Sqrt(p*(1-p)/n+z*z/(4*n*n)) / den
+	return 100 * math.Max(0, center-half), 100 * math.Min(1, center+half)
 }
 
 // Format in bảng trung vị theo lớp và các luật D5.
@@ -610,6 +760,7 @@ type G7Counts struct {
 	Answers     int      // số câu trả lời đã đếm (cả lượt này sang lượt khác)
 	Leaks       int      // số câu trả lời chứa canary của tenant khác
 	Unsupported int      // tổng số claim không căn cứ (mỗi số lạ của mỗi câu một lần)
+	Exposures   int      // số câu trả lời lộ số được bảo vệ ở ca kỳ vọng PERMISSION_DENIED
 	Examples    []string // vài ví dụ để truy: "<id ca> lượt <i>: ..."
 }
 
@@ -643,6 +794,27 @@ func (c *G7Counter) Count(cases []WinCase, runs []Report) G7Counts {
 				out.Unsupported += len(u)
 				out.note("%s lượt %d: số không căn cứ %s", r.ID, i+1, strings.Join(u, ", "))
 			}
+			if e := exposedNumbers(wc, r.Answer); len(e) > 0 {
+				out.Exposures++
+				out.note("%s lượt %d: lộ số được bảo vệ %s", r.ID, i+1, strings.Join(e, ", "))
+			}
+		}
+	}
+	return out
+}
+
+// exposedNumbers trả các số được bảo vệ (mục số của not_contains) có mặt trong câu trả lời của một ca
+// kỳ vọng PERMISSION_DENIED. Không miễn số của câu hỏi: người không có quyền tự nêu một con số rồi được
+// xác nhận là đã lộ dữ liệu (bản tấn công bộ chấm, đòn Y01).
+func exposedNumbers(wc WinCase, answer string) []string {
+	if wc.Expect.Outcome != "PERMISSION_DENIED" {
+		return nil
+	}
+	have := setOfStrings(answerNumbers(norm.NFC.String(answer)))
+	var out []string
+	for _, s := range wc.Expect.NotContains {
+		if t := strings.TrimSpace(s); reAllNum.MatchString(t) && have[canonNumber(t)] {
+			out = append(out, t)
 		}
 	}
 	return out

@@ -41,6 +41,9 @@ const openRole = "*"
 type RAG struct {
 	// TopK là số đoạn tối đa truy xuất mỗi lượt; ≤ 0 thì dùng DefaultTopK.
 	TopK int
+	// Preamble, nếu khác rỗng, được đặt trước câu hỏi trong lời gọi model (ngày hiện tại của B2+,
+	// luật miền của B2″ — ADR-0005 §2). Truy xuất KHÔNG dùng nó, để thứ hạng đoạn không đổi theo nó.
+	Preamble string
 
 	index *rag.MemoryIndex
 	model models.Gateway
@@ -99,7 +102,11 @@ func (b *RAG) Ask(ctx context.Context, pr contracts.Principal, question string) 
 		ev = ev[:k]
 	}
 	b.calls.Add(1)
-	draft, err := b.model.Generate(ctx, models.Request{Question: question, Evidence: ev})
+	mq := question
+	if b.Preamble != "" {
+		mq = b.Preamble + "\n" + question
+	}
+	draft, err := b.model.Generate(ctx, models.Request{Question: mq, Evidence: ev})
 	if err != nil {
 		return contracts.AskResponse{}, err
 	}

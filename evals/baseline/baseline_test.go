@@ -283,3 +283,29 @@ func TestBaselineFailsCasesThatNeedControlLayers(t *testing.T) {
 		}
 	}
 }
+
+// Preamble (ngày hiện tại của B2+, luật miền của B2″) tới model, đặt trước câu hỏi; truy xuất KHÔNG
+// dùng nó — cùng câu hỏi thì cùng đoạn, có hay không có phần mở đầu.
+func TestPreambleOnlyReachesModel(t *testing.T) {
+	q := "Hôm qua máy 03 được cấp bao nhiêu dầu?"
+	spyPlain := &spyModel{}
+	b := New(tenantA, paragraphs, testDocs(), spyPlain)
+	if _, err := b.Ask(context.Background(), asker("director"), q); err != nil {
+		t.Fatal(err)
+	}
+	spy := &spyModel{}
+	bp := New(tenantA, paragraphs, testDocs(), spy)
+	bp.Preamble = "Hôm nay là ngày 20/10/2026 (giờ Việt Nam)."
+	if _, err := bp.Ask(context.Background(), asker("director"), q); err != nil {
+		t.Fatal(err)
+	}
+	if got := spy.reqs[0].Question; got != bp.Preamble+"\n"+q {
+		t.Errorf("câu gửi model = %q, muốn phần mở đầu + xuống dòng + câu hỏi", got)
+	}
+	if spyPlain.reqs[0].Question != q {
+		t.Errorf("không có phần mở đầu: câu gửi model = %q, muốn nguyên câu hỏi", spyPlain.reqs[0].Question)
+	}
+	if a, p := spyPlain.lastEvidenceIDs(), spy.lastEvidenceIDs(); strings.Join(a, ",") != strings.Join(p, ",") || len(a) == 0 {
+		t.Errorf("đoạn truy xuất đổi theo phần mở đầu: không có %v, có %v", a, p)
+	}
+}

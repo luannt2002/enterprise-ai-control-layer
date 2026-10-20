@@ -17,3 +17,6 @@ m $G '	case !in.frozen:' '	case false:' 'V1 kết luận khi bộ chấm chưa �
 m $G '	case !in.contentGrade:' '	case false:' 'V2 kết luận khi chấm full'
 m $G '	case !in.contractParams:' '	case false:' 'V3 kết luận khi lệch hợp đồng'
 m $G 'const scorerFrozen = false' 'const scorerFrozen = true' 'V4 bật bộ chấm đóng băng'
+# soát C2, F-01: aggregate.json ghi kết luận thật, không ghi "đạt" khi bị chặn
+m tenants/construction/win/g7run/main.go '"gate_pass": code == 0,' '"gate_pass": pass,' 'KL1 gate_pass lấy luật D5 thay vì kết luận thật'
+m tenants/construction/win/g7run/evidence.go '	m.Grade, m.ScorerFrozen, m.Pilot = cfg.grade, scorerFrozen, cfg.pilot' '	_ = cfg.grade' 'KL2 manifest không ghi cách chấm / bộ chấm / pilot'

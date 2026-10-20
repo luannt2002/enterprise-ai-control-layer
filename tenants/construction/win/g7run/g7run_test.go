@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -522,6 +523,40 @@ func TestBuildB2Oracle(t *testing.T) {
 	}
 }
 
+// aggregate.json không được ghi gate_pass = true khi kết luận là CHẶN (model giả, chạy khô, bộ chấm chưa đóng
+// băng…): gate_pass = kết luận G7 thật (mã 0); luật D5 thuần trên các hệ cổng ghi riêng ở rule_pass. Manifest ghi
+// cách chấm, trạng thái bộ chấm và pilot (soát C2, F-01).
+func TestAggregateKhongDatKhiBiChan(t *testing.T) {
+	clearModelEnv(t)
+	cfg := baseCfg(genData(t))
+	cfg.systems, cfg.manifest, cfg.k, cfg.out = sysB2Plus+","+sysB1, writeNullWindows(t), 3, filepath.Join(t.TempDir(), "out")
+	if code := run(cfg); code != 2 {
+		t.Fatalf("model giả: mã thoát = %d, muốn 2", code)
+	}
+	var agg map[string]any
+	b, _ := os.ReadFile(filepath.Join(cfg.out, "aggregate.json"))
+	if err := json.Unmarshal(b, &agg); err != nil {
+		t.Fatal(err)
+	}
+	if agg["gate_pass"] != false || agg["exit_code"] != float64(2) {
+		t.Errorf("aggregate: gate_pass %v, exit_code %v; muốn false và 2 khi kết luận là CHẶN", agg["gate_pass"], agg["exit_code"])
+	}
+	if c, _ := agg["conclusion"].(string); !strings.Contains(c, "CHẶN") {
+		t.Errorf("aggregate.conclusion = %q; muốn dòng kết luận CHẶN", c)
+	}
+	if _, ok := agg["rule_pass"].(bool); !ok {
+		t.Errorf("aggregate thiếu rule_pass (luật D5 thuần trên các hệ cổng)")
+	}
+	var m map[string]any
+	b, _ = os.ReadFile(filepath.Join(cfg.out, "manifest.json"))
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if m["grade"] != gradeContent || m["scorer_frozen"] != scorerFrozen || m["pilot"] != false {
+		t.Errorf("manifest: grade %v, scorer_frozen %v, pilot %v; muốn %q, %v, false", m["grade"], m["scorer_frozen"], m["pilot"], gradeContent, scorerFrozen)
+	}
+}
+
 // -out ghi đủ bảy tệp bằng chứng; model giả ⇒ kết luận CHẶN (mã 2), B1 thiếu hồ sơ ⇒ ghi là hệ cổng
 // không chạy được, không âm thầm bỏ.
 func TestRunWritesEvidence(t *testing.T) {
@@ -558,6 +593,9 @@ func TestRunWritesEvidence(t *testing.T) {
 		switch {
 		case r.System == sysEACL && (r.Decision == nil || r.Decision.Route != r.Route || r.Decision.Question != r.Question):
 			t.Errorf("dòng %d (EACL %s): bản ghi quyết định %+v; muốn có, cùng route %q và câu hỏi", i+1, r.CaseID, r.Decision, r.Route)
+		case r.System == sysEACL && r.Decision.DataVersion != m.DataManifest:
+			// phát lại so DataVersion: bản ghi phải gắn đúng bộ dữ liệu đã phục vụ (soát C2, F-10)
+			t.Errorf("dòng %d (EACL %s): data_version %q; muốn băm manifest dữ liệu %q", i+1, r.CaseID, r.Decision.DataVersion, m.DataManifest)
 		case r.System != sysEACL && r.Decision != nil:
 			t.Errorf("dòng %d (%s): baseline không được có bản ghi quyết định", i+1, r.System)
 		}
@@ -937,8 +975,18 @@ func TestBudgetCapStopsCalls(t *testing.T) {
 
 // Trần ngân sách phải là số dương không quá trần hợp đồng (15 USD, §9): -budget 0 hay âm từng TẮT trần, và
 // manifest từng ghi 15 bất kể cờ. Tệp phải băm vào bằng chứng mà không đọc được thì dừng TRƯỚC khi chạy, không
-// ghi băm rỗng (C-07, soát lượt 2).
+// ghi băm rỗng (C-07, soát lượt 2). Đếm lời gọi tới máy chủ giả: cấu hình sai phải dừng trước lời gọi model đầu
+// tiên — chỉ nhìn mã thoát thì không phân biệt được "dừng trước" với "chạy xong rồi hỏng lúc ghi" (NaN, soát C2 F-06).
 func TestRunNganSachVaTepBam(t *testing.T) {
+	var mu sync.Mutex
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		calls++
+		mu.Unlock()
+		_, _ = io.WriteString(w, `{"content":[{"type":"text","text":"{\"answer\": \"x\", \"evidence_ids\": []}"}],"usage":{"input_tokens":10,"output_tokens":5}}`)
+	}))
+	defer srv.Close()
 	data := genData(t)
 	for _, c := range []struct {
 		name     string
@@ -949,19 +997,33 @@ func TestRunNganSachVaTepBam(t *testing.T) {
 		{"trần 0 tắt trần", 0, "", false},
 		{"trần âm", -5, "", false},
 		{"vượt trần hợp đồng", 15.01, "", false},
+		{"trần NaN (mọi phép so với NaN đều sai)", math.NaN(), "", false},
+		{"trần +Inf", math.Inf(1), "", false},
 		{"hợp đồng sai đường dẫn", 7.5, "/khong-ton-tai/HOP-DONG.md", false},
 		{"trần hợp lệ", 7.5, "", true},
 	} {
 		clearModelEnv(t)
+		for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+			t.Setenv(k, v)
+		}
+		mu.Lock()
+		calls = 0
+		mu.Unlock()
 		cfg := baseCfg(data)
 		cfg.budget, cfg.contract, cfg.out = c.budget, c.contract, filepath.Join(t.TempDir(), "out")
 		code := run(cfg)
+		mu.Lock()
+		n := calls
+		mu.Unlock()
 		b, err := os.ReadFile(filepath.Join(cfg.out, "manifest.json"))
 		if !c.ok {
-			if code != 2 || err == nil {
-				t.Errorf("%s: mã %d, có manifest = %v; muốn 2 và dừng trước khi chạy", c.name, code, err == nil)
+			if code != 2 || n != 0 || err == nil {
+				t.Errorf("%s: mã %d, %d lời gọi model, có manifest = %v; muốn 2, 0 lời gọi, dừng trước khi chạy", c.name, code, n, err == nil)
 			}
 			continue
+		}
+		if n == 0 {
+			t.Errorf("%s: 0 lời gọi model; cấu hình hợp lệ phải chạy", c.name)
 		}
 		var m manifestInfo
 		if err := json.Unmarshal(b, &m); err != nil {

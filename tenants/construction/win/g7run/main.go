@@ -22,7 +22,13 @@
 // ứng viên / conflict / trích dẫn — những nhãn mà baseline không có nên trượt theo thiết kế, làm D5
 // không bao giờ đỏ; chỉ dùng để đối chiếu.
 //
-// Mã thoát: 0 = ĐẠT bằng model thật · 1 = KHÔNG ĐẠT bằng model thật · 2 = CHẶN (model giả) hoặc lỗi.
+// Mã thoát (soát C2, F-07):
+//   - 0 = ĐẠT: model thật qua endpoint chính thức, bộ chấm đã đóng băng, chấm nội dung, tham số đúng hợp đồng §4;
+//     với -smoke: mọi lời gọi tới endpoint chính thức trả 200;
+//   - 1 = KHÔNG ĐẠT: luật trượt khi đủ mọi điều kiện trên; với -smoke: có câu lỗi / HTTP khác 200 / hệ cổng bị chặn
+//     (kể cả chạy khô — trượt là trượt);
+//   - 2 = CHẶN hoặc lỗi: model giả, chạy khô mà đạt, bộ chấm chưa đóng băng, -grade full, tham số lệch hợp đồng, lượt
+//     thật có hệ cổng bị chặn (dừng trước lời gọi model), cấu hình / tệp / thư mục -out sai.
 package main
 
 import (
@@ -158,8 +164,9 @@ func stopBeforeModel(blocked []string, fake, dry bool) bool {
 
 func run(cfg config) int {
 	started := time.Now()
-	// -budget ≤ 0 từng tắt trần (C-07): trần là bắt buộc và không vượt trần của hợp đồng.
-	if cfg.budget <= 0 || cfg.budget > contractBudgetUSD {
+	// -budget ≤ 0 từng tắt trần (C-07): trần là bắt buộc và không vượt trần của hợp đồng. Viết dạng phủ định của
+	// điều kiện ĐÚNG để NaN (mọi phép so với NaN đều sai) cũng bị từ chối (soát C2, F-06).
+	if !(cfg.budget > 0 && cfg.budget <= contractBudgetUSD) {
 		fmt.Fprintf(os.Stderr, "LỖI: -budget %.2f: phải > 0 và ≤ %.0f USD (hợp đồng G7 §9)\n", cfg.budget, contractBudgetUSD)
 		return 2
 	}
@@ -328,7 +335,7 @@ func run(cfg config) int {
 	fmt.Print(out.String())
 
 	if cfg.out != "" {
-		if err := saveRun(cfg, mc, gw, fake, dry, pass, s, sink, full, graded, verdicts, counts, unstable, invalid, started, out.String()); err != nil {
+		if err := saveRun(cfg, mc, gw, fake, dry, pass, line, code, s, sink, full, graded, verdicts, counts, unstable, invalid, started, out.String()); err != nil {
 			fmt.Fprintln(os.Stderr, "LỖI ghi bằng chứng:", err)
 			return 2
 		}
@@ -354,7 +361,7 @@ func gatePass(order, blocked, unstable, invalid []string, verdicts map[string]ev
 }
 
 // saveRun gom bằng chứng của một lần chạy và ghi ra cfg.out.
-func saveRun(cfg config, mc models.Config, gw models.Gateway, fake, dry, pass bool, s *setup, sink *evidenceSink, full, graded map[string][]evals.Report,
+func saveRun(cfg config, mc models.Config, gw models.Gateway, fake, dry, pass bool, line string, code int, s *setup, sink *evidenceSink, full, graded map[string][]evals.Report,
 	verdicts map[string]evals.G7Verdict, counts map[string]evals.G7Counts, unstable, invalid []string, started time.Time, summary string) error {
 	m := newManifest(cfg, mc, gw, fake, s.order, len(s.cases), s.files)
 	m.StartedAt, m.FinishedAt = started.Format(time.RFC3339), time.Now().Format(time.RFC3339)
@@ -388,7 +395,10 @@ func saveRun(cfg config, mc models.Config, gw models.Gateway, fake, dry, pass bo
 	}
 	pc := passCounts(graded)
 	agg := map[string]any{"verdicts": verdicts, "counts": counts, "eacl_unstable_cases": unstable, "invalid_runs": invalid, "blocked": s.blocked,
-		"fake_model": fake, "dry_run": dry, "gate_pass": pass, "pass_count": pc, "flaky_cases": flakyCases(pc, cfg.k), "k": cfg.k, "pilot": cfg.pilot}
+		"fake_model": fake, "dry_run": dry, "pass_count": pc, "flaky_cases": flakyCases(pc, cfg.k), "k": cfg.k, "pilot": cfg.pilot,
+		// gate_pass là kết luận G7 thật (mã 0 của verdict); rule_pass chỉ là luật D5 trên các hệ cổng, chưa xét điều kiện
+		// bằng chứng (model giả, chạy khô, bộ chấm chưa đóng băng…). Soát C2, F-01.
+		"gate_pass": code == 0, "rule_pass": pass, "conclusion": line, "exit_code": code}
 	if cfg.pilot {
 		agg["pilot_main_k"] = pilotK(flakyCases(pc, cfg.k))
 	}
@@ -568,7 +578,9 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 	now := ref.Add(10 * time.Hour)
 	askers := map[string]evals.Asker{sysEACL: eaisAsker{a: &pipeline.Ask{RT: rt, Deps: pipeline.Deps{
 		Directory: directory, Facts: res.Facts(), Knowledge: rag.NewMemoryIndex(cfg.tenant, docs), Model: counting,
-		Now: func() time.Time { return now },
+		// bản ghi quyết định gắn đúng bộ dữ liệu đã phục vụ, như winrun (soát C2, F-10)
+		DataVersion: fileSHA256(filepath.Join(cfg.data, "manifest.json")),
+		Now:         func() time.Time { return now },
 	}}, gw: counting}}
 	packFiles, _ := filepath.Glob(filepath.Join(cfg.pack, "*.yaml"))
 	sort.Strings(packFiles)

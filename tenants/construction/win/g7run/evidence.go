@@ -414,37 +414,42 @@ func textSHA256(s string) string {
 
 // manifestInfo là manifest.json của bằng chứng.
 type manifestInfo struct {
-	Schema         int                   `json:"schema"`
-	Tool           string                `json:"tool"`
-	StartedAt      string                `json:"started_at"`
-	FinishedAt     string                `json:"finished_at"`
-	GitRevision    string                `json:"git_revision"`
-	GitDirty       bool                  `json:"git_dirty"`
-	GoVersion      string                `json:"go_version"`
-	OS             string                `json:"os"`
-	NumCPU         int                   `json:"num_cpu"`
-	FakeModel      bool                  `json:"fake_model"` // true = model giả tất định: KHÔNG phải bằng chứng G7
-	Provider       string                `json:"provider"`
-	Model          string                `json:"model"`
-	ModelParams    map[string]any        `json:"model_params"`
-	SystemPromptSH string                `json:"system_prompt_sha256"`
-	K              int                   `json:"k"`
-	TopK           int                   `json:"topk"`
-	Systems        []string              `json:"systems"`
-	GateSystems    []string              `json:"gate_systems"`
-	Blocked        []string              `json:"blocked,omitempty"` // hệ cổng không chạy được và lý do
-	Cases          int                   `json:"cases"`
-	Files          map[string]string     `json:"files_sha256"` // đường dẫn tương đối → sha256
-	DataManifest   string                `json:"data_manifest_sha256"`
-	PriceTable     map[string][2]float64 `json:"price_usd_per_mtok"`
-	BudgetUSD      float64               `json:"budget_usd"`
-	Unstable       []string              `json:"eacl_unstable_cases,omitempty"`
-	Invalid        []string              `json:"invalid_runs,omitempty"`
-	PackVersion    string                `json:"pack_version"`
-	Endpoint       string                `json:"endpoint,omitempty"`
-	DryRun         bool                  `json:"dry_run"` // endpoint không phải API chính thức: KHÔNG phải bằng chứng G7
-	SpentUSD       float64               `json:"spent_usd"`
-	BudgetHit      bool                  `json:"budget_hit"`
+	Schema         int               `json:"schema"`
+	Tool           string            `json:"tool"`
+	StartedAt      string            `json:"started_at"`
+	FinishedAt     string            `json:"finished_at"`
+	GitRevision    string            `json:"git_revision"`
+	GitDirty       bool              `json:"git_dirty"`
+	GoVersion      string            `json:"go_version"`
+	OS             string            `json:"os"`
+	NumCPU         int               `json:"num_cpu"`
+	FakeModel      bool              `json:"fake_model"` // true = model giả tất định: KHÔNG phải bằng chứng G7
+	Provider       string            `json:"provider"`
+	Model          string            `json:"model"`
+	ModelParams    map[string]any    `json:"model_params"`
+	SystemPromptSH string            `json:"system_prompt_sha256"`
+	K              int               `json:"k"`
+	TopK           int               `json:"topk"`
+	Systems        []string          `json:"systems"`
+	GateSystems    []string          `json:"gate_systems"`
+	Blocked        []string          `json:"blocked,omitempty"` // hệ cổng không chạy được và lý do
+	Cases          int               `json:"cases"`
+	Files          map[string]string `json:"files_sha256"` // đường dẫn tương đối → sha256
+	DataManifest   string            `json:"data_manifest_sha256"`
+	// Grade, ScorerFrozen, Pilot: cách chấm, bộ chấm đã đóng băng chưa, có phải pilot — để bằng chứng tự nói nó có
+	// được dùng làm kết luận G7 hay không (soát C2, F-01).
+	Grade        string                `json:"grade"`
+	ScorerFrozen bool                  `json:"scorer_frozen"`
+	Pilot        bool                  `json:"pilot"`
+	PriceTable   map[string][2]float64 `json:"price_usd_per_mtok"`
+	BudgetUSD    float64               `json:"budget_usd"`
+	Unstable     []string              `json:"eacl_unstable_cases,omitempty"`
+	Invalid      []string              `json:"invalid_runs,omitempty"`
+	PackVersion  string                `json:"pack_version"`
+	Endpoint     string                `json:"endpoint,omitempty"`
+	DryRun       bool                  `json:"dry_run"` // endpoint không phải API chính thức: KHÔNG phải bằng chứng G7
+	SpentUSD     float64               `json:"spent_usd"`
+	BudgetHit    bool                  `json:"budget_hit"`
 }
 
 type scoredRow struct {
@@ -559,5 +564,6 @@ func newManifest(cfg config, mc models.Config, gw models.Gateway, fake bool, sys
 		m.Files[filepath.ToSlash(name)] = fileSHA256(f)
 	}
 	m.DataManifest = fileSHA256(filepath.Join(cfg.data, "manifest.json"))
+	m.Grade, m.ScorerFrozen, m.Pilot = cfg.grade, scorerFrozen, cfg.pilot
 	return m
 }

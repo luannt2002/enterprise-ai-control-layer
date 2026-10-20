@@ -74,7 +74,7 @@ Khác biệt truy cập dữ liệu, cố ý:
 
 **Thử khói bắt buộc trước lượt chạy:** `g7run -smoke 3`. Mọi câu hỏi phải không lỗi, mọi lời gọi kết thúc bằng HTTP 200. Tham số nào bị từ chối thì sửa **trước** khi đóng băng, kèm ghi chú ở ADR-0005.
 
-- Mã thoát (`1276b5f`, C-13): **0 chỉ khi endpoint là API chính thức** và đạt; trượt là 1; hệ cổng bị chặn là KHÔNG ĐẠT; chạy khô (máy chủ giả, proxy) mà đạt là 2; model giả là 2.
+- Mã thoát (`1276b5f`, C-13; bảng đầy đủ ở chú thích đầu `g7run/main.go`): **0 chỉ khi endpoint là API chính thức** và đạt; trượt là 1; chạy khô (máy chủ giả, proxy) mà đạt là 2; model giả là 2. Hệ cổng bị chặn: chạy khô thì THỬ KHÓI: KHÔNG ĐẠT (mã 1); lượt thật thì dừng TRƯỚC lời gọi model, báo LỖI, mã 2 (soát C2, F-07).
 - Giới hạn: thử khói lấy N ca **đầu**, nên đường gọi model của EACL có thể chưa được thử (dòng EACL ghi "lời gọi model 0"). Mọi hệ dùng chung một gateway nên bộ tham số vẫn được thử qua baseline; B1 (prompt lớn nhất) chỉ được thử nếu có trong N ca đầu.
 
 ## 5. Số lượt và tổng hợp (ADR-0005 §5, hiện thực ở `evals.CompareG7`, commit `a507e81`)
@@ -157,10 +157,10 @@ Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/`:
 
 | Tệp | Nội dung |
 |---|---|
-| `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EACL có đường tất định không ổn định |
+| `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EACL có đường tất định không ổn định; cách chấm (`grade`), bộ chấm đã đóng băng chưa (`scorer_frozen`), có phải pilot (`pilot`) |
 | `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token); với EACL thêm `decision` = bản ghi quyết định S2–S10 (`traces.Decision`) để gán tầng sai đầu tiên (§8) mà không gọi lại model (C-11). Không có khoá |
 | `scored.jsonl` | chấm nội dung + chấm đủ (RunWin) từng dòng |
-| `aggregate.json` | phán quyết D5 với từng baseline, `pass_count`, ca chập chờn, k (và k đề xuất nếu là pilot), số đếm độc lập |
+| `aggregate.json` | phán quyết D5 với từng baseline, `pass_count`, ca chập chờn, k (và k đề xuất nếu là pilot), số đếm độc lập. `gate_pass` = kết luận G7 thật (mã thoát 0); `rule_pass` = luật D5 thuần trên các hệ cổng, chưa xét điều kiện bằng chứng; `conclusion` = dòng kết luận; `exit_code` (soát C2, F-01) |
 | `failures.jsonl` | ca trượt + `first_wrong_layer` |
 | `cost.json` | token + USD theo hệ |
 | `ket-qua.md` | bản đọc cho người |
@@ -203,7 +203,7 @@ go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout
 | 5 | Biên B2+ đóng băng | XONG về định nghĩa (ADR-0005 §2) và mã (`a1a5b6b`); băm khi đóng băng hợp đồng | — |
 | 6 | Pilot xong (dùng để chọn k) | **CHẶN**: cần khoá model; chưa có trong môi trường | — |
 | 7 | Harness xuất được bằng chứng thô | XONG (chạy khô bằng model giả và máy chủ HTTP giả) | `a1a5b6b`, test `TestRunWritesEvidence`, `TestSmokeThroughFakeProvider` |
-| 8 | Dự toán cuối ≤ 15 USD | ĐO XONG phần chạy khô (21/10). Chỉ hệ cổng, k = 3, không chạy lại: kỳ vọng 12,74 USD. Thêm một lần chạy lại: 16,36; k = 5: 19,82. Tỉ lệ ký tự / token CHƯA ĐO (cần khoá) ⇒ tính lại sau pilot; D-G7-18 | `docs/g7/COST-PLAN.md` |
+| 8 | Dự toán cuối ≤ 15 USD | ĐO XONG phần chạy khô (21/10). Chỉ hệ cổng, k = 3, không chạy lại: kỳ vọng 12,74 USD. Thêm một lần chạy lại trọn lượt: 23,44; k = 5: 19,82. Tỉ lệ ký tự / token CHƯA ĐO (cần khoá) ⇒ tính lại sau pilot; D-G7-18 | `docs/g7/COST-PLAN.md` |
 
 | Mục | Giá trị |
 |---|---|

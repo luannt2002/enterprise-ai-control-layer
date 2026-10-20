@@ -9,3 +9,4 @@ F=tenants/construction/win/g7run/main.go
 m $F '		ea.onDecision = sink.decision' '		ea.onDecision = nil' 'DC1 không nối bản ghi quyết định vào bằng chứng'
 m $F '	if err == nil && e.onDecision != nil {' '	if false && e.onDecision != nil {' 'DC2 EACL không gửi bản ghi quyết định'
 m tenants/construction/win/g7run/evidence.go '		s.cur.Decision = &d' '		_ = d' 'DC3 sink bỏ bản ghi quyết định'
+m $F '		DataVersion: fileSHA256(filepath.Join(cfg.data, "manifest.json")),' '		DataVersion: "",' 'DC4 bản ghi quyết định không gắn bộ dữ liệu (soát C2, F-10)'

@@ -7,7 +7,8 @@
 ## 0. Một dòng
 
 **Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần lúc 01:42), mọi phần dựa trên ca của G1–G5 đều KHÔNG ĐẠT: 89/104 theo bộ chấm nhị phân, ≤ 88/104 theo nội dung.**
-- Ca 264 ĐẠT với câu trả lời SAI; bộ chấm không kiểm phán quyết "Đúng." / "Không.". Người phản bác cuối tìm ra; đã sửa SAU H1 (`8ff3db5`).
+- Ca 264 ĐẠT với câu trả lời SAI; bộ chấm không kiểm phán quyết "Đúng." / "Không.". Người phản bác cuối tìm ra. Sửa SAU H1, hai bước: `8ff3db5` gộp nhóm nghìn; người soát C3 tìm ra cách gộp đó rò, nên `fd4d19c` chỉ gộp khi không có chữ đứng trước. Nay 264 hỏi lại (an toàn). H1 làm bộ hồi quy trên HEAD cuối: 88/104, chỉ ca 264 đổi nhãn so với lần chạy chính thức.
+- Sau H1, các bản vá câu xác nhận bằng DANH SÁCH TỪ (luật A-02, danh sách từ nhãn) liên tục để lọt phán quyết sai dưới soát độc lập. Đổi sang luật an toàn (`37e8a08`, `fd4d19c`): câu xác nhận có từ hai con số ứng viên trở lên thì hỏi lại. Giá: một số câu rõ nghĩa với người đọc cũng bị hỏi lại.
 - 15 ca đỏ đều quyết định sai ở tầng ý định (S4):
   - 13/15 sai đầu tiên ở S4; 2 ca có thêm span sai ở S2;
   - 4/15 trả số / câu sai im lặng, 11/15 hỏi lại hoặc từ chối.
@@ -41,7 +42,7 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 
 | Cổng | Trạng thái THẬT | Bằng chứng |
 |---|---|---|
-| G1 DATA | **FAIL** (PARTIAL): nạp dữ liệu ĐẠT; phần ca `representation` H1 **10/13** theo bộ chấm, **≤ 9/13** theo nội dung | Nạp: 2.739/2.739 bản ghi khớp manifest, metamorphic 0 lệch; dữ liệu sinh lại giống từng byte. Ca đỏ 235, 276, 399: lượng trong câu hỏi được đọc ĐÚNG (1,2 m3, hai ngàn lít, 900l); sai ở S4 ("xuất" đứng một mình không thành chỉ số). Ca 264 ĐẠT với câu trả lời SAI: "1 490 lít" không được gộp (trái `03-data-map.md:134`), lỗi tầng chuẩn hoá của chính G1; sửa sau H1 ở `8ff3db5`. Bộ 117: 100 % |
+| G1 DATA | **FAIL** (PARTIAL): nạp dữ liệu ĐẠT; phần ca `representation` H1 **10/13** theo bộ chấm, **≤ 9/13** theo nội dung | Nạp: 2.739/2.739 bản ghi khớp manifest, metamorphic 0 lệch; dữ liệu sinh lại giống từng byte. Ca đỏ 235, 276, 399: lượng trong câu hỏi được đọc ĐÚNG (1,2 m3, hai ngàn lít, 900l); sai ở S4 ("xuất" đứng một mình không thành chỉ số). Ca 264 ĐẠT với câu trả lời SAI: "1 490 lít" không được gộp (trái `03-data-map.md:134`), lỗi tầng chuẩn hoá của chính G1. Sau H1: `8ff3db5` gộp; `fd4d19c` chỉ gộp khi không có chữ đứng trước (D-OP-9), nên 264 nay hỏi lại. Bộ 117: 100 % |
 | G2 IDENTITY | **FAIL**: entity 13/13; ambiguity **12/13** | WIN-I-348 "máy 03 hôm qua xuất bao nhiêu và tiêu thụ bao nhiêu?" trả MỘT vế (tiêu thụ), bỏ thầm vế kia: đoán im lặng, trái P5 |
 | G3 TRUTH | **FAIL**: semantic **11/13**, source_conflict **11/13** | 268, 318: so sánh "A hơn B bao nhiêu" không được nhận; 303, 392: "ERP ghi X L dầu" không thành chỉ số (OUT_OF_SCOPE). Bộ 117: 100 % |
 | G4 DECISION | **FAIL**: routing **7/13** | 201, 234, 263, 342, 419, 429; tầng ý định (`phan-tich.md` mục 2). Bộ 117: 100 % |
@@ -73,8 +74,9 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 - **H1 đã chạy MỘT lần** lúc 01:42 ngày 21/10 (`56101be`, revision mã `9de63d2`), bằng `scripts/chay-giu-lai.sh`, DB riêng `eais_giu_lai`: 89/104 ở cả hai đường. Phân tích tầng sai và chẩn đoán qua revision: `docs/g7/holdout/ket-qua-h1/phan-tich.md`.
   - Trên cùng dữ liệu H1, mã đầu đêm `94bbaae` đạt 88/104.
   - Theo NHÃN bộ chấm, mã đêm nay không làm ca nào từ ĐẠT thành ĐỎ.
-  - Theo NỘI DUNG, ca 264 xấu đi: đầu đêm trả giá trị không phán quyết; S2-4 hỏi lại; bản sửa chiều A (`6f23ff3`) khẳng định SAI, bộ chấm không bắt. Đã sửa SAU H1 (`8ff3db5`).
+  - Theo NỘI DUNG, ca 264 xấu đi: đầu đêm trả giá trị không phán quyết; S2-4 hỏi lại; bản sửa chiều A (`6f23ff3`) khẳng định SAI, bộ chấm không bắt. Sửa SAU H1 (`8ff3db5`, rồi `fd4d19c`): 264 nay hỏi lại.
   - Từ lúc này H1 chỉ còn là bộ hồi quy. H2 (62 ca) vẫn là bộ giữ lại cho G7.
+  - H1 làm bộ hồi quy (cùng dữ liệu H1, worktree sạch, chạy hai–ba lần giống hệt): `37e8a08` 89/104, `9d30130` 89/104, HEAD cuối `fd4d19c` **88/104**. So với lần chạy chính thức, chỉ ca 264 đổi nhãn (ĐẠT với câu trả lời sai → ĐỎ vì hỏi lại).
 
 ## 5. Bộ chấm (SCORER BUGS FOUND / FIXED)
 
@@ -101,6 +103,8 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 - **Lượng nghiệp vụ trong tài liệu lọt CẢ HAI lớp kiểm** khi viết NBSP / ZWSP / toàn chiều rộng / ℓ / đơn vị đứng trước / đơn vị trong ngoặc: đã sửa (`5ce22ec`). Soát lượt 2 tìm thêm dạng còn lọt ("mét khối", "m^3", "(lít dầu)", "(4.000) lít", "lít/ca: 4.000"): đã sửa ở cả hai lớp (`6f23ff3`).
 - **Biến mẫu thay nhiều lượt** có thể ghép thành số chưa từng được kiểm, kể cả số do model viết: đã sửa (`5ce22ec`).
 - `g7run` từng ra PASS giả khi mọi lời gọi model của baseline lỗi: đã sửa (`a94b5fb`).
+- **Tiêu tiền thật mà bỏ qua mọi kiểm** (soát C3, C3-04): `g7run` nhận "chạy khô" bằng so CHUỖI với `https://api.anthropic.com`, nên `:443`, chữ hoa hay dấu chấm cuối tên máy bị coi là chạy khô: bỏ qua kiểm trước và gọi hết các ca bằng khoá thật (lượt chính k = 3: 372 lời gọi, bằng chứng vô dụng). Đã sửa (`246eabb`): so theo nghĩa; mọi endpoint không phải loopback, kể cả proxy, đều qua kiểm trước.
+- **Bí mật trong URL ra log / bằng chứng** (C3-08): khoá đặt trong path / query ("?api_key=…") được in nguyên văn vào thông báo lỗi và `manifest.json`. Đã sửa (`246eabb`): chỉ ghi `scheme://host`.
 - Khoá: không tìm khoá. Chỉ dùng biến môi trường (D-G7-8). Kiểm 19:37: không có biến.
 
 ## 8. Lỗi tìm ra / đã sửa (BUGS FOUND / FIXED)
@@ -115,10 +119,28 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 | Soát lượt 2, chiều B (công cụ bộ giữ lại) | 15 xác nhận. Ví dụ: G2' / G5' chỉ đọc đường bộ nhớ; phát lại 0 câu vẫn ĐẠT; CRLF lọt; chạy lại được nhiều lần | sửa `291d9bf` TRƯỚC H1 |
 | Soát lượt 2, chiều A (pipeline) | 12 xác nhận + 3 người phản bác tìm thêm. Phần lớn là hồi quy của chính `5ce22ec` / `3d730ea` | sửa `6f23ff3` TRƯỚC H1 |
 | Soát lượt 2, chiều C (harness G7) | 19 phát hiện, 3 bị bác (C-08, C-09, C-12). Ví dụ: C-06 G7 PASS được với bộ chấm v1 hỏng; C-18 khoá theo chuyển hướng HTTP; C-04 tốn tiền trước khi kiểm điều kiện | sửa C-03…C-07, C-10, C-11, C-13, C-17, C-18, C-19 (`d4b80be` … `50b1499`). C-01, C-02, C-14, C-15, C-16 thành ca thử bắt buộc của v2 (§12 đặc tả); v1 không vá vì `d4b80be` chặn mọi kết luận G7 khi bộ chấm chưa đóng băng |
-| Soát bản sửa chiều A (sau H1, người soát không thấy bộ giữ lại) | 12 phát hiện. Đo lại xác nhận: R-01, R-02 (S1), R-05, R-06 (S2), R-07, R-10 là HỒI QUY do `6f23ff3`, tức câu xác nhận trả "Đúng."/"Không." cho sai kỳ hoặc dải số. R-03, R-04 (S1), R-08, R-11 có sẵn từ đầu đêm | (đang sửa: workflow, kèm hai người soát đối kháng) |
-| Đột biến | sống: M23b, OR11, E3, BC9; tương đương: BC8; chuỗi gốc hỏng: S1, G35, PC6, PC9, PC10, FC2, AG | thêm test hoặc sửa chuỗi, chạy lại đến khi bắt hết |
-| Phiên chính | ký tự vô hình THẬT trong test (11 ký tự) và trong một thông điệp commit (chưa push) | `7be1593`; thông điệp sửa trước khi push |
+| Soát bản sửa chiều A (sau H1, người soát không thấy bộ giữ lại) | 12 phát hiện. Đo lại xác nhận: R-01, R-02 (S1), R-05, R-06 (S2), R-07, R-10 là HỒI QUY do `6f23ff3`, tức câu xác nhận trả "Đúng."/"Không." cho sai kỳ hoặc dải số. R-03, R-04 (S1), R-08, R-11 có sẵn từ đầu đêm | bản sửa R `a8b0858` (người sửa sonnet; phiên đo lại lời khai) |
+| Hai người soát bản sửa R (sau H1) | 27 mã (R-A01…R-A18, B-01…B-09), nhiều S1 CÒN SAI: câu xác nhận vẫn phán quyết sai khi có nhiều con số / mốc viết chữ. Gốc chung: luật A-02 và các danh sách từ đóng | **đổi hướng**: luật an toàn `37e8a08` (từ hai con số ứng viên trở lên thì hỏi lại; mốc xét trước nhãn) |
+| Người soát C3 (các commit của phiên chính 01:3x–03:4x) | 9 phát hiện: C3-04 (S3) endpoint `:443` / chữ hoa bị coi là chạy khô ⇒ tiêu tiền bỏ qua kiểm; C3-02 (S2) nạp "bể 2 500 lít" thành 2.500 L; C3-05 (S3) "tổng số 3 850 lít" → "không phải 850 L"; C3-06, C3-07, C3-08 (S4); C3-01 (S2, bộ đếm v1); C3-03, C3-09 | sửa `246eabb` (C3-04, 06, 07, 08), `fd4d19c` (C3-02, 05); C3-09 nay hỏi lại (đo trên HEAD). Còn mở: C3-01 (làm ở bộ chấm v2), C3-03 |
+| Soát 37e8a08 (hai người: đo lại 27 mã R; săn S1 mới) | Xác nhận R-A01/02/03/05/06/07, B-02/03 nay hỏi lại. **Hai hồi quy của chính 37e8a08:** RM-1 / F7 (S2) lớp kiểm tài liệu lọt "**5** khối", "**5** L", "\| 5 \| khối \|"; F6 (S2) "phiếu 15-9" mất nghi vấn ngày, rơi về hôm nay. S1 CÓ SẴN (bản cha cũng sai): F1, F2 / B-05 / R-A09, F3, F4, F5 (mục 17) | sửa `64daad0` (RM-1 / F7, F6). S1 có sẵn: CHƯA sửa, ghi nợ |
+| Đột biến | sống: M23b, OR11, E3, BC9; tương đương: BC8; chuỗi gốc hỏng: S1, G35, PC6, PC9, PC10, FC2, AG. Sau 37e8a08: n28 5 dòng mất mã đích (luật A-02 đã gỡ) + A02b, A02l sống; n35 R02a/c/d/f/p/q, R03i sống, R04a/R04b, AT3, KT4 không biên dịch; n37 NC6 bị luật mới che | thêm test hoặc sửa chuỗi, chạy lại đến khi bắt hết; dòng của mã đã gỡ bỏ có lý do; A02b, R02a, R02f ghi tương đương có lý do (`f5f4a5a`, `9d30130`, `fd4d19c`, `64daad0`) |
+| Phiên chính | ký tự vô hình THẬT trong test (11 ký tự) và trong một thông điệp commit (chưa push). Đo H1 trong CÙNG clone đang chạy đột biến ⇒ số nhiễm (88/104 rồi 51/104) | `7be1593`; thông điệp sửa trước khi push. Đo lại H1 trên worktree sạch riêng (89/104 × 3, giống hệt); luật: không đo trong clone đang chạy `mutate.sh` |
 | H1 (sau lần chạy) | 15 ca đỏ, 7 nhóm gốc ở tầng ý định | KHÔNG sửa trong đêm (ADR-0006 §7); D-H1-2 |
+
+**S1 còn mở ở câu xác nhận** (có sẵn trước đêm nay hoặc từ đầu đêm, KHÔNG phải hồi quy của bản sửa cuối). Đo lại từng câu trên HEAD `64daad0`, hôm nay = 19/10/2026, EX-03 được cấp 3.850 L:
+
+| Mã | Câu tái lập | Trả lời trên HEAD | Gốc |
+|---|---|---|---|
+| F1 | "Định mức 5000 L, vậy EX-03 hôm nay được cấp con số 3850 đúng không?" | "Không. … 3.850 L, không phải 5.000 L." | số cần xác nhận đứng sau từ nhãn "số" bị bỏ; hệ lấy lượng ở mệnh đề khác |
+| F1 | "EX-03 hôm nay được cấp con số 4000 đúng không, kho xuất 3850 L?" | "Đúng. …" | như trên, lấy lượng ở mệnh đề sau |
+| F2 | "EX-03 hôm nay được cấp 3850 L, tại bể 7 đúng không?" | "Không. … không phải 7 L." | mệnh đề hỏi chỉ có một số hiệu: nó thành con số xác nhận |
+| B-05 / R-A09 | "EX-03 hôm nay đã được cấp dầu theo chứng từ 912 đúng không?"; "… kho 2 được cấp dầu …" | "Không. … không phải 912 L." / "… 2 L." | câu không nêu lượng: số hiệu duy nhất thành con số xác nhận |
+| F3 | "Dự án A Q3 được cấp 4600 L đúng không?"; "EX-03 tuần44 …" | "Không. … ngày 19/10/2026 … 5.050 L" / "Đúng. …" | mốc viết tắt / dính liền (Q3, T9, W44, tuần44) không được đọc ⇒ rơi về hôm nay |
+| F4 | "Định mức 5000 L, vậy EX-03 hôm nay được cấp 3850 kg đúng không?" | "Không. … không phải 5.000 L." | lượng khác chiều đo bị bỏ im lặng |
+| F5 | "EX-03 hôm nay không được cấp 3850 L đúng không?"; "… được cấp trên 3000 L …" | "Đúng. …" / "Không. … không phải 3.000 L." | phủ định / so sánh quanh con số bị bỏ qua |
+| R-A04, B-01 | "Cho hỏi 15-9 máy xúc EX-03 được cấp 3,5 m3 phải không?"; "EX-03 15th Sep …"; "EX-03 ngày 12 ca 2 …" | phán quyết cho hôm nay | dạng ngày không đọc được nhưng không bị nghi |
+
+Hướng sửa đề xuất (một luật thay cho vá từng mẫu): câu xác nhận chỉ phán quyết khi con số được nêu có vai trò LƯỢNG rõ ràng (có đơn vị cùng chiều đo, hoặc đứng sau từ dẫn lượng của pack — cùng danh sách với D-OP-9 phương án b), trong mệnh đề hỏi không có số nào bị bỏ vì nhãn / mốc / khác chiều đo, và không có từ phủ định / so sánh quanh nó. Mọi trường hợp khác: trả số liệu KHÔNG kèm "Đúng." / "Không." hoặc hỏi lại. Chưa làm đêm nay: đổi lõi lần nữa cần một vòng soát độc lập mới.
 
 ## 9. Số test (TEST COUNTS)
 
@@ -130,6 +152,9 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 | trước H1 `5c1c973` | 357 / 0 / 0 |
 | sau sửa chiều C2 `fbea42e` | 373 / 0 / 0 |
 | sau sửa hồi quy R `a8b0858` | 404 / 0 / 0 |
+| luật xác nhận an toàn `37e8a08` | 410 / 0 / 0 |
+| sửa C3 + danh mục `9d30130` | 429 / 0 / 0 |
+| nhóm nghìn an toàn `fd4d19c` | 429 / 0 / 0 |
 | HEAD cuối | (đo lúc chốt) |
 
 `TestWinRatchet` ở mọi mốc: G1 2.739/2.739, bộ 117 ca 117/117.
@@ -202,6 +227,9 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 - Không trích xuất lõi chung: `docs/v3/core-candidates.md` chỉ ghi nhận (CANDIDATE_ONLY).
 - Không đổi tên repo / module (D-V3-03).
 - Không implement Customer Ops khi G7 còn là đường găng (D-V3-09).
+- Không vá tiếp câu xác nhận bằng danh sách từ (luật A-02, danh sách từ nhãn cho nhóm nghìn): hai vòng soát cho thấy danh sách đóng nào cũng rò; đổi sang luật an toàn (hỏi lại / cách ly khi có hai cách đọc).
+- Chưa thêm danh sách "từ dẫn lượng" vào pack (D-OP-9 phương án b): lấy lại được câu thường gặp "được cấp 3 850 lít" nhưng thêm cấu hình; chờ chủ dự án.
+- Chưa gỡ `joinClaims` (sau khi gỡ A-02 chỉ còn dùng chung đơn vị): đơn giản hoá được, nhưng không đổi mã lõi khi chưa có người soát.
 
 ## 16. ADR mở (OPEN ADRS)
 
@@ -226,7 +254,9 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
    - G7 đo bằng chạy khô: chỉ hệ cổng, k = 3, tốn khoảng 12,74 USD (kỳ vọng); B1 chiếm gần hết chi phí.
    - Chính các bản sửa trong đêm có gây hồi quy, và chỉ người soát / người phản bác độc lập bắt được:
      - S2-4 làm ca 264 hỏi lại;
-     - bản sửa chiều A làm 264 khẳng định sai, và gây R-01, R-02 (đã sửa: `8ff3db5`, bản sửa R).
+     - bản sửa chiều A làm 264 khẳng định sai, và gây R-01, R-02 (đã sửa: bản sửa R);
+     - `8ff3db5` nạp "bể 2 500 lít" thành 2.500 L (C3-02); `37e8a08` làm lớp kiểm tài liệu lọt "**5** khối" và "phiếu 15-9" mất nghi vấn ngày (đã sửa: `fd4d19c`, `64daad0`).
+   - Vá câu xác nhận bằng DANH SÁCH TỪ không đóng được lỗ: hai vòng soát liên tiếp vẫn tìm ra biến thể. Đổi sang luật an toàn (hai cách đọc ⇒ hỏi lại / cách ly) đóng được các lớp đã biết, nhưng câu xác nhận còn 7 lớp S1 có sẵn từ trước (bảng cuối mục 8).
 2. **Điều gì đã chứng minh độc lập?**
    - G1 phần nạp dữ liệu.
    - G6' phần đo trực tiếp: bộ giữ lại đóng băng và push trước lần chạy, người soạn không viết mã, phát lại 104/104 lệch 0, hai đường dữ liệu giống hệt.
@@ -246,11 +276,14 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
    - Tối qua chưa biết rằng bộ chấm WIN có thể cho ĐẠT một câu trả lời sai (ca 264).
    - "G7 chỉ chờ khoá": thực ra bộ chấm v1 hỏng và client lỗi 400.
    - ADR-0002 D7 ghi sai sự kiện ở ca 107 (đã đính chính).
+   - Trong chính đêm nay: bản nháp báo cáo 01:5x ghi ca 264 "đã sửa" ở `8ff3db5`, nhưng cách gộp đó rò (C3-02, C3-05). Thông điệp `37e8a08` ghi "câu có số đi với danh từ lạ bị hỏi lại": chỉ đúng khi câu CÓ nêu lượng ("kho 2 được cấp dầu đúng không?" vẫn ra "Không. … không phải 2 L", B-05).
 4. **Cái gì trượt?**
    - H1: 15/104 ca (representation 3, ambiguity 1, semantic 2, source_conflict 2, unsupported_answer 1, routing 6).
    - Bộ chấm v1.
    - Bản đầu của công cụ chấm H1 (sửa trước khi chạy).
-   - Vài bản sửa của chính đêm nay (mục 8).
+   - Vài bản sửa của chính đêm nay (mục 8): `6f23ff3`, `8ff3db5`, `37e8a08` đều gây hồi quy, đã sửa.
+   - Câu xác nhận: 7 lớp S1 có sẵn, đo lại trên HEAD, CHƯA sửa (bảng cuối mục 8).
+   - H1 làm bộ hồi quy trên HEAD cuối: 88/104 (ca 264 nay hỏi lại).
 5. **Vì sao trượt?**
    - Đo được: tầng ý định không có cách nói của 15 ca. Ví dụ:
      - "xuất" đứng một mình không thành chỉ số;
@@ -259,6 +292,7 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
    - Chuẩn hoá chưa gộp nhóm nghìn ngăn bằng dấu cách (ca 264).
    - Bộ chấm v1 là "túi số": không ràng buộc con số với thực thể / kỳ / nguồn.
    - Sửa nhanh theo phát hiện cục bộ thì hỏng ở chỗ khác. Ví dụ, luật "số trần cạnh một lượng là nhãn" chữa A-02 nhưng gây R-01, R-02.
+   - Câu xác nhận phán quyết mỗi khi trích được ĐÚNG MỘT con số, mà việc trích có nhiều cách sai im lặng (bỏ số vì nhãn / mốc / khác chiều đo, không đọc mốc viết tắt, bỏ qua phủ định). Đúng một con số chưa phải bằng chứng là đã hiểu câu hỏi.
 6. **Cố ý KHÔNG xây gì?** (mục 15)
    - Bộ chấm v2 bản 2; công khai mã nguyên mẫu v2.
    - Trích lõi chung; đổi tên repo; Customer Ops.

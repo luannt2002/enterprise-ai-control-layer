@@ -3,8 +3,14 @@
 
     python3 -I scripts/dong-bang-giu-lai.py [thư mục]      # mặc định docs/g7/holdout
 
-Đầu vào: kho.yaml (ca, định dạng evals/win.go) + kho-manifest.json (hồ sơ ca, mảng).
-Đầu ra (cùng thư mục): pilot.yaml, h1.yaml, h2.yaml, holdout-manifest.json.
+Đầu vào: kho.yaml (ca, định dạng evals/win.go) + kho-manifest.json (hồ sơ ca, mảng) + (nếu có)
+loai-truoc-dong-bang.txt.
+Đầu ra (cùng thư mục): pilot.yaml, h1.yaml, h2.yaml, holdout-manifest.json; exposed.yaml nếu có ca bị loại.
+
+Loại trước khi chia (ADR-0006 §5): ca đã LỘ cho người viết mã EACL trước khi đóng băng không còn là bộ
+giữ lại. loai-truoc-dong-bang.txt mỗi dòng "<id ca> <lý do>" (dòng trống và dòng "#" bỏ qua). Ca bị loại
+không vào pilot / h1 / h2, mà vào exposed.yaml (chỉ báo cáo), set = "exposed" kèm excluded_reason trong
+manifest. Việc chia dưới đây chạy trên các ca CÒN LẠI. Id không có trong kho hay trùng là lỗi.
 
 Luật chia: trong từng lớp hỏng, xếp ca theo sha256("eacl-holdout-2026-10-20|" + case_id) tăng dần
 (chuỗi hex); 2 ca đầu → PILOT, 13 ca kế → H1, còn lại → H2. Lớp không đủ ca thì PILOT lấy trước,
@@ -75,13 +81,33 @@ def assign(blocks):
     return out
 
 
+def read_exclusions(path, ids):
+    out = {}
+    if not path.exists():
+        return out
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        cid, _, reason = line.partition(" ")
+        if cid not in ids:
+            sys.exit(f"{path.name}:{n}: {cid!r} không có trong kho.yaml")
+        if cid in out:
+            sys.exit(f"{path.name}:{n}: {cid} trùng")
+        if not reason.strip():
+            sys.exit(f"{path.name}:{n}: {cid} thiếu lý do")
+        out[cid] = reason.strip()
+    return out
+
+
 def main():
     d = Path(sys.argv[1] if len(sys.argv) > 1 else "docs/g7/holdout")
-    kho, man = d / "kho.yaml", d / "kho-manifest.json"
+    kho, man, excl_path = d / "kho.yaml", d / "kho-manifest.json", d / "loai-truoc-dong-bang.txt"
     head, blocks = split_blocks(kho.read_text(encoding="utf-8"))
     ids = [b["id"] for b in blocks]
     if len(set(ids)) != len(ids):
         sys.exit("kho.yaml: id ca trùng")
+    excluded = read_exclusions(excl_path, set(ids))
     entries = json.loads(man.read_text(encoding="utf-8"))
     if isinstance(entries, dict):
         entries = entries.get("cases", [])
@@ -94,10 +120,13 @@ def main():
     if set(by_id) != set(ids):
         sys.exit(f"manifest ↔ ca lệch: thiếu {sorted(set(ids) - set(by_id))[:5]}, thừa {sorted(set(by_id) - set(ids))[:5]}")
 
-    sets = assign(blocks)
+    sets = assign([b for b in blocks if b["id"] not in excluded])
+    for cid in excluded:
+        sets[cid] = "exposed"
+    names = ("pilot", "h1", "h2") + (("exposed",) if excluded else ())
     files = {}
     counts = {}
-    for name in ("pilot", "h1", "h2"):
+    for name in names:
         part = [b for b in sorted(blocks, key=lambda b: b["id"]) if sets[b["id"]] == name]
         text = head + "".join(b["text"] for b in part)
         (d / f"{name}.yaml").write_text(text, encoding="utf-8")
@@ -110,22 +139,25 @@ def main():
     for b in sorted(blocks, key=lambda b: b["id"]):
         e = dict(by_id[b["id"]])
         e["set"] = sets[b["id"]]
+        if b["id"] in excluded:
+            e["excluded_reason"] = excluded[b["id"]]
         e["frozen_hash"] = sha(b["text"].encode("utf-8"))
         cases.append(e)
     out = {
         "version": 1,
-        "rule": "ADR-0006 §4: trong từng lớp, xếp theo sha256(salt + case_id); 2 → pilot, 13 → h1, còn lại → h2",
+        "rule": "ADR-0006 §4–5: ca trong loai-truoc-dong-bang.txt → exposed; trong từng lớp của phần còn lại, xếp theo sha256(salt + case_id); 2 → pilot, 13 → h1, còn lại → h2",
         "salt": SALT,
         "frozen_at": datetime.now(timezone(timedelta(hours=7))).isoformat(timespec="seconds"),
-        "source_files_sha256": {"kho.yaml": sha(kho.read_bytes()), "kho-manifest.json": sha(man.read_bytes())},
+        "source_files_sha256": {"kho.yaml": sha(kho.read_bytes()), "kho-manifest.json": sha(man.read_bytes())}
+        | ({excl_path.name: sha(excl_path.read_bytes())} if excl_path.exists() else {}),
         "files_sha256": files,
         "counts": counts,
         "cases": cases,
     }
     (d / "holdout-manifest.json").write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    print(f"ca: {len(blocks)}")
-    for name in ("pilot", "h1", "h2"):
+    print(f"ca: {len(blocks)} · loại trước khi chia: {len(excluded)}")
+    for name in names:
         print(f"{name}: {sum(counts[name].values())} ca · " + " ".join(f"{k}={v}" for k, v in sorted(counts[name].items())))
     for k, v in files.items():
         print(f"sha256 {k} {v}")

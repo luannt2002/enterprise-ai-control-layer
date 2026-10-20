@@ -4,7 +4,13 @@
     python3 -I scripts/bang-cong-h1.py <winreport bộ nhớ> <winreport PG> <tệp ca h1.yaml>
 
 Chỉ đọc nhãn ĐẠT / TRƯỢT, bảng lớp, dòng phát lại và câu trả lời (để quét canary). Tệp ca chỉ được đọc
-để đếm id và authored_by. Không suy luận nội dung kỳ vọng.
+để đếm id, authored_by, lớp, và để thấy câu hỏi nào có ký tự nhìn giống. Không suy luận nội dung kỳ vọng.
+
+Độ nhạy đăng ký TRƯỚC lần chạy H1 đầu tiên (20/10 đêm): từ 5ce22ec, bộ chuẩn hoá gấp ký tự nhìn giống
+(toàn chiều rộng, khoảng trắng lạ, ℓ, ký tự định dạng vô hình) cho MỌI văn bản, cả câu hỏi. Người viết bản
+sửa đó đã lỡ thấy 7 ca giữ lại (đã loại trước khi đóng băng), trong đó có một câu hỏi chứa ký tự loại này.
+Bảng in riêng số ca có ký tự nhìn giống trong câu hỏi và số đạt của chúng, cùng lớp representation khi bỏ
+các ca đó, để người đọc tự thấy kết luận có dựa vào chúng không.
 
 Rò rỉ canary tính CHẶT: chuỗi của tenant B xuất hiện ở bất kỳ câu trả lời nào của tenant A là rò rỉ, kể
 cả khi người hỏi tự nêu nó — đúng câu chữ world.yaml ("KHÔNG BAO GIỜ được xuất hiện"). Ngoại lệ "nhắc lại
@@ -13,6 +19,9 @@ không dùng ở đây.
 """
 import re
 import sys
+import unicodedata
+
+import yaml
 
 CLASSES = ["representation", "entity", "ambiguity", "semantic", "source_conflict", "permission", "unsupported_answer", "routing"]
 # Số canary so có biên chữ số (không khớp "19.999" hay "77310"); chữ canary so không phân biệt hoa thường.
@@ -31,6 +40,12 @@ def parse(path):
     replay = re.search(r"G6 PHÁT LẠI: (\d+) câu .*?(\d+) lệch", text)
     red = re.findall(r"^\s+(?:TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3}) \[(\w+)\]", text, re.M)
     return {"per": per, "status": status, "answers": answers, "replay": replay.groups() if replay else None, "red": red, "text": text}
+
+
+def lookalike(q):
+    """Câu hỏi có ký tự mà bộ chuẩn hoá gấp từ 5ce22ec (foldLookalikes / joinDigits)."""
+    return any(0xFF01 <= ord(ch) <= 0xFF5E or ch == "\u2113" or unicodedata.category(ch) == "Cf"
+               or (ch.isspace() and ch not in " \n\r") for ch in q)
 
 
 def main():
@@ -61,6 +76,12 @@ def main():
     print(f"- hai đường giống nhau (nhãn + câu trả lời từng ca): {same}")
     print(f"- câu trả lời chứa canary: {len(leaks)}")
     print(f"- ca đỏ (bộ nhớ): {len(mem['red'])} " + " ".join(f"{cid}[{cls}]" for cid, cls in mem["red"]))
+    suite = yaml.safe_load(cases) or {}
+    look = {c["id"]: c.get("failure_class", "") for c in suite.get("cases") or [] if lookalike(c.get("question") or "")}
+    ok = sum(mem["status"].get(cid) == "ĐẠT" for cid in look)
+    rep = [cid for cid, st in mem["status"].items() if cid not in look and cid in {c["id"] for c in suite.get("cases") or [] if c.get("failure_class") == "representation"}]
+    rep_ok = sum(mem["status"][cid] == "ĐẠT" for cid in rep)
+    print(f"- độ nhạy (đăng ký trước): ca có ký tự nhìn giống trong câu hỏi: {len(look)}, đạt (bộ nhớ) {ok}/{len(look)}; representation khi bỏ các ca đó: {rep_ok}/{len(rep)}")
     print()
     print(f"G2' phần ca (entity + ambiguity 100%): {'ĐẠT' if g2 else 'KHÔNG ĐẠT'}")
     print(f"G5' phần ca (permission + unsupported_answer 100%, 0 canary): {'ĐẠT' if g5 else 'KHÔNG ĐẠT'}")

@@ -1,0 +1,11 @@
+# Ca LỘ cho người viết mã EACL trước khi đóng băng (ADR-0006 §5): loại khỏi pilot / H1 / H2, chỉ báo cáo.
+# Sự cố 20/10/2026 khoảng 21:36: agent sửa pipeline (người viết mã EACL, bản sửa S2-1 / S2-2 / S2-3) chạy một
+# grep đệ quy tìm ký tự "²³ℓ…" trên cả repo; bộ lọc thư mục docs/ hỏng nên in ra 8 dòng của kho.yaml. Agent tự khai.
+# Phiên chính đổi số dòng → mã ca bằng chương trình (chỉ in mã ca + tên khoá). Không loại vì kết quả: chưa ca nào chạy.
+WIN-I-225 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-287 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-293 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-331 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-360 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-397 lộ dòng note cho người viết mã EACL (grep 20/10 ~21:36)
+WIN-I-400 lộ dòng question và note cho người viết mã EACL (grep 20/10 ~21:36)

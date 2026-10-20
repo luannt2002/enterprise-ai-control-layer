@@ -83,6 +83,11 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - `holdout-manifest.json`. Mỗi ca ghi: `case_id`, `set`, `gate`, `requirement`, `expected_behavior`, `source_of_expectation`, `created_at`, `b1_window`, `frozen_hash` (sha256 của chính ca). Thêm sha256 của từng tệp.
 - **Commit + push TRƯỚC lần chạy đầu.** Giờ push trên GitHub là dấu thời gian của bên thứ ba. Giờ của mọi lần chạy sau ghi trong bằng chứng thô.
 - Vì sao đây là bằng chứng thay cho "đóng băng trước W1": điều kiện "trước W1" không còn làm được (mã đã có). Ý định của nó là "cổng không bị viết theo mã", và điều này giữ nguyên.
+- **Ca bị lộ trước khi đóng băng** (thêm 20/10 đêm, sau sự cố lộ 7 ca, trước khi đóng băng và trước mọi lần chạy):
+  - Ca mà nội dung (câu hỏi, kỳ vọng, ghi chú) đã hiện ra trước mắt **người viết mã EACL** thì không còn là bộ giữ lại.
+  - Ghi vào `docs/g7/holdout/loai-truoc-dong-bang.txt`, mỗi dòng `<id ca> <lý do>`.
+  - Công cụ đóng băng loại các ca đó **trước khi chia** (§4 chạy trên phần còn lại) và ghi chúng vào `exposed.yaml`: chỉ báo cáo, không tính cổng. Manifest ghi `set: exposed` + `excluded_reason`, băm cả tệp danh sách.
+  - Chỉ loại vì lộ, không bao giờ vì kết quả. Danh sách đóng băng cùng bộ, nên không sửa được sau khi đã thấy kết quả.
 
 ### 6. Pilot và luật chọn k (đăng ký trước)
 

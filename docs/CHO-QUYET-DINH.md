@@ -72,6 +72,13 @@ Chiều: **khắt khe hơn** = khó đạt hơn cho EACL.
 | 14 | Bộ pilot 12–16 ca (ngoài dev và giữ lại) để đo chập chờn, hành vi "rỗng" trước khi chốt k và prompt. **Có gọi model thật** | trung tính | có; tính trong trần chi phí D-G7-3 | có (pilot), trong trần 15 USD; **không** làm bằng chứng cuối |
 | 15 | Soát rồi công khai chương trình đo của người soát (đang ở `docs/sources/`, máy gốc) để ai cũng tái lập được bảng Q3 | — | có, sau khi soát | có, sau khi soát bảo mật / riêng tư |
 
+### 1c. Sau lần chạy H1 (21/10 01:42)
+
+| Mã | Câu | Lựa chọn | Khuyến nghị (vì sao) | Chưa quyết thì | Trả lời |
+|---|---|---|---|---|---|
+| **D-H1-1** | ADR-0006 chỉ đăng ký chứng minh lại G2 / G5 / G6 trên H1. Nhưng H1 có đủ 8 lớp (13 ca / lớp), và phần ca của G1 (`representation` 10/13), G3 (`semantic` 11/13, `source_conflict` 11/13), G4 (`routing` 7/13) cũng KHÔNG ĐẠT tiêu chí `04` §6 trên dữ liệu độc lập. Trạng thái thật của G1 / G3 / G4 lấy theo bộ nào? | **A** lấy H1 (dữ liệu độc lập) cho phần ca của MỌI cổng · **B** giữ bộ 117 cho G1 / G3 / G4 như ADR-0006, chỉ ghi H1 là quan sát | **A**: bộ 117 không nhiễm do sửa kỳ vọng, nhưng do người đã đọc pack soạn; H1 cho thấy tầng ý định chỉ khớp cách nói đó (15/15 ca đỏ ở S4). B giữ một PASS mà dữ liệu độc lập đã bác | Báo cáo sáng ghi trạng thái THẬT theo A, và nêu B bên cạnh | |
+| **D-H1-2** | Sửa 7 nhóm gốc ở tầng ý định (`docs/g7/holdout/ket-qua-h1/phan-tich.md` mục 3) | sửa ở phiên ban ngày, dùng H1 làm bộ HỒI QUY, đo lại trên bộ giữ lại MỚI (chưa ai thấy) · sửa rồi chạy lại H1 và gọi là bộ giữ lại | **Phiên ban ngày; H1 chỉ là bộ hồi quy.** Muốn có lại PASS cho G1–G5 thì cần một bộ giữ lại mới, soạn và đóng băng như ADR-0006, trước khi sửa. H2 dành cho G7, không dùng | Không sửa mã theo H1 | |
+
 ## 2. EACL V3 — gói định nghĩa R0
 
 Do phiên lead V3 soạn. Chi tiết, mâu thuẫn C1–C19 và lý do: `docs/v3/05-R0-DEFINITION-FREEZE.md` mục 3–4. Dưới đây chép câu hỏi và khuyến nghị **của phiên đó**. Phiên viết tệp này **chưa soát độc lập** bộ `docs/v3/`.

@@ -1,11 +1,26 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 20/10/2026 23:4x, **luồng chạy đêm 20→21/10 đang chạy** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
+> Cập nhật: 21/10/2026 01:5x (sau H1), **luồng chạy đêm 20→21/10 đang chạy** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Mọi số ở đây lấy từ lệnh chạy ngày 20/10/2026, trừ chỗ ghi **CHƯA ĐO**.
 
-## Tiến độ WIN MVP: 3/7 cổng đạt vô điều kiện, 6/7 có điều kiện — CHƯA phải WIN
+## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1, phần ca của G1–G5 KHÔNG ĐẠT (89/104) — CHƯA phải WIN
+
+> **H1, 21/10 01:42** (`docs/g7/holdout/ket-qua-h1/`). Bộ giữ lại độc lập: 104 ca, 13 / lớp, do người không đọc mã soạn, đóng băng 22:51 ngày 20/10, chạy MỘT lần ở revision `9de63d2`.
+> - Kết quả: **89/104** ở cả hai đường (bộ nhớ, PostgreSQL); phát lại 104/104 lệch 0; canary 0.
+> - Theo lớp và cổng (`04` §6 đòi 100 % mỗi lớp):
+>   - representation 10/13 (G1);
+>   - entity 13/13, ambiguity 12/13 (G2);
+>   - semantic 11/13, source_conflict 11/13 (G3);
+>   - routing 7/13 (G4);
+>   - permission 13/13, unsupported_answer 12/13 (G5).
+> - Vậy phần ca của G1–G5 đều KHÔNG ĐẠT trên dữ liệu độc lập. Cả 15 ca đỏ sai ở tầng ý định (S4): tầng ý định chỉ khớp cách nói của bộ 117 (`phan-tich.md`).
+> - G6' ĐẠT, nhưng tiêu chí sửa đổi chờ chủ dự án phê. G7 CHẶN.
+> - **Tiến độ (cổng đạt trọn, vô điều kiện, theo dữ liệu độc lập): 0/7.**
+>   - Nếu chủ dự án phê G6': 1/7.
+>   - Nếu D-H1-1 chọn giữ bộ 117 cho G1 / G3 / G4: 3/7 (4/7 với G6').
+> - Bảng dưới là kết quả trên bộ 117, giữ để đối chiếu.
 
 > **Đính chính 20/10 tối (bản soát độc lập `docs/g7/REVIEW-D5.md`):**
 > - Ba ca 083, 107, 108 có kỳ vọng do chính phiên viết mã "trọng tài" **sau** lần đo đầu (09:03), **trước** khi băm bộ ca (09:15).
@@ -50,7 +65,7 @@ Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác đị
 | Bộ chấm G7 v2 | ĐANG: 2 hướng thiết kế xong, giám khảo đang tổng hợp. **Không đóng băng được đêm nay**: điều kiện bắt buộc là hiệu chỉnh trên đầu ra pilot thật (cần khoá) | ADR-0007 viết sau khi có kết quả |
 | Bộ giữ lại độc lập | **ĐÃ ĐÓNG BĂNG 22:51** trước mọi lần chạy: 229 ca → 3 người soát (252 cờ) → 189; loại 7 ca bị lộ trước khi chia ⇒ pilot 16, **H1 104**, H2 62, exposed 7 | `16a6140`; `af4054a`; `docs/g7/holdout/` |
 | Sự cố lộ (đã xử lý) | (1) 7 ca lộ cho người viết mã ⇒ loại trước khi chia; (2) 15 ca có gợi ý kỳ vọng lộ cho phiên chính sau đóng băng ⇒ tập không đổi, bảng H1 báo độ nhạy | `af4054a`, `59ee556`; D-G7-13 |
-| Chứng minh lại G2 / G5 / G6 trên H1 | CHỜ soát độc lập lượt 2 (sửa sau H1 = chỉnh theo bộ giữ lại). Thủ tục chạy MỘT lần đã đăng ký trước | `scripts/chay-giu-lai.sh` (`4e81fb5`) |
+| Chứng minh lại G2 / G5 / G6 trên H1 | **XONG 01:42** (chạy MỘT lần, sau khi sửa mọi phát hiện S1/S2 của soát lượt 2):<br>- 89/104;<br>- G2' KHÔNG ĐẠT, G5' KHÔNG ĐẠT, G6' ĐẠT (chờ phê);<br>- phần ca của G1 / G3 / G4 cũng KHÔNG ĐẠT (D-H1-1).<br>15 ca đỏ đều ở S4; không sửa mã theo H1 | `56101be`, `d17144f`; `docs/g7/holdout/ket-qua-h1/` |
 | Soát độc lập mã (D-OP-5) | Lượt 1 XONG 21:22: sửa S1-1, S2-1…S2-6, S3-x, S4, test hổng. Lượt 2 ĐANG (pipeline, công cụ bộ giữ lại, harness G7; mỗi chiều có người phản bác) | `a94b5fb`, `fe22e2a`, `5ce22ec`, `3d730ea` |
 | Chương trình đo của người soát D5 | Công khai, tái lập đúng số của bản soát | `tenants/construction/win/d5probe` (`d03f962`) |
 | `go mod tidy` (D-OP-2) | DỪNG theo luật (thêm 2 module chỉ cho test của yaml/v3; 0 gói EACL dùng); build / vet / test sạch sau tidy ⇒ khuyến nghị chấp nhận, chờ chủ dự án | `ba83265` |

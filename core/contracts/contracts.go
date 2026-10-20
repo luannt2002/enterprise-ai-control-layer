@@ -85,8 +85,8 @@ type Value struct {
 // Span là một đoạn trong câu gốc đã được nhận ra và chuẩn hoá.
 type Span struct {
 	Kind  ValueKind `json:"kind"`
-	Raw   string    `json:"raw"`   // nguyên văn (sau NFC)
-	Start int       `json:"start"` // vị trí byte trong văn bản NFC
+	Raw   string    `json:"raw"`   // nguyên văn trong NormalizedInput.Raw
+	Start int       `json:"start"` // vị trí byte trong NormalizedInput.Raw
 	End   int       `json:"end"`
 	Value Value     `json:"value"`
 	// Confidence = 1 khi luật khớp chắc chắn; < 1 khi có suy luận, ví dụ đơn vị lấy
@@ -104,7 +104,9 @@ type Ambiguity struct {
 
 // NormalizedInput là kết quả chặng S2.
 type NormalizedInput struct {
-	Raw string `json:"raw"` // nguyên văn sau NFC
+	// Raw là nguyên văn sau khi gấp ký tự "nhìn giống" (toàn chiều rộng → ASCII, khoảng trắng lạ → dấu
+	// cách, "ℓ" → "l", ký tự vô hình chen giữa chữ số bị bỏ) rồi NFC; vị trí của mọi span trỏ vào đây.
+	Raw string `json:"raw"`
 	// Text là dạng để so khớp: chữ thường, khoảng trắng gộp, giữ dấu tiếng Việt.
 	Text string `json:"text"`
 	// Folded là Text đã bỏ dấu tiếng Việt — khách gõ không dấu vẫn khớp từ khoá.

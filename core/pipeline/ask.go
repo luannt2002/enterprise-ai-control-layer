@@ -844,13 +844,19 @@ func (a *Ask) render(name string, vars map[string]string) string {
 
 // fragment dựng một MẨU câu (ghi chú ghép vào câu chính) — giữ nguyên khoảng trắng đầu/cuối của
 // mẫu, vì mẩu bắt đầu bằng dấu cách để nối sau dấu chấm.
+//
+// Thay MỘT lượt trên mẫu (strings.Replacer): giá trị của biến không bao giờ bị quét lại. Văn bản do model
+// viết ({procedure}) chứa "{title}" thì giữ nguyên từng chữ — thay lượt hai làm câu giao khác câu đã qua
+// S9 (kết quả đổi theo thứ tự duyệt map; xoá "{reason}" giữa "3" và "850" ghép thành số mới "3850").
 func (a *Ask) fragment(name string, vars map[string]string) string {
-	text := a.RT.Templates[name]
+	pairs := make([]string, 0, 2*(len(vars)+len(tenant.AllowedPlaceholders)))
 	for k, v := range vars {
-		text = strings.ReplaceAll(text, "{"+k+"}", v)
+		pairs = append(pairs, "{"+k+"}", v)
 	}
 	for p := range tenant.AllowedPlaceholders {
-		text = strings.ReplaceAll(text, "{"+p+"}", "")
+		if _, set := vars[p]; !set { // biến được phép mà chưa có giá trị thì thành chuỗi rỗng
+			pairs = append(pairs, "{"+p+"}", "")
+		}
 	}
-	return text
+	return strings.NewReplacer(pairs...).Replace(a.RT.Templates[name])
 }

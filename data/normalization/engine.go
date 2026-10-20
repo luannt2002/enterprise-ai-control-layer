@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
@@ -23,6 +24,11 @@ type Options struct {
 	// Scope là phạm vi văn bản (fuel_report, site_report…) do kênh hoặc đường nạp quyết.
 	// Dùng để phân định viết tắt nhiều nghĩa.
 	Scope string
+	// Layout bật đọc cách TRÌNH BÀY của tài liệu / bảng: đơn vị đứng trước số ("L 5.000", "lít: 5.000")
+	// và đơn vị trong ngoặc sau số ("5.000 (lít/ngày)"). Chỉ bật khi quét văn bản TÀI LIỆU tìm lượng
+	// nghiệp vụ (ForbidDimensions). Câu hỏi của người dùng KHÔNG bật: "bao nhiêu lít 7 ngày qua" sẽ bị
+	// đọc nhầm "lít 7" là một lượng.
+	Layout bool
 }
 
 // builtinMultipliers là từ chỉ hàng tiếng Việt đứng sau chữ số: "3 trăm", "4 nghìn".
@@ -37,7 +43,8 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 	if opt.Now.IsZero() {
 		opt.Now = time.Now()
 	}
-	raw := NFC(text)
+	// Raw là văn bản sau khi gấp ký tự "nhìn giống" (foldLookalikes) rồi NFC; mọi vị trí byte của span trỏ vào Raw.
+	raw := NFC(foldLookalikes(text))
 	toks := tokenize(raw)
 
 	var spans []contracts.Span
@@ -74,10 +81,16 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 			continue
 		}
 		if t.kind == tokNum || t.kind == tokWord {
-			if sp, next, ok := e.matchQuantity(raw, toks, i); ok {
+			if sp, next, ok := e.matchQuantity(raw, toks, i, opt.Layout); ok {
 				if i <= approxUntil {
 					sp.Value.Approx = true
 				}
+				spans, i = append(spans, sp), next
+				continue
+			}
+		}
+		if opt.Layout && t.kind == tokWord {
+			if sp, next, ok := e.matchUnitFirst(raw, toks, i); ok {
 				spans, i = append(spans, sp), next
 				continue
 			}
@@ -164,8 +177,8 @@ func (e *Engine) matchApprox(s string, t token) (int, bool) {
 	return 0, false
 }
 
-// matchQuantity đọc một con số (chữ số hoặc chữ), hậu tố nhân, rồi đơn vị nếu có.
-func (e *Engine) matchQuantity(s string, toks []token, i int) (contracts.Span, int, bool) {
+// matchQuantity đọc một con số (chữ số hoặc chữ), hậu tố nhân, rồi đơn vị nếu có. layout: xem Options.Layout.
+func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (contracts.Span, int, bool) {
 	t := toks[i]
 	var val *big.Rat
 	end := t.end
@@ -203,7 +216,7 @@ func (e *Engine) matchQuantity(s string, toks []token, i int) (contracts.Span, i
 	}
 
 	var unit *UnitDef
-	if uEnd, u, extra, ok := e.matchUnit(s, end); ok {
+	if uEnd, u, extra, ok := e.matchUnit(s, end, layout); ok {
 		unit = &u
 		end = uEnd
 		if extra != nil { // "7h30" thời lượng → 7,5 giờ
@@ -267,20 +280,31 @@ func (e *Engine) matchMultiplier(s string, pos int) (end int, factor string, fra
 	return 0, "", nil, false
 }
 
-// matchUnit đọc đơn vị ngay sau số, cho phép một dấu cách ("4000 L", "4000L").
+// matchUnit đọc đơn vị ngay sau số, cho phép khoảng đệm ("4000 L", "4000L", "4000  L", "4000<ZWSP>L" — Normalize đã
+// gấp tab, NBSP, U+202F… về dấu cách; ký tự định dạng vô hình cũng là khoảng đệm). layout: thêm dạng đơn vị MỞ ĐẦU một cặp ngoặc rồi đóng ngay hoặc theo sau là
+// "/…" ("5.000 (L)", "5.000 (lít/ngày)"); "5 (khối lượng công việc)" không phải lượng.
 // extra khác nil khi "7h30": phần phút cộng vào thời lượng.
-func (e *Engine) matchUnit(s string, pos int) (end int, def UnitDef, extra *big.Rat, ok bool) {
+func (e *Engine) matchUnit(s string, pos int, layout bool) (end int, def UnitDef, extra *big.Rat, ok bool) {
 	starts := []int{pos}
-	if pos < len(s) && s[pos] == ' ' {
-		starts = append(starts, pos+1)
+	p := skipGap(s, pos)
+	if p > pos {
+		starts = append(starts, p)
+	}
+	bracketed := -1
+	if layout && p < len(s) && strings.IndexByte("([{", s[p]) >= 0 {
+		bracketed = skipGap(s, p+1)
+		starts = append(starts, bracketed)
 	}
 	for _, p := range starts {
 		for _, u := range e.units {
 			if uEnd, ok := matchAliasAt(s, p, u.alias, u.def.CaseSensitive); ok {
+				if q := skipGap(s, uEnd); p == bracketed && (q >= len(s) || strings.IndexByte(")]}/", s[q]) < 0) {
+					continue
+				}
 				return uEnd, u.def, nil, true
 			}
 			// "7h30": đơn vị thời lượng viết dính phút.
-			if u.def.Dimension == "duration" {
+			if u.def.Dimension == "duration" && p != bracketed {
 				if uEnd, ok := matchAliasPrefix(s, p, u.alias, u.def.CaseSensitive); ok && uEnd+2 <= len(s) &&
 					isDigitAt(s, uEnd) && isDigitAt(s, uEnd+1) && isBoundaryAfter(s, uEnd+2) {
 					min := new(big.Rat).SetFrac64(int64((s[uEnd]-'0')*10+(s[uEnd+1]-'0')), 60)
@@ -290,6 +314,98 @@ func (e *Engine) matchUnit(s string, pos int) (end int, def UnitDef, extra *big.
 		}
 	}
 	return 0, UnitDef{}, nil, false
+}
+
+// matchUnitFirst đọc lượng viết đơn vị TRƯỚC số: "L 5.000", "lít: 5.000", "(lít): 5.000" (đầu cột của bảng).
+// Chỉ chạy khi Options.Layout. Số đã mang đơn vị riêng ("lít 7 giờ") thì số đó thuộc đơn vị của nó, không đọc.
+func (e *Engine) matchUnitFirst(s string, toks []token, i int) (contracts.Span, int, bool) {
+	start := toks[i].start
+	for _, u := range e.units {
+		uEnd, ok := matchAliasAt(s, start, u.alias, u.def.CaseSensitive)
+		if !ok {
+			continue
+		}
+		p := uEnd
+		for p < len(s) {
+			r, w := utf8.DecodeRuneInString(s[p:])
+			if !isFormat(r) && !strings.ContainsRune(" :=)]}", r) {
+				break
+			}
+			p += w
+		}
+		j := tokenAt(toks, p)
+		if j >= len(toks) || toks[j].start != p || toks[j].kind != tokNum {
+			continue
+		}
+		num, next, ok := e.matchQuantity(s, toks, j, false)
+		if !ok || num.Kind != contracts.ValueNumber {
+			continue
+		}
+		num.Kind = contracts.ValueKind(u.def.Kind)
+		num.Value.Kind, num.Value.Unit = num.Kind, u.def.Unit
+		num.Start, num.Raw = start, s[start:num.End]
+		num.Rule += "+unit_first"
+		return num, next, true
+	}
+	return contracts.Span{}, i, false
+}
+
+// isFormat báo ký tự định dạng vô hình (ZWSP, ZWJ, BOM, dấu gạch nối mềm…).
+func isFormat(r rune) bool { return unicode.Is(unicode.Cf, r) }
+
+// skipGap trả vị trí đầu tiên từ pos trở đi không phải khoảng đệm (dấu cách hoặc ký tự định dạng vô hình).
+func skipGap(s string, pos int) int {
+	for pos < len(s) {
+		r, w := utf8.DecodeRuneInString(s[pos:])
+		if r != ' ' && !isFormat(r) {
+			break
+		}
+		pos += w
+	}
+	return pos
+}
+
+// foldLookalikes gấp các ký tự NHÌN GIỐNG về dạng mà luật đọc số và đơn vị hiểu, để một lượng viết lạ không
+// thoát khỏi chuẩn hoá: chữ số / dấu chấm / chữ cái toàn chiều rộng → ASCII; tab, NBSP, U+202F, U+3000… → dấu
+// cách; "ℓ" → "l"; ký tự định dạng vô hình chen giữa một số thì bỏ (joinDigits).
+func foldLookalikes(s string) string {
+	return joinDigits(strings.Map(func(r rune) rune {
+		switch {
+		case r >= 0xFF01 && r <= 0xFF5E: // dạng toàn chiều rộng của ASCII
+			return r - 0xFEE0
+		case r != '\n' && r != '\r' && unicode.IsSpace(r):
+			return ' '
+		case r == 0x2113: // "ℓ", ký hiệu lít
+			return 'l'
+		}
+		return r
+	}, s))
+}
+
+// joinDigits bỏ ký tự định dạng vô hình CHEN GIỮA hai phần của một số ("3<ZWSP>850"): người đọc thấy 3850, nhưng bộ
+// kiểm sẽ thấy hai số 3 và 850 (đều có bằng chứng) — số 3850 chưa từng được kiểm. Chỗ khác ký tự đó giữ nguyên: vẫn
+// là ranh giới từ như trước, và là khoảng đệm khi đọc đơn vị (skipGap).
+func joinDigits(s string) string {
+	if !strings.ContainsFunc(s, isFormat) {
+		return s
+	}
+	numeric := func(r rune) bool { return unicode.IsDigit(r) || r == '.' || r == ',' }
+	rs := []rune(s)
+	out := rs[:0]
+	for i := 0; i < len(rs); i++ {
+		if isFormat(rs[i]) && len(out) > 0 {
+			j := i
+			for j < len(rs) && isFormat(rs[j]) {
+				j++
+			}
+			if prev := out[len(out)-1]; j < len(rs) && (unicode.IsDigit(prev) && numeric(rs[j]) || numeric(prev) && unicode.IsDigit(rs[j])) {
+				i = j - 1
+				continue
+			}
+		}
+		out = append(out, rs[i])
+	}
+	return string(out)
 }
 
 // matchTerm thử bí danh thuật ngữ, dài trước.

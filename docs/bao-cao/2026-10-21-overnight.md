@@ -1,6 +1,6 @@
 # Báo cáo đêm 20→21/10/2026 — khôi phục bằng chứng, xác định trạng thái WIN thật
 
-> **BẢN NHÁP ĐANG CẬP NHẬT** (lần cuối: 20/10 22:2x). Bản chốt viết lúc 07:00 ngày 21/10.
+> **BẢN NHÁP ĐANG CẬP NHẬT** (lần cuối: 20/10 23:0x). Bản chốt viết lúc 07:00 ngày 21/10.
 > Mục tiêu đêm, theo prompt cố vấn mà chủ dự án giao: khôi phục bằng chứng đáng tin, rồi mới xác định trạng thái WIN thật. Không tối ưu tỉ lệ đạt. FAIL sạch hơn PASS bẩn.
 > Mọi số ở đây lấy từ lệnh đã chạy; chưa đo thì ghi **CHƯA ĐO**.
 
@@ -60,11 +60,20 @@
 - Xử lý (ADR-0006 §5, `af4054a`, push 22:16, **trước** khi đóng băng và trước mọi lần chạy): 7 ca bị loại khỏi pilot / H1 / H2, sang `exposed.yaml`, chỉ báo cáo.
 - Nội dung bản sửa của agent đó (danh sách dạng viết của S2-2) có trong bản soát mã độc lập **trước** lúc lộ. Riêng việc gấp ký tự nhìn giống áp cả cho câu hỏi là hệ quả của sửa ở tầng chuẩn hoá dùng chung ⇒ bảng H1 in thêm độ nhạy đăng ký trước: số ca có ký tự nhìn giống trong câu hỏi và số đạt của chúng.
 
+### Lộ gợi ý lần 2 (sau đóng băng, trước khi chạy) — xử lý bằng độ nhạy
+- Kết quả trả về của workflow soát kho được thiết kế "chỉ số đếm", nhưng trường chữ tự do `not_checked` nhắc 20 mã ca kèm cơ sở kỳ vọng. Phiên chính (viết / tích hợp mã) đã đọc nó lúc 22:50.
+- 15 ca còn trong bộ đóng băng (H1 8). Tập KHÔNG đổi; bảng H1 báo thêm G2' / G5' khi bỏ 15 ca này (`59ee556`, đăng ký trước khi chạy). Phiên chính không sửa mã theo các gợi ý đó.
+- Bài học (ADR-0006 §5): kết quả trả về cho phiên viết mã phải có schema không chứa chữ tự do.
+
+### Bộ giữ lại: đã đóng băng
+- `16a6140`, push 22:51:48 (GitHub ghi commit 15:51:44Z). 229 ca → ba người soát độc lập (252 cờ) → người sửa không đọc mã → 189 ca.
+- Loại 7 ca bị lộ trước khi chia ⇒ pilot 16, **H1 104 (13 / lớp)**, H2 62, exposed 7. 0 lỗi định dạng; mọi băm khớp.
+
 ### Lỗi pipeline do bản soát mã độc lập tìm ra
 - **S2-1:** biến mẫu thay nhiều lượt theo thứ tự duyệt map. Câu giao khác câu đã qua S9, và có thể ghép thành số mới chưa từng được kiểm ("3" + "850"). Đã sửa (`5ce22ec`).
 - **S2-3:** che chuỗi con khi kiểm số. Câu xác nhận đúng thành SYSTEM_FAILURE giả, số lạ lọt qua. Đã sửa (`5ce22ec`).
 - **S2-2:** lượng trong tài liệu lọt CẢ HAI lớp kiểm khi viết NBSP / ZWSP / toàn chiều rộng / ℓ / đơn vị đứng trước / đơn vị trong ngoặc. Đã sửa (`5ce22ec`).
-- **S2-4:** câu nhiều thực thể, nhiều kỳ, "từ X đến Y" hay ngày không hợp lệ bị cắt thầm về vế đầu, ra RESOLVED (phá P5). **Đang sửa** (agent làm trong `git clone` không có bộ giữ lại).
+- **S2-4:** câu nhiều thực thể, nhiều kỳ, "từ X đến Y" hay ngày không hợp lệ bị cắt thầm về vế đầu, ra RESOLVED (phá P5). Đã sửa: hỏi lại (`8801afe`, agent làm trong `git clone` không có bộ giữ lại; PG 302/0/0). Đang qua soát độc lập lượt 2 trước khi chạy H1.
 
 ### Vận hành
 - `go mod tidy` thêm 2 module ngoài kỳ vọng (chỉ cho test của thư viện yaml). Đã dừng mẻ và hoàn nguyên, chờ chủ dự án (D-OP-2).

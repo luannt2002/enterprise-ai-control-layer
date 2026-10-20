@@ -184,7 +184,7 @@ go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout
 |---|---|---|---|
 | 1 | D-G7-1…11 đã áp | ĐANG.<br>- Đã áp vào mã / tài liệu: 1, 2, 3, 4, 6 (phần baseline), 8, 10, 11.<br>- D-G7-9 đã làm: mục 2, 3, 4 (B2+, B2″, B1), 5 (B2-oracle), 7 (phần bộ đếm từng ca), 10, 11, 12 (canary tên), 15 (công khai `d5probe`).<br>- D-G7-9 còn chờ: mục 6 (rỗng = từ chối) và phần còn lại của 7, cả hai thuộc bộ chấm v2 (ADR-0007); 13 cần lượt chạy thật.<br>- Đang làm: D-G7-5 (bộ giữ lại), D-G7-6 (sửa bộ chấm) | ADR-0005, ADR-0006; `750307a`, `a1a5b6b`, `fdb3a18`, `a507e81`, `9264aa6`, `7f6711c`, `d03f962`, `15cb1a8` |
 | 2 | Kiểm toán nhiễm xong | XONG | `docs/g7/CONTAMINATION-AUDIT.md` (`a135c90`) |
-| 3 | Bộ giữ lại đóng băng + băm | CHƯA. Kho 229 ca đang qua bước soát. 7 ca bị lộ cho người viết mã (sự cố 20/10 ~21:36) sẽ bị loại **trước** khi chia (ADR-0006 §5) | `docs/g7/holdout/loai-truoc-dong-bang.txt` |
+| 3 | Bộ giữ lại đóng băng + băm | **XONG 20/10 22:51** (`16a6140`, push 22:51:48). 189 ca sau soát (bỏ 40/229); loại 7 ca bị lộ trước khi chia ⇒ pilot 16, H1 104 (13 / lớp), H2 62, exposed 7; 0 lỗi định dạng. 15 ca có gợi ý kỳ vọng lộ cho phiên viết mã sau đóng băng: tập không đổi, bảng H1 báo độ nhạy (`59ee556`) | `docs/g7/holdout/holdout-manifest.json` (sha256 0f09e007…) |
 | 4 | Test bộ chấm xanh | CHƯA (bộ chấm v2 đang thiết kế) | — |
 | 5 | Biên B2+ đóng băng | XONG về định nghĩa (ADR-0005 §2) và mã (`a1a5b6b`); băm khi đóng băng hợp đồng | — |
 | 6 | Pilot xong (dùng để chọn k) | **CHẶN**: cần khoá model; chưa có trong môi trường | — |
@@ -195,4 +195,4 @@ go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout
 |---|---|
 | sha256 tệp này lúc đóng băng | _(điền khi đóng băng)_ |
 | revision lúc đóng băng | _(điền khi đóng băng)_ |
-| sha256 `h1.yaml` / `h2.yaml` / `pilot.yaml` / `holdout-manifest.json` | _(điền khi đóng băng bộ giữ lại)_ |
+| sha256 `h1.yaml` / `h2.yaml` / `pilot.yaml` / `holdout-manifest.json` | `00685c0d…` / `ea031baf…` / `3e1dd1fe…` / `0f09e007…` (đủ 64 ký tự trong thông điệp commit `16a6140`) |

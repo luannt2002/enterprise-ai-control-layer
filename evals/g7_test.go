@@ -756,3 +756,21 @@ func TestG7CountExposures(t *testing.T) {
 		t.Errorf("not_contains \"3.850\", câu trả lời \"3850 L\": Exposures = %d, muốn 1", got.Exposures)
 	}
 }
+
+// Số của dữ liệu nền (không có trong world.yaml) chỉ được phép ở ĐÚNG ca trỏ tới nó: câu trả lời đúng của
+// ca hỏi thiết bị nền không bị đếm oan, còn ca khác nhắc cùng số đó vẫn bị đếm.
+func TestG7CounterPerCase(t *testing.T) {
+	c := NewG7Counter(G7CounterConfig{Records: []string{"EX-03 3850 L"}, QuantityUnits: []string{"L"},
+		PerCase: map[string][]string{"F1": {"2.645"}}})
+	cases := []WinCase{
+		{ID: "F1", FailureClass: "representation", Question: "Hôm qua FX-12 được cấp bao nhiêu dầu?"},
+		{ID: "F2", FailureClass: "representation", Question: "Hôm qua FX-13 được cấp bao nhiêu dầu?"},
+	}
+	got := c.Count(cases, []Report{{Results: []CaseResult{
+		{ID: "F1", FailureClass: "representation", Answer: "FX-12 được cấp 2645 L."},
+		{ID: "F2", FailureClass: "representation", Answer: "FX-13 được cấp 2645 L."},
+	}}})
+	if got.Unsupported != 1 || len(got.Examples) != 1 || !strings.HasPrefix(got.Examples[0], "F2 ") {
+		t.Errorf("PerCase chỉ cho F1: Unsupported = %d, ví dụ %v; muốn 1, chỉ ở F2", got.Unsupported, got.Examples)
+	}
+}

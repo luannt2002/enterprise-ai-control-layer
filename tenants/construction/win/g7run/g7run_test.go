@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -251,6 +252,103 @@ func TestLoadWindows(t *testing.T) {
 		if _, err := loadWindows(write(name, body), loc); err == nil {
 			t.Errorf("%s: muốn lỗi", name)
 		}
+	}
+}
+
+// Số riêng từng ca cho bộ đếm claim không căn cứ: truth.value, other_values và value_l của bản ghi bộ
+// sinh mà ca trỏ tới (record_ids theo key hoặc world_id; cùng thực thể trong kỳ). Bản ghi ngoài kỳ, khác
+// thực thể, của tenant khác, hay bị cách ly (không value_l) thì không; ca không có truth thì không có số.
+func TestPerCaseNumbers(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	cases := write("ca.json", `{"cases":[
+ {"case_id":"A","truth":{"entities":["FX-12"],"period":{"from":"2026-10-18","to":"2026-10-19"},"value":"5.345","other_values":[{"source":"giám sát","value":"5.300"}],"record_ids":["BG-9"]}},
+ {"case_id":"B","truth":{"entities":[],"period":null,"value":"","other_values":[],"record_ids":["R-001"]}},
+ {"case_id":"C","b1_window":null}]}`)
+	genMan := write("manifest.json", `{"version":1,"records":[
+ {"tenant":"abc-infra","key":"BG-1","entity":"FX-12","on":"2026-10-18","value_l":"2645"},
+ {"tenant":"abc-infra","key":"BG-2","entity":"FX-12","on":"2026-10-19","value_l":"2700"},
+ {"tenant":"abc-infra","key":"BG-3","entity":"FX-12","on":"2026-10-20","value_l":"1111"},
+ {"tenant":"abc-infra","key":"BG-4","entity":"FX-13","on":"2026-10-18","value_l":"2222"},
+ {"tenant":"def-build","key":"BG-5","entity":"FX-12","on":"2026-10-18","value_l":"3333"},
+ {"tenant":"abc-infra","key":"BG-9","entity":"FX-99","on":"2026-09-01","value_l":"4444"},
+ {"tenant":"abc-infra","key":"W-1","world_id":"R-001","entity":"EX-03","on":"2026-10-19","value_l":"3850"},
+ {"tenant":"abc-infra","key":"Q-1","world_id":"R-001","expect":"quarantine","reason":"ngày hỏng"}]}`)
+	got, err := perCaseNumbers(cases, genMan, "abc-infra")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sorted := func(xs []string) string {
+		ys := append([]string(nil), xs...)
+		sort.Strings(ys)
+		return strings.Join(ys, ",")
+	}
+	if g := sorted(got["A"]); g != "2645,2700,4444,5.300,5.345" {
+		t.Errorf("ca A: %s; muốn 2645,2700,4444,5.300,5.345", g)
+	}
+	if g := sorted(got["B"]); g != "3850" {
+		t.Errorf("ca B (record_ids theo world_id): %s; muốn 3850", g)
+	}
+	if len(got["C"]) != 0 {
+		t.Errorf("ca C không có truth: %v; muốn rỗng", got["C"])
+	}
+	for name, body := range map[string]string{
+		"ky-hong.json": `[{"case_id":"A","truth":{"entities":["FX-12"],"period":{"from":"18/10/2026","to":"2026-10-19"},"value":"","other_values":[],"record_ids":[]}}]`,
+		"trung.json":   `[{"case_id":"A"},{"case_id":"A"}]`,
+		"hong.json":    `không phải json`,
+	} {
+		if _, err := perCaseNumbers(write(name, body), genMan, "abc-infra"); err == nil {
+			t.Errorf("%s: muốn lỗi", name)
+		}
+	}
+	if _, err := perCaseNumbers(cases, write("rong.json", `{"version":1,"records":[]}`), "abc-infra"); err == nil {
+		t.Error("manifest bộ sinh không có bản ghi: muốn lỗi")
+	}
+}
+
+// build nối PerCase vào bộ đếm: số chỉ có trong truth của MỘT ca được phép ở ca đó, không ở ca khác.
+func TestBuildWiresPerCase(t *testing.T) {
+	clearModelEnv(t)
+	cfg := baseCfg(genData(t))
+	suite, err := evals.LoadWinSuite(cfg.cases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, b := suite.Cases[0], suite.Cases[1]
+	var list []map[string]any
+	for _, c := range suite.Cases {
+		e := map[string]any{"case_id": c.ID, "b1_window": nil}
+		if c.ID == a.ID {
+			e["truth"] = map[string]any{"entities": []string{}, "period": nil, "value": "98.765", "other_values": []any{}, "record_ids": []string{}}
+		}
+		list = append(list, e)
+	}
+	body, _ := json.Marshal(list)
+	cfg.manifest = filepath.Join(t.TempDir(), "ho-so.json")
+	if err := os.WriteFile(cfg.manifest, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gw, err := models.New(models.ConfigFromEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	systems, _ := parseSystems(sysB2Plus)
+	st, err := build(cfg, gw, systems)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := st.counter.Count([]evals.WinCase{a, b}, []evals.Report{{Results: []evals.CaseResult{
+		{ID: a.ID, FailureClass: a.FailureClass, Answer: "98765 L"},
+		{ID: b.ID, FailureClass: b.FailureClass, Answer: "98765 L"},
+	}}})
+	if got.Unsupported != 1 || len(got.Examples) != 1 || !strings.HasPrefix(got.Examples[0], b.ID+" ") {
+		t.Errorf("số trong truth của %s: Unsupported = %d, ví dụ %v; muốn 1, chỉ ở %s", a.ID, got.Unsupported, got.Examples, b.ID)
 	}
 }
 

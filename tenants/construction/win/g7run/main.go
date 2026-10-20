@@ -548,8 +548,9 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 		st.order = append(st.order, sys)
 	}
 
-	// Bộ đếm độc lập: số được phép lấy từ world.yaml (không từ dữ liệu nền sinh ra: vài nghìn giá
-	// trị nền phủ gần hết dải số thì "được phép" thành vô nghĩa); canary là chữ chỉ có ở tenant khác.
+	// Bộ đếm độc lập: số được phép lấy từ world.yaml (không từ TOÀN BỘ dữ liệu nền sinh ra: vài nghìn
+	// giá trị nền phủ gần hết dải số thì "được phép" thành vô nghĩa); số nền chỉ được phép ở đúng ca
+	// trỏ tới nó (PerCase, cần -manifest có truth); canary là chữ chỉ có ở tenant khác.
 	ownRecords, ownDocs := w.texts(cfg.tenant)
 	var others []string
 	for _, tn := range w.Tenants {
@@ -562,8 +563,14 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 	if len(canaries) == 0 {
 		return nil, fmt.Errorf("world.yaml không có canary nào của tenant khác: bộ đếm rò rỉ sẽ đếm được 0 vì mù, không vì sạch")
 	}
+	var perCase map[string][]string
+	if cfg.manifest != "" {
+		if perCase, err = perCaseNumbers(cfg.manifest, filepath.Join(cfg.data, "manifest.json"), cfg.tenant); err != nil {
+			return nil, err
+		}
+	}
 	st.counter = evals.NewG7Counter(evals.G7CounterConfig{
-		Canaries: canaries, Records: ownRecords, Documents: ownDocs, QuantityUnits: quantityUnits,
+		Canaries: canaries, Records: ownRecords, Documents: ownDocs, QuantityUnits: quantityUnits, PerCase: perCase,
 	})
 	st.canaries = canaries
 	return st, nil

@@ -375,24 +375,12 @@ func loadWindows(path string, loc *time.Location) (map[string]*window, error) {
 			To   string `json:"to"`
 		} `json:"b1_window"`
 	}
-	var list []entry
-	if err := json.Unmarshal(b, &list); err != nil {
-		var wrapped struct {
-			Cases []entry `json:"cases"`
-		}
-		if err2 := json.Unmarshal(b, &wrapped); err2 != nil {
-			return nil, fmt.Errorf("%s: không phải mảng ca hay object có \"cases\": %w", path, err)
-		}
-		list = wrapped.Cases
+	list, err := caseEntries[entry](path, b, func(e entry) string { return e.CaseID })
+	if err != nil {
+		return nil, err
 	}
 	out := map[string]*window{}
 	for _, e := range list {
-		if e.CaseID == "" {
-			return nil, fmt.Errorf("%s: có mục thiếu case_id", path)
-		}
-		if _, dup := out[e.CaseID]; dup {
-			return nil, fmt.Errorf("%s: case_id %s xuất hiện hai lần", path, e.CaseID)
-		}
 		if e.B1Window == nil {
 			out[e.CaseID] = nil
 			continue
@@ -403,6 +391,128 @@ func loadWindows(path string, loc *time.Location) (map[string]*window, error) {
 			return nil, fmt.Errorf("%s: b1_window của %s sai: %+v", path, e.CaseID, *e.B1Window)
 		}
 		out[e.CaseID] = &window{from: from, to: to}
+	}
+	return out, nil
+}
+
+// caseEntries giải mã hồ sơ ca (holdout-manifest.json / kho-manifest.json): mảng ca, hoặc object có
+// khoá "cases". Mục thiếu case_id hay case_id trùng là lỗi.
+func caseEntries[T any](path string, b []byte, id func(T) string) ([]T, error) {
+	var list []T
+	if err := json.Unmarshal(b, &list); err != nil {
+		var wrapped struct {
+			Cases []T `json:"cases"`
+		}
+		if err2 := json.Unmarshal(b, &wrapped); err2 != nil {
+			return nil, fmt.Errorf("%s: không phải mảng ca hay object có \"cases\": %w", path, err)
+		}
+		list = wrapped.Cases
+	}
+	seen := map[string]bool{}
+	for _, e := range list {
+		switch k := id(e); {
+		case k == "":
+			return nil, fmt.Errorf("%s: có mục thiếu case_id", path)
+		case seen[k]:
+			return nil, fmt.Errorf("%s: case_id %s xuất hiện hai lần", path, k)
+		default:
+			seen[k] = true
+		}
+	}
+	return list, nil
+}
+
+// perCaseNumbers tính G7CounterConfig.PerCase: số được phép RIÊNG cho từng ca của bộ đếm claim không
+// căn cứ. Nguồn: truth của hồ sơ ca (người soạn ca ghi, đóng băng cùng ca) và manifest.json của BỘ SINH
+// (giá trị chuẩn của từng bản ghi) — không qua bộ nạp của EAIS, nên độc lập với hệ được chấm.
+// Số riêng của một ca: truth.value, other_values[].value, và value_l của mọi bản ghi thuộc tenant được
+// chấm mà ca trỏ tới bằng truth.record_ids (khớp key hoặc world_id) hoặc có thực thể thuộc
+// truth.entities với ngày trong truth.period. Ca không có truth thì không có số riêng (chặt hơn).
+func perCaseNumbers(casesPath, genManifest, tenantID string) (map[string][]string, error) {
+	b, err := os.ReadFile(casesPath)
+	if err != nil {
+		return nil, err
+	}
+	type entry struct {
+		CaseID string `json:"case_id"`
+		Truth  *struct {
+			Entities []string `json:"entities"`
+			Period   *struct {
+				From string `json:"from"`
+				To   string `json:"to"`
+			} `json:"period"`
+			Value       string `json:"value"`
+			OtherValues []struct {
+				Value string `json:"value"`
+			} `json:"other_values"`
+			RecordIDs []string `json:"record_ids"`
+		} `json:"truth"`
+	}
+	list, err := caseEntries[entry](casesPath, b, func(e entry) string { return e.CaseID })
+	if err != nil {
+		return nil, err
+	}
+	gb, err := os.ReadFile(genManifest)
+	if err != nil {
+		return nil, err
+	}
+	var gm struct {
+		Records []struct {
+			Tenant  string `json:"tenant"`
+			Key     string `json:"key"`
+			WorldID string `json:"world_id"`
+			Entity  string `json:"entity"`
+			On      string `json:"on"`
+			ValueL  string `json:"value_l"`
+		} `json:"records"`
+	}
+	if err := json.Unmarshal(gb, &gm); err != nil {
+		return nil, fmt.Errorf("%s: %w", genManifest, err)
+	}
+	if len(gm.Records) == 0 {
+		return nil, fmt.Errorf("%s: không có bản ghi nào — bộ đếm sẽ đếm oan mọi số của dữ liệu nền", genManifest)
+	}
+	out := map[string][]string{}
+	for _, e := range list {
+		t := e.Truth
+		if t == nil {
+			continue
+		}
+		var from, to string
+		if t.Period != nil {
+			_, err1 := time.Parse("2006-01-02", t.Period.From)
+			_, err2 := time.Parse("2006-01-02", t.Period.To)
+			if err1 != nil || err2 != nil {
+				return nil, fmt.Errorf("%s: truth.period của %s không ở dạng YYYY-MM-DD", casesPath, e.CaseID)
+			}
+			from, to = t.Period.From, t.Period.To
+		}
+		ids, ents := map[string]bool{}, map[string]bool{}
+		for _, x := range t.RecordIDs {
+			ids[x] = true
+		}
+		for _, x := range t.Entities {
+			ents[x] = true
+		}
+		var nums []string
+		if t.Value != "" {
+			nums = append(nums, t.Value)
+		}
+		for _, o := range t.OtherValues {
+			if o.Value != "" {
+				nums = append(nums, o.Value)
+			}
+		}
+		for _, r := range gm.Records {
+			if r.Tenant != tenantID || r.ValueL == "" {
+				continue
+			}
+			inPeriod := t.Period != nil && ents[r.Entity] && r.On >= from && r.On <= to
+			if ids[r.Key] || (r.WorldID != "" && ids[r.WorldID]) || inPeriod {
+				nums = append(nums, r.ValueL)
+			}
+		}
+		out[e.CaseID] = nums
 	}
 	return out, nil
 }

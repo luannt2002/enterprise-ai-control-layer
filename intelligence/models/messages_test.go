@@ -55,12 +55,19 @@ func TestMessagesGateway(t *testing.T) {
 		{http.StatusBadGateway, `{}`, contracts.ThirdParty("anthropic", contracts.KindUnavailable)},
 		{http.StatusUnauthorized, `{}`, contracts.FaultCode},
 		{http.StatusOK, `không phải json`, contracts.ThirdParty("anthropic", contracts.KindBadResponse)},
-		{http.StatusOK, `{"content":[{"type":"text","text":"tôi không trả JSON"}]}`, contracts.ThirdParty("anthropic", contracts.KindBadResponse)},
 	} {
 		status, reply = c.status, c.reply
 		if _, err := m.Generate(ctx, req); contracts.FaultOf(err) != c.label {
 			t.Errorf("HTTP %d %q: nhãn lỗi = %q (lỗi %v), muốn %q", c.status, c.reply, contracts.FaultOf(err), err, c.label)
 		}
+	}
+	// C-05 (soát lượt 2): API trả 200 hợp lệ nhưng MODEL viết văn xuôi thay vì JSON ⇒ đó là đầu ra của model, không
+	// phải lỗi nhà cung cấp (hợp đồng G7 §10: PROVIDER = 429 / 5xx / quá giờ / không tới được). Bản nháp mang nguyên
+	// văn xuôi, KHÔNG có claim (cổng Bound của EACL sẽ chặn); baseline thì được chấm theo nội dung câu đó. Kỳ vọng cũ
+	// (KindBadResponse) khẳng định hành vi sai: nó làm lời từ chối bằng văn xuôi của baseline thành PROVIDER + trượt.
+	status, reply = http.StatusOK, `{"content":[{"type":"text","text":"Tôi không thể trả lời câu hỏi này vì bằng chứng không đủ."}]}`
+	if d, err := m.Generate(ctx, req); err != nil || d.Text != "Tôi không thể trả lời câu hỏi này vì bằng chứng không đủ." || len(d.Claims) != 0 {
+		t.Errorf("model trả văn xuôi: được %+v (lỗi %v); muốn bản nháp mang nguyên văn, không claim, không lỗi", d, err)
 	}
 	// Không trả lời được: answer rỗng ⇒ bản nháp không claim (cổng Bound sẽ chặn, không giao).
 	status, reply = http.StatusOK, `{"content":[{"type":"text","text":"{\"answer\": \"\", \"evidence_ids\": []}"}]}`

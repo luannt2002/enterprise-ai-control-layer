@@ -176,16 +176,17 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 			text.WriteString(c.Text)
 		}
 	}
+	usage := contracts.Usage{InputTokens: mr.Usage.InputTokens, OutputTokens: mr.Usage.OutputTokens, CacheRead: mr.Usage.CacheRead, CacheWrite: mr.Usage.CacheWrite}
 	var out struct {
 		Answer      string   `json:"answer"`
 		EvidenceIDs []string `json:"evidence_ids"`
 	}
 	if err := json.Unmarshal([]byte(jsonObject(text.String())), &out); err != nil {
-		return contracts.Draft{}, contracts.Label(contracts.ThirdParty(m.Provider, contracts.KindBadResponse), err)
+		// API trả lời hợp lệ nhưng MODEL viết văn xuôi thay vì JSON: đó là đầu ra của model, không phải lỗi nhà cung
+		// cấp (C-05, soát lượt 2). Giữ nguyên văn, KHÔNG claim ⇒ cổng Bound của EACL chặn; baseline chấm theo nội dung.
+		return contracts.Draft{Text: strings.TrimSpace(text.String()), Model: m.Model, Usage: usage}, nil
 	}
-	d := contracts.Draft{Text: strings.TrimSpace(out.Answer), Model: m.Model, Usage: contracts.Usage{
-		InputTokens: mr.Usage.InputTokens, OutputTokens: mr.Usage.OutputTokens, CacheRead: mr.Usage.CacheRead, CacheWrite: mr.Usage.CacheWrite,
-	}}
+	d := contracts.Draft{Text: strings.TrimSpace(out.Answer), Model: m.Model, Usage: usage}
 	if d.Text != "" {
 		d.Claims = []contracts.Claim{{Text: d.Text, EvidenceIDs: out.EvidenceIDs}}
 	}

@@ -8,7 +8,7 @@
 cd "$(dirname "$0")/../.." || exit 1
 m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
 export PKGS="./tenants/construction/win/g7run/ ./intelligence/models/"
-M=tenants/construction/win/g7run/main.go E=tenants/construction/win/g7run/evidence.go
+M=tenants/construction/win/g7run/main.go E=tenants/construction/win/g7run/evidence.go C=intelligence/models/messages.go
 m $M '	return strings.EqualFold(strings.TrimSuffix(u.Hostname(), "."), o.Hostname())' '	return raw == officialEndpoint' 'EO1 so endpoint theo chuỗi'
 m $M 'strings.TrimSuffix(u.Hostname(), ".")' 'u.Hostname()' 'EO2 dấu chấm cuối tên máy thành chạy khô'
 m $M ' || (u.Port() != "" && u.Port() != "443") {' ' {' 'EO3 cổng khác 443 thành endpoint chính thức'
@@ -19,5 +19,10 @@ m $M '		if cfg.smoke > contractSmoke {' '		if false {' 'SM1 thử khói vượt 
 m $M '		if cfg.out != "" {
 			if err := probeWritable(cfg.out); err != nil {' '		if false {
 			if err := probeWritable(cfg.out); err != nil {' 'SM2 thử khói không kiểm -out ghi được'
-m $M '				if !slices.Contains(systems, g) {' '				if false {' 'GS1 lượt chính thiếu hệ cổng vẫn chạy'
+m $M '				if !slices.Contains(systems, g) {' '				if !slices.Contains(systems, g) && false {' 'GS1 lượt chính thiếu hệ cổng vẫn chạy'
 m $E '		m.Endpoint = models.EndpointForLog(g.BaseURL)' '		m.Endpoint = g.BaseURL' 'EL2 bằng chứng ghi nguyên URL'
+# F6 (soát fd4d19c + 246eabb): lỗi truyền tải của net/http mang URL đầy đủ. Không đưa vào: redactURL sau NewRequestWithContext (URL
+# không parse được đã bị secureEndpoint từ chối lúc nạp cấu hình nên test không tới được nhánh đó).
+m $C '		redactURL(err)
+		kind := contracts.KindUnreachable' '		kind := contracts.KindUnreachable' 'RD1 lỗi kết nối in nguyên URL có khoá'
+m $C '		ue.URL = EndpointForLog(ue.URL)' '		_ = ue' 'RD2 redactURL không bóc URL'

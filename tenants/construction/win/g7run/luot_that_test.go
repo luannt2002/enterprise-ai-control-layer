@@ -227,3 +227,22 @@ func TestBangChungKhongGhiBiMatTrongURL(t *testing.T) {
 		}
 	}
 }
+
+// Lượt chính bị từ chối vì bộ chấm chưa đóng băng kể cả khi ĐỦ hệ cổng: kiểm riêng lý do này, vì kiểm thiếu hệ cổng (C3-07) che mất ca
+// "lượt chính khi bộ chấm chưa đóng băng" của TestLuotThatTuChoiTruocLoiGoiModel (đột biến PF3 của n30 sống sau 246eabb).
+func TestLuotChinhBoChamChuaDongBangLaLyDoRieng(t *testing.T) {
+	fakeOfficial(t)
+	gw, err := models.New(models.ConfigFromEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := baseCfg(t.TempDir())
+	cfg.k, cfg.out, cfg.systems = 3, filepath.Join(t.TempDir(), "out"), sysB2Plus+","+sysB1
+	found := false
+	for _, r := range preflightReal(cfg, gw) {
+		found = found || strings.Contains(r, "bộ chấm nội dung chưa đóng băng")
+	}
+	if !found {
+		t.Errorf("lượt chính đủ hệ cổng khi bộ chấm chưa đóng băng: thiếu lý do từ chối")
+	}
+}

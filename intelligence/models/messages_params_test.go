@@ -299,3 +299,29 @@ func TestLoiEndpointChiInSchemeVaHost(t *testing.T) {
 		}
 	}
 }
+
+// Lỗi truyền tải (không kết nối được, hết giờ) của net/http mang URL ĐẦY ĐỦ của yêu cầu: khoá đặt trong path / query / fragment của
+// endpoint không được ra thông báo lỗi hay bản ghi lần gửi (Trace → raw-runs.jsonl, ket-qua.md của g7run) — soát fd4d19c + 246eabb, F6.
+func TestLoiTruyenTaiKhongInBiMatTrongURL(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	host := srv.URL
+	srv.Close() // máy chủ đã đóng: mọi lần gửi lỗi kết nối
+	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "khoa-gia", BaseURL: host + "/BIMATPATH/?api_key=BIMATQUERY#BIMATFRAG"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var traced []string
+	g.(*Messages).Trace = func(tr MessagesTrace) { traced = append(traced, tr.Err) }
+	_, err = g.Generate(context.Background(), paramsReq)
+	if err == nil {
+		t.Fatal("máy chủ đã đóng: muốn lỗi")
+	}
+	for _, s := range append(traced, err.Error()) {
+		if strings.Contains(s, "BIMAT") {
+			t.Errorf("lộ phần bí mật của URL: %q", s)
+		}
+	}
+	if !strings.Contains(err.Error(), host) {
+		t.Errorf("lỗi phải còn scheme://host để biết endpoint nào: %q", err)
+	}
+}

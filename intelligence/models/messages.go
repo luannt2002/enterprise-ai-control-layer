@@ -249,6 +249,7 @@ func (m *Messages) send(ctx context.Context, client *http.Client, body []byte, a
 	}()
 	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(m.BaseURL, "/")+"/v1/messages", bytes.NewReader(body))
 	if err != nil {
+		redactURL(err)
 		return nil, false, contracts.Label(contracts.FaultCode, err)
 	}
 	hreq.Header.Set("content-type", "application/json")
@@ -256,6 +257,7 @@ func (m *Messages) send(ctx context.Context, client *http.Client, body []byte, a
 	hreq.Header.Set("x-api-key", m.APIKey)
 	resp, err := client.Do(hreq)
 	if err != nil {
+		redactURL(err)
 		kind := contracts.KindUnreachable
 		if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout") {
 			kind = contracts.KindTimeout
@@ -279,6 +281,15 @@ func (m *Messages) send(ctx context.Context, client *http.Client, body []byte, a
 		return raw, false, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("model: yêu cầu bị từ chối %d", resp.StatusCode))
 	}
 	return raw, false, nil
+}
+
+// redactURL thay URL đầy đủ trong lỗi *url.Error của net/http bằng scheme://host: khoá có thể nằm trong path / query / fragment của
+// endpoint, và thông báo lỗi đi vào Trace, bằng chứng thô và log (soát fd4d19c + 246eabb, F6).
+func redactURL(err error) {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		ue.URL = EndpointForLog(ue.URL)
+	}
 }
 
 // jsonObject cắt phần từ dấu { đầu tiên tới dấu } cuối cùng — model hay bọc JSON trong chữ hoặc

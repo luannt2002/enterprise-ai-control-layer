@@ -54,6 +54,49 @@ import (
 // blockedLine là dòng đầu khi chạy bằng model giả: G7 vẫn CHẶN, kết quả chỉ để thử ống nối.
 const blockedLine = "G7: CHẶN — chưa có model thật; đây là chạy thử ống nối bằng model giả tất định, KHÔNG phải bằng chứng G7"
 
+// scorerFrozen: bộ chấm nội dung đã đóng băng theo hợp đồng chưa. ADR-0007: v1 đã bị phá, v2 còn ĐỀ XUẤT ⇒ false.
+// CHỈ bật khi bộ chấm v2 đủ điều kiện đóng băng của ADR-0007 (hiện thực, hiệu chỉnh trên pilot thật, ngưỡng ngoài mẫu).
+const scorerFrozen = false
+
+// Model và tham số duy nhất hợp đồng G7 §4 cho ra kết luận (D-G7-2).
+const (
+	contractModel    = "claude-sonnet-5-5"
+	contractThinking = "between_tools"
+	contractEffort   = "medium"
+)
+
+// Dòng kết luận khi luật D5 có thể đã tính xong nhưng KHÔNG được rút kết luận G7.
+const (
+	unfrozenLine  = "G7: CHẶN — bộ chấm nội dung chưa đóng băng (ADR-0007; bộ chấm v1 đã bị phá); KHÔNG phải bằng chứng G7"
+	fullGradeLine = "G7: CHẶN — -grade full chấm cả nhãn kiến trúc của EACL, chỉ để chẩn đoán; KHÔNG phải tiêu chí G7"
+	paramsLine    = "G7: CHẶN — model / tham số khác hợp đồng §4 (" + contractModel + ", thinking " + contractThinking + ", effort " + contractEffort + "); KHÔNG phải bằng chứng G7"
+)
+
+// verdictInput gom các điều kiện của kết luận G7.
+type verdictInput struct {
+	pass, fake, dry, frozen, contentGrade, contractParams bool
+}
+
+// verdict trả dòng kết luận cuối và mã thoát (C-06, soát lượt 2). G7 chỉ có thể ĐẠT (mã 0) khi đủ mọi điều kiện;
+// thiếu một điều kiện thì CHẶN (mã 2) dù luật D5 tính ra ĐẠT; luật D5 trượt ở cấu hình hợp lệ thì mã 1.
+func verdict(rule string, in verdictInput) (string, int) {
+	switch {
+	case in.fake:
+		return "phán quyết theo luật: " + rule + "\n" + blockedLine, 2
+	case in.dry:
+		return "phán quyết theo luật: " + rule + "\n" + dryLine, 2
+	case !in.frozen:
+		return "phán quyết theo luật: " + rule + "\n" + unfrozenLine, 2
+	case !in.contentGrade:
+		return "phán quyết theo luật: " + rule + "\n" + fullGradeLine, 2
+	case !in.contractParams:
+		return "phán quyết theo luật: " + rule + "\n" + paramsLine, 2
+	case in.pass:
+		return "G7: " + rule, 0
+	}
+	return "G7: " + rule, 1
+}
+
 // officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4). Endpoint khác (máy chủ giả, proxy) là
 // CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
 const officialEndpoint = "https://api.anthropic.com"
@@ -244,14 +287,9 @@ func run(cfg config) int {
 	if pass {
 		rule = "ĐẠT với mọi baseline cổng (" + strings.Join(gateSystems, ", ") + ")"
 	}
-	switch {
-	case fake:
-		say("\nphán quyết theo luật: %s\n%s\n", rule, blockedLine)
-	case dry:
-		say("\nphán quyết theo luật: %s\n%s\n", rule, dryLine)
-	default:
-		say("\nG7: %s\n", rule)
-	}
+	line, code := verdict(rule, verdictInput{pass: pass, fake: fake, dry: dry, frozen: scorerFrozen, contentGrade: cfg.grade == gradeContent,
+		contractParams: mc.Model == contractModel && mc.Thinking == contractThinking && mc.Effort == contractEffort})
+	say("\n%s\n", line)
 	fmt.Print(out.String())
 
 	if cfg.out != "" {
@@ -261,13 +299,7 @@ func run(cfg config) int {
 		}
 		fmt.Println("bằng chứng thô:", cfg.out)
 	}
-	switch {
-	case fake, dry:
-		return 2
-	case pass:
-		return 0
-	}
-	return 1
+	return code
 }
 
 // gatePass là kết luận của G7 (ADR-0005 §5–6): ĐẠT chỉ khi MỌI baseline cổng đều chạy được và đều

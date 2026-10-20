@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -138,7 +140,8 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 	}
 	client := m.Client
 	if client == nil {
-		client = &http.Client{Timeout: 60 * time.Second}
+		// Không đi theo chuyển hướng: x-api-key là header tuỳ biến, Go KHÔNG tự bỏ nó khi chuyển hướng sang đích khác.
+		client = &http.Client{Timeout: 60 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	}
 	var raw []byte
 	for attempt := 1; ; attempt++ {
@@ -314,6 +317,26 @@ var (
 // ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
 // EAIS_MODEL_API_KEY, EAIS_MODEL_MAX_TOKENS, EAIS_MODEL_TEMPERATURE, EAIS_MODEL_THINKING,
 // EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
+// secureEndpoint: https, hoặc http tới loopback (127.0.0.1, ::1, localhost) cho máy chủ giả khi chạy khô.
+func secureEndpoint(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	switch u.Scheme {
+	case "https":
+		return u.Host != ""
+	case "http":
+		h := u.Hostname()
+		if h == "localhost" {
+			return true
+		}
+		ip := net.ParseIP(h)
+		return ip != nil && ip.IsLoopback()
+	}
+	return false
+}
+
 func ConfigFromEnv() Config {
 	c := Config{
 		Provider: os.Getenv("EAIS_MODEL_PROVIDER"), Model: os.Getenv("EAIS_MODEL"),
@@ -321,7 +344,13 @@ func ConfigFromEnv() Config {
 		Temperature: os.Getenv("EAIS_MODEL_TEMPERATURE"), Thinking: os.Getenv("EAIS_MODEL_THINKING"),
 		Effort: os.Getenv("EAIS_MODEL_EFFORT"), MaxRetries: 2,
 	}
-	c.MaxTokens, _ = strconv.Atoi(os.Getenv("EAIS_MODEL_MAX_TOKENS"))
+	if v := os.Getenv("EAIS_MODEL_MAX_TOKENS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			c.MaxTokens = n
+		} else {
+			c.MaxTokens = -1 // New báo lỗi cấu hình, không lặng lẽ về mặc định
+		}
+	}
 	if v := os.Getenv("EAIS_MODEL_MAX_RETRIES"); v != "" {
 		var err error
 		if c.MaxRetries, err = strconv.Atoi(v); err != nil {
@@ -346,7 +375,13 @@ func New(c Config) (Gateway, error) {
 		if m.BaseURL == "" {
 			m.BaseURL = "https://api.anthropic.com"
 		}
-		if m.MaxTokens <= 0 {
+		if !secureEndpoint(m.BaseURL) {
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô)", m.BaseURL))
+		}
+		if c.MaxTokens < 0 {
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_TOKENS phải là số nguyên dương")
+		}
+		if m.MaxTokens == 0 {
 			m.MaxTokens = 1024
 		}
 		if c.Temperature != "" {

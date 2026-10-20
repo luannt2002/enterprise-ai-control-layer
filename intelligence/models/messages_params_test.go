@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -214,5 +215,58 @@ func TestBackoffStopsOnContextCancel(t *testing.T) {
 	// truyền tải nên máy chủ không thấy) — chỉ số lần chờ lộ ra điều đó.
 	if !errors.Is(err, context.Canceled) || n != 1 || waits != 1 {
 		t.Errorf("huỷ ctx khi chờ: lỗi %v (errors.Is Canceled = %v), %d lần gửi, %d lần chờ; muốn Canceled sau đúng 1 lần gửi, 1 lần chờ", err, errors.Is(err, context.Canceled), n, waits)
+	}
+}
+
+// C-18 (soát lượt 2): khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô).
+func TestNewChiNhanHTTPSHoacLoopback(t *testing.T) {
+	for url, ok := range map[string]bool{
+		"https://api.anthropic.com": true, "http://127.0.0.1:25480": true, "http://localhost:8080": true, "http://[::1]:9": true,
+		"http://example.com": false, "http://10.0.0.5:8080": false, "ftp://127.0.0.1": false,
+	} {
+		_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: url})
+		if (err == nil) != ok {
+			t.Errorf("BaseURL %s: lỗi %v; muốn nhận = %v", url, err, ok)
+		}
+	}
+}
+
+// C-18: không đi theo chuyển hướng HTTP — khoá không được gửi lại tới đích khác.
+func TestKhongTheoChuyenHuong(t *testing.T) {
+	var keyAtTarget atomic.Int64
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-api-key") != "" {
+			keyAtTarget.Add(1)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"{}"}]}`))
+	}))
+	defer target.Close()
+	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL+r.URL.Path, http.StatusTemporaryRedirect)
+	}))
+	defer redirect.Close()
+	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "khoa-gia", BaseURL: redirect.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.Generate(context.Background(), paramsReq); err == nil {
+		t.Error("máy chủ trả 307: muốn lỗi, không đi theo chuyển hướng")
+	}
+	if n := keyAtTarget.Load(); n != 0 {
+		t.Errorf("khoá đã được gửi tới đích chuyển hướng %d lần", n)
+	}
+}
+
+// C-18: EAIS_MODEL_MAX_TOKENS hỏng là lỗi cấu hình, không bị bỏ im lặng về mặc định.
+func TestMaxTokensHongLaLoi(t *testing.T) {
+	for _, v := range []string{"abc", "-5", "0"} {
+		t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+		t.Setenv("EAIS_MODEL", "m")
+		t.Setenv("EAIS_MODEL_API_KEY", "k")
+		t.Setenv("EAIS_MODEL_MAX_TOKENS", v)
+		if _, err := New(ConfigFromEnv()); err == nil {
+			t.Errorf("EAIS_MODEL_MAX_TOKENS=%q: muốn lỗi cấu hình", v)
+		}
 	}
 }

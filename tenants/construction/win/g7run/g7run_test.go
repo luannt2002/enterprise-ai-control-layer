@@ -934,3 +934,34 @@ func TestEvidenceDirAndWindowGuards(t *testing.T) {
 		t.Error("case_id trùng trong hồ sơ cửa sổ: muốn lỗi")
 	}
 }
+
+// C-06 (soát lượt 2): G7 chỉ có thể ĐẠT (mã 0) khi model thật, endpoint chính thức, bộ chấm đã đóng băng,
+// chấm theo nội dung, model + tham số đúng hợp đồng §4 và luật D5 đạt. Thiếu một điều kiện ⇒ CHẶN (mã 2), kể cả khi
+// luật D5 tính ra ĐẠT; luật D5 trượt ở cấu hình hợp lệ ⇒ mã 1.
+func TestVerdictChiDatKhiDuDieuKien(t *testing.T) {
+	ok := verdictInput{pass: true, frozen: true, contentGrade: true, contractParams: true}
+	if line, code := verdict("ĐẠT", ok); code != 0 || !strings.HasPrefix(line, "G7: ĐẠT") {
+		t.Errorf("đủ điều kiện: mã %d, %q; muốn 0 và G7: ĐẠT", code, line)
+	}
+	fail := ok
+	fail.pass = false
+	if _, code := verdict("KHÔNG ĐẠT", fail); code != 1 {
+		t.Errorf("luật D5 trượt ở cấu hình hợp lệ: mã %d; muốn 1", code)
+	}
+	for name, mut := range map[string]func(*verdictInput){
+		"model giả":              func(v *verdictInput) { v.fake = true },
+		"chạy khô":               func(v *verdictInput) { v.dry = true },
+		"bộ chấm chưa đóng băng": func(v *verdictInput) { v.frozen = false },
+		"chấm full":              func(v *verdictInput) { v.contentGrade = false },
+		"lệch hợp đồng":          func(v *verdictInput) { v.contractParams = false },
+	} {
+		in := ok
+		mut(&in)
+		if line, code := verdict("ĐẠT", in); code != 2 || strings.HasPrefix(line, "G7: ĐẠT") {
+			t.Errorf("%s: mã %d, %q; muốn 2 (CHẶN) và không in G7: ĐẠT", name, code, line)
+		}
+	}
+	if scorerFrozen {
+		t.Error("scorerFrozen = true khi ADR-0007 còn ĐỀ XUẤT: chỉ bật khi bộ chấm v2 đủ điều kiện đóng băng")
+	}
+}

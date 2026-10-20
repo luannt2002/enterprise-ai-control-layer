@@ -88,6 +88,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - Ghi vào `docs/g7/holdout/loai-truoc-dong-bang.txt`, mỗi dòng `<id ca> <lý do>`.
   - Công cụ đóng băng loại các ca đó **trước khi chia** (§4 chạy trên phần còn lại) và ghi chúng vào `exposed.yaml`: chỉ báo cáo, không tính cổng. Manifest ghi `set: exposed` + `excluded_reason`, băm cả tệp danh sách.
   - Chỉ loại vì lộ, không bao giờ vì kết quả. Danh sách đóng băng cùng bộ, nên không sửa được sau khi đã thấy kết quả.
+- **Giới hạn đã biết (bản soát lượt 2, B-05):** bằng chứng "đóng băng trước khi chạy" là commit + push công khai, nên nội dung cả H2 (và truth trong `holdout-manifest.json`) đã công khai từ `16a6140`. Bảo vệ H2 chỉ còn là quy trình: người viết mã không đọc H2. Lần sau dùng cam kết bằng băm (chỉ commit sha256 của tệp ca; công bố nội dung khi chạy).
 - **Gợi ý lộ SAU khi đóng băng, trước khi chạy** (thêm 20/10 đêm): tập đã đóng băng không đổi. Ghi mã ca vào `docs/g7/holdout/goi-y-lo-cho-phien-chinh.txt`; bảng H1 báo thêm G2' / G5' khi bỏ các ca đó. Bài học: kết quả trả về cho phiên viết mã phải có schema không chứa chữ tự do, vì một trường "không kiểm được" cũng có thể lộ kỳ vọng.
 
 ### 6. Pilot và luật chọn k (đăng ký trước)
@@ -106,7 +107,9 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - phát lại bản ghi quyết định.
 - **Thủ tục chạy** (thêm 20/10 đêm, trước lần chạy H1 đầu tiên): `scripts/chay-giu-lai.sh <tệp ca> <thư mục ra>`.
   - Chạy cả hai đường, rồi lập bảng cổng (`scripts/bang-cong-h1.py`). Ghi revision, giờ bắt đầu / kết thúc, băm tệp ca, băm dữ liệu.
-  - Từ chối chạy khi: thư mục ra đã có (mỗi tập chỉ chạy một lần); cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`.
+  - Từ chối chạy khi: tệp ca không khớp băm bản đóng băng (`holdout-manifest.json`); tệp là `h2.yaml` khi H1 còn là bộ giữ lại; tập đã có lần chạy HOÀN TẤT (tìm theo băm tệp ca); thư mục ra nằm ngoài thư mục bộ giữ lại hoặc đã có; cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`; đường PG không dùng database riêng `eais_giu_lai`.
+  - Lần chạy HỎNG HẠ TẦNG (lỗi cấu hình / nạp, mã thoát 1) không phải lần đo: được chạy lại khi mã (cây git không tính `docs/`) y nguyên.
+  - Một ca chỉ ĐẠT khi đạt ở CẢ HAI đường; đầu vào thiếu (thiếu `-v`, thiếu ca, sai đường) thì BLOCKED. Sửa theo bản soát độc lập lượt 2, trước lần chạy H1 đầu tiên; công cụ có test (`scripts/kiemcongcu`) và đột biến (`scripts/dot-bien/n27-cong-cu-giu-lai.sh`).
 - **H2 không chạy** khi H1 còn là bộ giữ lại.
 - **Ca H1 trượt:**
   - ghi tầng sai đầu tiên + bất biến bị hỏng;

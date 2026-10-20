@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Đóng băng bộ giữ lại theo ADR-0006 §4–5, MÁY MÓC, không đọc nội dung ca.
 
-    python3 -I scripts/dong-bang-giu-lai.py [thư mục]      # mặc định docs/g7/holdout
+    python3 -I scripts/dong-bang-giu-lai.py [thư mục]          # mặc định docs/g7/holdout
+    python3 -I scripts/dong-bang-giu-lai.py --kiem [thư mục]   # tính lại, so với bản đã đóng băng, không ghi
+
+Đã có holdout-manifest.json thì từ chối ghi (đóng băng lại phải là việc có chủ đích: xoá + commit lý do).
+--kiem tính lại việc chia từ kho.yaml / kho-manifest.json / loai-truoc-dong-bang.txt và so từng tệp, từng
+ca (tập, frozen_hash) với bản đã đóng băng: in KHỚP (thoát 0) hoặc LỆCH kèm lý do (thoát 1). Bỏ qua frozen_at.
 
 Đầu vào: kho.yaml (ca, định dạng evals/win.go) + kho-manifest.json (hồ sơ ca, mảng) + (nếu có)
 loai-truoc-dong-bang.txt.
@@ -101,9 +106,20 @@ def read_exclusions(path, ids):
 
 
 def main():
-    d = Path(sys.argv[1] if len(sys.argv) > 1 else "docs/g7/holdout")
+    args = sys.argv[1:]
+    check = "--kiem" in args
+    args = [a for a in args if a != "--kiem"]
+    d = Path(args[0] if args else "docs/g7/holdout")
     kho, man, excl_path = d / "kho.yaml", d / "kho-manifest.json", d / "loai-truoc-dong-bang.txt"
-    head, blocks = split_blocks(kho.read_text(encoding="utf-8"))
+    if (d / "holdout-manifest.json").exists() and not check:
+        sys.exit(f"{d}/holdout-manifest.json đã có: bộ đã đóng băng, không ghi đè. Muốn kiểm thì dùng --kiem.")
+    raw_bytes = kho.read_bytes()  # đọc byte thô: read_text ở chế độ văn bản tự đổi CRLF thành LF nên không thấy CR
+    if b"\r" in raw_bytes:
+        sys.exit("kho.yaml có ký tự CR (CRLF): đổi về LF trước khi đóng băng")
+    raw = raw_bytes.decode("utf-8")
+    if not raw.endswith("\n"):
+        sys.exit("kho.yaml không kết thúc bằng xuống dòng: khối ca cuối sẽ dính vào ca kế ở tệp ra")
+    head, blocks = split_blocks(raw)
     ids = [b["id"] for b in blocks]
     if len(set(ids)) != len(ids):
         sys.exit("kho.yaml: id ca trùng")
@@ -126,10 +142,11 @@ def main():
     names = ("pilot", "h1", "h2") + (("exposed",) if excluded else ())
     files = {}
     counts = {}
+    texts = {}
     for name in names:
         part = [b for b in sorted(blocks, key=lambda b: b["id"]) if sets[b["id"]] == name]
         text = head + "".join(b["text"] for b in part)
-        (d / f"{name}.yaml").write_text(text, encoding="utf-8")
+        texts[f"{name}.yaml"] = text
         files[f"{name}.yaml"] = sha(text.encode("utf-8"))
         counts[name] = {}
         for b in part:
@@ -143,6 +160,27 @@ def main():
             e["excluded_reason"] = excluded[b["id"]]
         e["frozen_hash"] = sha(b["text"].encode("utf-8"))
         cases.append(e)
+    if check:
+        old = json.loads((d / "holdout-manifest.json").read_text(encoding="utf-8"))
+        diffs = []
+        if old.get("files_sha256") != files:
+            diffs.append(f"băm tệp: đã đóng băng {old.get('files_sha256')} ≠ tính lại {files}")
+        for k, v in files.items():
+            if not (d / k).exists() or sha((d / k).read_bytes()) != v:
+                diffs.append(f"{k} trên đĩa khác bản tính lại")
+        old_cases = {c["case_id"]: (c.get("set"), c.get("frozen_hash")) for c in old.get("cases", [])}
+        new_cases = {c["case_id"]: (c["set"], c["frozen_hash"]) for c in cases}
+        if old_cases != new_cases:
+            lech = sorted(k for k in set(old_cases) | set(new_cases) if old_cases.get(k) != new_cases.get(k))
+            diffs.append(f"{len(lech)} ca lệch tập / frozen_hash, ví dụ {lech[:5]}")
+        if diffs:
+            for x in diffs:
+                print("LỆCH:", x)
+            sys.exit(1)
+        print(f"KHỚP: {len(cases)} ca; " + "; ".join(f"{n} {sum(counts[n].values())}" for n in names))
+        return
+    for k, text in texts.items():
+        (d / k).write_text(text, encoding="utf-8")
     out = {
         "version": 1,
         "rule": "ADR-0006 §4–5: ca trong loai-truoc-dong-bang.txt → exposed; trong từng lớp của phần còn lại, xếp theo sha256(salt + case_id); 2 → pilot, 13 → h1, còn lại → h2",

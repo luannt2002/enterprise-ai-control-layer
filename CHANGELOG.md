@@ -66,6 +66,12 @@ Chi tiết và lệnh chứng minh: `docs/STATUS.md`; các quyết định tự 
 - Bộ chuẩn hoá đọc "-150 L" thành 150, nên hiệu âm bị cổng S9 chặn khi giao.
 - Truy xuất so khớp bỏ dấu: "bí" khớp "bị".
 - Truy xuất cộng điểm theo thứ tự duyệt map, nên đoạn hoà điểm đổi chỗ giữa các lần hỏi. Nay cộng theo thứ tự từ cố định; hoà điểm thì xếp theo tài liệu rồi dòng.
+- S2-4 (bản soát độc lập, P5): câu nêu **nhiều thực thể cùng loại, nhiều kỳ, khoảng ngày "từ X đến Y", ngày không có trên lịch, hoặc câu xác nhận nhiều con số khác nhau** từng bị cắt thầm về vế đầu (hoặc rơi về ngày hôm nay với "31/02") và trả RESOLVED / INSUFFICIENT_EVIDENCE như thể đó là cả câu hỏi. Nay là `CLARIFICATION_REQUIRED` bằng mẫu `clarify_missing` sẵn có của pack:
+  - `intelligence/intent`: khe chỉ nhận MỘT giá trị — `Intent.Missing` giữ khe đó, `Result.Unclear` ghi các thực thể / kỳ / ngày hỏng đã nhận ra (thứ người hỏi viết rõ không đi qua `Candidates`, nên router không gỡ thay họ bằng quyền xem). Máy kèm dự án chứa nó ("EX-03 của dự án A") vẫn là một chủ thể.
+  - `data/normalization`: `NormalizedInput.InvalidDates` ghi cụm có dạng ngày mà không có trên lịch ("31/02", "32/10", "29/02/2026", "16/9/26"); span không đổi (31/2 vẫn là hai số trần).
+  - `core/pipeline`: con số xác nhận tranh nhau (mệnh đề hỏi và các mệnh đề sau; số ngữ cảnh ở mệnh đề trước và giá trị trùng sau khi đổi đơn vị không tính) → hỏi lại với khe `claimed`; câu hỏi lại vẫn lọc ứng viên theo phạm vi dữ liệu của người hỏi; ngày hỏng nằm trong vết quyết định.
+  - "từ X đến Y" **chưa được trả lời như một khoảng** (cần quy tắc chuẩn hoá mới): hai đầu mút là hai kỳ nên hỏi lại, không bao giờ trả lời riêng ngày đầu.
+  - Bằng chứng: `scripts/dot-bien/n25-nhieu-ve.sh` (37 đột biến).
 
 ### Thêm (19/10/2026)
 

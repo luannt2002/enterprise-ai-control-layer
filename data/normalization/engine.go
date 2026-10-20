@@ -48,6 +48,8 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 	toks := tokenize(raw)
 
 	var spans []contracts.Span
+	var invalid []string // ngày hỏng ("31/02"): không sinh span, nhưng phải để lại dấu cho các chặng sau
+	invalidEnd := 0
 	approxUntil := -1
 	for i := 0; i < len(toks); {
 		t := toks[i]
@@ -60,9 +62,13 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 			continue
 		}
 		if t.kind == tokNum {
-			if sp, next, ok := matchNumericDate(raw, toks, i, opt.Now); ok {
+			sp, next, ok, bad := matchNumericDate(raw, toks, i, opt.Now)
+			if ok {
 				spans, i = append(spans, sp), next
 				continue
+			}
+			if bad.Raw != "" && bad.Start >= invalidEnd { // cụm nhỏ nằm trong cụm hỏng đã ghi ("9/26" của "16/9/26") thì bỏ
+				invalid, invalidEnd = append(invalid, bad.Raw), bad.End
 			}
 			if sp, next, ok := matchClock(raw, toks, i); ok {
 				spans, i = append(spans, sp), next
@@ -117,12 +123,13 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 
 	lower := strings.ToLower(CollapseSpaces(raw))
 	return contracts.NormalizedInput{
-		Raw:         raw,
-		Text:        lower,
-		Folded:      Fold(lower),
-		Canonical:   e.canonicalText(raw, spans),
-		Spans:       spans,
-		Ambiguities: ambs,
+		Raw:          raw,
+		Text:         lower,
+		Folded:       Fold(lower),
+		Canonical:    e.canonicalText(raw, spans),
+		Spans:        spans,
+		Ambiguities:  ambs,
+		InvalidDates: invalid,
 	}
 }
 

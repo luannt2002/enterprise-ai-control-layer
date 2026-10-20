@@ -123,6 +123,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// Không đọc được danh mục thì không kết luận được quyền — lỗi hạ tầng, không mở toang.
 		return Outcome{}, lineageErr
 	}
+	// Câu hỏi lại giải thích thêm khi câu nêu nhiều mốc thời gian / ngày hỏng, và khi câu xác nhận nêu nhiều con số
+	// khác nhau: không xác nhận con số nào thay người hỏi (P5).
+	notes := a.unclearNotes(cls.Unclear, now.Location())
+	if len(a.rivalClaims(plan, in)) > 1 {
+		plan.Route, plan.Template, plan.Outcome, plan.Steps = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired, nil
+		plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")
+		plan.Reason = "câu xác nhận nêu nhiều con số khác nhau"
+		notes = append(notes, "Câu hỏi nêu nhiều con số khác nhau; mỗi lượt chỉ xác nhận được một con số.")
+	}
 
 	resp := contracts.AskResponse{
 		Route: plan.Route, Outcome: plan.Outcome, Intent: plan.Intent.Name, PackVersion: a.RT.PackVersion, TraceID: uuid.NewString(),
@@ -132,8 +141,8 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	// Từ đây chỉ dùng plan.Intent: ý định SAU khi router đã kiểm quyền và gỡ mơ hồ.
 	switch plan.Route {
 	case contracts.RouteClarification:
-		visible := a.visibleCandidates(ctx, pr, cls.Candidates)
-		missing, cands := a.clarificationDetails(plan.Intent, visible)
+		visible := a.visibleCandidates(ctx, pr, append(slices.Clone(cls.Candidates), cls.Unclear.Entities...))
+		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(append(cls.Ambiguous, cls.NeedTerm...))
 		resp.Answer = a.render(plan.Template, vars)
@@ -206,6 +215,9 @@ func (a *Ask) decision(pr contracts.Principal, now time.Time, question string, i
 	}
 	for _, sp := range in.Spans {
 		d.Normalized = append(d.Normalized, fmt.Sprintf("%s:%s=%s", sp.Kind, sp.Raw, valueText(sp.Value)))
+	}
+	for _, raw := range in.InvalidDates { // ngày hỏng không có span, nhưng là một phần của vết chuẩn hoá (P8)
+		d.Normalized = append(d.Normalized, fmt.Sprintf("%s:%s=invalid", contracts.ValueDate, raw))
 	}
 	for _, e := range res.Entities {
 		d.Entities = append(d.Entities, e.ID)
@@ -581,12 +593,8 @@ func citations(d contracts.Draft, ev []contracts.Evidence) []contracts.Citation 
 // claimedValue trả con số người hỏi đưa ra khi câu là câu XÁC NHẬN (có cụm confirm_markers của
 // pack và đúng MỘT lượng ngoài tên thực thể), đã đổi về đơn vị chuẩn của chỉ số.
 func (a *Ask) claimedValue(in contracts.NormalizedInput, ent contracts.EntityRef, metric string) (contracts.Value, bool) {
-	marked := false
-	for _, m := range a.RT.ConfirmMarkers {
-		marked = marked || normalization.ContainsPhrase(in.Raw, m)
-	}
 	def, ok := a.RT.Metrics.Metric(metric)
-	if !marked || !ok {
+	if !a.confirming(in.Raw) || !ok {
 		return contracts.Value{}, false
 	}
 	var cands, focused []contracts.Value
@@ -609,7 +617,22 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, ent contracts.EntityRef
 	if len(cands) != 1 {
 		return contracts.Value{}, false
 	}
-	v := cands[0]
+	return a.inMetricUnit(cands[0], def)
+}
+
+// confirming báo câu có cụm xác nhận của pack ("đúng không").
+func (a *Ask) confirming(text string) bool {
+	for _, m := range a.RT.ConfirmMarkers {
+		if normalization.ContainsPhrase(text, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// inMetricUnit đổi một con số người hỏi nêu về đơn vị chuẩn của chỉ số (số trần lấy đơn vị đó); false khi không đổi
+// được ("7h" không phải lượng dầu).
+func (a *Ask) inMetricUnit(v contracts.Value, def sourceoftruth.MetricDef) (contracts.Value, bool) {
 	if v.Kind == contracts.ValueNumber || v.Unit == "" {
 		v.Kind, v.Unit = contracts.ValueQuantity, def.Unit
 	}
@@ -621,6 +644,44 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, ent contracts.EntityRef
 		v = cv
 	}
 	return v, true
+}
+
+// rivalClaims trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà một câu xác nhận nêu ở mệnh đề hỏi và
+// các mệnh đề sau nó ("3850 L đúng không, 4000 L thì sao?", "3850 L và 4000 L đúng không?"); từ hai con số trở lên là
+// câu không xác nhận được con số nào thay người hỏi. Số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi là ngữ cảnh ("đội báo 2k, vậy
+// tổng báo 4k đúng không?") và cùng một giá trị viết hai cách ("4k", "4 m3") chỉ tính một lần. Chỉ xét route số liệu có
+// chỉ số gốc và không phải câu so sánh — đúng những câu mà answerMetric coi là câu xác nhận.
+func (a *Ask) rivalClaims(plan contracts.RoutePlan, in contracts.NormalizedInput) []contracts.Value {
+	switch plan.Route {
+	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
+	default:
+		return nil
+	}
+	it := plan.Intent
+	def, ok := a.RT.Metrics.Metric(it.Slots["metric"].Text)
+	if !ok || it.Slots["compare_metric"].Text != "" || !a.confirming(in.Raw) {
+		return nil
+	}
+	ent := firstEntitySlot(it).Entity
+	from := 0
+	if fs, _, focus := intent.FocusClause(in.Raw, a.RT.ConfirmMarkers); focus {
+		from = fs
+	}
+	var out []contracts.Value
+	for _, sp := range in.Spans {
+		if (sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber) || sp.Start < from ||
+			(sp.Start < ent.End && sp.End > ent.Start) {
+			continue
+		}
+		v, ok := a.inMetricUnit(sp.Value, def)
+		if !ok {
+			continue
+		}
+		if !slices.ContainsFunc(out, func(o contracts.Value) bool { c, err := decimal.Cmp(o.Number, v.Number); return err == nil && c == 0 }) {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // otherMetrics kê tổng các chỉ số GỐC khác của cùng thực thể, cùng kỳ (đã qua thẩm quyền), kèm
@@ -704,12 +765,17 @@ func periodBounds(it contracts.Intent, now time.Time) (time.Time, time.Time, err
 			break
 		}
 	}
+	return parseBounds(text, now.Location())
+}
+
+// parseBounds đọc "YYYY-MM-DD" (một ngày) hoặc "YYYY-MM-DD/YYYY-MM-DD" (một khoảng) thành [từ, đến].
+func parseBounds(text string, loc *time.Location) (time.Time, time.Time, error) {
 	fromS, toS, found := strings.Cut(text, "/")
 	if !found {
 		toS = fromS
 	}
-	from, err1 := time.ParseInLocation("2006-01-02", fromS, now.Location())
-	to, err2 := time.ParseInLocation("2006-01-02", toS, now.Location())
+	from, err1 := time.ParseInLocation("2006-01-02", fromS, loc)
+	to, err2 := time.ParseInLocation("2006-01-02", toS, loc)
 	if err1 != nil || err2 != nil {
 		return time.Time{}, time.Time{}, contracts.Errorf(contracts.FaultCode, "khoảng ngày không đọc được: "+text)
 	}
@@ -796,10 +862,12 @@ func (a *Ask) visibleCandidates(ctx context.Context, pr contracts.Principal, can
 	return out
 }
 
-// clarificationDetails dựng phần "thiếu gì" và "ứng viên" cho câu hỏi lại.
-func (a *Ask) clarificationDetails(it contracts.Intent, candidates []contracts.EntityRef) (string, string) {
+// clarificationDetails dựng phần "thiếu gì" và "ứng viên" cho câu hỏi lại; notes là các câu giải thích thêm (nhiều mốc
+// thời gian, ngày hỏng, nhiều con số) nối sau danh sách ứng viên.
+func (a *Ask) clarificationDetails(it contracts.Intent, candidates []contracts.EntityRef, notes []string) (string, string) {
 	def, _ := a.RT.Intents.Def(it.Name)
-	labels := map[string]string{"metric": "chỉ số cần hỏi"}
+	// "claimed" không phải khe của pack: là con số cần xác nhận của câu xác nhận nêu nhiều con số
+	labels := map[string]string{"metric": "chỉ số cần hỏi", "claimed": "con số cần xác nhận"}
 	for _, s := range def.Slots {
 		if s.Label != "" {
 			labels[s.Name] = s.Label
@@ -821,7 +889,34 @@ func (a *Ask) clarificationDetails(it contracts.Intent, candidates []contracts.E
 	if len(cands) > 0 {
 		candText = "Có thể là: " + strings.Join(cands, ", ") + "."
 	}
+	for _, n := range notes {
+		candText = strings.TrimSpace(candText + " " + n)
+	}
 	return strings.Join(missing, ", "), candText
+}
+
+// unclearNotes dựng phần giải thích thêm của câu hỏi lại khi câu nêu nhiều mốc thời gian hoặc ngày hỏng (P5): các mốc
+// đã nhận ra (chữ người hỏi viết, kèm ngày chuẩn) và các ngày không hợp lệ. Thực thể không ở đây — chúng là ứng viên có kiểu.
+func (a *Ask) unclearNotes(u intent.Unclear, loc *time.Location) []string {
+	var notes []string
+	if len(u.Periods) > 0 {
+		shown := make([]string, 0, len(u.Periods))
+		for _, sp := range u.Periods {
+			d := sp.Value.Text
+			if from, to, err := parseBounds(d, loc); err == nil {
+				d = displayPeriod(from, to)
+			}
+			if !strings.Contains(d, sp.Raw) {
+				d = sp.Raw + " (" + d + ")"
+			}
+			shown = append(shown, d)
+		}
+		notes = append(notes, "Câu hỏi nêu nhiều mốc thời gian: "+strings.Join(shown, ", ")+".")
+	}
+	if len(u.Invalid) > 0 {
+		notes = append(notes, "Ngày "+strings.Join(u.Invalid, ", ")+" không hợp lệ.")
+	}
+	return notes
 }
 
 func (a *Ask) intentOptions(names []string) string {

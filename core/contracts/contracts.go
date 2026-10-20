@@ -116,6 +116,10 @@ type NormalizedInput struct {
 	Canonical   string      `json:"canonical"`
 	Spans       []Span      `json:"spans"`
 	Ambiguities []Ambiguity `json:"ambiguities,omitempty"`
+	// InvalidDates là nguyên văn các cụm có DẠNG ngày ("31/02", "32/10/2026", "16/9/26") nhưng không đọc được thành
+	// một ngày trên lịch. Chúng KHÔNG sinh span ngày — nên nếu không ghi lại ở đây, câu hỏi ngày hỏng sẽ lặng lẽ
+	// được hiểu như không nêu ngày và rơi về ngày mặc định (P5: không đoán im lặng).
+	InvalidDates []string `json:"invalid_dates,omitempty"`
 }
 
 // SpansOf trả các span thuộc kiểu cho trước, theo thứ tự xuất hiện.

@@ -224,6 +224,9 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 	if len(cls.Intent.Missing) > 0 {
 		plan.Route, plan.Template, plan.Outcome = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired
 		plan.Reason = "thiếu khe bắt buộc: " + strings.Join(cls.Intent.Missing, ", ")
+		if cls.Unclear.Any() { // không thiếu — câu nêu nhiều giá trị khác nhau hoặc ngày hỏng cho khe đó
+			plan.Reason = "câu nêu nhiều giá trị khác nhau hoặc ngày hỏng cho khe: " + strings.Join(cls.Intent.Missing, ", ")
+		}
 		if len(in.Ambiguities) > 0 {
 			plan.Reason += " (có viết tắt mơ hồ)"
 		}

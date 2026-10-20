@@ -133,7 +133,11 @@ func valueKindOf(from, to time.Time) contracts.ValueKind {
 }
 
 // matchNumericDate đọc "16/9", "16/09/2026", "16-9-2026", "2025-11-28".
-func matchNumericDate(s string, toks []token, i int, now time.Time) (contracts.Span, int, bool) {
+//
+// Cụm có DẠNG ngày mà không đọc được thành một ngày trên lịch ("31/2", "32/10", "29/02/2026", "16/9/26") không phải
+// ngày: trả ok=false KÈM bad (span của cả cụm, Rule "date:invalid") để Normalize ghi vào InvalidDates. Người hỏi đã
+// cố nêu một ngày — bỏ qua im lặng thì câu hỏi rơi về ngày mặc định như thể họ không nêu (P5).
+func matchNumericDate(s string, toks []token, i int, now time.Time) (sp contracts.Span, next int, ok bool, bad contracts.Span) {
 	// gom dãy num (sym num){1,2} với sym là / hoặc - và không có khoảng trắng
 	var parts []string
 	var seps []string
@@ -149,11 +153,11 @@ func matchNumericDate(s string, toks []token, i int, now time.Time) (contracts.S
 		break
 	}
 	if len(parts) < 2 || len(parts) > 3 {
-		return contracts.Span{}, i, false
+		return contracts.Span{}, i, false, contracts.Span{}
 	}
 	for _, p := range parts {
 		if strings.ContainsAny(p, ".,") {
-			return contracts.Span{}, i, false
+			return contracts.Span{}, i, false, contracts.Span{}
 		}
 	}
 	atoi := func(x string) int { v, _ := strconv.Atoi(x); return v }
@@ -169,20 +173,41 @@ func matchNumericDate(s string, toks []token, i int, now time.Time) (contracts.S
 			y--
 		}
 	default:
-		return contracts.Span{}, i, false
+		// ba phần nhỏ nối bằng "/" mà không đúng dạng nào ("16/9/26", năm hai chữ số): ngày chưa đọc được. Nối bằng "-"
+		// thì không ghi: mã tài liệu kiểu "TK-01-02-03" có dạng đó mà không phải ngày.
+		if len(parts) == 3 && seps[0] == "/" && seps[1] == "/" && smallInt(parts[0]) && smallInt(parts[1]) && smallInt(parts[2]) {
+			return contracts.Span{}, i, false, badDate(s, toks, i, j)
+		}
+		return contracts.Span{}, i, false, contracts.Span{}
 	}
 	t := time.Date(y, time.Month(m), d, 0, 0, 0, 0, now.Location())
 	if m < 1 || m > 12 || d < 1 || d > 31 || t.Day() != d {
-		return contracts.Span{}, i, false // 31/2 không phải ngày
+		if d < 0 || d > 99 || m < 0 || m > 99 { // "205/55", "02/2026": không có dạng ngày, chỉ là hai số
+			return contracts.Span{}, i, false, contracts.Span{}
+		}
+		return contracts.Span{}, i, false, badDate(s, toks, i, j) // 31/2 không phải ngày
 	}
 	start, end := toks[i].start, toks[j-1].end
 	if !isBoundaryAfter(s, end) {
-		return contracts.Span{}, i, false
+		return contracts.Span{}, i, false, contracts.Span{}
 	}
 	return contracts.Span{
 		Kind: contracts.ValueDate, Raw: s[start:end], Start: start, End: end,
 		Value: dateValue(t), Confidence: 1, Rule: "date:numeric",
-	}, j, true
+	}, j, true, contracts.Span{}
+}
+
+// smallInt báo p là số nguyên không dấu, tối đa hai chữ số — cỡ của ngày, tháng, năm viết tắt.
+func smallInt(p string) bool { return p != "" && len(p) <= 2 && strings.Trim(p, "0123456789") == "" }
+
+// badDate là span của cụm số ở các token [i, j) khi nó đứng riêng thành một cụm (có ranh giới từ sau cụm — "31/02R"
+// không phải ngày hỏng); ngược lại là span rỗng.
+func badDate(s string, toks []token, i, j int) contracts.Span {
+	start, end := toks[i].start, toks[j-1].end
+	if !isBoundaryAfter(s, end) {
+		return contracts.Span{}
+	}
+	return contracts.Span{Kind: contracts.ValueDate, Raw: s[start:end], Start: start, End: end, Rule: "date:invalid"}
 }
 
 // matchClock đọc "14h", "14h30", "14:30", "2h chiều" khi ngữ cảnh nói đây là MỐC giờ.

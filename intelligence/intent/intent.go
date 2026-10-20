@@ -181,7 +181,25 @@ type Result struct {
 	// Compare: ý định thứ hai của câu so sánh — Intent là vế trái, Compare là vế phải (khe
 	// compare_metric mang chỉ số của nó); router chuyển thành phép tính.
 	Compare string
+	// Unclear: khe mà câu nêu nhiều giá trị khác nhau hoặc một ngày hỏng — khe để trống, router hỏi lại.
+	Unclear Unclear
 }
+
+// Unclear ghi phần câu hỏi nêu NHIỀU giá trị khác nhau, hoặc một giá trị hỏng, cho một khe chỉ nhận MỘT: khe đó không
+// được điền (nằm ở Intent.Missing) để router hỏi lại, thay vì lặng lẽ lấy vế đầu (P5). Khác Candidates (bí danh mơ hồ,
+// router được gỡ bằng quyền xem hay dự án): đây là thứ người hỏi VIẾT RÕ, nên không ai được chọn thay họ.
+type Unclear struct {
+	// Entities: các thực thể KHÁC NHAU, cùng loại, câu nêu cho khe thực thể ("EX-03 và RL-02").
+	Entities []contracts.EntityRef
+	// Periods: các mốc / khoảng thời gian KHÁC NHAU câu nêu cho khe thời gian ("hôm nay và hôm qua", hai đầu mút
+	// của "từ 10/10 đến 15/10"); chỉ có khi từ hai mốc trở lên.
+	Periods []contracts.Span
+	// Invalid: nguyên văn các ngày không đọc được thành ngày trên lịch ("31/02"), từ NormalizedInput.InvalidDates.
+	Invalid []string
+}
+
+// Any báo có khe nào đang không rõ.
+func (u Unclear) Any() bool { return len(u.Entities)+len(u.Periods)+len(u.Invalid) > 0 }
 
 // Classify chạy luật trên đầu vào đã chuẩn hoá và đã nhận dạng thực thể.
 // Không khớp ý định nào → Intent.Name rỗng.
@@ -328,6 +346,7 @@ func metricOf(d Def, in contracts.NormalizedInput, implicit string) (metric, rul
 func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) Result {
 	it := contracts.Intent{Name: top.Name, Confidence: 1, Slots: map[string]contracts.Slot{}, Rule: "intent:rules"}
 	var candidates []contracts.EntityRef
+	var unclear Unclear
 	for _, sd := range top.Slots {
 		switch sd.From {
 		case "entity":
@@ -340,6 +359,12 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 					}
 				}
 			}
+			if clash := clashing(res, sd.Types); len(clash) > 0 {
+				// Câu nêu ≥ 2 thực thể KHÁC NHAU cùng loại cho khe chỉ nhận một: không lấy thực thể nhắc đầu (P5).
+				it.Missing = append(it.Missing, sd.Name)
+				unclear.Entities = append(unclear.Entities, clash...)
+				continue
+			}
 			if e, ok := firstOfTypes(res.Entities, sd.Types); ok {
 				ref := e
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Entity: &ref}
@@ -349,6 +374,15 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 				it.Missing = append(it.Missing, sd.Name)
 			}
 		case "period":
+			if ps := distinctPeriods(in); len(ps) > 1 || len(in.InvalidDates) > 0 {
+				// Nhiều kỳ khác nhau, hoặc một ngày hỏng: không lấy kỳ nhắc đầu, cũng không rơi về ngày mặc định (P5).
+				it.Missing = append(it.Missing, sd.Name)
+				if len(ps) > 1 {
+					unclear.Periods = ps
+				}
+				unclear.Invalid = in.InvalidDates
+				continue
+			}
 			if sp, ok := firstPeriod(in); ok {
 				v := sp.Value
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: sp.Raw}
@@ -376,7 +410,10 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 			it.Missing = append(it.Missing, "metric")
 		}
 	}
-	return Result{Intent: it, Candidates: candidates}
+	if len(unclear.Entities) > 0 {
+		candidates = nil // thực thể người hỏi viết rõ đang tranh nhau: không để bí danh mơ hồ làm router chọn thay
+	}
+	return Result{Intent: it, Candidates: candidates, Unclear: unclear}
 }
 
 // FocusClause trả khoảng byte [đầu, cuối) của MỆNH ĐỀ chứa cụm đánh dấu đầu tiên tìm thấy. Mệnh đề
@@ -502,6 +539,54 @@ func firstOfTypes(es []contracts.EntityRef, types []string) (contracts.EntityRef
 		}
 	}
 	return contracts.EntityRef{}, false
+}
+
+// clashing trả các thực thể mà câu nêu ≥ 2 LẦN NHẮC KHÁC NHAU cùng loại trong các loại của khe, theo thứ tự nhắc tới
+// (thực thể đã rõ trước, rồi ứng viên của các bí danh mơ hồ); rỗng nếu không loại nào có hai lần nhắc. Một lần nhắc là
+// một thực thể đã rõ (tính theo ID), hoặc một bí danh mơ hồ cùng loại mà không ứng viên nào là thực thể đã rõ ("EX-03
+// (máy 03)" chỉ là một máy). Máy kèm dự án chứa nó ("EX-03 của dự án A") khác loại nên không tranh nhau — dự án là
+// phần định ngữ.
+func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
+	var uniq []contracts.EntityRef
+	count, seen := map[string]int{}, map[string]bool{}
+	for _, e := range res.Entities {
+		if hasType(types, e.Type) && !seen[e.ID] {
+			seen[e.ID] = true
+			uniq = append(uniq, e)
+			count[e.Type]++
+		}
+	}
+	for _, m := range res.Ambiguous {
+		if m.Type == "" || !hasType(types, m.Type) || slices.ContainsFunc(m.Candidates, func(c contracts.EntityRef) bool { return seen[c.ID] }) {
+			continue
+		}
+		count[m.Type]++
+		for _, c := range m.Candidates {
+			if !seen[c.ID] {
+				seen[c.ID] = true
+				uniq = append(uniq, c)
+			}
+		}
+	}
+	var out []contracts.EntityRef
+	for _, e := range uniq {
+		if count[e.Type] > 1 {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// distinctPeriods trả các span mốc / khoảng thời gian KHÁC NHAU (theo giá trị chuẩn), mỗi giá trị một lần, theo thứ
+// tự nhắc tới: "hôm nay" và "19/10" cùng một ngày thì là một kỳ.
+func distinctPeriods(in contracts.NormalizedInput) []contracts.Span {
+	var out []contracts.Span
+	for _, sp := range in.SpansOf(contracts.ValuePeriod, contracts.ValueDate) {
+		if !slices.ContainsFunc(out, func(o contracts.Span) bool { return o.Value.Text == sp.Value.Text }) {
+			out = append(out, sp)
+		}
+	}
+	return out
 }
 
 func hasType(types []string, t string) bool {

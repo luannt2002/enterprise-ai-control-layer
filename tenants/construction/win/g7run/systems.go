@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -22,22 +23,24 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
 	"github.com/luannt2002/enterprise-ai-systems/evals"
+	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
 )
 
 // Các hệ của G7 (ADR-0005 §2). Baseline cổng: B2+ và B1 — G7 PASS cần đạt với CẢ hai. Chỉ báo cáo:
-// B2 (baseline cũ) và B2″. B2-oracle CHƯA hiện thực: cần id bằng chứng vàng của từng ca, hồ sơ ca
-// chưa có trường đó.
+// B2 (baseline cũ), B2″ và B2-oracle.
 const (
 	sysEACL   = "eacl"
 	sysB1     = "b1"     // LLM trực tiếp trên bản ghi thô trong cửa sổ ngày của ca
 	sysB2Plus = "b2plus" // RAG đơn giản có năng lực: đoạn có dự án + bí danh + mã nguồn; ngày hiện tại
 	sysB2     = "b2"     // baseline cũ: đoạn thiếu bí danh
 	sysB2PP   = "b2pp"   // B2″ = B2+ cộng luật thẩm quyền / dung sai của pack viết thành chữ
+	// B2-oracle = B2+ nhưng bằng chứng là đúng đoạn của bản ghi ca trỏ tới (truth.record_ids)
+	sysB2Oracle = "b2oracle"
 )
 
-var sysLabel = map[string]string{sysEACL: "EACL", sysB1: "B1", sysB2Plus: "B2+", sysB2: "B2", sysB2PP: "B2″"}
+var sysLabel = map[string]string{sysEACL: "EACL", sysB1: "B1", sysB2Plus: "B2+", sysB2: "B2", sysB2PP: "B2″", sysB2Oracle: "B2-oracle"}
 
 // gateSystems là các baseline cổng, theo thứ tự in.
 var gateSystems = []string{sysB2Plus, sysB1}
@@ -52,7 +55,7 @@ func parseSystems(s string) ([]string, error) {
 			continue
 		}
 		if _, ok := sysLabel[x]; !ok {
-			return nil, fmt.Errorf("hệ %q không có; dùng: %s, %s, %s, %s", x, sysB2Plus, sysB1, sysB2, sysB2PP)
+			return nil, fmt.Errorf("hệ %q không có; dùng: %s, %s, %s, %s, %s", x, sysB2Plus, sysB1, sysB2, sysB2PP, sysB2Oracle)
 		}
 		seen[x] = true
 		out = append(out, x)
@@ -422,69 +425,99 @@ func caseEntries[T any](path string, b []byte, id func(T) string) ([]T, error) {
 	return list, nil
 }
 
-// perCaseNumbers tính G7CounterConfig.PerCase: số được phép RIÊNG cho từng ca của bộ đếm claim không
-// căn cứ. Nguồn: truth của hồ sơ ca (người soạn ca ghi, đóng băng cùng ca) và manifest.json của BỘ SINH
-// (giá trị chuẩn của từng bản ghi) — không qua bộ nạp của EAIS, nên độc lập với hệ được chấm.
-// Số riêng của một ca: truth.value, other_values[].value, và value_l của mọi bản ghi thuộc tenant được
-// chấm mà ca trỏ tới bằng truth.record_ids (khớp key hoặc world_id) hoặc có thực thể thuộc
-// truth.entities với ngày trong truth.period. Ca không có truth thì không có số riêng (chặt hơn).
-func perCaseNumbers(casesPath, genManifest, tenantID string) (map[string][]string, error) {
-	b, err := os.ReadFile(casesPath)
+// caseTruth là truth của một ca trong hồ sơ ca (người soạn ca ghi, đóng băng cùng ca).
+type caseTruth struct {
+	Entities []string `json:"entities"`
+	Period   *struct {
+		From string `json:"from"`
+		To   string `json:"to"`
+	} `json:"period"`
+	Value       string `json:"value"`
+	OtherValues []struct {
+		Value string `json:"value"`
+	} `json:"other_values"`
+	RecordIDs []string `json:"record_ids"`
+}
+
+// loadTruths đọc truth của từng ca từ hồ sơ ca; ca không có truth thì không có mục. Kỳ phải ở dạng
+// YYYY-MM-DD (so chuỗi với ngày của bộ sinh).
+func loadTruths(path string) (map[string]*caseTruth, error) {
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	type entry struct {
-		CaseID string `json:"case_id"`
-		Truth  *struct {
-			Entities []string `json:"entities"`
-			Period   *struct {
-				From string `json:"from"`
-				To   string `json:"to"`
-			} `json:"period"`
-			Value       string `json:"value"`
-			OtherValues []struct {
-				Value string `json:"value"`
-			} `json:"other_values"`
-			RecordIDs []string `json:"record_ids"`
-		} `json:"truth"`
+		CaseID string     `json:"case_id"`
+		Truth  *caseTruth `json:"truth"`
 	}
-	list, err := caseEntries[entry](casesPath, b, func(e entry) string { return e.CaseID })
+	list, err := caseEntries[entry](path, b, func(e entry) string { return e.CaseID })
 	if err != nil {
 		return nil, err
 	}
-	gb, err := os.ReadFile(genManifest)
+	out := map[string]*caseTruth{}
+	for _, e := range list {
+		if e.Truth == nil {
+			continue
+		}
+		if p := e.Truth.Period; p != nil {
+			_, err1 := time.Parse("2006-01-02", p.From)
+			_, err2 := time.Parse("2006-01-02", p.To)
+			if err1 != nil || err2 != nil {
+				return nil, fmt.Errorf("%s: truth.period của %s không ở dạng YYYY-MM-DD", path, e.CaseID)
+			}
+		}
+		out[e.CaseID] = e.Truth
+	}
+	return out, nil
+}
+
+// genRecord là một bản ghi trong manifest.json của BỘ SINH: giá trị chuẩn (lít) của bản ghi, độc lập
+// với bộ nạp của EAIS. Bản ghi bị cách ly không có value_l. Key trùng Observation.Key của bộ nạp.
+type genRecord struct {
+	Tenant  string `json:"tenant"`
+	Key     string `json:"key"`
+	WorldID string `json:"world_id"`
+	Entity  string `json:"entity"`
+	On      string `json:"on"`
+	ValueL  string `json:"value_l"`
+}
+
+// loadGenRecords đọc bản ghi của manifest.json bộ sinh; không có bản ghi nào là lỗi.
+func loadGenRecords(path string) ([]genRecord, error) {
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	var gm struct {
-		Records []struct {
-			Tenant  string `json:"tenant"`
-			Key     string `json:"key"`
-			WorldID string `json:"world_id"`
-			Entity  string `json:"entity"`
-			On      string `json:"on"`
-			ValueL  string `json:"value_l"`
-		} `json:"records"`
+		Records []genRecord `json:"records"`
 	}
-	if err := json.Unmarshal(gb, &gm); err != nil {
-		return nil, fmt.Errorf("%s: %w", genManifest, err)
+	if err := json.Unmarshal(b, &gm); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	if len(gm.Records) == 0 {
-		return nil, fmt.Errorf("%s: không có bản ghi nào — bộ đếm sẽ đếm oan mọi số của dữ liệu nền", genManifest)
+		return nil, fmt.Errorf("%s: không có bản ghi nào — bộ đếm sẽ đếm oan mọi số của dữ liệu nền", path)
+	}
+	return gm.Records, nil
+}
+
+// perCaseNumbers tính G7CounterConfig.PerCase: số được phép RIÊNG cho từng ca của bộ đếm claim không
+// căn cứ. Nguồn: truth của hồ sơ ca và manifest.json của BỘ SINH — không qua bộ nạp của EAIS, nên độc
+// lập với hệ được chấm. Số riêng của một ca: truth.value, other_values[].value, và value_l của mọi bản
+// ghi thuộc tenant được chấm mà ca trỏ tới bằng truth.record_ids (khớp key hoặc world_id) hoặc có thực
+// thể thuộc truth.entities với ngày trong truth.period. Ca không có truth thì không có số riêng (chặt hơn).
+func perCaseNumbers(casesPath, genManifest, tenantID string) (map[string][]string, error) {
+	truths, err := loadTruths(casesPath)
+	if err != nil {
+		return nil, err
+	}
+	recs, err := loadGenRecords(genManifest)
+	if err != nil {
+		return nil, err
 	}
 	out := map[string][]string{}
-	for _, e := range list {
-		t := e.Truth
-		if t == nil {
-			continue
-		}
+	for id, t := range truths {
 		var from, to string
 		if t.Period != nil {
-			_, err1 := time.Parse("2006-01-02", t.Period.From)
-			_, err2 := time.Parse("2006-01-02", t.Period.To)
-			if err1 != nil || err2 != nil {
-				return nil, fmt.Errorf("%s: truth.period của %s không ở dạng YYYY-MM-DD", casesPath, e.CaseID)
-			}
 			from, to = t.Period.From, t.Period.To
 		}
 		ids, ents := map[string]bool{}, map[string]bool{}
@@ -503,7 +536,7 @@ func perCaseNumbers(casesPath, genManifest, tenantID string) (map[string][]strin
 				nums = append(nums, o.Value)
 			}
 		}
-		for _, r := range gm.Records {
+		for _, r := range recs {
 			if r.Tenant != tenantID || r.ValueL == "" {
 				continue
 			}
@@ -512,9 +545,106 @@ func perCaseNumbers(casesPath, genManifest, tenantID string) (map[string][]strin
 				nums = append(nums, r.ValueL)
 			}
 		}
-		out[e.CaseID] = nums
+		out[id] = nums
 	}
 	return out, nil
+}
+
+// oracleKeys trả bằng chứng vàng của B2-oracle: với mỗi ca có truth.record_ids, tập khoá bản ghi bộ sinh
+// (trùng Observation.Key) mà ca trỏ tới — record_id là key của bộ sinh, hoặc world_id của bản ghi world.
+// Chỉ bản ghi của tenant được chấm.
+func oracleKeys(truths map[string]*caseTruth, recs []genRecord, tenantID string) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
+	for id, t := range truths {
+		ids := map[string]bool{}
+		for _, x := range t.RecordIDs {
+			ids[x] = true
+		}
+		keys := map[string]bool{}
+		for _, r := range recs {
+			if r.Tenant == tenantID && (ids[r.Key] || (r.WorldID != "" && ids[r.WorldID])) {
+				keys[r.Key] = true
+			}
+		}
+		if len(keys) > 0 {
+			out[id] = keys
+		}
+	}
+	return out
+}
+
+// oracleRAG là B2-oracle (ADR-0005 §2, D-G7-9 mục 5; CHỈ BÁO CÁO): B2+ với truy xuất được thay bằng ĐÚNG
+// các đoạn của bản ghi mà ca trỏ tới (truth.record_ids), cùng id và chữ chỉ mục B2+ đặt cho đoạn. Ca
+// không có bằng chứng vàng (câu hỏi tài liệu, ngoài phạm vi, thiếu dữ liệu) thì hỏi B2+ y nguyên. Vì vậy
+// chênh lệch B2-oracle với B2+ là phần do truy xuất; chỗ B2-oracle vẫn trượt là thiếu tầng kiểm soát.
+type oracleRAG struct {
+	inner    *baseline.RAG                   // B2+ cho ca không có bằng chứng vàng
+	model    models.Gateway                  // cùng gateway với mọi hệ
+	evidence map[string][]contracts.Evidence // khoá askKey(người hỏi, câu hỏi)
+	preamble string
+	calls    atomic.Int64
+}
+
+// newOracleRAG dựng B2-oracle cho các ca đã nạp. obs và paras cùng thứ tự (paras[i] là đoạn B2+ của
+// obs[i]), đúng thứ tự B2+ dựng chỉ mục, nên id "P-%06d" khớp id của chỉ mục B2+.
+func newOracleRAG(inner *baseline.RAG, gw models.Gateway, cases []evals.WinCase, keys map[string]map[string]bool, obs []ingestion.Observation, paras []string, preamble string) (*oracleRAG, error) {
+	ids := make([]string, len(paras))
+	n := 0
+	for i, p := range paras {
+		if strings.Join(strings.Fields(p), " ") != "" {
+			n++
+			ids[i] = fmt.Sprintf("P-%06d", n)
+		}
+	}
+	o := &oracleRAG{inner: inner, model: gw, evidence: map[string][]contracts.Evidence{}, preamble: preamble}
+	type seen struct {
+		id   string
+		gold bool
+		ev   []contracts.Evidence
+	}
+	byQ := map[string]seen{}
+	for _, c := range cases {
+		ks := keys[c.ID]
+		var ev []contracts.Evidence
+		for i, ob := range obs {
+			if ks[ob.Key] && ids[i] != "" {
+				ev = append(ev, contracts.Evidence{ID: ids[i], Text: strings.Join(strings.Fields(paras[i]), " ")})
+			}
+		}
+		k := askKey(c.Principal, c.Question)
+		cur := seen{id: c.ID, gold: len(ks) > 0, ev: ev}
+		if old, dup := byQ[k]; dup && (old.gold != cur.gold || !slices.EqualFunc(old.ev, cur.ev, func(a, b contracts.Evidence) bool { return a.ID == b.ID })) {
+			return nil, fmt.Errorf("B2-oracle: %s và %s cùng người hỏi + câu hỏi nhưng khác bằng chứng vàng", old.id, c.ID)
+		}
+		byQ[k] = cur
+		if cur.gold {
+			o.evidence[k] = ev
+		}
+	}
+	return o, nil
+}
+
+func (o *oracleRAG) Ask(ctx context.Context, pr contracts.Principal, question string) (contracts.AskResponse, error) {
+	ev, ok := o.evidence[askKey(pr.ID, question)]
+	if !ok {
+		return o.inner.Ask(ctx, pr, question)
+	}
+	q := question
+	if o.preamble != "" {
+		q = o.preamble + "\n" + question
+	}
+	o.calls.Add(1)
+	draft, err := o.model.Generate(ctx, models.Request{Question: q, Evidence: ev})
+	if err != nil {
+		return contracts.AskResponse{}, err
+	}
+	return contracts.AskResponse{Route: contracts.RouteRAG, Outcome: contracts.OutcomeResolved, Answer: draft.Text}, nil
+}
+
+func (o *oracleRAG) ModelCalls() int { return int(o.calls.Load()) + o.inner.ModelCalls() }
+func (o *oracleRAG) ResetModelCalls() {
+	o.calls.Store(0)
+	o.inner.ResetModelCalls()
 }
 
 // directLLM là B1 (ADR-0005 §2): mỗi câu hỏi MỘT lời gọi model. Bằng chứng = entities.json + mọi tài

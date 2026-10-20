@@ -10,7 +10,7 @@
   thinking nếu có).
 Giá Sonnet 5.5 (Pricing chính thức, tra 20/10/2026): vào 2 USD, ra 10 USD mỗi triệu token.
 Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EACL, B1, B2+;
-chỉ báo cáo: B2, B2″.
+chỉ báo cáo: B2, B2″, B2-oracle.
 """
 import argparse
 import json
@@ -19,8 +19,8 @@ from pathlib import Path
 PRICE_IN, PRICE_OUT = 2.0, 10.0  # USD / triệu token, claude-sonnet-5-5
 SCEN = {"tối thiểu": (3.0, 50), "kỳ vọng": (2.5, 150), "xấu nhất": (1.5, None)}  # None = max_tokens
 GATE = ["eacl", "b1", "b2plus"]
-REPORT = ["b2", "b2pp"]
-LABEL = {"eacl": "EACL", "b1": "B1", "b2plus": "B2+", "b2": "B2", "b2pp": "B2″"}
+REPORT = ["b2", "b2pp", "b2oracle"]
+LABEL = {"eacl": "EACL", "b1": "B1", "b2plus": "B2+", "b2": "B2", "b2pp": "B2″", "b2oracle": "B2-oracle"}
 
 
 def measure(d):

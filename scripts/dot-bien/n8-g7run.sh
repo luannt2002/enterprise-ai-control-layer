@@ -48,7 +48,7 @@ m $M '		dry = strings.TrimRight(m.BaseURL, "/") != officialEndpoint' '		dry = fa
 m $E '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 0 {' '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 99 {' 'G32 ghi đè bằng chứng cũ'
 m $E '		if filepath.IsAbs(f) { // không ghi đường dẫn tuyệt đối của máy vào bằng chứng công khai' '		if false && filepath.IsAbs(f) {' 'G33 lộ đường dẫn tuyệt đối'
 m $M '						layer = "PROVIDER" // máy gán: ca trượt vì lỗi gọi model, không vì câu trả lời' '						layer = "CHƯA PHÂN LOẠI"' 'G34 không gán nhãn PROVIDER'
-m $S '		if _, dup := out[e.CaseID]; dup {' '		if _, dup := out[e.CaseID]; dup && false {' 'G35 nhận case_id trùng'
+m $S '		case seen[k]:' '		case false && seen[k]:' 'G35 nhận case_id trùng (kiểm ở caseEntries)'
 m $S '		if r.On.IsZero() || (w != nil && !r.On.Before(w.from) && !r.On.After(w.to)) {' '		if r.On.IsZero() || (w != nil && !r.On.Before(w.from)) {' 'G36 B1 bỏ cận trên cửa sổ'
 m $E '	return strings.Join([]string{r.Route, r.Outcome, strings.Join(r.Candidates, ","), strings.Join(r.Conflicts, ","), strings.Join(r.Citations, ",")}, " | ")' '	return strings.Join([]string{r.Route, strings.Join(r.Citations, ",")}, " | ")' 'G37 path bỏ outcome / ứng viên / xung đột'
 export PKGS="./evals/baseline/"

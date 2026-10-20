@@ -50,7 +50,7 @@
 | **B2+** | baseline cổng | RAG đơn giản **có năng lực**, top-10:<br>- mỗi quan sát một đoạn, có dự án + bí danh + mã theo nguồn của thực thể;<br>- kèm ngày hiện tại;<br>- **không** có tầng kiểm soát (biên ADR-0005 §2) | 1 / câu hỏi |
 | B2 | chỉ báo cáo | baseline cũ: đoạn thiếu bí danh | 1 / câu hỏi |
 | B2″ | chỉ báo cáo | B2+ cộng luật thẩm quyền + dung sai sinh máy móc từ `metrics.yaml`. Giới hạn: chưa gồm luật mặc định | 1 / câu hỏi |
-| B2-oracle | chỉ báo cáo | **CHƯA HIỆN THỰC.** Cần `truth.record_ids` của bộ giữ lại | — |
+| B2-oracle | chỉ báo cáo | B2+ nhưng thay truy xuất bằng **đúng** các đoạn của bản ghi ca trỏ tới (`truth.record_ids` của hồ sơ ca → khoá bản ghi của bộ sinh), cùng id và chữ như chỉ mục B2+; kèm ngày hiện tại. Ca không có `record_ids` (tài liệu, ngoài phạm vi, thiếu dữ liệu) hỏi B2+ y nguyên, nên chênh lệch với B2+ là phần do truy xuất. Cần `-manifest` có `truth` | 1 / câu hỏi |
 
 Khác biệt truy cập dữ liệu, cố ý:
 - **EACL dùng danh mục ngữ nghĩa + thẩm quyền nguồn của pack.** Đây chính là tầng kiểm soát đang được đo.

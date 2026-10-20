@@ -89,7 +89,7 @@ func main() {
 	flag.IntVar(&cfg.topK, "topk", baseline.DefaultTopK, "số đoạn baseline RAG đưa cho model mỗi câu hỏi")
 	flag.StringVar(&cfg.grade, "grade", gradeContent, `cách chấm từng ca: "content" (theo nội dung câu trả lời, mặc định) hoặc "full" (nguyên kết quả RunWin)`)
 	flag.StringVar(&cfg.provider, "provider", "", `provider model, ghi đè EAIS_MODEL_PROVIDER; rỗng hoặc "extractive" = model giả tất định, G7 CHẶN`)
-	flag.StringVar(&cfg.systems, "systems", sysB2Plus+","+sysB1, `baseline so với EACL, phân cách dấu phẩy: "b2plus", "b1" (cổng); "b2", "b2pp" (chỉ báo cáo)`)
+	flag.StringVar(&cfg.systems, "systems", sysB2Plus+","+sysB1, `baseline so với EACL, phân cách dấu phẩy: "b2plus", "b1" (cổng); "b2", "b2pp", "b2oracle" (chỉ báo cáo)`)
 	flag.StringVar(&cfg.manifest, "manifest", "", "hồ sơ ca có b1_window của từng ca (bắt buộc cho B1)")
 	flag.StringVar(&cfg.out, "out", "", "thư mục ghi bằng chứng thô: manifest.json, raw-runs.jsonl, scored.jsonl, aggregate.json, failures.jsonl, cost.json, ket-qua.md")
 	flag.StringVar(&cfg.contract, "contract", "docs/g7/HOP-DONG-G7.md", "hợp đồng G7 — băm vào manifest")
@@ -546,6 +546,26 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 				return nil, err
 			}
 			askers[sys] = d
+		case sysB2Oracle:
+			if cfg.manifest == "" {
+				return nil, fmt.Errorf("B2-oracle cần -manifest có truth.record_ids của từng ca")
+			}
+			truths, err := loadTruths(cfg.manifest)
+			if err != nil {
+				return nil, err
+			}
+			recs, err := loadGenRecords(filepath.Join(cfg.data, "manifest.json"))
+			if err != nil {
+				return nil, err
+			}
+			plus := paras(true)
+			inner := baseline.New(cfg.tenant, plus, docs, gw)
+			inner.TopK, inner.Preamble = cfg.topK, todayLine(ref)
+			o, err := newOracleRAG(inner, gw, cases, oracleKeys(truths, recs, cfg.tenant), res.Observations, plus, todayLine(ref))
+			if err != nil {
+				return nil, err
+			}
+			askers[sys] = o
 		}
 		st.order = append(st.order, sys)
 	}

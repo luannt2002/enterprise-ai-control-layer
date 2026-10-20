@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -19,6 +20,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
 	"github.com/luannt2002/enterprise-ai-systems/evals"
+	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
 	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
@@ -408,6 +410,108 @@ func buildFake(t *testing.T, cfg config) *setup {
 		t.Fatal(err)
 	}
 	return st
+}
+
+// Khoá bằng chứng vàng của B2-oracle: record_id là key của bộ sinh, hoặc world_id của bản ghi world —
+// chỉ bản ghi của tenant được chấm; ca không có record_ids thì không có khoá.
+func TestOracleKeys(t *testing.T) {
+	truths := map[string]*caseTruth{"A": {RecordIDs: []string{"BG-9", "R-001"}}, "B": {}}
+	recs := []genRecord{
+		{Tenant: "abc-infra", Key: "BG-9"},
+		{Tenant: "abc-infra", Key: "f.csv#R-001", WorldID: "R-001"},
+		{Tenant: "def-build", Key: "g.csv#R-001", WorldID: "R-001"},
+		{Tenant: "abc-infra", Key: "BG-10"},
+	}
+	got := oracleKeys(truths, recs, "abc-infra")
+	if len(got["A"]) != 2 || !got["A"]["BG-9"] || !got["A"]["f.csv#R-001"] {
+		t.Errorf("ca A: %v; muốn BG-9 và f.csv#R-001", got["A"])
+	}
+	if len(got["B"]) != 0 {
+		t.Errorf("ca B không có record_ids: %v; muốn rỗng", got["B"])
+	}
+}
+
+// B2-oracle (D-G7-9 mục 5, chỉ báo cáo): ca có bằng chứng vàng thì model nhận ĐÚNG đoạn của các bản ghi
+// đó — cùng id và chữ mà chỉ mục B2+ đặt cho đoạn — kèm dòng ngày hiện tại; ca không có thì hỏi B2+ y
+// nguyên. Hai ca cùng người hỏi + câu hỏi mà khác bằng chứng vàng là lỗi.
+func TestOracleRAG(t *testing.T) {
+	l := load(t, genData(t))
+	paras := make([]string, len(l.res.Observations))
+	for i, o := range l.res.Observations {
+		paras[i] = paragraphPlus(l.rt, l.byID, o)
+	}
+	o1, o2 := l.res.Observations[3], l.res.Observations[10]
+	keys := map[string]map[string]bool{"A": {o1.Key: true, o2.Key: true}}
+	cases := []evals.WinCase{
+		{ID: "A", Principal: "u-director", Question: "Câu A?"},
+		{ID: "B", Principal: "u-director", Question: "Hôm qua máy 03 được cấp bao nhiêu dầu?"},
+	}
+	gw := &spyGW{}
+	inner := baseline.New("abc-infra", paras, l.docs, gw)
+	inner.Preamble = "Hôm nay là X."
+	o, err := newOracleRAG(inner, gw, cases, keys, l.res.Observations, paras, "Hôm nay là X.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	pr := contracts.Principal{ID: "u-director", TenantID: "abc-infra", Kind: contracts.PrincipalUser, Roles: []string{"director"}}
+	if _, err := o.Ask(ctx, pr, "Câu A?"); err != nil {
+		t.Fatal(err)
+	}
+	req := gw.reqs[len(gw.reqs)-1]
+	want := map[string]string{"P-000004": strings.Join(strings.Fields(paras[3]), " "), "P-000011": strings.Join(strings.Fields(paras[10]), " ")}
+	if len(req.Evidence) != 2 || req.Question != "Hôm nay là X.\nCâu A?" {
+		t.Fatalf("ca A: %d đoạn, câu hỏi %q; muốn 2 đoạn và dòng ngày trước câu hỏi", len(req.Evidence), req.Question)
+	}
+	for _, e := range req.Evidence {
+		if want[e.ID] != e.Text {
+			t.Errorf("đoạn %s = %q; muốn %q", e.ID, e.Text, want[e.ID])
+		}
+	}
+	if _, err := o.Ask(ctx, pr, "Hôm qua máy 03 được cấp bao nhiêu dầu?"); err != nil {
+		t.Fatal(err)
+	}
+	if inner.ModelCalls() != 1 || o.ModelCalls() != 2 || len(gw.lastIDs()) != baseline.DefaultTopK {
+		t.Errorf("ca B phải đi qua B2+: B2+ %d lời gọi, oracle %d, %d đoạn; muốn 1, 2, %d", inner.ModelCalls(), o.ModelCalls(), len(gw.lastIDs()), baseline.DefaultTopK)
+	}
+	if o.ResetModelCalls(); o.ModelCalls() != 0 {
+		t.Errorf("sau ResetModelCalls: %d lời gọi; muốn 0", o.ModelCalls())
+	}
+	dup := []evals.WinCase{{ID: "A", Principal: "u", Question: "Q"}, {ID: "C", Principal: "u", Question: "Q"}}
+	if _, err := newOracleRAG(inner, gw, dup, keys, l.res.Observations, paras, ""); err == nil {
+		t.Error("hai ca cùng câu hỏi, một ca có bằng chứng vàng: muốn lỗi")
+	}
+}
+
+// -systems b2oracle cần hồ sơ ca có truth; có thì dựng được và là hệ chỉ báo cáo.
+func TestBuildB2Oracle(t *testing.T) {
+	clearModelEnv(t)
+	cfg := baseCfg(genData(t))
+	cfg.systems, cfg.topK = sysB2Oracle, 7 // khác DefaultTopK để thấy top-k có được truyền vào không
+	gw, err := models.New(models.ConfigFromEnv())
+	if err != nil {
+		t.Fatal(err)
+	}
+	systems, err := parseSystems(cfg.systems)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := build(cfg, gw, systems); err == nil {
+		t.Error("B2-oracle thiếu -manifest: muốn lỗi")
+	}
+	cfg.manifest = writeNullWindows(t)
+	st, err := build(cfg, gw, systems)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o, ok := st.askers[sysB2Oracle].(*oracleRAG)
+	if !ok || slices.Contains(gateSystems, sysB2Oracle) {
+		t.Fatalf("askers[b2oracle] = %T; gateSystems %v: muốn *oracleRAG và không phải hệ cổng", st.askers[sysB2Oracle], gateSystems)
+	}
+	// Nhánh dự phòng phải là B2+ đúng nghĩa: cùng top-k, cùng dòng ngày hiện tại.
+	if o.inner.TopK != cfg.topK || !strings.HasPrefix(o.inner.Preamble, "Hôm nay là ngày ") || o.preamble != o.inner.Preamble {
+		t.Errorf("B2+ bên trong B2-oracle: TopK %d (muốn %d), Preamble %q, preamble oracle %q", o.inner.TopK, cfg.topK, o.inner.Preamble, o.preamble)
+	}
 }
 
 // -out ghi đủ bảy tệp bằng chứng; model giả ⇒ kết luận CHẶN (mã 2), B1 thiếu hồ sơ ⇒ ghi là hệ cổng

@@ -1,0 +1,30 @@
+# EAIS — Enterprise AI Systems
+
+Nền tảng AI doanh nghiệp đa tenant. Nó biến dữ liệu, tri thức, quy trình và công cụ theo ngành thành năng lực AI có quản trị, kiểm thử được và quan sát được, mà lõi dùng chung không bị buộc vào một ngành nào. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
+
+**Trạng thái (20/10/2026):**
+- WIN MVP đạt 6/7 cổng có bằng chứng (G1–G6).
+- G7 (so với baseline RAG bằng model thật) đang chờ khoá model.
+- Chi tiết: [`docs/STATUS.md`](docs/STATUS.md).
+
+| Đọc gì | Ở đâu |
+|---|---|
+| Chạy lại mốc / làm tiếp trên máy khác | [`docs/ops/README.md`](docs/ops/README.md) |
+| Hợp đồng vận hành (luật bắt buộc) | [`CLAUDE.md`](CLAUDE.md) |
+| WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |
+| Roadmap có điều kiện | [`docs/05-master-roadmap.md`](docs/05-master-roadmap.md) |
+| Kiến trúc | [`docs/01-architecture.md`](docs/01-architecture.md) |
+| Quyết định | [`docs/adr/`](docs/adr/) |
+| Báo cáo ngày | [`docs/bao-cao/`](docs/bao-cao/) |
+| Thay đổi | [`CHANGELOG.md`](CHANGELOG.md) |
+
+Chạy nhanh (Go 1.26, Docker, `pdftotext`):
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --wait
+export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
+export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+go test ./... -count=1 && scripts/scale-smoke.sh
+```
+
+Mọi dữ liệu trong repo là dữ liệu giả lập; repo công khai không chứa dữ liệu thật của tenant nào.

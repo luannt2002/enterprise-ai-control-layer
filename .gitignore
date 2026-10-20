@@ -1,0 +1,39 @@
+# Repo này PUBLIC — mọi thứ dưới đây KHÔNG được lên git.
+
+# Nguồn học và bản ghi thô: transcript video, ghi chú cá nhân, brief thiết kế gốc.
+# Logic của chúng đã được chưng cất thành docs/requirements/ (có mã truy vết).
+docs/sources/
+
+# Dữ liệu THẬT của tenant (giá, link tài liệu nội bộ, thông tin khách hàng).
+# Tenant tham chiếu chỉ dùng dữ liệu giả lập trong simulations/.
+tenants/*/real/
+**/*.real.*
+**/*.real/
+
+# Ghi chú bàn giao phiên làm việc (đường dẫn máy, tài khoản) — chỉ ở máy.
+*.local.md
+
+# Bí mật và cấu hình máy
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build / test
+bin/
+dist/
+*.test
+*.out
+coverage.*
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

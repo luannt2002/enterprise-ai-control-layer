@@ -102,6 +102,7 @@ func Resolve(ctx context.Context, dir Directory, in contracts.NormalizedInput, t
 				sort.Slice(sorted, func(a, b int) bool { return sorted[a].Key < sorted[b].Key })
 				res.Ambiguous = append(res.Ambiguous, contracts.AmbiguousMention{
 					Mention: mention, Type: commonType(sorted), Candidates: sorted,
+					Start: spans[i].start, End: spans[i+n-1].end, // như cụm không mơ hồ: luồng hỏi cần biết "03" của "máy 03" là tên
 				})
 			}
 			i += n

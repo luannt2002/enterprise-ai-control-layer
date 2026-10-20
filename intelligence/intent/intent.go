@@ -251,7 +251,10 @@ func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		return r
 	}
 	if def, _ := s.Def(r.Intent.Name); missingEntity(def, r.Intent) {
-		if _, dated := firstPeriod(in); dated {
+		// Người hỏi ĐÃ nêu thứ của một câu hỏi số liệu: một mốc thời gian (kể cả nhiều kỳ hay ngày hỏng) hoặc nhiều thực thể cùng
+		// loại tranh nhau cho khe chủ thể (khe thiếu vì không chọn được một, không phải vì vắng) — hỏi lại, không chuyển sang câu hỏi
+		// quy trình rồi bỏ thầm phần số liệu và các thực thể đã nêu (P5).
+		if _, dated := firstPeriod(in); dated || len(in.InvalidDates) > 0 || len(r.Unclear.Entities) > 0 {
 			return r
 		}
 		return s.build(knowledge, score, first, in, res, now, implicit)
@@ -374,7 +377,8 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 				it.Missing = append(it.Missing, sd.Name)
 			}
 		case "period":
-			if ps := distinctPeriods(in); len(ps) > 1 || len(in.InvalidDates) > 0 {
+			ps := distinctPeriods(in)
+			if len(ps) > 1 || len(in.InvalidDates) > 0 {
 				// Nhiều kỳ khác nhau, hoặc một ngày hỏng: không lấy kỳ nhắc đầu, cũng không rơi về ngày mặc định (P5).
 				it.Missing = append(it.Missing, sd.Name)
 				if len(ps) > 1 {
@@ -383,9 +387,9 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 				unclear.Invalid = in.InvalidDates
 				continue
 			}
-			if sp, ok := firstPeriod(in); ok {
-				v := sp.Value
-				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: sp.Raw}
+			if len(ps) == 1 { // kỳ duy nhất (kỳ hẹp, nếu câu viết lồng nhiều kỳ)
+				v := ps[0].Value
+				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: ps[0].Raw}
 				continue
 			}
 			if v, ok := defaultPeriod(sd.Default, now); ok {
@@ -578,7 +582,9 @@ func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
 }
 
 // distinctPeriods trả các span mốc / khoảng thời gian KHÁC NHAU (theo giá trị chuẩn), mỗi giá trị một lần, theo thứ
-// tự nhắc tới: "hôm nay" và "19/10" cùng một ngày thì là một kỳ.
+// tự nhắc tới: "hôm nay" và "19/10" cùng một ngày thì là một kỳ. Kỳ RỘNG ôm trọn một kỳ hẹp liền kề cũng chỉ là bối cảnh của kỳ hẹp,
+// không phải một kỳ nữa: "tháng 10 năm nay", "hôm qua trong tháng 10", "ngày 19/10 năm nay" là MỘT kỳ — kỳ hẹp. Liền kề = chỉ cách
+// nhau khoảng trắng hoặc một từ chỉ bao hàm (nestingWords); "tháng 10 và hôm qua", "tuần trước, từ 12/10" thì vẫn là nhiều kỳ.
 func distinctPeriods(in contracts.NormalizedInput) []contracts.Span {
 	var out []contracts.Span
 	for _, sp := range in.SpansOf(contracts.ValuePeriod, contracts.ValueDate) {
@@ -586,7 +592,45 @@ func distinctPeriods(in contracts.NormalizedInput) []contracts.Span {
 			out = append(out, sp)
 		}
 	}
-	return out
+	var kept []contracts.Span
+	for _, a := range out {
+		enclosing := slices.ContainsFunc(out, func(b contracts.Span) bool {
+			return b.Value.Text != a.Value.Text && covers(a.Value.Text, b.Value.Text) && adjacent(in.Raw, a, b)
+		})
+		if !enclosing {
+			kept = append(kept, a)
+		}
+	}
+	return kept
+}
+
+// nestingWords là các từ nối cho phép giữa hai kỳ lồng nhau khi người hỏi viết chúng thành một cụm ("hôm qua trong tháng 10").
+var nestingWords = []string{"trong", "thuộc", "của", "vào"}
+
+// covers báo kỳ outer ôm trọn kỳ inner; cả hai ở dạng giá trị chuẩn "YYYY-MM-DD" hoặc "YYYY-MM-DD/YYYY-MM-DD" (so sánh chuỗi là so
+// sánh ngày).
+func covers(outer, inner string) bool {
+	of, ot, _ := strings.Cut(outer, "/")
+	if ot == "" {
+		ot = of
+	}
+	inf, it, _ := strings.Cut(inner, "/")
+	if it == "" {
+		it = inf
+	}
+	return of <= inf && it <= ot
+}
+
+// adjacent báo hai span đứng liền nhau trong văn bản: giữa chúng chỉ có khoảng trắng hoặc một từ chỉ bao hàm.
+func adjacent(raw string, a, b contracts.Span) bool {
+	if b.Start < a.Start {
+		a, b = b, a
+	}
+	if a.End > b.Start || b.Start > len(raw) {
+		return false
+	}
+	gap := strings.TrimSpace(raw[a.End:b.Start])
+	return gap == "" || slices.ContainsFunc(nestingWords, func(w string) bool { return normalization.Fold(gap) == normalization.Fold(w) })
 }
 
 func hasType(types []string, t string) bool {

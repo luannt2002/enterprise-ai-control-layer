@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
 )
@@ -132,70 +134,300 @@ func valueKindOf(from, to time.Time) contracts.ValueKind {
 	return contracts.ValuePeriod
 }
 
-// matchNumericDate đọc "16/9", "16/09/2026", "16-9-2026", "2025-11-28".
+// matchNumericDate đọc "16/9", "16/09/2026", "16/9/26", "16-9-2026", "16.9.26", "2025-11-28", và — khi có chữ "ngày" đứng ngay
+// trước — cả "ngày 16.9", "ngày 16-9", "ngày 16-9-26", "ngày 16 / 9".
 //
-// Cụm có DẠNG ngày mà không đọc được thành một ngày trên lịch ("31/2", "32/10", "29/02/2026", "16/9/26") không phải
-// ngày: trả ok=false KÈM bad (span của cả cụm, Rule "date:invalid") để Normalize ghi vào InvalidDates. Người hỏi đã
-// cố nêu một ngày — bỏ qua im lặng thì câu hỏi rơi về ngày mặc định như thể họ không nêu (P5).
+// Năm hai chữ số là 20yy và dấu "." là cách viết ngày CÓ THẬT (docs/tenants/construction/03-data-map.md:162: `19/10`, `19-10-2026`,
+// `19.10.26`; 02-domain-map.md:71, :296: `19.10.26`, `19-10`). Hai số nối bằng "." hay "-" ("19.10" là số thập phân, "10-12 giờ" là
+// khoảng giờ) và ba số nhỏ nối bằng "-" ("TK-01-02-03" là mã) chỉ là ngày khi người hỏi nói "ngày".
+//
+// Cụm có DẠNG ngày mà không đọc được thành một ngày trên lịch ("31/2", "32/10", "29/02/2026", "31.02") không phải ngày: trả ok=false
+// KÈM bad (span của cả cụm, Rule "date:invalid") để Normalize ghi vào InvalidDates. Người hỏi đã cố nêu một ngày — bỏ qua im lặng thì
+// câu hỏi rơi về ngày mặc định như thể họ không nêu (P5). "Có dạng ngày" xem dateLike.
+//
+// Cụm dính vào thứ đứng trước nó ("PX-12/10", "BB-24/50": mã chữ; "2/3" của "1/2/3": dãy số dài hơn) không phải ngày — xem gluedBefore.
 func matchNumericDate(s string, toks []token, i int, now time.Time) (sp contracts.Span, next int, ok bool, bad contracts.Span) {
-	// gom dãy num (sym num){1,2} với sym là / hoặc - và không có khoảng trắng
-	var parts []string
-	var seps []string
-	j := i
-	for j < len(toks) && toks[j].kind == tokNum {
-		parts = append(parts, toks[j].text)
-		if j+2 < len(toks) && toks[j+1].kind == tokSym && (toks[j+1].text == "/" || toks[j+1].text == "-") && toks[j+2].kind == tokNum {
-			seps = append(seps, toks[j+1].text)
-			j += 2
-			continue
+	none := func() (contracts.Span, int, bool, contracts.Span) {
+		return contracts.Span{}, i, false, contracts.Span{}
+	}
+	if gluedBefore(s, toks[i].start) {
+		return none()
+	}
+	ctx := afterDayWord(s, toks, i)
+	parts, seps, j := gatherDate(toks, i, ctx)
+	if len(parts) == 1 { // "19.10.26", "19.10": MỘT token số có dấu chấm
+		if sub := splitDotted(parts[0]); sub != nil {
+			parts, seps = sub, make([]string, len(sub)-1)
+			for k := range seps {
+				seps[k] = "."
+			}
 		}
-		j++
-		break
 	}
 	if len(parts) < 2 || len(parts) > 3 {
-		return contracts.Span{}, i, false, contracts.Span{}
+		return none()
 	}
 	for _, p := range parts {
 		if strings.ContainsAny(p, ".,") {
-			return contracts.Span{}, i, false, contracts.Span{}
+			return none()
 		}
 	}
 	atoi := func(x string) int { v, _ := strconv.Atoi(x); return v }
-	var y, m, d int
+	var y, m, d, yearDigits int
 	switch {
 	case len(parts) == 3 && len(parts[0]) == 4: // ISO yyyy-mm-dd
-		y, m, d = atoi(parts[0]), atoi(parts[1]), atoi(parts[2])
+		y, m, d, yearDigits = atoi(parts[0]), atoi(parts[1]), atoi(parts[2]), 4
 	case len(parts) == 3 && len(parts[2]) == 4: // dd/mm/yyyy
-		d, m, y = atoi(parts[0]), atoi(parts[1]), atoi(parts[2])
-	case len(parts) == 2 && seps[0] == "/": // dd/mm — năm hiện tại, lùi một năm nếu ở tương lai
+		d, m, y, yearDigits = atoi(parts[0]), atoi(parts[1]), atoi(parts[2]), 4
+	case len(parts) == 3 && smallInt(parts[0]) && smallInt(parts[1]) && smallInt(parts[2]) && len(parts[2]) == 2 &&
+		seps[0] == seps[1] && (seps[0] != "-" || ctx): // dd/mm/yy, dd.mm.yy (dd-mm-yy chỉ khi có chữ "ngày")
+		d, m, y, yearDigits = atoi(parts[0]), atoi(parts[1]), 2000+atoi(parts[2]), 2
+	case len(parts) == 2 && (seps[0] == "/" || ctx): // dd/mm — năm hiện tại, lùi một năm nếu ở tương lai
 		d, m, y = atoi(parts[0]), atoi(parts[1]), now.Year()
 		if time.Date(y, time.Month(m), d, 0, 0, 0, 0, now.Location()).After(day(now)) {
 			y--
 		}
 	default:
-		// ba phần nhỏ nối bằng "/" mà không đúng dạng nào ("16/9/26", năm hai chữ số): ngày chưa đọc được. Nối bằng "-"
-		// thì không ghi: mã tài liệu kiểu "TK-01-02-03" có dạng đó mà không phải ngày.
-		if len(parts) == 3 && seps[0] == "/" && seps[1] == "/" && smallInt(parts[0]) && smallInt(parts[1]) && smallInt(parts[2]) {
-			return contracts.Span{}, i, false, badDate(s, toks, i, j)
-		}
-		return contracts.Span{}, i, false, contracts.Span{}
+		return none()
+	}
+	// loose: chỉ đọc được nhờ chữ "ngày" đứng trước (dấu "." / "-" hay khoảng trắng quanh dấu) — có thể là phần đầu của một lượng ("mỗi
+	// ngày 10-12 giờ", "ngày 2.5 tấn"): Rule mang hậu tố ":ctx" để Normalize bỏ đọc khi ngay sau là một đơn vị (Engine.quantityFollows).
+	loose := ctx && yearDigits != 4 && (seps[0] != "/" || strings.Contains(s[toks[i].start:toks[j-1].end], " "))
+	rule := "date:numeric"
+	if loose {
+		rule += ":ctx"
 	}
 	t := time.Date(y, time.Month(m), d, 0, 0, 0, 0, now.Location())
 	if m < 1 || m > 12 || d < 1 || d > 31 || t.Day() != d {
-		if d < 0 || d > 99 || m < 0 || m > 99 { // "205/55", "02/2026": không có dạng ngày, chỉ là hai số
-			return contracts.Span{}, i, false, contracts.Span{}
+		if !dateLike(d, m, yearDigits, ctx) {
+			return none()
 		}
-		return contracts.Span{}, i, false, badDate(s, toks, i, j) // 31/2 không phải ngày
+		b := badDate(s, toks, i, j) // 31/2 không phải ngày
+		if loose && b.Rule != "" {
+			b.Rule += ":ctx"
+		}
+		return contracts.Span{}, i, false, b
 	}
 	start, end := toks[i].start, toks[j-1].end
 	if !isBoundaryAfter(s, end) {
-		return contracts.Span{}, i, false, contracts.Span{}
+		return none()
 	}
 	return contracts.Span{
 		Kind: contracts.ValueDate, Raw: s[start:end], Start: start, End: end,
-		Value: dateValue(t), Confidence: 1, Rule: "date:numeric",
+		Value: dateValue(t), Confidence: 1, Rule: rule,
 	}, j, true, contracts.Span{}
 }
+
+// dateLike báo một cụm số (ngày d, tháng m) CÓ DẠNG ngày, nên khi không đọc được thành ngày trên lịch thì đáng bị ghi là ngày hỏng
+// thay vì lặng lẽ rơi về hôm nay: ngày 1–31 và tháng 1–12 (chỉ sai vì lịch: "31/02", "29/02/2026", "31/04"). Cụm khác ("24/24",
+// "60/40", "12/34/56": tỉ lệ, số phiếu, hợp đồng) chỉ là hai hay ba số. Người hỏi đã nói đây là ngày — chữ "ngày" đứng trước, hay năm
+// bốn chữ số kèm theo ("2026-13-01") — thì lỏng hơn: mỗi phần ≤ 99 ("ngày 32/10", "ngày 15/13").
+func dateLike(d, m, yearDigits int, ctx bool) bool {
+	if d >= 1 && d <= 31 && m >= 1 && m <= 12 {
+		return true
+	}
+	return (ctx || yearDigits == 4) && d >= 0 && d <= 99 && m >= 0 && m <= 99
+}
+
+// afterDayWord báo từ "ngày" đứng ngay trước token i (chỉ cách khoảng trắng): người hỏi đã nói đây là một ngày.
+func afterDayWord(s string, toks []token, i int) bool {
+	k := i - 1
+	if k >= 0 && toks[k].kind == tokSpace {
+		k--
+	}
+	if k < 0 || toks[k].kind != tokWord {
+		return false
+	}
+	_, ok := matchAliasAt(s, toks[k].start, "ngày", false)
+	return ok
+}
+
+// gluedBefore báo cụm số bắt đầu ở start dính vào thứ đứng ngay trước nó: sau một chữ cái và dấu nối ("PX-12/10", "BB-24/50",
+// "TK-19/10" là mã chữ), hoặc sau một chữ số và dấu "/" ("2/3" của "1/2/3": một dãy số dài hơn, không phải ngày).
+func gluedBefore(s string, start int) bool {
+	prev, w := utf8.DecodeLastRuneInString(s[:start])
+	if w == 0 || !strings.ContainsRune("-–/._", prev) {
+		return false
+	}
+	before, bw := utf8.DecodeLastRuneInString(s[:start-w])
+	if bw == 0 {
+		return false
+	}
+	return unicode.IsLetter(before) || unicode.Is(unicode.Mn, before) || (prev == '/' && unicode.IsDigit(before))
+}
+
+// gatherDate gom dãy phần số nối bằng "/" hoặc "-" từ token i, không có khoảng trắng; spaced cho phép một dấu cách quanh "/" ("ngày 19 /
+// 10"). Trả các phần, các dấu nối và chỉ số token ngay sau phần cuối.
+func gatherDate(toks []token, i int, spaced bool) (parts, seps []string, j int) {
+	j = i
+	for j < len(toks) && toks[j].kind == tokNum {
+		parts = append(parts, toks[j].text)
+		k := j + 1
+		if spaced && k < len(toks) && toks[k].kind == tokSpace {
+			k++
+		}
+		if k < len(toks) && toks[k].kind == tokSym && (toks[k].text == "/" || (toks[k].text == "-" && k == j+1)) {
+			n := k + 1
+			if spaced && toks[k].text == "/" && n < len(toks) && toks[n].kind == tokSpace {
+				n++
+			}
+			if n < len(toks) && toks[n].kind == tokNum {
+				seps = append(seps, toks[k].text)
+				j = n
+				continue
+			}
+		}
+		j++
+		break
+	}
+	return parts, seps, j
+}
+
+// splitDotted tách MỘT token số viết bằng dấu chấm ("19.10.26", "19.10") thành 2–3 nhóm chữ số; nil nếu không phải. Ngày, tháng và năm
+// hai chữ số có tối đa 2 chữ số (năm bốn chữ số chỉ ở phần cuối của ba phần): nhóm 3 chữ số ("4.000", "1.500") là dấu nghìn của một SỐ.
+func splitDotted(text string) []string {
+	if !strings.Contains(text, ".") || strings.Contains(text, ",") {
+		return nil
+	}
+	sub := strings.Split(text, ".")
+	if len(sub) < 2 || len(sub) > 3 {
+		return nil
+	}
+	for k, p := range sub {
+		max := 2
+		if len(sub) == 3 && k == 2 {
+			max = 4
+		}
+		if p == "" || len(p) > max || strings.Trim(p, "0123456789") != "" {
+			return nil
+		}
+	}
+	return sub
+}
+
+// matchDayMonth đọc "ngày 20 tháng 10", "ngày 20 tháng 10 năm 2026" và "ngày 20 tháng 10/2026" thành MỘT ngày (Raw gồm cả chữ
+// "ngày"). Trước đây chỉ đọc "tháng 10" và bỏ "ngày 20": một ngày viết hai cách ("hôm nay, ngày 20 tháng 10") thành hai kỳ khác nhau,
+// và "từ ngày 10 đến ngày 15 tháng 10" thành cả tháng. "ngày D" đứng trước "đến/tới ngày D2 tháng M" mượn tháng, năm của đầu mút sau
+// (cả hai thành span ngày: câu nêu hai kỳ và được hỏi lại). Không ghi năm thì lấy lần gần nhất KHÔNG ở tương lai, như dd/mm.
+// Ngày không có trên lịch ("ngày 31 tháng 2") trả bad (Raw bắt đầu từ số ngày, không kèm chữ "ngày").
+func matchDayMonth(s string, toks []token, i int, now time.Time) (sp contracts.Span, next int, ok bool, bad contracts.Span) {
+	none := func() (contracts.Span, int, bool, contracts.Span) {
+		return contracts.Span{}, i, false, contracts.Span{}
+	}
+	start := toks[i].start
+	end, found := matchAliasAt(s, start, "ngày", false)
+	if !found {
+		return none()
+	}
+	j := skipSpaceToken(toks, tokenAt(toks, end))
+	if j >= len(toks) || toks[j].kind != tokNum || !smallInt(toks[j].text) {
+		return none()
+	}
+	d, _ := strconv.Atoi(toks[j].text)
+	invalid := func(from, to int) (contracts.Span, int, bool, contracts.Span) {
+		a, b := toks[from].start, toks[to-1].end
+		if !isBoundaryAfter(s, b) {
+			return none()
+		}
+		return contracts.Span{}, i, false, contracts.Span{Kind: contracts.ValueDate, Raw: s[a:b], Start: a, End: b, Rule: "date:invalid"}
+	}
+	if m, y, explicit, after, found := monthYearAt(s, toks, skipSpaceToken(toks, j+1)); found {
+		t, valid := dayMonthDate(d, m, y, explicit, now)
+		if !valid {
+			return invalid(j, after)
+		}
+		if endByte := toks[after-1].end; isBoundaryAfter(s, endByte) {
+			return contracts.Span{
+				Kind: contracts.ValueDate, Raw: s[start:endByte], Start: start, End: endByte,
+				Value: dateValue(t), Confidence: 1, Rule: "date:day_month",
+			}, after, true, contracts.Span{}
+		}
+		return none()
+	}
+	// "ngày 10 đến ngày 15 tháng 10": đầu mút thứ nhất mượn tháng, năm của đầu mút thứ hai
+	c := skipSpaceToken(toks, j+1)
+	if c >= len(toks) || toks[c].kind != tokWord || !(isWordAt(s, toks[c], "đến") || isWordAt(s, toks[c], "tới")) {
+		return none()
+	}
+	n := skipSpaceToken(toks, c+1)
+	if n >= len(toks) || toks[n].kind != tokWord || !isWordAt(s, toks[n], "ngày") {
+		return none()
+	}
+	n = skipSpaceToken(toks, n+1)
+	if n >= len(toks) || toks[n].kind != tokNum || !smallInt(toks[n].text) {
+		return none()
+	}
+	m, y, explicit, _, found := monthYearAt(s, toks, skipSpaceToken(toks, n+1))
+	if !found {
+		return none()
+	}
+	t, valid := dayMonthDate(d, m, y, explicit, now)
+	if !valid {
+		return invalid(j, j+1)
+	}
+	endByte := toks[j].end
+	return contracts.Span{
+		Kind: contracts.ValueDate, Raw: s[start:endByte], Start: start, End: endByte,
+		Value: dateValue(t), Confidence: 1, Rule: "date:day_borrowed",
+	}, j + 1, true, contracts.Span{}
+}
+
+// monthYearAt đọc "tháng M" kèm năm tuỳ chọn ("năm 2026" hoặc "/2026") bắt đầu ở token k; after là chỉ số token ngay sau cụm.
+func monthYearAt(s string, toks []token, k int) (month, year int, explicitYear bool, after int, ok bool) {
+	if k >= len(toks) || toks[k].kind != tokWord || !isWordAt(s, toks[k], "tháng") {
+		return 0, 0, false, k, false
+	}
+	j := skipSpaceToken(toks, k+1)
+	if j >= len(toks) || toks[j].kind != tokNum || !smallInt(toks[j].text) {
+		return 0, 0, false, k, false
+	}
+	month, _ = strconv.Atoi(toks[j].text)
+	after = j + 1
+	isYear := func(t token) bool {
+		return t.kind == tokNum && len(t.text) == 4 && strings.Trim(t.text, "0123456789") == ""
+	}
+	switch {
+	case after+1 < len(toks) && toks[after].kind == tokSym && toks[after].text == "/" && isYear(toks[after+1]): // "tháng 10/2026"
+		year, explicitYear, after = atoiOrZero(toks[after+1].text), true, after+2
+	default: // "tháng 10 năm 2026" ("năm nay" thì không phải năm viết ra: bỏ qua)
+		if w := skipSpaceToken(toks, after); w < len(toks) && toks[w].kind == tokWord && isWordAt(s, toks[w], "năm") {
+			if n := skipSpaceToken(toks, w+1); n < len(toks) && isYear(toks[n]) {
+				year, explicitYear, after = atoiOrZero(toks[n].text), true, n+1
+			}
+		}
+	}
+	return month, year, explicitYear, after, true
+}
+
+// dayMonthDate dựng ngày d/m/y; năm không viết thì lấy lần gần nhất không ở tương lai. valid = có trên lịch.
+func dayMonthDate(d, m, y int, explicitYear bool, now time.Time) (time.Time, bool) {
+	if m < 1 || m > 12 || d < 1 || d > 31 {
+		return time.Time{}, false
+	}
+	if !explicitYear {
+		y = now.Year()
+		if time.Date(y, time.Month(m), d, 0, 0, 0, 0, now.Location()).After(day(now)) {
+			y--
+		}
+	}
+	t := time.Date(y, time.Month(m), d, 0, 0, 0, 0, now.Location())
+	return t, t.Day() == d
+}
+
+// skipSpaceToken trả chỉ số token đầu tiên từ k trở đi không phải khoảng trắng (khoảng trắng liên tiếp là MỘT token).
+func skipSpaceToken(toks []token, k int) int {
+	if k < len(toks) && toks[k].kind == tokSpace {
+		return k + 1
+	}
+	return k
+}
+
+// isWordAt báo token t là đúng từ word (theo luật dấu của mọi so khớp: gõ không dấu vẫn khớp).
+func isWordAt(s string, t token, word string) bool {
+	end, ok := matchAliasAt(s, t.start, word, false)
+	return ok && end == t.end
+}
+
+func atoiOrZero(x string) int { v, _ := strconv.Atoi(x); return v }
 
 // smallInt báo p là số nguyên không dấu, tối đa hai chữ số — cỡ của ngày, tháng, năm viết tắt.
 func smallInt(p string) bool { return p != "" && len(p) <= 2 && strings.Trim(p, "0123456789") == "" }

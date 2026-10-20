@@ -306,7 +306,7 @@ func TestNgayKhongHopLeThiHoiLai(t *testing.T) {
 		{"EX-03 ngày 29/02/2026 được cấp bao nhiêu dầu?", "29/02/2026"},
 		{"EX-03 ngày 2026-02-30 được cấp bao nhiêu dầu?", "2026-02-30"},
 		{"EX-03 ngày 15/13 được cấp bao nhiêu dầu?", "15/13"},
-		{"EX-03 ngày 16/9/26 được cấp bao nhiêu dầu?", "16/9/26"}, // hai chữ số năm: chưa đọc được
+		{"EX-03 ngày 31/09/26 được cấp bao nhiêu dầu?", "31/09/26"}, // năm hai chữ số là 20yy; tháng 9 không có ngày 31
 		{"Dự án A ngày 31/02 được cấp bao nhiêu dầu?", "31/02"},
 		{"EX-03 hôm nay và ngày 31/02 được cấp bao nhiêu dầu?", "31/02"},
 	} {
@@ -400,7 +400,7 @@ func TestHoiLaiNhieuGiaTriDeLaiVetVaPhatLaiDuoc(t *testing.T) {
 }
 
 // Con số khác chiều đo ("7h" là giờ chạy, không phải lượng dầu) không phải con số xác nhận thứ hai: không hỏi lại thừa.
-// Câu này không có đúng MỘT lượng để so nên vẫn trả lời như câu tra số (hành vi cũ), không phải câu hỏi lại.
+// Chỉ còn MỘT lượng cùng chiều đo (3850 L) để so, nên đó là con số xác nhận — cùng định nghĩa với rivalClaims, xem pipeline_hoi_quy_test.go.
 func TestCauXacNhanLanSoKhacChieuKhongHoiLai(t *testing.T) {
 	r := ask(t, newAsk(t), user("director", ""), "EX-03 chạy 7h hôm nay được cấp 3850 L đúng không?").Response
 	if r.Route != contracts.RouteSQLQuery || r.Outcome != contracts.OutcomeResolved || !strings.Contains(r.Answer, "3.850 L") {

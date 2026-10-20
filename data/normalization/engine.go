@@ -63,11 +63,17 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 		}
 		if t.kind == tokNum {
 			sp, next, ok, bad := matchNumericDate(raw, toks, i, opt.Now)
+			if ok && e.quantityFollows(raw, sp) {
+				ok = false
+			}
+			if e.quantityFollows(raw, bad) {
+				bad = contracts.Span{}
+			}
 			if ok {
 				spans, i = append(spans, sp), next
 				continue
 			}
-			if bad.Raw != "" && bad.Start >= invalidEnd { // cụm nhỏ nằm trong cụm hỏng đã ghi ("9/26" của "16/9/26") thì bỏ
+			if bad.Raw != "" {
 				invalid, invalidEnd = append(invalid, bad.Raw), bad.End
 			}
 			if sp, next, ok := matchClock(raw, toks, i); ok {
@@ -75,7 +81,16 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 				continue
 			}
 		}
-		if t.kind == tokWord {
+		// "tháng M" của "ngày D tháng M" hỏng ("ngày 31 tháng 2") nằm trong cụm đã ghi: không đọc lại thành một kỳ mồ côi
+		if t.kind == tokWord && t.start >= invalidEnd {
+			sp, next, ok, bad := matchDayMonth(raw, toks, i, opt.Now)
+			if ok {
+				spans, i = append(spans, sp), next
+				continue
+			}
+			if bad.Raw != "" {
+				invalid, invalidEnd = append(invalid, bad.Raw), bad.End
+			}
 			if sp, next, ok := matchRelativeDate(raw, toks, i, opt.Now); ok {
 				spans, i = append(spans, sp), next
 				continue
@@ -131,6 +146,17 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 		Ambiguities:  ambs,
 		InvalidDates: invalid,
 	}
+}
+
+// quantityFollows báo một ngày chỉ đọc được nhờ chữ "ngày" đứng trước (Rule có hậu tố ":ctx": "ngày 10-12", "ngày 2.5") thực ra là phần
+// đầu của một lượng: ngay sau nó là một đơn vị ("mỗi ngày 10-12 giờ", "ngày 2.5 tấn"). Đánh đổi: "ngày 19.10 ca đêm" không đọc được —
+// "ca" cũng là đơn vị ("2-3 ca"); viết "ngày 19/10 ca đêm" thì đọc được.
+func (e *Engine) quantityFollows(s string, sp contracts.Span) bool {
+	if !strings.HasSuffix(sp.Rule, ":ctx") {
+		return false
+	}
+	_, _, _, ok := e.matchUnit(s, sp.End, false, false)
+	return ok
 }
 
 // matchCode thử các mẫu mã của pack tại token i.
@@ -223,7 +249,8 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 	}
 
 	var unit *UnitDef
-	if uEnd, u, extra, ok := e.matchUnit(s, end, layout); ok {
+	enclosed := layout && openedBefore(s, t.start) && quantityLike(t.text) // "(4.000) lít": đơn vị đứng sau ngoặc đóng của số
+	if uEnd, u, extra, ok := e.matchUnit(s, end, layout, enclosed); ok {
 		unit = &u
 		end = uEnd
 		if extra != nil { // "7h30" thời lượng → 7,5 giờ
@@ -254,8 +281,8 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 // ("1tr6" = 1,6 triệu, "1tr499" = 1.499.000, "4k5" = 4.500).
 func (e *Engine) matchMultiplier(s string, pos int) (end int, factor string, frac *big.Rat, ok bool) {
 	starts := []int{pos}
-	if pos < len(s) && s[pos] == ' ' {
-		starts = append(starts, pos+1)
+	if p := skipGap(s, pos); p > pos { // nhiều dấu cách hay ký tự vô hình giữa số và hậu tố: "5  k lít", "5<ZWSP>k lít"
+		starts = append(starts, p)
 	}
 	all := append(append([]multAlias{}, e.mults...), builtinMultipliers...)
 	sort.SliceStable(all, func(a, b int) bool { return len(all[a].alias) > len(all[b].alias) })
@@ -288,10 +315,11 @@ func (e *Engine) matchMultiplier(s string, pos int) (end int, factor string, fra
 }
 
 // matchUnit đọc đơn vị ngay sau số, cho phép khoảng đệm ("4000 L", "4000L", "4000  L", "4000<ZWSP>L" — Normalize đã
-// gấp tab, NBSP, U+202F… về dấu cách; ký tự định dạng vô hình cũng là khoảng đệm). layout: thêm dạng đơn vị MỞ ĐẦU một cặp ngoặc rồi đóng ngay hoặc theo sau là
-// "/…" ("5.000 (L)", "5.000 (lít/ngày)"); "5 (khối lượng công việc)" không phải lượng.
+// gấp tab, NBSP, U+202F… về dấu cách; ký tự định dạng vô hình cũng là khoảng đệm). layout: thêm dạng đơn vị MỞ ĐẦU một cặp ngoặc rồi đóng ngay,
+// theo sau là "/…" hoặc một từ chữ phụ ("5.000 (L)", "5.000 (lít/ngày)", "5.000 (lít dầu)", xem bracketTail); "5 (khối lượng công
+// việc)" không phải lượng. enclosed (chỉ khi layout): số đứng trong ngoặc, đơn vị đứng sau ngoặc đóng ("(4.000) lít").
 // extra khác nil khi "7h30": phần phút cộng vào thời lượng.
-func (e *Engine) matchUnit(s string, pos int, layout bool) (end int, def UnitDef, extra *big.Rat, ok bool) {
+func (e *Engine) matchUnit(s string, pos int, layout, enclosed bool) (end int, def UnitDef, extra *big.Rat, ok bool) {
 	starts := []int{pos}
 	p := skipGap(s, pos)
 	if p > pos {
@@ -302,10 +330,13 @@ func (e *Engine) matchUnit(s string, pos int, layout bool) (end int, def UnitDef
 		bracketed = skipGap(s, p+1)
 		starts = append(starts, bracketed)
 	}
+	if enclosed && p < len(s) && strings.IndexByte(")]}", s[p]) >= 0 {
+		starts = append(starts, skipGap(s, p+1))
+	}
 	for _, p := range starts {
 		for _, u := range e.units {
 			if uEnd, ok := matchAliasAt(s, p, u.alias, u.def.CaseSensitive); ok {
-				if q := skipGap(s, uEnd); p == bracketed && (q >= len(s) || strings.IndexByte(")]}/", s[q]) < 0) {
+				if p == bracketed && !bracketTail(s, uEnd) {
 					continue
 				}
 				return uEnd, u.def, nil, true
@@ -323,16 +354,35 @@ func (e *Engine) matchUnit(s string, pos int, layout bool) (end int, def UnitDef
 	return 0, UnitDef{}, nil, false
 }
 
-// matchUnitFirst đọc lượng viết đơn vị TRƯỚC số: "L 5.000", "lít: 5.000", "(lít): 5.000" (đầu cột của bảng).
-// Chỉ chạy khi Options.Layout. Số đã mang đơn vị riêng ("lít 7 giờ") thì số đó thuộc đơn vị của nó, không đọc.
+// matchUnitFirst đọc lượng viết đơn vị TRƯỚC số: "L 5.000", "lít: 5.000", "(lít): 5.000", "lít/ca: 4.000" (đầu cột của bảng).
+// Chỉ chạy khi Options.Layout. Số đã mang đơn vị riêng ("lít 7 giờ") thì số đó thuộc đơn vị của nó, không đọc. Không đọc khi đơn vị là
+// MẪU SỐ của một giá ("đồng/lít 25.000": đứng sau "/"), hay khi chỉ cách số bằng khoảng trắng mà số không có dạng lượng — "khối 2",
+// "L 3", "lít 2 liên" là nhãn bộ phận / mục / số đếm (xem quantityLike).
 func (e *Engine) matchUnitFirst(s string, toks []token, i int) (contracts.Span, int, bool) {
 	start := toks[i].start
+	if start > 0 && s[start-1] == '/' {
+		return contracts.Span{}, i, false
+	}
 	for _, u := range e.units {
 		uEnd, ok := matchAliasAt(s, start, u.alias, u.def.CaseSensitive)
 		if !ok {
 			continue
 		}
 		p := uEnd
+		if p < len(s) && s[p] == '/' { // đơn vị ghép "lít/ca", "lít/ngày": phần sau "/" là mẫu số, không phải số
+			q := p + 1
+			for q < len(s) {
+				r, w := utf8.DecodeRuneInString(s[q:])
+				if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+					break
+				}
+				q += w
+			}
+			if q > p+1 {
+				p = q
+			}
+		}
+		sepStart := p
 		for p < len(s) {
 			r, w := utf8.DecodeRuneInString(s[p:])
 			if !isFormat(r) && !strings.ContainsRune(" :=)]}", r) {
@@ -342,6 +392,9 @@ func (e *Engine) matchUnitFirst(s string, toks []token, i int) (contracts.Span, 
 		}
 		j := tokenAt(toks, p)
 		if j >= len(toks) || toks[j].start != p || toks[j].kind != tokNum {
+			continue
+		}
+		if strings.TrimFunc(s[sepStart:p], func(r rune) bool { return r == ' ' || isFormat(r) }) == "" && !quantityLike(toks[j].text) {
 			continue
 		}
 		num, next, ok := e.matchQuantity(s, toks, j, false)
@@ -370,6 +423,44 @@ func skipGap(s string, pos int) int {
 		pos += w
 	}
 	return pos
+}
+
+// bracketTail báo phần đứng sau một đơn vị MỞ ĐẦU một cặp ngoặc có đúng là phần cuối của chú thích đơn vị không: ngoặc đóng, "/" (mẫu
+// số: "(lít/ngày)") hoặc — sau khoảng đệm — một từ chữ phụ ("(lít dầu)"). "(khối lượng công việc)" thì không: ở đó "khối" là đầu
+// một từ khác, không phải đơn vị.
+func bracketTail(s string, unitEnd int) bool {
+	q := skipGap(s, unitEnd)
+	if q >= len(s) {
+		return false
+	}
+	if strings.IndexByte(")]}/", s[q]) >= 0 {
+		return true
+	}
+	r, _ := utf8.DecodeRuneInString(s[q:])
+	if q == unitEnd || !unicode.IsLetter(r) {
+		return false
+	}
+	_, heavy := matchAliasAt(s, q, "lượng", false)
+	return !heavy
+}
+
+// openedBefore báo số bắt đầu ở start đứng ngay sau một dấu mở ngoặc ("(4.000"), chỉ cách khoảng đệm.
+func openedBefore(s string, start int) bool {
+	for start > 0 {
+		r, w := utf8.DecodeLastRuneInString(s[:start])
+		if r == ' ' || isFormat(r) {
+			start -= w
+			continue
+		}
+		return strings.ContainsRune("([{", r)
+	}
+	return false
+}
+
+// quantityLike báo token số viết kiểu một LƯỢNG: có dấu nghìn / thập phân, hoặc từ hai chữ số. Số MỘT chữ số đứng cạnh một từ trùng tên đơn
+// vị thường là số thứ tự / nhãn ("khối 2", "(1) Khối tài chính", "lít 2 liên"), không phải lượng.
+func quantityLike(text string) bool {
+	return strings.ContainsAny(text, ".,") || len(strings.TrimLeft(text, "-−")) >= 2
 }
 
 // foldLookalikes gấp các ký tự NHÌN GIỐNG về dạng mà luật đọc số và đơn vị hiểu, để một lượng viết lạ không

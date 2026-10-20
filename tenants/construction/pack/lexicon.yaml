@@ -3,8 +3,9 @@
 
 units:
   - {unit: L, kind: quantity, dimension: volume, to_base: "1", aliases: [L, l, lít, lit, litre, liter]}
-  # "4 khối dầu" = 4 m³ = 4.000 L
-  - {unit: m3, kind: quantity, dimension: volume, to_base: "1000", aliases: [m3, m³, khối]}
+  # "4 khối dầu" = 4 m³ = 4.000 L. "mét khối" là cách viết trang trọng của m³ (dài hơn "mét" nên thắng khi so khớp dài trước, không bị
+  # đọc là "mét" độ dài + "khối"); "m^3" là cách gõ chữ mũ. Hai lớp kiểm lượng trong tài liệu lấy danh sách đơn vị từ đây.
+  - {unit: m3, kind: quantity, dimension: volume, to_base: "1000", aliases: [m3, m³, khối, mét khối, "m^3"]}
   - {unit: m, kind: quantity, dimension: length, to_base: "1", aliases: [m, mét, met]}
   - {unit: km, kind: quantity, dimension: length, to_base: "1000", aliases: [km, cây số]}
   - {unit: m2, kind: quantity, dimension: area, to_base: "1", aliases: [m2, m², mét vuông]}

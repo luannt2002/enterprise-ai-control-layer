@@ -26,8 +26,8 @@ func TestNgayHongDuocGhiLai(t *testing.T) {
 		{"ngày 2026-02-30", []string{"2026-02-30"}},
 		{"ngày 2026-13-01", []string{"2026-13-01"}},
 		{"ngày 32/10/2026", []string{"32/10/2026"}},
-		// ba phần nhỏ mà không đúng dạng nào (năm hai chữ số) cũng là ngày chưa đọc được — ghi cả cụm, không ghi "9/26"
-		{"ngày 16/9/26", []string{"16/9/26"}},
+		// năm hai chữ số là 20yy (16/9/26 là ngày CÓ THẬT — xem engine_hoi_quy_test.go); ngày hỏng viết kiểu đó ghi cả cụm, không ghi "09/26"
+		{"ngày 31/09/26", []string{"31/09/26"}},
 		// nhiều ngày hỏng, hoặc ngày hỏng cạnh ngày tốt: ghi đúng các cụm hỏng
 		{"từ 31/02 đến 05/03", []string{"31/02"}},
 		{"ngày 31/02 và 30/02", []string{"31/02", "30/02"}},

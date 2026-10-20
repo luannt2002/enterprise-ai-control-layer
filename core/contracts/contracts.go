@@ -116,7 +116,7 @@ type NormalizedInput struct {
 	Canonical   string      `json:"canonical"`
 	Spans       []Span      `json:"spans"`
 	Ambiguities []Ambiguity `json:"ambiguities,omitempty"`
-	// InvalidDates là nguyên văn các cụm có DẠNG ngày ("31/02", "32/10/2026", "16/9/26") nhưng không đọc được thành
+	// InvalidDates là nguyên văn các cụm có DẠNG ngày ("31/02", "32/10/2026", "31/09/26") nhưng không đọc được thành
 	// một ngày trên lịch. Chúng KHÔNG sinh span ngày — nên nếu không ghi lại ở đây, câu hỏi ngày hỏng sẽ lặng lẽ
 	// được hiểu như không nêu ngày và rơi về ngày mặc định (P5: không đoán im lặng).
 	InvalidDates []string `json:"invalid_dates,omitempty"`
@@ -159,6 +159,11 @@ type AmbiguousMention struct {
 	Mention    string      `json:"mention"`
 	Type       string      `json:"type"`
 	Candidates []EntityRef `json:"candidates"`
+	// Start, End: vị trí byte của cụm trong NormalizedInput.Raw, cùng hệ toạ độ với EntityRef.Start/End và Span. Một thực
+	// thể do router gỡ từ bí danh mơ hồ lấy từ Candidates nên KHÔNG mang vị trí; muốn biết phần nào của câu đã "thuộc về" một tên
+	// thực thể (ví dụ "03" của "máy 03" không phải con số) thì phải dùng vị trí của cụm mơ hồ này.
+	Start int `json:"start"`
+	End   int `json:"end"`
 }
 
 // Resolution là kết quả chặng S3.

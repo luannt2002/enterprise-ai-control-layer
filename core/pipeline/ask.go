@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -126,7 +127,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	// Câu hỏi lại giải thích thêm khi câu nêu nhiều mốc thời gian / ngày hỏng, và khi câu xác nhận nêu nhiều con số
 	// khác nhau: không xác nhận con số nào thay người hỏi (P5).
 	notes := a.unclearNotes(cls.Unclear, now.Location())
-	if len(a.rivalClaims(plan, in)) > 1 {
+	names := mentionsOf(res)
+	rival := len(a.rivalClaims(plan, in, names)) > 1
+	if rival {
 		plan.Route, plan.Template, plan.Outcome, plan.Steps = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired, nil
 		plan.Intent.Missing = append(slices.Clone(plan.Intent.Missing), "claimed")
 		plan.Reason = "câu xác nhận nêu nhiều con số khác nhau"
@@ -142,6 +145,10 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	switch plan.Route {
 	case contracts.RouteClarification:
 		visible := a.visibleCandidates(ctx, pr, append(slices.Clone(cls.Candidates), cls.Unclear.Entities...))
+		if rival {
+			// hỏi lại về CON SỐ: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
+			visible = nil
+		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(append(cls.Ambiguous, cls.NeedTerm...))
@@ -152,7 +159,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		resp.Answer = a.render(plan.Template, vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
-		if err := a.answerMetric(ctx, tr, now, &plan, in, plan.Intent, &resp, vars); err != nil {
+		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars); err != nil {
 			return Outcome{}, err
 		}
 		// HYBRID: số liệu từ fact (đã kiểm) + phần quy trình từ tài liệu. Phần số liệu không ra
@@ -290,7 +297,7 @@ func (a *Ask) Replay(ctx context.Context, d traces.Decision) ([]string, error) {
 // answerMetric chạy S6–S9 cho câu hỏi số liệu: truy vấn nguồn sự thật, dựng câu bằng mẫu,
 // rồi kiểm số trong câu với bằng chứng.
 func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time, plan *contracts.RoutePlan,
-	in contracts.NormalizedInput, it contracts.Intent, resp *contracts.AskResponse, vars map[string]string) error {
+	in contracts.NormalizedInput, names []mention, it contracts.Intent, resp *contracts.AskResponse, vars map[string]string) error {
 
 	entitySlot, metric := firstEntitySlot(it), it.Slots["metric"].Text
 	ids, err := entityresolution.Expand(ctx, a.Deps.Directory, entitySlot.Entity.ID)
@@ -397,7 +404,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	}
 	ignore := []string{entitySlot.Entity.Name, entitySlot.Entity.Key}
 	tmpl := plan.Template
-	if claimed, ok := a.claimedValue(in, *entitySlot.Entity, metric); ok && compare == "" {
+	if claimed, ok := a.claimedValue(in, names, metric); ok && compare == "" {
 		// Câu xác nhận: so BẰNG TUYỆT ĐỐI với số có thẩm quyền, rồi kê các nghĩa khác cùng kỳ
 		// (mỗi số kèm nhãn của nó) — "4k" có thể là số báo cáo, không phải số xuất kho.
 		tmpl = "confirm_no"
@@ -590,34 +597,18 @@ func citations(d contracts.Draft, ev []contracts.Evidence) []contracts.Citation 
 	return out
 }
 
-// claimedValue trả con số người hỏi đưa ra khi câu là câu XÁC NHẬN (có cụm confirm_markers của
-// pack và đúng MỘT lượng ngoài tên thực thể), đã đổi về đơn vị chuẩn của chỉ số.
-func (a *Ask) claimedValue(in contracts.NormalizedInput, ent contracts.EntityRef, metric string) (contracts.Value, bool) {
+// claimedValue trả con số người hỏi đưa ra khi câu là câu XÁC NHẬN (có cụm confirm_markers của pack và đúng MỘT con số
+// ngoài tên thực thể — xem claimNumbers), đã đổi về đơn vị chuẩn của chỉ số.
+func (a *Ask) claimedValue(in contracts.NormalizedInput, names []mention, metric string) (contracts.Value, bool) {
 	def, ok := a.RT.Metrics.Metric(metric)
 	if !a.confirming(in.Raw) || !ok {
 		return contracts.Value{}, false
 	}
-	var cands, focused []contracts.Value
-	fs, fe, focus := intent.FocusClause(in.Raw, a.RT.ConfirmMarkers)
-	for _, sp := range in.Spans {
-		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
-			continue
-		}
-		if sp.Start < ent.End && sp.End > ent.Start { // "03" của "máy 03" là tên, không phải số
-			continue
-		}
-		cands = append(cands, sp.Value)
-		if focus && sp.Start >= fs && sp.End <= fe {
-			focused = append(focused, sp.Value)
-		}
-	}
-	if len(focused) > 0 { // câu nhiều mệnh đề: số được hỏi nằm trong mệnh đề chứa cụm xác nhận
-		cands = focused
-	}
-	if len(cands) != 1 {
+	vals := a.claimNumbers(in, names, def)
+	if len(vals) != 1 {
 		return contracts.Value{}, false
 	}
-	return a.inMetricUnit(cands[0], def)
+	return vals[0], true
 }
 
 // confirming báo câu có cụm xác nhận của pack ("đúng không").
@@ -646,12 +637,11 @@ func (a *Ask) inMetricUnit(v contracts.Value, def sourceoftruth.MetricDef) (cont
 	return v, true
 }
 
-// rivalClaims trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà một câu xác nhận nêu ở mệnh đề hỏi và
-// các mệnh đề sau nó ("3850 L đúng không, 4000 L thì sao?", "3850 L và 4000 L đúng không?"); từ hai con số trở lên là
-// câu không xác nhận được con số nào thay người hỏi. Số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi là ngữ cảnh ("đội báo 2k, vậy
-// tổng báo 4k đúng không?") và cùng một giá trị viết hai cách ("4k", "4 m3") chỉ tính một lần. Chỉ xét route số liệu có
-// chỉ số gốc và không phải câu so sánh — đúng những câu mà answerMetric coi là câu xác nhận.
-func (a *Ask) rivalClaims(plan contracts.RoutePlan, in contracts.NormalizedInput) []contracts.Value {
+// rivalClaims trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà một câu xác nhận nêu ("3850 L đúng không, 4000 L
+// thì sao?", "3850 L và 4000 L, đúng không?"); từ hai con số trở lên là câu không xác nhận được con số nào thay người hỏi. Chỉ xét
+// route số liệu có chỉ số gốc và không phải câu so sánh — đúng những câu mà answerMetric coi là câu xác nhận — và dùng CÙNG định
+// nghĩa "con số xác nhận" (claimNumbers) với claimedValue, để hai nơi không bao giờ lệch nhau.
+func (a *Ask) rivalClaims(plan contracts.RoutePlan, in contracts.NormalizedInput, names []mention) []contracts.Value {
 	switch plan.Route {
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
 	default:
@@ -662,26 +652,119 @@ func (a *Ask) rivalClaims(plan contracts.RoutePlan, in contracts.NormalizedInput
 	if !ok || it.Slots["compare_metric"].Text != "" || !a.confirming(in.Raw) {
 		return nil
 	}
-	ent := firstEntitySlot(it).Entity
-	from := 0
-	if fs, _, focus := intent.FocusClause(in.Raw, a.RT.ConfirmMarkers); focus {
-		from = fs
+	return a.claimNumbers(in, names, def)
+}
+
+// mention là khoảng byte [start, end) của một cụm tên thực thể (đã nhận ra, kể cả bí danh mơ hồ) trong NormalizedInput.Raw.
+type mention struct{ start, end int }
+
+// mentionsOf trả vị trí của MỌI cụm tên thực thể trong câu — cả các lần nhắc thứ hai của cùng một thực thể và các bí danh mơ hồ mà
+// router gỡ về một thực thể sau đó (thực thể ấy lấy từ danh sách ứng viên nên không mang vị trí, xem contracts.AmbiguousMention).
+func mentionsOf(res contracts.Resolution) []mention {
+	var out []mention
+	for _, e := range res.Entities {
+		out = append(out, mention{e.Start, e.End})
 	}
-	var out []contracts.Value
+	for _, m := range res.Ambiguous {
+		out = append(out, mention{m.Start, m.End})
+	}
+	return out
+}
+
+// claimCand là một con số ứng viên của câu xác nhận, đã đổi về đơn vị chuẩn của chỉ số.
+type claimCand struct {
+	start int
+	v     contracts.Value
+	// explicit: lượng có đơn vị VIẾT RÕ cùng chiều đo ("3850 L", "4 m3"). Số trần và đơn vị suy từ thuật ngữ ("dầu 2" → 2 L)
+	// thì không — chúng có thể chỉ là nhãn ("ca 2", "phiếu 912", "năm 2026", "2 lần").
+	explicit bool
+	// formatted: số trần viết có hậu tố nhân, dấu nghìn / thập phân hoặc chữ ("4k", "4.000", "bốn ngàn") — giống một lượng hơn
+	// là một nhãn, nên vẫn là con số cạnh tranh dù cạnh một lượng viết rõ.
+	formatted bool
+}
+
+// claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def. Một con số là ứng
+// viên khi: là lượng hay số trần, KHÔNG nằm trong tên một thực thể ("03" của "máy 03"), và đổi được về đơn vị chuẩn ("7h", "2 ca"
+// khác chiều đo nên bỏ). Phạm vi:
+//   - mệnh đề chứa cụm xác nhận và MỌI mệnh đề sau nó ("3850 L đúng không, 4000 L thì sao?"); số ở mệnh đề đứng TRƯỚC là ngữ cảnh
+//     ("đội báo 2k, vậy tổng báo 4k đúng không?");
+//   - mệnh đề chứa cụm xác nhận mà không có con số nào ("3850 L và 4000 L, đúng không?") thì câu hỏi áp cho các con số đứng trước
+//     trong CÙNG câu (tách bởi . ? !), không phải cho câu trước đó.
+//
+// Số trần khác chỉ tính khi chính mệnh đề hỏi không có lượng nào viết rõ đơn vị — "3850 đúng không, 4000 thì sao?" có hai con số;
+// còn "tháng 10 năm 2026 … 3850 L đúng không?" chỉ có MỘT (2026 là năm). Số trần có dạng một lượng ("4k", "4.000") hoặc đứng đầu một
+// mệnh đề ("3850 L đúng không, 4000 thì sao?") vẫn là con số cạnh tranh. Cùng một giá trị viết hai cách ("4k", "4000 L") chỉ tính một lần.
+func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def sourceoftruth.MetricDef) []contracts.Value {
+	var cands []claimCand
 	for _, sp := range in.Spans {
-		if (sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber) || sp.Start < from ||
-			(sp.Start < ent.End && sp.End > ent.Start) {
+		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
+			continue
+		}
+		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
 			continue
 		}
 		v, ok := a.inMetricUnit(sp.Value, def)
 		if !ok {
 			continue
 		}
-		if !slices.ContainsFunc(out, func(o contracts.Value) bool { c, err := decimal.Cmp(o.Number, v.Number); return err == nil && c == 0 }) {
-			out = append(out, v)
+		explicit := sp.Kind == contracts.ValueQuantity && !strings.Contains(sp.Rule, "unit_from_term")
+		formatted := !explicit && strings.ContainsFunc(sp.Raw, func(r rune) bool { return unicode.IsLetter(r) || r == '.' || r == ',' })
+		cands = append(cands, claimCand{start: sp.Start, v: v, explicit: explicit, formatted: formatted})
+	}
+	lo, hi := 0, len(in.Raw) // [lo, hi): mệnh đề hỏi; từ hi trở đi: các mệnh đề sau nó
+	if fs, fe, focus := intent.FocusClause(in.Raw, a.RT.ConfirmMarkers); focus {
+		lo, hi = fs, fe
+		if !slices.ContainsFunc(cands, func(c claimCand) bool { return c.start >= lo && c.start < hi }) {
+			lo = sentenceStart(in.Raw, fs)
+		}
+	}
+	var primary, trailing []claimCand
+	for _, c := range cands {
+		switch {
+		case c.start < lo: // ngữ cảnh
+		case c.start < hi:
+			primary = append(primary, c)
+		default:
+			trailing = append(trailing, c)
+		}
+	}
+	hasExplicit := slices.ContainsFunc(primary, func(c claimCand) bool { return c.explicit })
+	var out []contracts.Value
+	add := func(c claimCand) {
+		if !slices.ContainsFunc(out, func(o contracts.Value) bool { n, err := decimal.Cmp(o.Number, c.v.Number); return err == nil && n == 0 }) {
+			out = append(out, c.v)
+		}
+	}
+	for _, c := range primary {
+		if !hasExplicit || c.explicit || c.formatted || clauseInitial(in.Raw, c.start) {
+			add(c)
+		}
+	}
+	for _, c := range trailing {
+		if c.explicit || c.formatted || !hasExplicit || clauseInitial(in.Raw, c.start) {
+			add(c)
 		}
 	}
 	return out
+}
+
+// clauseInitial báo vị trí at là ĐẦU một mệnh đề: trước nó, chỉ cách khoảng trắng, là một dấu , ; . ? ! hoặc đầu văn bản. Một số trần
+// đứng đầu mệnh đề ("…3850 L đúng không, 4000 thì sao?") là một giá trị được đem ra so; số trần đứng sau một chữ ("ca 2", "phiếu 912",
+// "Đội 3") là nhãn của chữ đó.
+func clauseInitial(text string, at int) bool {
+	before := strings.TrimRight(text[:at], " \t\n")
+	return before == "" || strings.IndexByte(",;.?!", before[len(before)-1]) >= 0
+}
+
+// sentenceStart trả vị trí đầu CÂU (tách bởi . ? ! theo sau là khoảng trắng — "3.850", "0,5" không cắt) chứa vị trí at.
+func sentenceStart(text string, at int) int {
+	start := 0
+	for i := 0; i < at && i < len(text); i++ {
+		if strings.IndexByte(".?!", text[i]) >= 0 && i+1 < len(text) && (text[i+1] == ' ' || text[i+1] == '\n') {
+			start = i + 1
+		}
+	}
+	return start
 }
 
 // otherMetrics kê tổng các chỉ số GỐC khác của cùng thực thể, cùng kỳ (đã qua thẩm quyền), kèm

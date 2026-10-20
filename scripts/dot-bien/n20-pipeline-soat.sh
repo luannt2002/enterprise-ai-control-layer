@@ -46,9 +46,9 @@ m $E '		case r == 0x2113:' '		case false && r == 0x2113:' 'S2-2d không gấp k�
 m $E 'func isFormat(r rune) bool { return unicode.Is(unicode.Cf, r) }' 'func isFormat(r rune) bool { return false }' 'S2-2e1 ký tự vô hình (ZWSP, ZWJ…) không còn là khoảng đệm'
 m $E '		if r != '"'"' '"'"' && !isFormat(r) {' '		if r != '"'"' '"'"' {' 'S2-2e2 skipGap chỉ bỏ qua dấu cách'
 m $E '	if !strings.ContainsFunc(s, isFormat) {' '	if true {' 'S2-2e3 ký tự vô hình giữa hai chữ số tách một số thành hai (không ghép lại)'
-m $E '		starts = append(starts, p)' '		starts = append(starts, min(p, pos+1))' 'S2-2f chỉ cho đúng một dấu cách giữa số và đơn vị'
+m $E $'\tp := skipGap(s, pos)\n\tif p > pos {\n\t\tstarts = append(starts, p)' $'\tp := skipGap(s, pos)\n\tif p > pos {\n\t\tstarts = append(starts, min(p, pos+1))' 'S2-2f chỉ cho đúng một dấu cách giữa số và đơn vị'
 m $E '	if layout && p < len(s) && strings.IndexByte("([{", s[p]) >= 0 {' '	if false && layout && p < len(s) && strings.IndexByte("([{", s[p]) >= 0 {' 'S2-2g bỏ đơn vị trong ngoặc'
-m $E '(q >= len(s) || strings.IndexByte(")]}/", s[q]) < 0)' '(q < 0)' 'S2-2h ngoặc đọc nhầm "(khối lượng …)" là lượng'
+m $E 'if p == bracketed && !bracketTail(s, uEnd) {' 'if p == bracketed && false {' 'S2-2h ngoặc đọc nhầm "(khối lượng …)" là lượng'
 m $E '		if opt.Layout && t.kind == tokWord {' '		if false && opt.Layout && t.kind == tokWord {' 'S2-2i bỏ đơn vị đứng trước số'
 m $E '		if !ok || num.Kind != contracts.ValueNumber {' '		if !ok {' 'S2-2j đơn vị đứng trước nuốt số đã có đơn vị riêng'
 m $E '	approxUntil := -1' '	approxUntil := -1
@@ -57,12 +57,12 @@ m $K 'normalization.Options{Now: now, Layout: true}' 'normalization.Options{Now:
 
 # --- S2-2, lớp bộ đếm độc lập (knowledge.go ForbidUnitWords): tự gấp ký tự lạ, ngoặc, đơn vị đứng trước
 m $K '	text = foldLookalikes(text)' '	_ = foldLookalikes' 'S2-2m bộ đếm không gấp ký tự lạ'
-m $K '			w, ok = unitBefore(masked[:m[2]], words)' '			w, ok = "", false' 'S2-2n bộ đếm bỏ đơn vị đứng trước số'
-m $K '	before = strings.TrimRightFunc(before, func(r rune) bool { return isGap(r) || strings.ContainsRune(":=)]}", r) })' '	before = strings.TrimRightFunc(before, isGap)' 'S2-2o bộ đếm không nối qua dấu hai chấm / ngoặc đóng'
+m $K '			w, ok = unitBefore(masked[:m[2]], num, words)' '			w, ok = "", false' 'S2-2n bộ đếm bỏ đơn vị đứng trước số'
+m $K '	trimmed := strings.TrimRightFunc(before, func(r rune) bool { return isGap(r) || strings.ContainsRune(":=)]}", r) })' '	trimmed := strings.TrimRightFunc(before, isGap)' 'S2-2o bộ đếm không nối qua dấu hai chấm / ngoặc đóng'
 m $K 'func isGap(r rune) bool { return r == '"'"' '"'"' || unicode.Is(unicode.Cf, r) }' 'func isGap(r rune) bool { return r == '"'"' '"'"' }' 'S2-2o2 bộ đếm không coi ký tự vô hình là khoảng đệm'
 m $K "	if r, w := utf8.DecodeRuneInString(rest); r == '(' || r == '[' || r == '{' {" "	if r, w := utf8.DecodeRuneInString(rest); false && (r == '(' || r == '[' || r == '{') && w > 0 {" 'S2-2p bộ đếm bỏ đơn vị trong ngoặc'
-m $K '			if after = strings.TrimLeftFunc(after, isGap); after == "" || !strings.ContainsRune(")]}/", rune(after[0])) {' '			if after = strings.TrimLeftFunc(after, isGap); false {' 'S2-2q bộ đếm đọc nhầm "(khối lượng …)" là lượng'
+m $K '			if !bracketTail(after) {' '			if false {' 'S2-2q bộ đếm đọc nhầm "(khối lượng …)" là lượng'
 m $K '		if w == 0 || unicode.ToLower(r) != unicode.ToLower(pr) {' '		if w == 0 || r != pr {' 'S2-2r bộ đếm phân biệt hoa thường'
 m $K '		} else if r, _ := utf8.DecodeRuneInString(after); after != "" && isWordRune(r) {' '		} else if false {' 'S2-2s bộ đếm bỏ ranh giới từ phía sau đơn vị'
-m $K '		if r, _ := utf8.DecodeLastRuneInString(head); head != "" && isWordRune(r) {' '		if r, _ := utf8.DecodeLastRuneInString(head); false && head != "" && isWordRune(r) {' 'S2-2t bộ đếm bỏ ranh giới từ phía trước đơn vị đứng trước số'
+m $K $'head != "" && (isWordRune(r) || r == \'/\')' $'head != "" && (r == \'/\')' 'S2-2t bộ đếm bỏ ranh giới từ phía trước đơn vị đứng trước số'
 m $K '	return unicodenorm.NFC.String(strings.Map(func(r rune) rune {' '	return unicodenorm.NFD.String(strings.Map(func(r rune) rune {' 'S2-2u bộ đếm gấp NFD thay vì NFC (dấu tiếng Việt viết rời)'

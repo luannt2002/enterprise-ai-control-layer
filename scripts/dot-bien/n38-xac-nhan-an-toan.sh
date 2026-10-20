@@ -8,7 +8,7 @@ export PKGS="./core/pipeline/ ./data/normalization/ ./reliability/validation/ ./
 A=core/pipeline/ask.go
 m $A '			if q, ok := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End); ok && !(q.Kind' '			if q, ok := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End); false && ok && !(q.Kind' 'AT1 bỏ mốc chưa đọc được'
 m $A '			if normalization.LabelContext(in.Raw, sp.Start, sp.End) || dashTail' '			if false || dashTail' 'AT2 số hiệu sau từ nhãn thành con số xác nhận'
-m $A ' || dashTail(in.Raw, labelEnd, sp.Start) {' ' {' 'AT3 phần "-10" của số hiệu thành con số thứ hai'
+m $A '	return gap == "-" || gap == "–"' '	return false && (gap == "-" || gap == "–")' 'AT3 phần "-10" của số hiệu thành con số thứ hai'
 m $A '	for _, c := range primary {
 		add(c)
 	}' '	for _, c := range primary {

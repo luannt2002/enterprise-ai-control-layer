@@ -13,12 +13,16 @@ export PKGS="./core/pipeline/ ./data/normalization/ ./intelligence/intent/ ./rel
 A=core/pipeline/ask.go D=data/normalization/datetime.go Q=data/normalization/qualifier.go I=intelligence/intent/intent.go K=reliability/validation/knowledge.go P=core/tenant/pack.go
 m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
 
-m $A $'if explicit && rateAfter(in.Raw, sp.End) {' $'if explicit && false {' $'R02a lượng theo mẫu số (5.000 L/ngày) vẫn là lượng viết rõ đơn vị nên cho phép bỏ thầm số trần 3850'
+# R02a TƯƠNG ĐƯƠNG từ 37e8a08 (gỡ luật A-02): lượng tốc độ "5.000 L/ngày" là explicit (đột biến) hay formatted (mã) thì đều bỏ qua nhánh
+# số trần và đều là ứng viên; trong joinClaims nó đã mang đơn vị nên nối vào nó không đổi giá trị. Dòng cũ:
+# m $A $'if explicit && rateAfter(in.Raw, sp.End) {' $'if explicit && false {' $'R02a lượng theo mẫu số (5.000 L/ngày) vẫn là lượng viết rõ đơn vị nên cho phép bỏ thầm số trần 3850'
 m $A $'\t\tif !cands[k].explicit && !plain(cands[k+1]) && claimConnector(gap(cands[k], cands[k+1])) {' $'\t\tif !cands[k].explicit && !plain(cands[k+1]) && claimConnector(gap(cands[k], cands[k+1])) && false {' $'R02b số trần ĐỨNG TRƯỚC lượng (từ 3800 đến 3900 L, 3850 hay 4000 L) không bao giờ nối'
 m $A $'\t\tif !cands[k].explicit && !plain(cands[k-1]) && claimConnector(gap(cands[k-1], cands[k])) && !a.wordFollows(in.Raw, cands[k].end) {' $'\t\tif !cands[k].explicit && !plain(cands[k-1]) && claimConnector(gap(cands[k-1], cands[k])) && !a.wordFollows(in.Raw, cands[k].end) && false {' $'R02c số trần ĐỨNG SAU lượng (3850 L hay 4000) không bao giờ nối'
 m $A $'claimConnector(gap(cands[k-1], cands[k])) && !a.wordFollows(in.Raw, cands[k].end) {' $'claimConnector(gap(cands[k-1], cands[k])) {' $'R02d số trần sau lượng nối cả khi ngay sau nó là một danh từ đếm (3850 L và 4 xe)'
 m $A $'if u := cands[n].orig.Unit; u != "" && c.orig.Unit == "" {' $'if u := cands[n].orig.Unit; false && u != "" && c.orig.Unit == "" {' $'R02e số trần nối không lấy đơn vị của lượng (3,85 hay 3,85 m3 thành hai con số)'
-m $A $'\t\tc.formatted = true\n' $'\t\t_ = c\n' $'R02f số trần nối không được đánh dấu là con số cạnh tranh (vẫn bị bỏ như nhãn)'
+# R02f TƯƠNG ĐƯƠNG từ 37e8a08: sau joinClaims không còn chỗ nào đọc formatted; trong joinClaims, số nối tiếp vào một số đã nối chỉ lấy
+# orig.Unit của nó (rỗng — join không đổi orig) nên giá trị không đổi. Dòng cũ:
+# m $A $'\t\tc.formatted = true\n' $'\t\t_ = c\n' $'R02f số trần nối không được đánh dấu là con số cạnh tranh (vẫn bị bỏ như nhãn)'
 m $A $'var claimConnectors = []string{"-", "–", "—", "/", "đến",' $'var claimConnectors = []string{"–", "—", "/", "đến",' $'R02g dấu "-" không phải từ nối (3800-3900 L)'
 m $A $'"đến", "tới", "hay", "hoặc",' $'"tới", "hay", "hoặc",' $'R02h "đến" không phải từ nối (từ 3800 đến 3900 L)'
 m $A $'"hay", "hoặc", "hay là", "hoặc là", "và",' $'"hoặc", "hay là", "hoặc là", "và",' $'R02i "hay" không phải từ nối (3850 hay 4000 L)'
@@ -64,7 +68,7 @@ m $A $'func(sp contracts.Span) bool { return sp.Start <= word[0] && word[1] <= s
 m $D $'\tif !explicitYear {\n\t\tyear = now.Year()' $'\tif true || !explicitYear {\n\t\tyear = now.Year()' $'R01x "tháng M năm Y" bỏ năm viết rõ (tháng 9 năm 2025 thành tháng 9 năm nay)'
 m $D $'if !ok || month < 1 || month > 12 {' $'if !ok || month < 1 {' $'R01y "tháng 13" được đọc thành một tháng'
 m $A $'\t\t\tif normalization.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {\n\t\t\t\tlabelEnd = sp.End\n\t\t\t\tcontinue' $'\t\t\tif false {\n\t\t\t\tlabelEnd = sp.End\n\t\t\t\tcontinue' $'R04a nhãn / số đếm (phiếu 912, ca 2, 2 máy) là con số xác nhận khi câu không nêu lượng nào'
-m $A $'\t\t\t\tcontinue\n\t\t\t}\n\t\t}\n\t\tcands = append(cands,' $'\t\t\t\t_ = q\n\t\t\t}\n\t\t}\n\t\tcands = append(cands,' $'R04b mốc thời gian chưa đọc được (tuần 43) vẫn là con số xác nhận'
+m $A $'\t\t\t\t}\n\t\t\t\tcontinue\n\t\t\t}\n\t\t\tif normalization.LabelContext(' $'\t\t\t\t}\n\t\t\t\t_ = q\n\t\t\t}\n\t\t\tif normalization.LabelContext(' $'R04b mốc thời gian chưa đọc được (tuần 43) vẫn là con số xác nhận'
 m $Q $'if len(digits) > 4 || strings.Trim(digits, "0123456789") != "" {' $'if len(digits) > 4 {' $'Q01 số có dấu thập phân (tuần 1.5) bị coi là số nguyên của mốc'
 m $Q $'if len(digits) > 4 || strings.Trim(digits, "0123456789") != "" {' $'if strings.Trim(digits, "0123456789") != "" {' $'Q02 số nhiều chữ số (3850 tuần) không bị loại'
 m $Q $'\t\t\t\tif rateWordAt(raw, ws) { // "mỗi ngày 3 chuyến", "hàng tuần 2 lần"' $'\t\t\t\tif false { // "mỗi ngày 3 chuyến", "hàng tuần 2 lần"' $'Q03 tần suất "mỗi ngày 3 chuyến" bị coi là mốc ngày'

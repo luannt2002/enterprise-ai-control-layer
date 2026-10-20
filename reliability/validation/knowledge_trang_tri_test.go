@@ -15,6 +15,8 @@ func TestTrangTriChiBoQuaKhiSoCoDangLuong(t *testing.T) {
 		{"**Bước 2** Khối Kế hoạch lập phiếu.", false},
 		{"<b>Bước 2</b> Khối Kế hoạch lập phiếu.", false},
 		{"Mục 3, Khối Vận hành ký xác nhận.", false},
+		// ô bảng kế tiếp chứa chữ khác: chữ đơn vị KHÔNG mơ hồ ("Lít") mở đầu một nội dung, không phải đơn vị của số ở ô trước (R03i)
+		{"| 2 | Lít dầu thừa ghi vào sổ kho |", false},
 		// lượng thật vẫn bị chặn
 		{"Định mức cấp phát cho máy xúc: **4.000** lít mỗi ca.", true},
 		{"Định mức cấp phát cho máy xúc: 4.000, lít, mỗi ca.", true},

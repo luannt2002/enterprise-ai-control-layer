@@ -16,7 +16,8 @@ class H(BaseHTTPRequestHandler):
         with open(LOG, 'a', encoding='utf-8') as f:
             f.write(json.dumps({"bytes": n, "system_chars": len(req['system']), "user_chars": len(user),
                                 "evidence": len(re.findall(r'^\[[^\]]+\] ', user, re.M)),
-                                "model": req['model'], "temperature": req['temperature'], "max_tokens": req['max_tokens'],
+                                "model": req['model'], "temperature": req.get('temperature'), "thinking": req.get('thinking'),
+                                "output_config": req.get('output_config'), "max_tokens": req['max_tokens'],
                                 "question": user.split('\n', 1)[0]}, ensure_ascii=False) + '\n')
         out = json.dumps({"content": [{"type": "text", "text": json.dumps(ans, ensure_ascii=False)}],
                           "usage": {"input_tokens": 0, "output_tokens": 0}}).encode()

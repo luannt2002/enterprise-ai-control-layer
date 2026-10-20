@@ -89,10 +89,10 @@ Giá chính thức, tra 20/10/2026 ở `platform.claude.com/docs/en/about-claude
 
 ```bash
 D=$(mktemp -d)
-python3 -I scripts/g7-chay-kho.py 18080 $D/requests.jsonl &
+python3 -I scripts/g7-chay-kho.py 25480 $D/requests.jsonl &   # cổng bất kỳ còn trống; đừng dùng cổng của dịch vụ đang chạy
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out $D/data -profile functional -seed 42
 EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=chay-kho EAIS_MODEL_API_KEY=khong-phai-khoa-that \
-EAIS_MODEL_BASE_URL=http://127.0.0.1:18080 go run ./tenants/construction/win/g7run -data $D/data -k 3
+EAIS_MODEL_BASE_URL=http://127.0.0.1:25480 go run ./tenants/construction/win/g7run -data $D/data -k 3
 wc -l $D/requests.jsonl      # 372
 kill %1
 ```

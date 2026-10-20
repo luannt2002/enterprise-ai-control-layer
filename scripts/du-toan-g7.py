@@ -11,6 +11,8 @@
 Giá Sonnet 5.5 (Pricing chính thức, tra 20/10/2026): vào 2 USD, ra 10 USD mỗi triệu token.
 Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EACL, B1, B2+;
 chỉ báo cáo: B2, B2″, B2-oracle.
+Trần 15 USD là của TOÀN BỘ G7 (hợp đồng §9): cờ vượt trần xét cả tổng hệ cổng, tổng mọi hệ được chạy, và tổng
+kèm dự phòng (thử khói 3 ca + chạy lại MỘT lượt chính k = 1 sau lượt vô hiệu, §10) — bản soát lượt 2, C-17.
 """
 import argparse
 import json
@@ -50,6 +52,7 @@ def main():
     ap.add_argument("--pilot", required=True)
     ap.add_argument("--main", required=True)
     ap.add_argument("--cap", type=float, default=15.0)
+    ap.add_argument("--pilot-cases", type=int, default=16, help="số ca của pilot, để suy chi phí thử khói 3 ca")
     a = ap.parse_args()
     pc, pch, mt = measure(a.pilot)
     mc, mch, _ = measure(a.main)
@@ -65,20 +68,28 @@ def main():
 
     for km in (3, 5):
         print(f"## Ước lượng: pilot k = 5 + lượt chính H1 k = {km} (USD)\n")
-        print("| Kịch bản | " + " | ".join(LABEL[s] for s in systems) + " | Tổng cổng | Tổng mọi hệ |")
-        print("|---|" + "---|" * (len(systems) + 2))
+        print("| Kịch bản | " + " | ".join(LABEL[s] for s in systems) + " | Tổng cổng | Tổng cổng + dự phòng cổng | Tổng mọi hệ | Dự phòng | Tổng mọi hệ + dự phòng |")
+        print("|---|" + "---|" * (len(systems) + 5))
         for name, (cpt, opc) in SCEN.items():
             opc = opc if opc is not None else mt
-            row, gate_total, all_total = [], 0.0, 0.0
+            row, gate_total, all_total, spare, spare_gate = [], 0.0, 0.0, 0.0, 0.0
             for s in systems:
                 _, _, p = cost(pc.get(s, 0), pch.get(s, 0), 5, cpt, opc)
                 _, _, m = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc)
                 row.append(f"{p + m:.2f}")
+                # dự phòng: thử khói 3 ca (theo trung bình mỗi ca của pilot) + chạy lại một lượt chính k = 1
+                n_pilot = max(1, a.pilot_cases)
+                _, _, sm = cost(pc.get(s, 0) * 3 / n_pilot, pch.get(s, 0) * 3 / n_pilot, 1, cpt, opc)
+                _, _, rr = cost(mc.get(s, 0), mch.get(s, 0), 1, cpt, opc)
+                spare += sm + rr
+                if s in GATE:
+                    spare_gate += sm + rr
                 all_total += p + m
                 if s in GATE:
                     gate_total += p + m
-            flag = "" if gate_total <= a.cap else " ⚠ vượt trần"
-            print(f"| {name} | " + " | ".join(row) + f" | {gate_total:.2f}{flag} | {all_total:.2f} |")
+            def flag(x):
+                return "" if x <= a.cap else " ⚠ vượt trần"
+            print(f"| {name} | " + " | ".join(row) + f" | {gate_total:.2f}{flag(gate_total)} | {gate_total + spare_gate:.2f}{flag(gate_total + spare_gate)} | {all_total:.2f}{flag(all_total)} | {spare:.2f} | {all_total + spare:.2f}{flag(all_total + spare)} |")
         print()
     print(f"Trần: {a.cap:.0f} USD cho toàn bộ G7 (pilot + chính). Kịch bản 'xấu nhất' là cận trên chỉ khi ký tự / token ≥ 1,5 — chưa đo bằng tokenizer thật.")
 

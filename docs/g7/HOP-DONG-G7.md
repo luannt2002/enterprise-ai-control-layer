@@ -181,7 +181,8 @@ export EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=claude-sonnet-5-5 EAIS_MODEL_THI
 go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -smoke 3
 # 4. pilot (k = 5) → k của lượt chính theo luật ADR-0006 §6
 go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -k 5 -pilot -out docs/g7/runs/pilot-$(git rev-parse --short HEAD)
-# 5. lượt chính trên H1 với k đã chọn
+# 5. lượt chính với k đã chọn. TẬP CHỜ D-H1-3: H1 đã lộ cho phiên viết mã lúc chạy G2'/G5'/G6' (21/10 01:42);
+#    H2 không đủ n ≥ 12 / lớp; khuyến nghị bộ giữ lại mới H3. Dòng dưới giữ nguyên văn bản cũ.
 go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/h1.yaml -manifest docs/g7/holdout/holdout-manifest.json -k <3|5> -out docs/g7/runs/$(date +%Y%m%d)-$(git rev-parse --short HEAD)
 ```
 
@@ -196,7 +197,7 @@ go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout
 | 5 | Biên B2+ đóng băng | XONG về định nghĩa (ADR-0005 §2) và mã (`a1a5b6b`); băm khi đóng băng hợp đồng | — |
 | 6 | Pilot xong (dùng để chọn k) | **CHẶN**: cần khoá model; chưa có trong môi trường | — |
 | 7 | Harness xuất được bằng chứng thô | XONG (chạy khô bằng model giả và máy chủ HTTP giả) | `a1a5b6b`, test `TestRunWritesEvidence`, `TestSmokeThroughFakeProvider` |
-| 8 | Dự toán cuối ≤ 15 USD | CHƯA (`docs/g7/COST-PLAN.md` viết sau khi đóng băng bộ giữ lại) | — |
+| 8 | Dự toán cuối ≤ 15 USD | ĐO XONG phần chạy khô (21/10). Chỉ hệ cổng, k = 3, không chạy lại: kỳ vọng 12,74 USD. Thêm một lần chạy lại: 16,36; k = 5: 19,82. Tỉ lệ ký tự / token CHƯA ĐO (cần khoá) ⇒ tính lại sau pilot; D-G7-18 | `docs/g7/COST-PLAN.md` |
 
 | Mục | Giá trị |
 |---|---|

@@ -122,15 +122,31 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 
 ## 9. Số test (TEST COUNTS)
 
-224 (đầu đêm) → **313** đạt, 0 trượt, 0 bỏ qua (có PG, bản clone của `291d9bf`). (cập nhật lúc chốt)
+Đo trên bản clone, có PostgreSQL (DSN `eais`), `go test ./... -count=1`:
+
+| Mốc | Đạt / trượt / bỏ qua |
+|---|---|
+| đầu đêm `94bbaae` | 224 / 0 / 0 |
+| trước H1 `5c1c973` | 357 / 0 / 0 |
+| sau sửa chiều C2 `fbea42e` | 373 / 0 / 0 |
+| sau sửa hồi quy R `a8b0858` | 404 / 0 / 0 |
+| HEAD cuối | (đo lúc chốt) |
+
+`TestWinRatchet` ở mọi mốc: G1 2.739/2.739, bộ 117 ca 117/117.
 
 ## 10. Đột biến (MUTATION RESULTS)
 
 - Chạy lại MỌI danh mục trên bản clone. Lượt `6b7d963`: 18 danh mục, 240 bị bắt + n26 7/7, 0 sống. `n27` (công cụ bộ giữ lại) 20/20.
+- Lượt `5c1c973` (trước H1): 24 danh mục, 370 bị bắt, 0 sống, 0 không biên dịch, 0 mất chuỗi gốc.
+- Lượt `a8b0858` (sau sửa hồi quy R): 28 danh mục, **549 bị bắt, 0 sống**, 0 không biên dịch, 0 mất chuỗi gốc.
+- Danh mục mới sau đó: n37 (nhóm nghìn) 9/9 trên `d1a764b` + `9b54b6f`.
 - **Đột biến sống / chuỗi hỏng tìm thấy rồi sửa trong đêm:**
   - M23b, OR11, E3, BC8 (tương đương), BC9;
   - chuỗi S1 hỏng từ `a507e81`;
-  - G35, PC6, PC9, PC10 (chuỗi đổi theo mã).
+  - G35, PC6, PC9, PC10, FC2, AG, NB1, NB2, NC2 (chuỗi đổi theo mã);
+  - G1d–G1j, G2b (n36): bộ kiểm manifest G1 và khớp cụm dài của resolver chưa từng có test âm ⇒ thêm test;
+  - B1, B2 (n30): bị lớp ValidateWinSuite che ⇒ thêm test id trùng giữa hai tệp; B1 ghi tương đương có lý do;
+  - NC2 (n37): bị luật từ nhãn che ⇒ thêm ca "cấp 03 850 lít".
 
 (cập nhật lúc chốt)
 

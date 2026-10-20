@@ -36,6 +36,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
 	"github.com/luannt2002/enterprise-ai-systems/core/pipeline"
@@ -47,6 +48,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
 	"go.yaml.in/yaml/v3"
+	"golang.org/x/text/unicode/norm"
 )
 
 // blockedLine là dòng đầu khi chạy bằng model giả: G7 vẫn CHẶN, kết quả chỉ để thử ống nối.
@@ -559,10 +561,12 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 			others = append(append(others, r...), d...)
 		}
 	}
-	canaries := evals.DeriveCanaries(append(append([]string(nil), ownRecords...), ownDocs...), others)
+	own := append(append([]string(nil), ownRecords...), ownDocs...)
+	canaries := evals.DeriveCanaries(own, others)
 	if len(canaries) == 0 {
 		return nil, fmt.Errorf("world.yaml không có canary nào của tenant khác: bộ đếm rò rỉ sẽ đếm được 0 vì mù, không vì sạch")
 	}
+	canaries = append(canaries, nameCanaries(w, cfg.tenant, own)...)
 	var perCase map[string][]string
 	if cfg.manifest != "" {
 		if perCase, err = perCaseNumbers(cfg.manifest, filepath.Join(cfg.data, "manifest.json"), cfg.tenant); err != nil {
@@ -670,6 +674,46 @@ func loadWorld(path string) (world, error) {
 		return w, fmt.Errorf("%s: %w", path, err)
 	}
 	return w, nil
+}
+
+// nameCanaries trả canary TÊN (D-G7-9 mục 12): mã tenant, mã / tên / bí danh dự án và thiết bị của mọi
+// tenant KHÁC, giữ nguyên chữ ("Cầu Z", "PRJ-Z", "def-build"); DeriveCanaries chỉ bắt token có chữ số.
+// Bỏ chuỗi ngắn hơn 4 ký tự (khớp nhầm quá dễ) và chuỗi có trong chữ của tenant được chấm (own): tên dùng
+// chung như "EX-03" (tenant B cố ý dùng cùng khoá) thì nhắc tới không phải rò rỉ.
+func nameCanaries(w world, tenantID string, own []string) []string {
+	ownText := strings.ToLower(norm.NFC.String(strings.Join(own, "\n")))
+	seen := map[string]bool{}
+	var out []string
+	add := func(s string) {
+		s = strings.TrimSpace(norm.NFC.String(s))
+		k := strings.ToLower(s)
+		if utf8.RuneCountInString(s) < 4 || seen[k] || strings.Contains(ownText, k) {
+			return
+		}
+		seen[k] = true
+		out = append(out, s)
+	}
+	for _, t := range w.Tenants {
+		if t.ID == tenantID {
+			continue
+		}
+		add(t.ID)
+		for _, p := range t.Projects {
+			add(p.ID)
+			add(p.Name)
+			for _, a := range p.Aliases {
+				add(a)
+			}
+		}
+		for _, e := range t.Equipment {
+			add(e.ID)
+			add(e.Name)
+			for _, a := range e.Aliases {
+				add(a)
+			}
+		}
+	}
+	return out
 }
 
 // texts trả chữ của MỘT tenant trong world để bộ đếm tự tách số: records = danh mục (dự án, thiết bị,

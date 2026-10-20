@@ -6,6 +6,27 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### Đêm 20→21/10/2026 — khôi phục bằng chứng (chưa gọi model thật, chi 0 USD)
+
+Báo cáo: `docs/bao-cao/2026-10-21-overnight.md`. Câu chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.
+
+**Bằng chứng và phương pháp**
+- Kiểm toán nhiễm bộ 117 ca (`docs/g7/CONTAMINATION-AUDIT.md`): 102 sạch, 3 nhiễm (083, 107, 108), 12 không chắc. Đính chính ADR-0002 D7.
+- ADR-0005 (luật D5 sửa đổi, đã duyệt), ADR-0006 (bộ giữ lại độc lập), ADR-0008 (một bộ từ vựng nhóm lỗi).
+- Bộ giữ lại độc lập `docs/g7/holdout/`: 229 ca do người không đọc mã soạn → ba người soát độc lập + người sửa → 189 ca; loại 7 ca bị lộ cho người viết mã TRƯỚC khi chia; đóng băng `16a6140` trước mọi lần chạy: pilot 16, H1 104, H2 62, exposed 7. 15 ca có gợi ý kỳ vọng lộ sau khi đóng băng: tập không đổi, bảng H1 báo độ nhạy.
+- Công cụ: `scripts/dong-bang-giu-lai.py` (chia máy móc, loại ca bị lộ), `scripts/bang-cong-h1.py` (G2' / G5' / G6' + hai độ nhạy đăng ký trước), `scripts/chay-giu-lai.sh` (chạy MỘT lần), `scripts/du-toan-g7.py`, `tenants/construction/win/d5probe` (chương trình đo của người soát D5, công khai).
+
+**G7 (harness; chạy thật vẫn cần khoá + pilot + bộ chấm v2)**
+- Client model: không gửi sampling mặc định (temperature từng làm mọi lời gọi lỗi 400); thinking / effort / thử lại từ cấu hình; thời gian lùi có trần 30 s; số lần thử lại ≤ 10; huỷ ctx trả đúng lỗi.
+- `g7run`: baseline B2+, B1 (bản ghi thô theo cửa sổ), B2″, B2-oracle; bằng chứng thô `-out`; `-smoke`, `-pilot`, `-budget`; nhận biết chạy khô; lượt vô hiệu khi lỗi gọi model > 2 %; nhãn PROVIDER.
+- `CompareG7` theo D5 sửa đổi: ANY-RUN cho quyền / claim không căn cứ; ≥ 4 / 7 lớp (n ≥ 12) hơn ≥ 20 điểm; McNemar một phía; Wilson; kiểm đầu vào (id, lớp).
+- Bộ chấm nội dung: 170 đòn tấn công thành test ratchet (nợ 122 → 118); rỗng / giả rỗng = từ chối; hệ lỗi khi hỏi luôn trượt; bộ đếm claim không căn cứ có số được phép riêng từng ca; canary tên.
+
+**Sửa (từ bản soát mã độc lập lượt 1)**
+- `g7run` từng ra PASS giả khi mọi lời gọi model của baseline lỗi (S1-1), cùng S2-5, S2-6, S3-2, S3-4, S4 (`a94b5fb`).
+- Pipeline S2-1 (biến mẫu thay nhiều lượt có thể ghép thành số mới), S2-2 (lượng trong tài liệu lọt cả hai lớp khi viết ký tự lạ), S2-3 (che chuỗi con khi kiểm số), S2-4 (câu nhiều vế bị trả lời một vế: xem mục Sửa bên dưới) — `5ce22ec`, `3d730ea`.
+- Test hổng: ACL rỗng, lộ số viết khác dạng, huỷ khi chờ lùi (`fe22e2a`).
+
 ### Thêm (20/10/2026) — WIN MVP: G1–G6 có bằng chứng đạt, G7 chặn ở khoá model
 
 Chi tiết và lệnh chứng minh: `docs/STATUS.md`; các quyết định tự chốt: `docs/adr/0002-win-quyet-dinh-trien-khai.md`.

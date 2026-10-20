@@ -54,6 +54,11 @@ Chi tiết và lệnh chứng minh: `docs/STATUS.md`; các quyết định tự 
 - `scripts/scale-smoke.sh`: scale smoke một lệnh.
 - `scripts/mutate.sh`: nhận `PKGS`.
 
+### Đính chính (20/10/2026 tối)
+
+- Bản soát độc lập công thức G7 (`docs/g7/REVIEW-D5.md`) chỉ ra ba kỳ vọng (083, 107, 108) do phiên viết mã trọng tài sau lần đo đầu, trước khi băm bộ ca. Kết luận "6/7 cổng đạt" là có điều kiện; vô điều kiện là 3/7 (G1, G3, G4). Chờ D-G7-11.
+- D5 đòi temperature 0 nhưng model hiện hành trả lỗi 400 với mọi temperature khác mặc định. Đề xuất sửa ở ADR-0005; checkpoint G7 ở `docs/g7/`.
+
 ### Sửa (20/10/2026)
 
 - `Policy.Allows("")` từng **mở mặc định**. Nay đóng mặc định, và pack nào có ý định chạm dữ liệu / model mà thiếu capability thì bị chặn lúc nạp.

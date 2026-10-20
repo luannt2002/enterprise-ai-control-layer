@@ -7,6 +7,12 @@
 > - nói trong phiên làm việc bằng mã câu, ví dụ: `D-G7-1: A; D-G7-2: sonnet; D-G7-3: trần 15 USD, đồng bộ`.
 >
 > Phiên làm việc nào mở ra cũng đọc tệp này trước. Câu đã trả lời chuyển xuống mục 0 kèm ngày.
+>
+> **Đính chính 20/10 tối (sau bản soát độc lập `docs/g7/REVIEW-D5.md`):**
+> - Kết luận "WIN 6/7 cổng đạt" là **có điều kiện**.
+> - Ba ca 083, 107, 108 có kỳ vọng do chính phiên viết mã "trọng tài" sau lần đo đầu (09:03), trước khi băm bộ ca (09:15). G2, G5, G6 phụ thuộc ba ca này.
+> - Đạt **vô điều kiện** hiện là **3/7** (G1, G3, G4).
+> - Xem D-G7-11.
 
 ## 0. Đã quyết
 
@@ -27,10 +33,35 @@ Bối cảnh: `docs/g7/CHECKPOINT-A-H.md`. Hợp đồng đề xuất: `docs/g7/
 | **D-G7-2** | Model nào (chung cho mọi hệ) | `claude-haiku-5-5` · `claude-sonnet-5-5` · `claude-opus-5-5` | **Sonnet 5.5.** Model mạnh làm baseline mạnh, nên phép so khắt khe hơn với EACL; thắng nhờ baseline dùng model yếu thì ít giá trị. Chi phí ước tính vẫn nhỏ. Phiên V3 khuyên Haiku 5.5 vì rẻ (D-V3-01). Muốn xem độ nhạy theo model thì chạy cả hai, tổng < 15 USD | không chạy được | |
 | **D-G7-3** | Trần chi phí + cách gọi | trần (USD) · đồng bộ (có độ trễ từng lời gọi) hay Batch API (rẻ hơn 50%, mất độ trễ) | **Trần 15 USD nếu Sonnet, 2 USD nếu Haiku; chạy đồng bộ.** Ước tính B1 + B2: Sonnet ≈ 5–10 USD, Haiku ≈ 0,3–0,6 USD (`CHI-PHI-G7.md` mục 5). Đồng bộ để có độ trễ thật; tiền chênh không đáng kể | không chạy được | |
 | **D-G7-4** | Có so với **B1** (LLM trực tiếp, chữ thô) không? Luật cửa sổ ngày của B1? | có (cửa sổ = ngày của ca ± 1 ngày; ca theo tháng = cả tháng; bảng kỳ của từng ca do người không đọc mã gán) · không | **Có.** V3 R1 đòi cả B1 lẫn B2; không có B1 thì kết luận cao nhất chỉ là PARTIAL. B1 chưa có mã: viết sau khi duyệt, không cần model | G7 chỉ so với B2 |  |
-| **D-G7-5** | Bộ ca **giữ lại**: EACL đã được sửa tới 117/117 trên chính bộ 117 ca | có: ≥ 40 ca mới, người không đọc mã soạn, kết luận G7 trên bộ này · không: kết luận trên 117 ca, ghi rõ thiên lệch | **Có.** Kết quả trên bộ dev nghiêng EACL; kết luận trên bộ chưa từng thấy mới đáng tin. Tốn thêm khoảng 34% lời gọi | kết luận trên 117 ca, kèm cảnh báo thiên lệch | |
-| **D-G7-6** | Cách chấm theo **nội dung** (`G7ContentReport`), baseline top-k = 10, cách viết đoạn của baseline | duyệt · sửa | **Duyệt, kèm đọc `REVIEW-D5.md`.** Chấm đủ kỳ vọng route / outcome thì baseline 0/117 theo thiết kế, D5 không bao giờ đỏ. Top-k = 10 có số đo (`evals/baseline`) | không chạy được | |
-| **D-G7-7** | **Duyệt đóng băng hợp đồng G7** (sau khi trả lời 1–6) | duyệt · sửa | duyệt; ghi sha256 + revision vào mục 13 của hợp đồng | không chạy được | |
+| **D-G7-5** | Bộ ca **giữ lại**: EACL đã được sửa tới 117/117 trên chính bộ 117 ca | có: **≥ 96 ca** (12 / lớp, lý tưởng 160), người không đọc mã **và pack** soạn, kết luận G7 trên bộ này · không: kết luận trên 117 ca, ghi rõ thiên lệch | **Có, ≥ 96 ca** (bản soát Q1, Q2): với 40 ca mỗi lớp chỉ 5 ca và 1 ca = 20 điểm, luật D5 vô nghĩa. Tốn thêm khoảng 288 lời gọi mỗi baseline | kết luận trên 117 ca, kèm cảnh báo thiên lệch | |
+| **D-G7-6** | Cách chấm theo **nội dung** (`G7ContentReport`), baseline top-k = 10, cách viết đoạn của baseline | duyệt nguyên · duyệt kèm các sửa ở D-G7-9 mục 2, 6, 7 | **Duyệt kèm sửa.** Giữ chấm nội dung làm cổng: chấm đủ route / outcome thì baseline 0/117, D5 không bao giờ đỏ. Bản soát chứng minh bộ chấm có lỗ ở cả hai phía, và đoạn của baseline thiếu bí danh khiến trần của nó chỉ 4/13 và 5/13 ở hai lớp (Q3, Q8) | không chạy được | |
+| **D-G7-7** | **Duyệt đóng băng hợp đồng G7** (sau khi trả lời 1–6 và 9–11) | duyệt · sửa | duyệt; ghi sha256 + revision vào mục 13 của hợp đồng | không chạy được | |
 | **D-G7-8** | Cấp khoá model (sau D-G7-7) | đặt biến môi trường `EAIS_MODEL_API_KEY` ở máy chạy; không qua repo, không qua chat | — | không chạy được | |
+| **D-G7-9** | Gói đề xuất của bản soát độc lập (`REVIEW-D5.md`, bảng cuối; mục 15 do phiên chính thêm) | chọn từng mục (bảng 1b) | xem bảng 1b | hợp đồng giữ nguyên bản hiện tại, với các lỗ đã biết | |
+| **D-G7-10** | **Điểm yếu tổng quát hoá đã thấy:** câu đồng nghĩa "dùng" ("ngốn", "tiêu hao", "chạy hết") ra 0/4. Hệ trả lời tự tin bằng **dầu kho xuất** (3.850) thay vì tiêu thụ đo được (3.782); câu trả lời có ghi nhãn chỉ số nên không giấu giả định, nhưng vẫn sai nghĩa (bản soát Q1) | **a** không sửa trước G7, ghi là điểm yếu đã biết, để bộ giữ lại đo · **b** thêm từ đồng nghĩa trước khi soạn bộ giữ lại · **c** đổi chính sách pack: câu dầu chung chung **hỏi lại** thay vì mặc định kho xuất | **a.** Sửa bây giờ là khớp đề theo câu của người soát, đúng thứ bị cấm ("không thêm tính năng để cải thiện benchmark"). **c** là quyết định nghiệp vụ, đáng cân nhắc **sau** G7 | — | |
+| **D-G7-11** | **Ba kỳ vọng "trọng tài" sau khi đo:** 083 (bỏ cấm "9.999"), 107 (thiếu vật tư: hỏi lại → trả lời theo D7), 108 (thiếu kỳ: hỏi lại → mặc định hôm nay) | **a** duyệt trọng tài như quyết định nghiệp vụ, ghi ngoại lệ G6 · **b** khôi phục kỳ vọng gốc: EACL trượt 3 ca, `ambiguity` 11/13, `unsupported_answer` 13/14, nên G2, G5 chưa đạt · **c** loại 3 ca khỏi phép tính cổng (còn 114 ca, EACL vẫn đạt hết), báo cáo độ nhạy riêng | **c.** Giữ trọn tính độc lập của bộ cổng mà không phải giả vờ ba ca kia chưa từng bị sửa. **a** cũng hợp lý nếu anh/chị coi D7 và "kỳ mặc định hôm nay" là quy ước nghiệp vụ đã duyệt | G2, G5, G6 ghi "đạt có điều kiện" | |
+
+### 1b. Gói đề xuất của bản soát (D-G7-9)
+
+Chiều: **khắt khe hơn** = khó đạt hơn cho EACL.
+
+| # | Đề xuất (tóm tắt) | Chiều | Khuyến nghị của phiên chính | Trả lời |
+|---|---|---|---|---|
+| 1 | Bộ giữ lại ≥ 96 ca, kết luận chỉ trên bộ này; cấm sửa EACL, baseline, bộ chấm, prompt sau khi đóng băng | khắt khe hơn | có (= D-G7-5) | |
+| 2 | **B2+**: đoạn có bí danh + mã theo nguồn; câu hỏi viết lại theo đồng hồ hoặc có ngày hiện tại. B2+ làm baseline cổng, B2 cũ chỉ báo cáo | khắt khe hơn | có: đây là sửa lỗi "hình nộm" | |
+| 3 | **B2″** = B2+ cộng luật miền của pack (thẩm quyền, dung sai, mặc định) viết thành chữ trong prompt, để tách "tri thức" khỏi "kiến trúc" | khắt khe hơn | có, **chỉ báo cáo** ở lần chạy đầu: nó trả lời câu then chốt của luận đề mà không đổi cổng | |
+| 4 | B1: "bản ghi thô" gồm cả danh mục thực thể `entities.json` | khắt khe hơn | có | |
+| 5 | B2-oracle (đưa đúng đoạn bằng chứng), chỉ báo cáo, tách lỗi truy xuất khỏi lỗi thiếu tầng kiểm soát | báo cáo | có | |
+| 6 | Câu trả lời rỗng của model coi là từ chối, cho cả hai hệ | khắt khe hơn | có | |
+| 7 | Chuẩn hoá số trước khi so chuỗi cấm; giữ tiêu chí chữ là nội dung thật ("24 giờ", "2 ngày", "Không."); bộ đếm "không bịa số" từng ca cho cả hai hệ | sửa lỗi đo, đối xứng | có | |
+| 8 | Người chấm mù cho 43 ca không-trả-lời, rubric sáu nhãn, báo cáo riêng | trung tính | có nếu có người chấm; không thì để sau | |
+| 9 | k = 5; lượt vô hiệu nếu đường tất định của EACL khác nhau giữa các lượt; `permission` và `unsupported_answer` tính ANY-RUN theo ca; bảng ca theo số lượt đạt | khắt khe hơn | có (thêm khoảng 67% lời gọi; ADR-0005 phương án C) | |
+| 10 | Kiểm gộp McNemar một phía p ≤ 0,01 trên bộ giữ lại; khoảng tin cậy từng lớp; lớp n < 12 không tính "lớp hơn" | khắt khe hơn | có | |
+| 11 | Bỏ lớp `permission` (thắng theo thiết kế) khỏi phép đếm 4/8: cần ≥ 4 trong 7 lớp còn lại | khắt khe hơn | có | |
+| 12 | Ghi "mọi lượt" vào D5; thêm canary tên ("Cầu Z", "PRJ-Z", "def-build") và dạng chữ; ghi rõ ngày không được đếm | khắt khe hơn nhẹ | có | |
+| 13 | Báo cáo độ nhạy: bỏ 083 / 107 / 108; baseline không có tài liệu chèn lệnh; hai model | trung tính | có | |
+| 14 | Bộ pilot 12–16 ca (ngoài dev và giữ lại) để đo chập chờn, hành vi "rỗng" trước khi chốt k và prompt. **Có gọi model thật** | trung tính | có; tính trong trần chi phí D-G7-3 | |
+| 15 | Soát rồi công khai chương trình đo của người soát (đang ở `docs/sources/`, máy gốc) để ai cũng tái lập được bảng Q3 | — | có, sau khi soát | |
 
 ## 2. EACL V3 — gói định nghĩa R0
 

@@ -69,6 +69,7 @@ Trạng thái: NOT_FOUND · DEFINED_ONLY · IMPLEMENTED · REACHABLE · TESTED �
 **Tiến độ MVP EACL theo một con số:** **0/17 ô của MVP DoD (Playbook §7.6) = 0%.** Job A, Job B chưa tồn tại.
 
 Fuel (R1) báo riêng: 6/7 cổng cũ, cổng VALUE còn CHẶN. Đừng cộng hai số này với nhau.
+(Đính chính 20/10 tối: vô điều kiện chỉ 3/7 — G1, G3, G4. G2, G5, G6 đạt có điều kiện, chờ D-G7-11 ở `docs/CHO-QUYET-DINH.md`.)
 
 ## 3. Cây thư mục hiện tại so với hình đích (Blueprint §19)
 

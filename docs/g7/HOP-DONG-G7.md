@@ -7,6 +7,7 @@
 > - muốn đổi thì viết ADR mới rồi chạy lại **toàn bộ**.
 >
 > Quyết định đi kèm: `docs/adr/0005-g7-hop-dong-va-sua-d5.md`. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
+> **Bản này CHƯA gồm** các đề xuất của bản soát độc lập (`docs/g7/REVIEW-D5.md`). Chủ dự án chọn ở D-G7-9 xong thì sửa hợp đồng **trước** khi đóng băng.
 
 ## 1. Câu hỏi benchmark và luật kết luận
 
@@ -31,8 +32,9 @@
 | Tenant được chấm | `abc-infra`; canary `def-build` (mã / số chỉ có ở tenant B) |
 
 **Cảnh báo thiên lệch, bắt buộc ghi vào báo cáo kết quả:**
-- 117 ca được đóng băng **trước** khi viết mã, nhưng mã EACL đã được lặp sửa tới 117/117 trên **chính** bộ này (ratchet `passing.txt`). Kết quả G7 trên bộ này **nghiêng về EACL**.
-- Đề xuất D-G7-5: thêm **bộ giữ lại** ≥ 40 ca mới, do phiên không đọc mã soạn, đóng băng trước khi EACL chạy trên nó, chưa từng dùng để phát triển. G7 kết luận trên bộ giữ lại; bộ 117 chỉ để tham khảo.
+- 117 ca do phiên không đọc mã **soạn** trước khi viết mã (08:47–08:58). Nhưng **băm ghi lúc 09:15**, sau lần đo đầu 09:03, và sau khi phiên viết mã trọng tài 3 kỳ vọng (083, 107, 108; D-G7-11).
+- Mã EACL đã được lặp sửa tới 117/117 trên **chính** bộ này (ratchet `passing.txt`). Kết quả G7 trên bộ này **nghiêng về EACL** (bản soát Q1, Q2).
+- Đề xuất D-G7-5: thêm **bộ giữ lại** ≥ 96 ca mới (12 / lớp; bản soát nâng từ 40), do phiên không đọc mã soạn, đóng băng trước khi EACL chạy trên nó, chưa từng dùng để phát triển. G7 kết luận trên bộ giữ lại; bộ 117 chỉ để tham khảo.
 
 ## 3. Các hệ được so
 

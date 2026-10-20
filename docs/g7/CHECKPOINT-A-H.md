@@ -2,6 +2,11 @@
 
 > Theo yêu cầu của chủ dự án: chuẩn bị G7 mà **không gọi model thật, không chi tiền**. Làm xong A–H thì **DỪNG**, chờ duyệt.
 > Mọi câu cần quyết: `docs/CHO-QUYET-DINH.md`.
+>
+> **Đính chính 20/10 tối (bản soát độc lập `docs/g7/REVIEW-D5.md`):**
+> - Ba ca 083, 107, 108 có kỳ vọng do chính phiên viết mã "trọng tài" **sau** lần đo đầu (09:03), **trước** khi băm bộ ca (09:15).
+> - Vì vậy G2, G5, G6 chỉ đạt **có điều kiện**. Đạt vô điều kiện: **3/7** (G1, G3, G4).
+> - Chờ chủ dự án quyết D-G7-11 (`docs/CHO-QUYET-DINH.md`).
 
 ## A. Phân lớp ADR-0002 (D7–D17)
 
@@ -38,7 +43,20 @@ Kết luận:
 
 ## C. Soát độc lập D5
 
-`docs/g7/REVIEW-D5.md` — **đang soát** (agent riêng, chỉ đọc, không viết công thức hay harness). Kết quả bổ sung ở commit sau.
+`docs/g7/REVIEW-D5.md`: agent riêng, chỉ đọc, không viết công thức hay harness. Kết luận:
+1. **Thiên vị EACL: có.**
+   - 117/117 là trong mẫu: điểm đi 76 → 105 → 117 nhờ sửa mã theo chính các ca.
+   - 3 kỳ vọng bị phiên viết mã trọng tài trước khi băm. Với baseline, đây là tuning không đối xứng.
+   - 37 câu diễn đạt mới (chưa độc lập hẳn) đạt 31/37; nhóm đồng nghĩa "dùng" 0/4.
+2. **Ceiling effect: có.** EACL ở trần 100%, nên D5 trên bộ dev thực chất chỉ đo "baseline ≲ 80%".
+3. **Baseline B2 như hiện thực có phần là hình nộm.** Đoạn thiếu bí danh nên trần chỉ 4/13 (`entity`) và 5/13 (`ambiguity`) dù model hoàn hảo; thêm bí danh thì lên 12/13 và 13/13. `representation` và `semantic` có thể hoà.
+4. **Trung vị của 3 lượt che được lỗi chập chờn.**
+5. **ANY-RUN cho an ninh đã có trong mã**; phạm vi canary còn mỏng.
+6. **20 điểm là quy ước**, khoảng 1–2 sai số chuẩn với n = 12–18.
+7. **Công bằng dữ liệu:** EACL có lợi ngoài ý muốn ở đồng hồ và quy ước mặc định; baseline có lợi ở bản ghi đã chuẩn hoá.
+8. **Bộ chấm nội dung có lỗ ở cả hai phía.**
+
+14 đề xuất sửa (cộng 1 của phiên chính) thành câu D-G7-9; điểm yếu đồng nghĩa: D-G7-10; 3 kỳ vọng trọng tài: D-G7-11.
 
 ## D. Số lời gọi model chính xác
 
@@ -81,11 +99,11 @@ Kết luận:
 
 | # | Blocker | Loại | Mở khi |
 |---|---|---|---|
-| 1 | D-G7-1…7: sửa D5, model, trần chi phí, B1, bộ giữ lại, cách chấm, đóng băng hợp đồng | chủ dự án quyết | — |
+| 1 | D-G7-1…7 và 9–11: sửa D5, model, trần chi phí, B1, bộ giữ lại, cách chấm, đóng băng hợp đồng; gói đề xuất của bản soát; câu đồng nghĩa "dùng"; 3 kỳ vọng trọng tài | chủ dự án quyết | — |
 | 2 | Client model: bỏ `temperature`; thêm `thinking` / `effort` từ cấu hình; thử lại có lùi + ghi lần thử | mã, không cần model | sau D-G7-1 |
 | 3 | `g7run -smoke` (vài lời gọi kiểm tham số được nhận) và `-out` (ghi `manifest.json` + JSONL đủ trường + `ket-qua.md`) | mã, không cần model | sau D-G7-7 |
 | 4 | Baseline **B1** + bảng kỳ của từng ca (người không đọc mã gán) | mã + tài liệu | nếu D-G7-4 = có |
-| 5 | Bộ ca giữ lại ≥ 40 ca | tài liệu (agent không đọc mã) | nếu D-G7-5 = có |
+| 5 | Bộ ca giữ lại ≥ 96 ca | tài liệu (agent không đọc mã) | nếu D-G7-5 = có |
 | 6 | Gán nhãn lỗi (luật máy + người duyệt); báo cáo ca chập chờn; tính tiền theo bảng giá đóng băng | mã | sau D-G7-7 |
 | 7 | Soát độc lập mã ngày 20/10 (dừng dở lúc 10:33) | soát | D-OP-5 |
 | 8 | Khoá model đặt ở máy chạy (không qua repo / chat) | chủ dự án | sau D-G7-7 |

@@ -24,7 +24,7 @@
 
 ## Trạng thái 20/10/2026
 
-- WIN 6/7 cổng (G1–G6 đạt, G7 chặn ở khoá model + chi phí); 117/117 ca độc lập.
+- WIN: 3/7 cổng đạt vô điều kiện (G1, G3, G4); G2, G5, G6 có điều kiện vì 3 kỳ vọng do phiên viết mã trọng tài sau khi đo (D-G7-11); G7 chặn ở khoá model + chi phí.
 - Scale smoke ~360 nghìn bản ghi đạt ở cả hai đường dữ liệu.
 - 224 test xanh; 69 đột biến trong danh mục, đều bị bắt.
 - Quyết định tự chốt chờ duyệt: `docs/adr/0002-win-quyet-dinh-trien-khai.md`.

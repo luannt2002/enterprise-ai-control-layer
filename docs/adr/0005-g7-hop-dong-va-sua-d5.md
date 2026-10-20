@@ -33,6 +33,16 @@ Theo luật của chủ dự án: muốn đổi D5 thì ghi ADR sửa đổi **t
 | B | model đời cũ còn nhận temperature 0 (ví dụ Haiku 4.5 / Sonnet 4.5, tắt thinking) | giữ đúng chữ D5 | kết luận trên đời model cũ, sắp ngừng; ít giá trị cho sản phẩm |
 | C | như A nhưng k = 5 | trung vị vững hơn | thêm khoảng 67% lời gọi |
 
+## Đề xuất bổ sung từ bản soát độc lập (chờ chọn)
+
+`docs/g7/REVIEW-D5.md` đề xuất thêm nhiều sửa đổi với D5 và hợp đồng. Chủ dự án chọn ở D-G7-9 xong thì gộp các mục được chọn vào ADR này **trước** khi duyệt. Các mục:
+- bộ giữ lại ≥ 96 ca;
+- B2+ làm baseline cổng; B2″ và B2-oracle để báo cáo;
+- k = 5 và luật vô hiệu cho đường tất định;
+- kiểm gộp McNemar;
+- bỏ `permission` khỏi phép đếm 4/8;
+- ghi "mọi lượt" vào luật an ninh.
+
 ## Hệ quả
 
 - Trước lần chạy thật phải sửa client:

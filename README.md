@@ -3,7 +3,7 @@
 Nền tảng AI doanh nghiệp đa tenant. Nó biến dữ liệu, tri thức, quy trình và công cụ theo ngành thành năng lực AI có quản trị, kiểm thử được và quan sát được, mà lõi dùng chung không bị buộc vào một ngành nào. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
 
 **Trạng thái (20/10/2026):**
-- WIN MVP đạt 6/7 cổng có bằng chứng (G1–G6).
+- WIN MVP: 3/7 cổng đạt vô điều kiện (G1, G3, G4); G2, G5, G6 đạt có điều kiện, chờ quyết 3 kỳ vọng trọng tài (D-G7-11).
 - G7 (so với baseline RAG bằng model thật) đang chờ khoá model.
 - Chi tiết: [`docs/STATUS.md`](docs/STATUS.md).
 

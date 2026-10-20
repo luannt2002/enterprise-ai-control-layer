@@ -4,7 +4,7 @@ Tệp này là bản bàn giao công khai: pull repo về là đủ để chạy
 
 ## 1. Trạng thái (20/10/2026, dừng 10:33 theo lệnh chủ dự án)
 
-**WIN MVP: 6/7 cổng có bằng chứng đạt (≈ 86%) — CHƯA phải WIN.**
+**WIN MVP: 3/7 cổng đạt vô điều kiện, 6/7 có điều kiện — CHƯA phải WIN** (đính chính 20/10 tối: `docs/CHO-QUYET-DINH.md`, D-G7-11).
 - G1–G6 đạt; scale smoke đạt trên cả đường bộ nhớ lẫn PostgreSQL; bộ 117 ca độc lập đạt 117/117.
 - **G7 CHẶN**: cần khoá model thật + chủ dự án đồng ý chi phí.
 

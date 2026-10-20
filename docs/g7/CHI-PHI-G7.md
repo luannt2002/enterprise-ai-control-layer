@@ -24,7 +24,7 @@ Chạy lại được:
 
 - Ba lượt gửi prompt **giống hệt nhau** (đo kích thước từng prompt).
 - Ca 072 và 084 thuộc route RAG nhưng **không gọi model**: một ca không có đoạn tài liệu nào đạt ngưỡng; một ca hỏi lượng nghiệp vụ mà chỉ có tài liệu trả lời.
-- Bộ giữ lại (D-G7-5, nếu duyệt): thêm khoảng 40 × 3 = 120 lời gọi cho mỗi baseline, EACL tuỳ số ca RAG / HYBRID.
+- Bộ giữ lại (D-G7-5, nếu duyệt, ≥ 96 ca): thêm ≥ 96 × 3 = 288 lời gọi cho mỗi baseline (k = 5 thì 480); EACL tuỳ số ca RAG / HYBRID. Số này **tính** theo "1 lời gọi / câu / lượt" đã đo ở B2, chưa chạy.
 
 ## 3. Kích thước đầu vào (đo bằng ký tự Unicode)
 

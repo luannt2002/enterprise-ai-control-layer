@@ -5,24 +5,29 @@
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Mọi số ở đây lấy từ lệnh chạy ngày 20/10/2026, trừ chỗ ghi **CHƯA ĐO**.
 
-## Tiến độ WIN MVP: 6/7 cổng có bằng chứng đạt — CHƯA phải WIN
+## Tiến độ WIN MVP: 3/7 cổng đạt vô điều kiện, 6/7 có điều kiện — CHƯA phải WIN
+
+> **Đính chính 20/10 tối (bản soát độc lập `docs/g7/REVIEW-D5.md`):**
+> - Ba ca 083, 107, 108 có kỳ vọng do chính phiên viết mã "trọng tài" **sau** lần đo đầu (09:03), **trước** khi băm bộ ca (09:15).
+> - Vì vậy G2, G5, G6 chỉ đạt **có điều kiện**. Đạt vô điều kiện: **3/7** (G1, G3, G4).
+> - Chờ chủ dự án quyết D-G7-11 (`docs/CHO-QUYET-DINH.md`).
 
 Đích hiện tại là **WIN MVP** (`docs/04-core-mvp.md`), không phải cả roadmap (`docs/05-master-roadmap.md`).
 
-**WIN = 7/7 cổng + scale smoke** (04 §6). Cách tính tiến độ: mỗi cổng 1/7, chỉ tính cổng đạt trọn ⇒ **6/7 ≈ 86%**.
+**WIN = 7/7 cổng + scale smoke** (04 §6). Cách tính tiến độ: mỗi cổng 1/7, chỉ tính cổng đạt trọn và vô điều kiện ⇒ **3/7 ≈ 43%**. Nếu D-G7-11 chọn "c" (loại 3 ca trọng tài khỏi phép tính cổng) hoặc "a" (duyệt trọng tài) thì 6/7 ≈ 86%.
 
-- G1–G6 đạt theo đúng tiêu chí của 04 §6.
+- G1, G3, G4 đạt theo đúng tiêu chí của 04 §6. G2, G5, G6 đạt trên bộ ca hiện tại nhưng phụ thuộc 3 kỳ vọng trọng tài (xem đính chính trên).
 - Scale smoke đạt trên cả đường bộ nhớ lẫn đường PostgreSQL.
 - **G7 VALUE: CHẶN.** Cần model thật, tức khoá API và chủ dự án đồng ý chi phí. 04 §6 cấm thay bằng model giả.
 
 | Cổng | Kết quả | Bằng chứng |
 |---|---|---|
 | G1 DATA | ĐẠT | - G1: 2.739/2.739 (functional), 359.945/359.945 (smoke).<br>- Metamorphic: R-004 × 4 biểu diễn, R-001 × 4 cách viết, 0 lệch.<br>- Bộ kiểm có test âm.<br>- `representation` 16/16. |
-| G2 IDENTITY | ĐẠT | - `entity` 13/13.<br>- `ambiguity` 13/13, ứng viên đúng tập. |
+| G2 IDENTITY | ĐẠT **có điều kiện** (107, 108 là kỳ vọng trọng tài) | - `entity` 13/13.<br>- `ambiguity` 13/13, ứng viên đúng tập. |
 | G3 TRUTH | ĐẠT | - `semantic` 14/14, `source_conflict` 12/12.<br>- Ca biên dung sai sinh từ pack cho MỌI cặp nguồn: 4 cặp × "= dung sai" / "dung sai + 1", gồm cặp ngang hạng. |
 | G4 DECISION | ĐẠT | - `routing` 17/17.<br>- Runner chấm `model_calls` bằng gateway giả đếm lời gọi.<br>- Đột biến bắt buộc "SQL gọi gateway" (BA) và "RAG bỏ gateway" (BB) đều bị bắt. |
-| G5 CONTROL | ĐẠT | - `permission` 18/18.<br>- Cổng AST: không kiểu `*Request` nào mang tenant.<br>- PG: RLS FORCE + GUC đọc lại; canary B có test cho phép / từ chối, đối chứng dương, ghi chéo tenant bị WITH CHECK chặn.<br>- Ràng buộc claim 6 chiều. Bảng "sai đúng một chiều" 6 × 3 bị chặn 100%; 0 chặn oan trên 13 ca mẫu + 117 ca thật.<br>- Lượng dầu trong tài liệu bị chặn bởi hai lớp, một lớp độc lập với bộ chuẩn hoá.<br>- Chèn lệnh trong SOP không đổi được route / quyền / số. |
-| G6 PROOF | ĐẠT | - 117 ca, 100% do phiên không viết mã soạn; mọi lớp ≥ 12 ca.<br>- `cases-independent.yaml` sha256 `ffdd704b535d2195…`, khớp băm đóng băng 20/10 09:15.<br>- Bản ghi quyết định + phát lại: 117/117 không lệch.<br>- Thuộc tính: tổng ≥ 0; dẫn xuất = a − b lấy từ bằng chứng; A không thấy B.<br>- Mỗi cổng có đột biến bị bắt. |
+| G5 CONTROL | ĐẠT **có điều kiện** (083 là kỳ vọng trọng tài) | - `permission` 18/18.<br>- Cổng AST: không kiểu `*Request` nào mang tenant.<br>- PG: RLS FORCE + GUC đọc lại; canary B có test cho phép / từ chối, đối chứng dương, ghi chéo tenant bị WITH CHECK chặn.<br>- Ràng buộc claim 6 chiều. Bảng "sai đúng một chiều" 6 × 3 bị chặn 100%; 0 chặn oan trên 13 ca mẫu + 117 ca thật.<br>- Lượng dầu trong tài liệu bị chặn bởi hai lớp, một lớp độc lập với bộ chuẩn hoá.<br>- Chèn lệnh trong SOP không đổi được route / quyền / số. |
+| G6 PROOF | ĐẠT **có điều kiện**: vi phạm "đóng băng trước W1" ở 3 ca | - 117 ca do phiên không viết mã soạn (08:47–08:58); mọi lớp ≥ 12 ca.<br>- `cases-independent.yaml` sha256 `ffdd704b535d2195…`, băm ghi 09:15, **sau** lần đo đầu 09:03 và sau khi phiên viết mã trọng tài 3 kỳ vọng (083, 107, 108).<br>- Bản ghi quyết định + phát lại: 117/117 không lệch.<br>- Thuộc tính: tổng ≥ 0; dẫn xuất = a − b lấy từ bằng chứng; A không thấy B.<br>- Mỗi cổng có đột biến bị bắt. |
 | G7 VALUE | **CHẶN** | - Bộ khung xong: baseline RAG (`evals/baseline`), luật D5 + bộ đếm độc lập (`evals/g7.go`), lệnh `g7run`, client model thật `models.Messages` cấu hình qua biến môi trường.<br>- Chạy ống nối bằng model giả: D5 ĐẠT, nhưng KHÔNG phải bằng chứng (04 §6).<br>- Thiếu: khoá model + đồng ý chi phí. Có rồi thì chạy `EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=<model> EAIS_MODEL_API_KEY=<khoá> go run ./tenants/construction/win/g7run -data <dir>`. |
 | Scale smoke | ĐẠT | - `scripts/scale-smoke.sh`: 117/117 ở cả functional và smoke, câu trả lời giống từng byte; smoke 3,67 s, peak RSS 562,8 MiB (đo 10:35).<br>- Đường PG (`winreport -pg`): 117/117, từng ca và từng câu trả lời giống đường bộ nhớ; smoke 6,08 s, 653,7 MiB, kể cả nạp ~355 nghìn fact vào PG. |
 
@@ -142,11 +147,11 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 1. Chủ dự án soát các commit ngày 20/10 trên GitHub. Repo PUBLIC: thứ cố ý không lên git ở `docs/ops/README.md` mục 7.
 2. **G7:** làm theo `docs/g7/CHECKPOINT-A-H.md`:
-   - chủ dự án quyết D-G7-1…8 (sửa D5 vì temperature 0 không chạy được, model, trần chi phí, B1, bộ giữ lại, đóng băng hợp đồng);
+   - chủ dự án quyết D-G7-1…11 (sửa D5 vì temperature 0 không chạy được, model, trần chi phí, B1, bộ giữ lại, đóng băng hợp đồng, cấp khoá, gói đề xuất của bản soát, câu đồng nghĩa "dùng", 3 kỳ vọng trọng tài);
    - làm các blocker mã (client, `-smoke`, `-out`, B1);
    - thử khói, rồi chạy k = 3.
    Đây là cổng duy nhất còn lại của WIN.
 3. Soát độc lập (phiên không viết mã) cho mã hôm nay: pipeline S9, pgstore, so sánh / mệnh đề trọng tâm. Agent soát đã dừng 10:33 theo lệnh, chưa có phát hiện.
-3b. Bộ ca đội đỏ (≈ 40 ca mới, do người không đọc mã soạn, ngoài bộ đóng băng) để đo tổng quát hoá. Hiện CHƯA có bằng chứng tổng quát hoá ngoài 117 ca. Agent dừng 10:33, chưa ghi tệp.
+3b. Bộ ca đội đỏ (kế hoạch cũ ≈ 40 ca; nếu làm bộ giữ lại G7 thì ≥ 96 ca theo D-G7-5 / D-OP-5; do người không đọc mã soạn, ngoài bộ đóng băng) để đo tổng quát hoá. Hiện CHƯA có bằng chứng tổng quát hoá ngoài 117 ca. Agent dừng 10:33, chưa ghi tệp.
 4. Lưu bền bản ghi quyết định (bảng `interactions`) khi có HTTP API.
 5. DEFER theo `05`: tác vụ duyệt / lệnh (Phase 1–2), thể thao (Phase 4), lỗ hổng 5.

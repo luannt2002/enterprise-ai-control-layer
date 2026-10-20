@@ -90,8 +90,8 @@ Khác biệt truy cập dữ liệu, cố ý:
 ## 6. Cách chấm từng ca — ĐANG THIẾT KẾ LẠI
 
 - **Bộ chấm v1** (`evals.G7ContentReport`) đã bị một người tấn công độc lập phá:
-  - 170 đòn; 109 câu sai mà ĐẠT; 24 câu đúng mà TRƯỢT;
-  - một câu chỉ liệt kê mọi số của bản ghi ĐẠT 73/117 ca.
+  - 170 đòn; người tấn công khai 109 câu sai mà ĐẠT, 24 câu đúng mà TRƯỢT; test máy (`TestG7ScorerAttacks`) xác nhận 122 đòn không tranh cãi bị chấm sai (107 + 15), 10 đòn tranh cãi chưa so;
+  - một câu chỉ liệt kê mọi số của bản ghi ĐẠT 73/117 ca (theo người tấn công; chưa tái lập trong repo).
   - Gốc: "túi số", không có phân cực, không ràng buộc thực thể / chỉ số / kỳ / nguồn, không kiểm đơn vị, không kiểm lịch ngày.
   - **v1 không được dùng làm bằng chứng G7.**
 - **Bộ chấm v2:** do người không đọc mã EACL thiết kế (hai hướng + giám khảo), ghi vào ADR-0007 **trước** khi đóng băng. Sau đó hiện thực có test cho từng đòn, rồi chính người tấn công chạy lại đòn.

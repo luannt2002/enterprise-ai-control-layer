@@ -31,8 +31,8 @@ Lớp: representation 10/13 · entity 13/13 · ambiguity 12/13 · semantic 11/13
   - không ca nào có ngày trả lời lệch ngày hỏi;
   - ca xác nhận sai cực tính: chỉ 264.
   - 51 ca ĐẠT không có kỳ vọng số chưa được đọc từng ca.
-- 2/104 ca H1 có câu hỏi trùng nguyên văn bộ 117 (218 = 099, 405 = 075), cả hai ĐẠT. Bỏ hai ca đó: 87/102.
-- **Đã sửa SAU H1** ở tầng chuẩn hoá (`8ff3db5`, test đỏ trước, n37 6/6). Phát hiện qua H1 nên ghi rõ; H1 là bộ hồi quy. Chạy lại H1 làm bộ hồi quy: 89/104 theo nhãn, 264 nay trả "Đúng.".
+- 2/104 ca H1 trùng bộ 117 sau khi chuẩn hoá hoa / thường (218 = 059 = 061 = 099; 405 = 075), cả hai ĐẠT. Bỏ hai ca đó: 87/102 theo nhãn, ≤ 86/102 theo nội dung.
+- **Sửa SAU H1** ở tầng chuẩn hoá, ba bản (phát hiện qua H1 nên ghi rõ; H1 là bộ hồi quy): `8ff3db5` — 264 trả "Đúng.", 89/104 (tới `9d30130`); người soát C3 tìm ra cách gộp đó rò. `fd4d19c` — sinh số mồ côi, đã revert (`2a87e63`). `3066044` — gộp một span, con số không đứng đầu câu là chưa phân định ⇒ 264 hỏi lại, 88/104 (D-OP-9 a).
 
 ## 2. Tầng sai đầu tiên từng ca
 

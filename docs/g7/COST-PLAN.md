@@ -1,6 +1,6 @@
 # COST-PLAN — dự toán chi phí G7 theo bộ đã đóng băng
 
-- **Ngày đo:** 21/10/2026 rạng sáng. Mã g7run cùng `9de63d2` (các commit sau chỉ đổi tài liệu). Dữ liệu functional seed 42, manifest `31172355…adb055`.
+- **Ngày đo:** 21/10/2026 rạng sáng, trên mã `9de63d2`. Pipeline, client model và `g7run` đã đổi sau đó (tới bản chốt sáng 21/10): số lời gọi / ký tự CHƯA đo lại. Dữ liệu functional seed 42, manifest `31172355…adb055`.
 - **Đã đo (chạy khô):**
   - máy chủ giả `scripts/g7-chay-kho.py` ở cổng 25480, `g7run -k 1`, mọi hệ (EACL, B1, B2+, B2, B2″, B2-oracle);
   - tham số đúng hợp đồng §4 (`claude-sonnet-5-5`, thinking `between_tools`, effort `medium`, không temperature);

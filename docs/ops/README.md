@@ -2,13 +2,14 @@
 
 Tệp này là bản bàn giao công khai: pull repo về là đủ để chạy lại mốc và làm tiếp mà không mất luồng. Bản chi tiết có đường dẫn máy và tài khoản (`HANDOFF.local.md`, `AUTORUN.local.md`) chỉ nằm ở máy gốc. Mục 7 nói rõ thứ gì không có trong git và vì sao.
 
-## 1. Trạng thái (20/10/2026, dừng 10:33 theo lệnh chủ dự án)
+## 1. Trạng thái (sáng 21/10/2026, sau luồng chạy đêm 20→21/10)
 
-**WIN MVP: 3/7 cổng đạt vô điều kiện, 6/7 có điều kiện — CHƯA phải WIN** (đính chính 20/10 tối: `docs/CHO-QUYET-DINH.md`, D-G7-11).
-- G1–G6 đạt; scale smoke đạt trên cả đường bộ nhớ lẫn PostgreSQL; bộ 117 ca độc lập đạt 117/117.
-- **G7 CHẶN**: cần khoá model thật + chủ dự án đồng ý chi phí.
+**WIN MVP: CHƯA phải WIN.** Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần 01:42 ngày 21/10), phần ca của G1–G5 đều KHÔNG ĐẠT (89/104). Theo dữ liệu độc lập: 0/7 cổng đạt trọn (G6' còn PARTIAL); theo cách đọc chỉ G2 / G5 / G6 (ADR-0006 §8, không khuyến nghị): 3/7 — chủ dự án chốt ở D-H1-1.
+- Bộ 117 ca (bộ hồi quy) đạt 117/117; nạp dữ liệu 2.739/2.739; phát lại 104/104 lệch 0.
+- Câu xác nhận ("… đúng không?"): bản cuối phán quyết sai 15/15 câu thăm dò của người soát (đầu đêm 8/15; 7 câu là hồi quy của chính đêm nay), chưa sửa — báo cáo sáng mục 8, câu chờ quyết D-OP-10.
+- **G7 CHẶN**: chưa có khoá model; bộ chấm v2 chưa đóng băng.
 
-Chi tiết: `docs/STATUS.md`. Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`.
+Chi tiết: `docs/STATUS.md`. Báo cáo đêm: `docs/bao-cao/2026-10-21-overnight.md`. Báo cáo ngày 20/10: `docs/bao-cao/2026-10-20-win-mvp.md`.
 
 ## 2. Yêu cầu máy
 
@@ -59,7 +60,7 @@ go run ./tenants/construction/win/g7run -data /tmp/win               # G7: khôn
 | `EAIS_MODEL_PROVIDER` | `""` / `extractive` = model giả tất định; `anthropic` = API kiểu Messages | |
 | `EAIS_MODEL` | tên model | bắt buộc với model thật — không có mặc định |
 | `EAIS_MODEL_API_KEY` | khoá API | **không bao giờ ghi vào repo hay log** |
-| `EAIS_MODEL_BASE_URL` | endpoint, cho dịch vụ tương thích | trống = endpoint chính thức. Chỉ nhận `https://` hoặc `http://` tới loopback; client không theo chuyển hướng (khoá không đi theo, `d4b80be`). `g7run` coi endpoint khác API chính thức là CHẠY KHÔ |
+| `EAIS_MODEL_BASE_URL` | endpoint, cho dịch vụ tương thích | trống = endpoint chính thức. Chỉ nhận `https://` hoặc `http://` tới loopback; client không theo chuyển hướng (khoá không đi theo, `d4b80be`). `g7run` so endpoint theo nghĩa (`:443`, chữ hoa, dấu chấm cuối vẫn là API chính thức); endpoint khác là CHẠY KHÔ, nhưng mọi endpoint không phải loopback (cả proxy) vẫn qua kiểm trước khi tiêu tiền (`246eabb`) |
 | `EAIS_MODEL_MAX_TOKENS` | trần token đầu ra | trống = 1024; giá trị hỏng là lỗi cấu hình, không lặng lẽ về 1024 |
 | `EAIS_MODEL_THINKING` | kiểu thinking gửi cho nhà cung cấp | hợp đồng G7 §4: `between_tools` |
 | `EAIS_MODEL_EFFORT` | `output_config.effort` | hợp đồng G7 §4: `medium` |
@@ -71,7 +72,7 @@ go run ./tenants/construction/win/g7run -data /tmp/win               # G7: khôn
 Mở phiên ở gốc repo (`CLAUDE.md` tự nạp) rồi dán:
 
 ```text
-Tiếp tục dự án EAIS. Đọc CLAUDE.md, docs/ops/README.md, docs/STATUS.md, docs/04-core-mvp.md §6, docs/adr/0002-win-quyet-dinh-trien-khai.md và docs/bao-cao/2026-10-20-win-mvp.md. Chạy lại mốc theo docs/ops/README.md mục 3 và so với mốc ghi ở đó; lệch thì báo tôi trước khi làm gì khác. Sau đó trình tôi các câu còn mở ở docs/CHO-QUYET-DINH.md (mỗi câu kèm khuyến nghị), rồi làm theo "Việc tiếp theo" của docs/STATUS.md. Muốn tự chạy không hỏi thì dựng luồng theo docs/ops/LUONG-TU-CHAY.md. Luật: repo PUBLIC — không đưa dữ liệu thật / khoá / transcript; WIN trước, roadmap sau; báo tiến độ bằng một con số %.
+Tiếp tục dự án EAIS. Đọc CLAUDE.md, docs/ops/README.md, docs/STATUS.md, docs/04-core-mvp.md §6, docs/adr/0002-win-quyet-dinh-trien-khai.md, docs/adr/0006-bo-giu-lai-doc-lap.md và docs/bao-cao/2026-10-21-overnight.md. Chạy lại mốc theo docs/ops/README.md mục 3 và so với mốc ghi ở đó; lệch thì báo tôi trước khi làm gì khác. Sau đó trình tôi các câu còn mở ở docs/CHO-QUYET-DINH.md (mỗi câu kèm khuyến nghị), rồi làm theo "Việc tiếp theo" của docs/STATUS.md. Muốn tự chạy không hỏi thì dựng luồng theo docs/ops/LUONG-TU-CHAY.md. Luật: repo PUBLIC — không đưa dữ liệu thật / khoá / transcript; WIN trước, roadmap sau; báo tiến độ bằng một con số %.
 ```
 
 ## 6. Câu chờ chủ dự án quyết

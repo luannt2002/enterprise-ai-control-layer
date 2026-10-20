@@ -67,15 +67,17 @@ go run ./tenants/construction/win/g7run -data /tmp/win               # G7: khôn
 Mở phiên ở gốc repo (`CLAUDE.md` tự nạp) rồi dán:
 
 ```text
-Tiếp tục dự án EAIS. Đọc CLAUDE.md, docs/ops/README.md, docs/STATUS.md, docs/04-core-mvp.md §6, docs/adr/0002-win-quyet-dinh-trien-khai.md và docs/bao-cao/2026-10-20-win-mvp.md. Chạy lại mốc theo docs/ops/README.md mục 3 và so với mốc ghi ở đó; lệch thì báo tôi trước khi làm gì khác. Sau đó trình tôi các câu ở docs/ops/README.md mục 6 (mỗi câu kèm khuyến nghị), rồi làm theo "Việc tiếp theo" của docs/STATUS.md. Muốn tự chạy không hỏi thì dựng luồng theo docs/ops/LUONG-TU-CHAY.md. Luật: repo PUBLIC — không đưa dữ liệu thật / khoá / transcript; WIN trước, roadmap sau; báo tiến độ bằng một con số %.
+Tiếp tục dự án EAIS. Đọc CLAUDE.md, docs/ops/README.md, docs/STATUS.md, docs/04-core-mvp.md §6, docs/adr/0002-win-quyet-dinh-trien-khai.md và docs/bao-cao/2026-10-20-win-mvp.md. Chạy lại mốc theo docs/ops/README.md mục 3 và so với mốc ghi ở đó; lệch thì báo tôi trước khi làm gì khác. Sau đó trình tôi các câu còn mở ở docs/CHO-QUYET-DINH.md (mỗi câu kèm khuyến nghị), rồi làm theo "Việc tiếp theo" của docs/STATUS.md. Muốn tự chạy không hỏi thì dựng luồng theo docs/ops/LUONG-TU-CHAY.md. Luật: repo PUBLIC — không đưa dữ liệu thật / khoá / transcript; WIN trước, roadmap sau; báo tiến độ bằng một con số %.
 ```
 
 ## 6. Câu chờ chủ dự án quyết
 
-1. **G7:** cấp khoá model + đồng ý chi phí để chạy so sánh với baseline. Chi phí CHƯA ĐO: 117 ca × k = 3 × 2 hệ ≈ 702 lượt hỏi ngắn.
-2. **Duyệt ADR-0002 (D7–D17):** các quyết định tự chốt ngày 20/10, đều đảo được.
-3. **Cách chấm G7:** chấm theo nội dung (`evals.G7ContentReport`), baseline top-k = 10, cách viết đoạn của baseline. Agent đề xuất, có số đo; chờ duyệt trước khi chạy G7 thật.
-4. `go mod tidy` chưa chạy được ở máy gốc (offline). Chạy ở máy có mạng rồi xem diff của `go.mod` / `go.sum`.
+**Một nguồn duy nhất: `docs/CHO-QUYET-DINH.md`.** Mở phiên thì đọc tệp đó trước. Câu nào đã quyết thì nằm ở mục 0 của tệp.
+
+Tóm tắt 20/10 tối:
+- ADR-0001 giữ nguyên; ADR-0002 tạm chấp nhận;
+- G7 chờ: sửa D5 (temperature 0 không chạy được với model hiện hành), chọn model, trần chi phí, B1, bộ giữ lại, đóng băng hợp đồng (`docs/g7/`);
+- gói định nghĩa EACL V3 (`docs/v3/05`) chờ duyệt.
 
 ## 7. Không đưa lên git (repo PUBLIC) — và lấy lại thế nào
 

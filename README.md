@@ -9,6 +9,9 @@ Nền tảng AI doanh nghiệp đa tenant. Nó biến dữ liệu, tri thức, q
 
 | Đọc gì | Ở đâu |
 |---|---|
+| **Câu đang chờ chủ dự án quyết** | [`docs/CHO-QUYET-DINH.md`](docs/CHO-QUYET-DINH.md) |
+| G7: hợp đồng benchmark, chi phí, checkpoint | [`docs/g7/`](docs/g7/) |
+| Kế hoạch EACL V3 (bản nháp, chờ duyệt) | [`docs/v3/`](docs/v3/) |
 | Chạy lại mốc / làm tiếp trên máy khác | [`docs/ops/README.md`](docs/ops/README.md) |
 | Hợp đồng vận hành (luật bắt buộc) | [`CLAUDE.md`](CLAUDE.md) |
 | WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |

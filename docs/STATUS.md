@@ -2,6 +2,7 @@
 
 > Cập nhật: 20/10/2026 10:35. Phiên tự chạy **dừng lúc 10:33** theo lệnh chủ dự án; mã và tài liệu đã đồng bộ lên git (commit đầu tiên). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
+> **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Mọi số ở đây lấy từ lệnh chạy ngày 20/10/2026, trừ chỗ ghi **CHƯA ĐO**.
 
 ## Tiến độ WIN MVP: 6/7 cổng có bằng chứng đạt — CHƯA phải WIN
@@ -140,7 +141,11 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 ## Việc tiếp theo
 
 1. Chủ dự án soát các commit ngày 20/10 trên GitHub. Repo PUBLIC: thứ cố ý không lên git ở `docs/ops/README.md` mục 7.
-2. **G7:** cấp khoá model + đồng ý chi phí ⇒ thêm client provider vào gateway ⇒ chạy so sánh k = 3 với baseline. Đây là cổng duy nhất còn lại của WIN.
+2. **G7:** làm theo `docs/g7/CHECKPOINT-A-H.md`:
+   - chủ dự án quyết D-G7-1…8 (sửa D5 vì temperature 0 không chạy được, model, trần chi phí, B1, bộ giữ lại, đóng băng hợp đồng);
+   - làm các blocker mã (client, `-smoke`, `-out`, B1);
+   - thử khói, rồi chạy k = 3.
+   Đây là cổng duy nhất còn lại của WIN.
 3. Soát độc lập (phiên không viết mã) cho mã hôm nay: pipeline S9, pgstore, so sánh / mệnh đề trọng tâm. Agent soát đã dừng 10:33 theo lệnh, chưa có phát hiện.
 3b. Bộ ca đội đỏ (≈ 40 ca mới, do người không đọc mã soạn, ngoài bộ đóng băng) để đo tổng quát hoá. Hiện CHƯA có bằng chứng tổng quát hoá ngoài 117 ca. Agent dừng 10:33, chưa ghi tệp.
 4. Lưu bền bản ghi quyết định (bảng `interactions`) khi có HTTP API.

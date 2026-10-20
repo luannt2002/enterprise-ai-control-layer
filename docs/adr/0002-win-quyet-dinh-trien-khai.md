@@ -1,6 +1,11 @@
 # ADR-0002 — Các quyết định triển khai WIN tự chốt ngày 20/10/2026
 
-- **Trạng thái:** đề xuất. Tự chốt trong phiên tự chạy khi chủ dự án vắng; **đảo được**, chờ duyệt.
+- **Trạng thái:** **TẠM CHẤP NHẬN** (chủ dự án, 20/10/2026), dưới dạng quyết định triển khai đảo được để tiếp tục WIN. Điều kiện kèm theo:
+  - ADR này là sổ ghi quyết định; heuristic của tenant / domain **không** được nâng thành lõi EACL;
+  - D9 là lựa chọn truy xuất cho WIN, **không** phải kiến trúc truy xuất chung của EACL;
+  - D11 là quyết định triển khai cho máy dev / test, **không** phải khuyến nghị an ninh cho production;
+  - mọi dòng giữ cột "Đảo khi" và bằng chứng hiện có.
+  Phân lớp từng quyết định: mục "Phân lớp" bên dưới.
 - **Ngày:** 20/10/2026.
 - **Liên quan:** `docs/04-core-mvp.md` §6 (7 cổng), ADR-0001 (phạm vi WIN, D1–D6).
 
@@ -27,6 +32,34 @@ Luật chọn (CLAUDE.md §4):
 | D15 | Số âm | bộ chuẩn hoá đọc dấu `-` / `−` là dấu âm khi ngay sau là chữ số và ngay trước là khoảng trắng, đầu câu hoặc mở ngoặc. "EX-03", "R-004", "18-20" không đổi | thiếu nó thì mọi hiệu âm (được phép theo G6) bị S9 chặn khi giao | — |
 | D16 | "≥ 4 biểu diễn" của G1 | thêm biểu diễn thứ tư cho R-004: CSV gõ tay, lượng `3.850`, đơn vị `lít` | bộ sinh cũ chỉ có 3 biểu diễn cho phiếu kho | — |
 | D17 | Nhãn số trích từ SOP (G5) | mẫu `knowledge_answer` = "Trích văn bản quy trình ({title}): …" | 04 §6 đòi số trích SOP "được gắn nhãn trích văn bản quy trình" | tenant muốn câu chữ khác — sửa mẫu, không sửa mã |
+
+## Phân lớp (20/10/2026, theo yêu cầu chủ dự án)
+
+Năm tầng:
+- **CORE INVARIANT**: bất biến của lõi, đúng với mọi tenant;
+- **DOMAIN PACK**: luật nghiệp vụ của một ngành;
+- **TENANT CONFIG**: giá trị cấu hình của một tenant;
+- **WIN-ONLY IMPLEMENTATION**: cách làm đủ cho WIN, chưa phải kiến trúc chung;
+- **DEV-ONLY**: chỉ cho máy dev / test.
+
+"Bật theo pack" nghĩa là cơ chế nằm trong mã dùng chung nhưng **không chạy** nếu pack không khai khoá tương ứng. Tenant khác không bị áp.
+
+| # | Tầng | Ở đâu | Đúng chỗ? |
+|---|---|---|---|
+| D7 vật tư mặc định | cơ chế: WIN-ONLY (bật theo pack) · giá trị `diesel_fuel`: TENANT CONFIG | `intelligence/intent` · `pack/intents.yaml` `default_terms` | đúng |
+| D8 ghép HYBRID / RAG, câu có mốc thời gian thì hỏi lại | WIN-ONLY (luật định tuyến mặc định; bật khi pack có ý định RAG) | `intelligence/intent` | đúng. Không phải bất biến EACL; mở cấu hình khi domain thứ hai cần khác |
+| D9 truy xuất (luật dấu, từ tiêu đề, bỏ cụm nghi vấn) | WIN-ONLY. `ToneKey`: lõi chuẩn hoá tiếng Việt | `intelligence/rag`, `data/normalization` | **nợ đặt chỗ:** danh sách từ dừng và cụm nghi vấn tiếng Việt viết cứng trong `intelligence/rag`, áp mọi tenant (không bật theo pack). Dời sang lexicon / pack khi có tenant ngôn ngữ khác. Chưa dời: chưa có ca đòi, và G7 đóng băng hành vi truy xuất |
+| D10 hỏi lượng thuần tài liệu thì thiếu bằng chứng | nguyên lý: CORE INVARIANT (P4, tài liệu không có thẩm quyền về số liệu) · cụm hỏi lượng: DOMAIN PACK | `core/pipeline` · `quantity_markers` | đúng |
+| D11a RLS FORCE theo GUC lấy từ Principal, vai `eais_app` không BYPASSRLS | CORE INVARIANT (cách ly tenant) | `db/migrations`, `platform/pgstore` | đúng |
+| D11b `trust` + loopback + tmpfs | DEV-ONLY | `deploy/docker-compose.yml` | đúng. Không dùng cho production |
+| D12 ràng buộc claim 6 chiều, bộ đếm số độc lập | CORE INVARIANT (C2 sự thật ≠ model, C5 chứng minh được) | `reliability/validation`, `core/pipeline` | đúng |
+| D13 so hai nghĩa | heuristic: WIN-ONLY (bật theo pack `comparison_markers`) · `Catalog.Compare`: cơ chế lõi chung · mẫu `compare_total`: TENANT CONFIG | `intelligence/intent`, `data/sourceoftruth`, pack | đúng |
+| D14 câu xác nhận nhiều mệnh đề | WIN-ONLY (bật theo pack `confirm_markers`) | `intelligence/intent` | đúng |
+| D15 số âm | lõi chuẩn hoá (đúng / sai của việc đọc số) | `data/normalization` | đúng |
+| D16 biểu diễn thứ tư của R-004 | WIN-ONLY (dữ liệu thử của G1) | `tenants/construction/win/gen` | đúng |
+| D17 nhãn "Trích văn bản quy trình" | TENANT CONFIG (câu chữ) · đòi hỏi gắn nhãn: G5 | `pack/templates.yaml` | đúng |
+
+Kết quả soát: **không quyết định nào nằm sai tầng tới mức phải dời mã ngay.** Một nợ đặt chỗ (D9) được ghi lại kèm điều kiện kích hoạt.
 
 ## Hệ quả
 

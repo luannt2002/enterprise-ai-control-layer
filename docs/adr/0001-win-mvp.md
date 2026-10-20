@@ -3,6 +3,7 @@
 - **Ngày:** 20/10/2026
 - **Trạng thái:** CHẤP NHẬN. D1–D6 được **tự chốt** khi chủ dự án cho phép chạy tự động không hỏi; chủ dự án **đảo được** bất cứ lúc nào bằng một ADR mới.
 - **Liên quan:** `docs/04-core-mvp.md` (hợp đồng WIN), `docs/05-master-roadmap.md` (bản đồ có điều kiện), CLAUDE.md §19, §24, §34.
+- **Xác nhận 20/10/2026 (tối):** chủ dự án giữ nguyên ADR này. Phạm vi WIN vẫn là Fuel Discrepancy Resolution; không mở COMMAND / WORKFLOW / EVENT / Agent / MCP / Python / framework chung trước khi đóng G7; không thêm tính năng chỉ để cải thiện benchmark. Riêng chữ "temperature 0" của D5 không chạy được với model hiện hành, nên có đề xuất sửa ở ADR-0005 (chờ duyệt).
 
 ## Bối cảnh
 

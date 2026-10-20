@@ -49,26 +49,34 @@ type modelCall struct {
 
 // askRecord là bằng chứng thô của MỘT câu hỏi trong MỘT lượt của MỘT hệ.
 type askRecord struct {
-	System     string      `json:"system"`
-	Run        int         `json:"run"`
-	CaseID     string      `json:"case_id"`
-	Principal  string      `json:"principal"`
-	Question   string      `json:"question"`
-	Route      string      `json:"route"`
-	Outcome    string      `json:"outcome"`
-	Answer     string      `json:"answer"`
-	Candidates []string    `json:"candidates,omitempty"`
-	Conflicts  []string    `json:"conflicts,omitempty"` // khoá xung đột; "*" = chờ người duyệt
-	Citations  []string    `json:"citations,omitempty"` // id bằng chứng được trích
-	ModelCalls int         `json:"model_calls"`
-	LatencyMS  float64     `json:"latency_ms"`
-	Error      string      `json:"error,omitempty"`
+	System     string   `json:"system"`
+	Run        int      `json:"run"`
+	CaseID     string   `json:"case_id"`
+	Principal  string   `json:"principal"`
+	Question   string   `json:"question"`
+	Route      string   `json:"route"`
+	Outcome    string   `json:"outcome"`
+	Answer     string   `json:"answer"`
+	Candidates []string `json:"candidates,omitempty"`
+	Conflicts  []string `json:"conflicts,omitempty"` // khoá xung đột; "*" = chờ người duyệt
+	Citations  []string `json:"citations,omitempty"` // id bằng chứng được trích
+	ModelCalls int      `json:"model_calls"`
+	LatencyMS  float64  `json:"latency_ms"`
+	Error      string   `json:"error,omitempty"`
+	// ModelError: câu cần model mà lời gọi model hỏng sau thử lại (hoặc baseline lỗi khi hỏi). Ca đó
+	// trượt với nhãn PROVIDER; quá 2% câu như vậy trong một lượt của một hệ thì lượt VÔ HIỆU.
+	ModelError bool        `json:"model_error,omitempty"`
 	Calls      []modelCall `json:"calls,omitempty"`
 }
 
-// path là đường tất định của câu trả lời EACL (route, outcome, ứng viên, xung đột, trích dẫn): giữa các
-// lượt nó phải giống nhau, khác là lượt vô hiệu (ADR-0005 §5).
+// path là đường tất định của câu trả lời EACL: giữa các lượt nó phải giống nhau, khác là lượt vô hiệu
+// (ADR-0005 §5). Câu KHÔNG gọi model thì so đủ route, outcome, ứng viên, xung đột, trích dẫn. Câu CÓ gọi
+// model thì chỉ so route (chọn trước khi gọi model): trích dẫn là id do model chọn, outcome phụ thuộc
+// việc kiểm bản nháp ngẫu nhiên (bản soát mã độc lập, S2-5).
 func (r askRecord) path() string {
+	if r.ModelCalls > 0 {
+		return r.Route
+	}
 	return strings.Join([]string{r.Route, r.Outcome, strings.Join(r.Candidates, ","), strings.Join(r.Conflicts, ","), strings.Join(r.Citations, ",")}, " | ")
 }
 
@@ -79,10 +87,25 @@ type evidenceSink struct {
 	cur    *askRecord
 	recs   []askRecord
 	caseOf map[string]string // askKey → id ca
+	// Ngân sách: tiền đã tiêu tính từ usage của từng phản hồi × bảng giá; chạm trần thì mọi lời gọi sau
+	// bị chặn (budgetGateway) và lần chạy VÔ HIỆU.
+	price     [2]float64
+	capUSD    float64
+	spentUSD  float64
+	budgetHit bool
 }
 
 func newEvidenceSink(cases []evals.WinCase) *evidenceSink {
-	s := &evidenceSink{caseOf: map[string]string{}}
+	s := &evidenceSink{}
+	s.setCases(cases)
+	return s
+}
+
+// setCases dựng bảng (người hỏi, câu hỏi) → id ca.
+func (s *evidenceSink) setCases(cases []evals.WinCase) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.caseOf = map[string]string{}
 	for _, c := range cases {
 		k := askKey(c.Principal, c.Question)
 		if _, dup := s.caseOf[k]; dup {
@@ -91,7 +114,13 @@ func newEvidenceSink(cases []evals.WinCase) *evidenceSink {
 		}
 		s.caseOf[k] = c.ID
 	}
-	return s
+}
+
+// spent trả tiền đã tiêu và cờ chạm trần.
+func (s *evidenceSink) spent() (float64, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.spentUSD, s.budgetHit
 }
 
 // trace là models.Messages.Trace.
@@ -118,9 +147,26 @@ func (s *evidenceSink) trace(tr models.MessagesTrace) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.spentUSD += (float64(c.InputTokens)*s.price[0] + float64(c.OutputTokens)*s.price[1]) / 1e6
+	if s.capUSD > 0 && s.spentUSD >= s.capUSD {
+		s.budgetHit = true
+	}
 	if s.cur != nil {
 		s.cur.Calls = append(s.cur.Calls, c)
 	}
+}
+
+// budgetGateway chặn mọi lời gọi model sau khi chi tiêu chạm trần (hợp đồng G7 §9; bản soát S3-4).
+type budgetGateway struct {
+	inner models.Gateway
+	sink  *evidenceSink
+}
+
+func (g *budgetGateway) Generate(ctx context.Context, req models.Request) (contracts.Draft, error) {
+	if spent, hit := g.sink.spent(); hit {
+		return contracts.Draft{}, contracts.Errorf(contracts.FaultPolicy, fmt.Sprintf("g7run: đã chạm trần ngân sách (%.4f USD), không gọi model nữa", spent))
+	}
+	return g.inner.Generate(ctx, req)
 }
 
 func ms(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
@@ -174,6 +220,12 @@ func (r *recorder) Ask(ctx context.Context, pr contracts.Principal, q string) (c
 		rec.Error = err.Error()
 	}
 	r.sink.mu.Lock()
+	lastFailed := len(rec.Calls) > 0 && rec.Calls[len(rec.Calls)-1].Error != ""
+	r.sink.mu.Unlock()
+	// Baseline lỗi khi hỏi = lỗi gọi model / hạ tầng của lượt chạy, không phải câu trả lời của nó. EACL lỗi
+	// khi hỏi mà không do nhà cung cấp là lỗi của chính EACL: tính là ca trượt bình thường.
+	rec.ModelError = lastFailed || (err != nil && (r.sys != sysEACL || strings.HasPrefix(contracts.FaultOf(err), "third_party:")))
+	r.sink.mu.Lock()
 	r.sink.cur = nil
 	r.sink.recs = append(r.sink.recs, *rec)
 	r.sink.mu.Unlock()
@@ -188,7 +240,7 @@ func unstablePaths(recs []askRecord) []string {
 	first := map[string]string{}
 	bad := map[string]bool{}
 	for _, r := range recs {
-		if r.System != sysEACL {
+		if r.System != sysEACL || r.ModelError { // lỗi nhà cung cấp tính riêng (invalidRuns), không là bất ổn đường tất định
 			continue
 		}
 		if p, ok := first[r.CaseID]; !ok {
@@ -239,15 +291,46 @@ func flakyCases(counts map[string]map[string]int, k int) map[string][]string {
 	return out
 }
 
-// pilotK là luật chọn k đăng ký trước (ADR-0006 §6): pilot chạy k = 5; hệ cổng nào có ≥ 2 ca chập
-// chờn thì lượt chính k = 5, không thì k = 3.
+// pilotK là luật chọn k đăng ký trước (ADR-0006 §6): pilot chạy k = 5; hệ nào trong EACL, B2+, B1 có
+// ≥ 2 ca chập chờn thì lượt chính k = 5, không thì k = 3.
 func pilotK(flaky map[string][]string) int {
-	for _, g := range gateSystems {
+	for _, g := range append([]string{sysEACL}, gateSystems...) {
 		if len(flaky[g]) >= 2 {
 			return 5
 		}
 	}
 	return 3
+}
+
+// invalidRuns trả các lượt VÔ HIỆU vì lỗi gọi model (hợp đồng G7 §10): trong một lượt của một hệ, quá 2%
+// câu cần model bị lỗi khi gọi model.
+func invalidRuns(recs []askRecord) []string {
+	type key struct {
+		sys string
+		run int
+	}
+	need, failed := map[key]int{}, map[key]int{}
+	var keys []key
+	for _, r := range recs {
+		if r.ModelCalls == 0 && len(r.Calls) == 0 && !r.ModelError {
+			continue
+		}
+		k := key{r.System, r.Run}
+		if _, ok := need[k]; !ok {
+			keys = append(keys, k)
+		}
+		need[k]++
+		if r.ModelError {
+			failed[k]++
+		}
+	}
+	var out []string
+	for _, k := range keys {
+		if failed[k]*100 > 2*need[k] {
+			out = append(out, fmt.Sprintf("%s lượt %d: %d/%d câu lỗi gọi model", sysLabel[k.sys], k.run, failed[k], need[k]))
+		}
+	}
+	return out
 }
 
 // costRow là token + tiền của một hệ.
@@ -343,6 +426,12 @@ type manifestInfo struct {
 	PriceTable     map[string][2]float64 `json:"price_usd_per_mtok"`
 	BudgetUSD      float64               `json:"budget_usd"`
 	Unstable       []string              `json:"eacl_unstable_cases,omitempty"`
+	Invalid        []string              `json:"invalid_runs,omitempty"`
+	PackVersion    string                `json:"pack_version"`
+	Endpoint       string                `json:"endpoint,omitempty"`
+	DryRun         bool                  `json:"dry_run"` // endpoint không phải API chính thức: KHÔNG phải bằng chứng G7
+	SpentUSD       float64               `json:"spent_usd"`
+	BudgetHit      bool                  `json:"budget_hit"`
 }
 
 type scoredRow struct {
@@ -367,6 +456,9 @@ type failureRow struct {
 
 // writeEvidence ghi bộ bằng chứng của một lần chạy vào dir.
 func writeEvidence(dir string, m manifestInfo, recs []askRecord, scored []scoredRow, aggregate any, failures []failureRow, cost []costRow, summary string) error {
+	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 0 {
+		return fmt.Errorf("thư mục bằng chứng %s đã có tệp: không ghi đè bằng chứng cũ", filepath.Base(dir))
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -419,16 +511,30 @@ func newManifest(cfg config, mc models.Config, gw models.Gateway, fake bool, sys
 		Files: map[string]string{}, PriceTable: priceTable, BudgetUSD: 15,
 		ModelParams: map[string]any{},
 	}
+	if bg, ok := gw.(*budgetGateway); ok {
+		gw = bg.inner
+	}
 	if g, ok := gw.(*models.Messages); ok {
+		m.Endpoint = g.BaseURL
 		m.ModelParams = map[string]any{
 			"max_tokens": g.MaxTokens, "temperature": g.Temperature, "thinking": g.Thinking,
 			"effort": g.Effort, "max_retries": g.MaxRetries,
 		}
 	}
+	cwd, _ := os.Getwd()
 	for _, f := range files {
-		if f != "" {
-			m.Files[filepath.ToSlash(f)] = fileSHA256(f)
+		if f == "" {
+			continue
 		}
+		name := f
+		if filepath.IsAbs(f) { // không ghi đường dẫn tuyệt đối của máy vào bằng chứng công khai
+			if rel, err := filepath.Rel(cwd, f); err == nil && !strings.HasPrefix(rel, "..") {
+				name = rel
+			} else {
+				name = "(ngoài repo)/" + filepath.Base(f)
+			}
+		}
+		m.Files[filepath.ToSlash(name)] = fileSHA256(f)
 	}
 	m.DataManifest = fileSHA256(filepath.Join(cfg.data, "manifest.json"))
 	return m

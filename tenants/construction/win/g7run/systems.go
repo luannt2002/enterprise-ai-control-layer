@@ -390,6 +390,9 @@ func loadWindows(path string, loc *time.Location) (map[string]*window, error) {
 		if e.CaseID == "" {
 			return nil, fmt.Errorf("%s: có mục thiếu case_id", path)
 		}
+		if _, dup := out[e.CaseID]; dup {
+			return nil, fmt.Errorf("%s: case_id %s xuất hiện hai lần", path, e.CaseID)
+		}
 		if e.B1Window == nil {
 			out[e.CaseID] = nil
 			continue

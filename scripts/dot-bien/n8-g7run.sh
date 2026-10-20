@@ -19,9 +19,9 @@ m $S '		if m.Tolerance != "" {' '		if false {' 'G8 B2″ mất dung sai'
 m $E '		s.cur.Calls = append(s.cur.Calls, c)' '		_ = c' 'G9 không ghi vết lời gọi model'
 m $E 'strings.Join(r.Citations, ",")}, " | ")' '""}, " | ")' 'G10 lượt vô hiệu bỏ qua trích dẫn'
 m $E '			c.USD = (float64(c.InputTokens)*price[0] + float64(c.OutputTokens)*price[1]) / 1e6' '			c.USD = (float64(c.InputTokens)*price[1] + float64(c.OutputTokens)*price[0]) / 1e6' 'G11 đảo giá vào / ra'
-m $E '		if r.System != sysEACL {' '		if false {' 'G12 baseline ngẫu nhiên bị tính là lượt vô hiệu'
-m $M '	if len(blocked) > 0 || len(unstable) > 0 {' '	if len(unstable) > 0 {' 'G13 bỏ qua hệ cổng bị chặn'
-m $M '	if len(blocked) > 0 || len(unstable) > 0 {' '	if len(blocked) > 0 {' 'G14 bỏ qua lượt vô hiệu'
+m $E '		if r.System != sysEACL || r.ModelError {' '		if r.ModelError {' 'G12 baseline ngẫu nhiên bị tính là lượt vô hiệu'
+m $M '	if len(blocked) > 0 || len(unstable) > 0 || len(invalid) > 0 {' '	if len(unstable) > 0 || len(invalid) > 0 {' 'G13 bỏ qua hệ cổng bị chặn'
+m $M '	if len(blocked) > 0 || len(unstable) > 0 || len(invalid) > 0 {' '	if len(blocked) > 0 || len(invalid) > 0 {' 'G14 bỏ qua lượt vô hiệu (đường tất định)'
 m $M '		if !slices.Contains(order, g) || !ok || !v.Pass {' '		if !slices.Contains(order, g) || !ok || !v.Pass && false {' 'G15 bỏ qua phán quyết của hệ cổng'
 m $M '			bad := r.Error != ""' '			bad := false' 'G16 thử khói bỏ qua lỗi'
 m $M '			case sysB2Plus:
@@ -31,9 +31,26 @@ m $M '			case sysB2Plus:
 ' 'G17 B2+ không biết ngày hiện tại'
 m $E '			if n > 0 && n < k {' '			if n > 0 && n <= k {' 'G20 ca đạt mọi lượt bị tính chập chờn'
 m $E '		if len(flaky[g]) >= 2 {' '		if len(flaky[g]) >= 3 {' 'G21 ngưỡng pilot sai'
-m $E '	for _, g := range gateSystems {
-		if len(flaky[g]) >= 2 {' '	for _, g := range []string{sysB2Plus, sysB1, sysB2} {
-		if len(flaky[g]) >= 2 {' 'G22 hệ chỉ-báo-cáo quyết k'
+m $E '	for _, g := range append([]string{sysEACL}, gateSystems...) {' '	for _, g := range append([]string{sysEACL, sysB2}, gateSystems...) {' 'G22 hệ chỉ-báo-cáo quyết k'
+m $M '	if len(blocked) > 0 || len(unstable) > 0 || len(invalid) > 0 {' '	if len(blocked) > 0 || len(unstable) > 0 {' 'G23 bỏ qua lượt vô hiệu vì lỗi gọi model'
+m $E '		if failed[k]*100 > 2*need[k] {' '		if failed[k]*100 > 50*need[k] {' 'G24 ngưỡng lỗi gọi model 50% thay vì 2%'
+m $E '	rec.ModelError = lastFailed || (err != nil && (r.sys != sysEACL || strings.HasPrefix(contracts.FaultOf(err), "third_party:")))' '	rec.ModelError = lastFailed && false || err != nil && false' 'G25 không đánh dấu lỗi gọi model'
+m $E '		if r.System != sysEACL || r.ModelError {' '		if r.System != sysEACL {' 'G26 lỗi gọi model tính là bất ổn đường tất định'
+m $E '	if r.ModelCalls > 0 {
+		return r.Route
+	}' '	if false {
+		return r.Route
+	}' 'G27 so trích dẫn do model chọn'
+m $E '	for _, g := range append([]string{sysEACL}, gateSystems...) {' '	for _, g := range gateSystems {' 'G28 pilot bỏ EACL'
+m $E '	if s.capUSD > 0 && s.spentUSD >= s.capUSD {' '	if false && s.capUSD > 0 && s.spentUSD >= s.capUSD {' 'G29 không ghi chạm trần'
+m $E '	if spent, hit := g.sink.spent(); hit {' '	if spent, hit := g.sink.spent(); hit && false {' 'G30 vẫn gọi model sau khi chạm trần'
+m $M '		dry = strings.TrimRight(m.BaseURL, "/") != officialEndpoint' '		dry = false' 'G31 chạy khô trông như lượt thật'
+m $E '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 0 {' '	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 99 {' 'G32 ghi đè bằng chứng cũ'
+m $E '		if filepath.IsAbs(f) { // không ghi đường dẫn tuyệt đối của máy vào bằng chứng công khai' '		if false && filepath.IsAbs(f) {' 'G33 lộ đường dẫn tuyệt đối'
+m $M '						layer = "PROVIDER" // máy gán: ca trượt vì lỗi gọi model, không vì câu trả lời' '						layer = "CHƯA PHÂN LOẠI"' 'G34 không gán nhãn PROVIDER'
+m $S '		if _, dup := out[e.CaseID]; dup {' '		if _, dup := out[e.CaseID]; dup && false {' 'G35 nhận case_id trùng'
+m $S '		if r.On.IsZero() || (w != nil && !r.On.Before(w.from) && !r.On.After(w.to)) {' '		if r.On.IsZero() || (w != nil && !r.On.Before(w.from)) {' 'G36 B1 bỏ cận trên cửa sổ'
+m $E '	return strings.Join([]string{r.Route, r.Outcome, strings.Join(r.Candidates, ","), strings.Join(r.Conflicts, ","), strings.Join(r.Citations, ",")}, " | ")' '	return strings.Join([]string{r.Route, strings.Join(r.Citations, ",")}, " | ")' 'G37 path bỏ outcome / ứng viên / xung đột'
 export PKGS="./evals/baseline/"
 B=evals/baseline/baseline.go
 m $B '		mq = b.Preamble + "\n" + question' '		mq = question' 'G18 phần mở đầu không tới model'

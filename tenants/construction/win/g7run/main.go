@@ -52,6 +52,12 @@ import (
 // blockedLine là dòng đầu khi chạy bằng model giả: G7 vẫn CHẶN, kết quả chỉ để thử ống nối.
 const blockedLine = "G7: CHẶN — chưa có model thật; đây là chạy thử ống nối bằng model giả tất định, KHÔNG phải bằng chứng G7"
 
+// officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4). Endpoint khác (máy chủ giả, proxy) là
+// CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
+const officialEndpoint = "https://api.anthropic.com"
+
+const dryLine = "G7: CHẠY KHÔ — endpoint không phải API chính thức của nhà cung cấp; KHÔNG phải bằng chứng G7"
+
 // quantityUnits là đơn vị lượng nhiên liệu của tenant: số mang đơn vị này trong TÀI LIỆU không được
 // coi là có căn cứ (docs/04 §6 G5). Viết tay ở đây, không lấy từ lexicon của pack: bộ đếm độc lập.
 var quantityUnits = []string{"L", "lít", "lit", "m3", "m³", "khối"}
@@ -67,6 +73,7 @@ type config struct {
 	systems, manifest, out, contract                  string
 	k, topK, smoke                                    int
 	pilot                                             bool
+	budget                                            float64
 }
 
 func main() {
@@ -85,6 +92,7 @@ func main() {
 	flag.StringVar(&cfg.out, "out", "", "thư mục ghi bằng chứng thô: manifest.json, raw-runs.jsonl, scored.jsonl, aggregate.json, failures.jsonl, cost.json, ket-qua.md")
 	flag.StringVar(&cfg.contract, "contract", "docs/g7/HOP-DONG-G7.md", "hợp đồng G7 — băm vào manifest")
 	flag.BoolVar(&cfg.pilot, "pilot", false, "lượt pilot (ADR-0006 §6): cần -k 5; in k của lượt chính theo luật đăng ký trước")
+	flag.Float64Var(&cfg.budget, "budget", 15, "trần chi tiêu USD cho lần chạy (hợp đồng G7 §9); chạm trần thì dừng gọi model, lần chạy VÔ HIỆU")
 	flag.IntVar(&cfg.smoke, "smoke", 0, "thử khói: chạy N ca đầu MỘT lượt mỗi hệ để kiểm provider nhận tham số, rồi thoát")
 	flag.Parse()
 	if cfg.data == "" || cfg.k < 1 || cfg.topK < 1 || cfg.smoke < 0 || (cfg.pilot && cfg.k != 5) || (cfg.grade != gradeContent && cfg.grade != gradeFull) {
@@ -114,18 +122,31 @@ func run(cfg config) int {
 	if fake {
 		fmt.Println(blockedLine)
 	}
+	sink := newEvidenceSink(nil)
+	dry := false
+	if m, ok := gw.(*models.Messages); ok {
+		m.Trace = sink.trace
+		dry = strings.TrimRight(m.BaseURL, "/") != officialEndpoint
+		price, priced := priceTable[m.Model]
+		if !priced && !dry {
+			fmt.Fprintf(os.Stderr, "LỖI: model %q không có trong bảng giá: không giữ được trần ngân sách\n", m.Model)
+			return 2
+		}
+		sink.price, sink.capUSD = price, cfg.budget
+		gw = &budgetGateway{inner: m, sink: sink}
+	}
+	if dry {
+		fmt.Println(dryLine)
+	}
 	s, err := build(cfg, gw, systems)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
 		return 2
 	}
-	sink := newEvidenceSink(s.cases)
-	if m, ok := gw.(*models.Messages); ok {
-		m.Trace = sink.trace
-	}
+	sink.setCases(s.cases)
 	ctx := context.Background()
 	if cfg.smoke > 0 {
-		return smoke(ctx, cfg, mc, gw, s, sink, fake, started)
+		return smoke(ctx, cfg, mc, gw, s, sink, fake, dry, started)
 	}
 
 	full := map[string][]evals.Report{}
@@ -183,6 +204,13 @@ func run(cfg config) int {
 	if len(unstable) > 0 {
 		say("LƯỢT VÔ HIỆU (ADR-0005 §5): đường tất định của EACL khác nhau giữa các lượt ở %d ca: %s\n", len(unstable), strings.Join(unstable, ", "))
 	}
+	invalid := invalidRuns(sink.recs)
+	if spent, hit := sink.spent(); hit {
+		invalid = append(invalid, fmt.Sprintf("chạm trần ngân sách %.2f USD (đã tiêu %.4f USD)", cfg.budget, spent))
+	}
+	for _, x := range invalid {
+		say("LƯỢT VÔ HIỆU (lỗi gọi model): %s\n", x)
+	}
 	verdicts := map[string]evals.G7Verdict{}
 	for _, b := range s.order[1:] {
 		v, err := evals.CompareG7(graded[sysEACL], graded[b], counts[sysEACL])
@@ -198,7 +226,7 @@ func run(cfg config) int {
 		say("\n=== EACL so với %s (%s) ===\n%s", sysLabel[b], role, v.Format())
 		say("Bộ đếm độc lập, %s (chỉ báo cáo): %d câu · rò rỉ canary %d · số không căn cứ %d\n", sysLabel[b], counts[b].Answers, counts[b].Leaks, counts[b].Unsupported)
 	}
-	pass := gatePass(s.order, s.blocked, unstable, verdicts)
+	pass := gatePass(s.order, s.blocked, unstable, invalid, verdicts)
 	flaky := flakyCases(passCounts(graded), cfg.k)
 	for _, sys := range s.order {
 		say("ca chập chờn của %s (đạt ở 0 < n < %d lượt): %d %s\n", sysLabel[sys], cfg.k, len(flaky[sys]), strings.Join(flaky[sys], " "))
@@ -210,25 +238,29 @@ func run(cfg config) int {
 	for _, e := range counts[sysEACL].Examples {
 		say("  - %s\n", e)
 	}
+	rule := "KHÔNG ĐẠT — xem luật, hệ cổng thiếu hoặc lượt vô hiệu ở trên"
+	if pass {
+		rule = "ĐẠT với mọi baseline cổng (" + strings.Join(gateSystems, ", ") + ")"
+	}
 	switch {
 	case fake:
-		say("\n%s\n", blockedLine)
-	case pass:
-		say("\nG7: ĐẠT với mọi baseline cổng (%s)\n", strings.Join(gateSystems, ", "))
+		say("\nphán quyết theo luật: %s\n%s\n", rule, blockedLine)
+	case dry:
+		say("\nphán quyết theo luật: %s\n%s\n", rule, dryLine)
 	default:
-		say("\nG7: KHÔNG ĐẠT — xem luật, hệ cổng thiếu hoặc lượt vô hiệu ở trên\n")
+		say("\nG7: %s\n", rule)
 	}
 	fmt.Print(out.String())
 
 	if cfg.out != "" {
-		if err := saveRun(cfg, mc, gw, fake, s, sink, full, graded, verdicts, counts, unstable, started, out.String()); err != nil {
+		if err := saveRun(cfg, mc, gw, fake, dry, pass, s, sink, full, graded, verdicts, counts, unstable, invalid, started, out.String()); err != nil {
 			fmt.Fprintln(os.Stderr, "LỖI ghi bằng chứng:", err)
 			return 2
 		}
 		fmt.Println("bằng chứng thô:", cfg.out)
 	}
 	switch {
-	case fake:
+	case fake, dry:
 		return 2
 	case pass:
 		return 0
@@ -237,9 +269,10 @@ func run(cfg config) int {
 }
 
 // gatePass là kết luận của G7 (ADR-0005 §5–6): ĐẠT chỉ khi MỌI baseline cổng đều chạy được và đều
-// đạt, không hệ cổng nào bị chặn, không lượt nào vô hiệu. Baseline chỉ-báo-cáo không ảnh hưởng.
-func gatePass(order, blocked, unstable []string, verdicts map[string]evals.G7Verdict) bool {
-	if len(blocked) > 0 || len(unstable) > 0 {
+// đạt, không hệ cổng nào bị chặn, không lượt nào vô hiệu (đường tất định không ổn định, lỗi gọi model,
+// chạm trần ngân sách). Baseline chỉ-báo-cáo không ảnh hưởng.
+func gatePass(order, blocked, unstable, invalid []string, verdicts map[string]evals.G7Verdict) bool {
+	if len(blocked) > 0 || len(unstable) > 0 || len(invalid) > 0 {
 		return false
 	}
 	for _, g := range gateSystems {
@@ -252,11 +285,19 @@ func gatePass(order, blocked, unstable []string, verdicts map[string]evals.G7Ver
 }
 
 // saveRun gom bằng chứng của một lần chạy và ghi ra cfg.out.
-func saveRun(cfg config, mc models.Config, gw models.Gateway, fake bool, s *setup, sink *evidenceSink, full, graded map[string][]evals.Report,
-	verdicts map[string]evals.G7Verdict, counts map[string]evals.G7Counts, unstable []string, started time.Time, summary string) error {
+func saveRun(cfg config, mc models.Config, gw models.Gateway, fake, dry, pass bool, s *setup, sink *evidenceSink, full, graded map[string][]evals.Report,
+	verdicts map[string]evals.G7Verdict, counts map[string]evals.G7Counts, unstable, invalid []string, started time.Time, summary string) error {
 	m := newManifest(cfg, mc, gw, fake, s.order, len(s.cases), s.files)
 	m.StartedAt, m.FinishedAt = started.Format(time.RFC3339), time.Now().Format(time.RFC3339)
-	m.Blocked, m.Unstable = s.blocked, unstable
+	m.Blocked, m.Unstable, m.Invalid = s.blocked, unstable, invalid
+	m.PackVersion, m.DryRun = s.packVersion, dry
+	m.SpentUSD, m.BudgetHit = sink.spent()
+	modelErr := map[string]bool{}
+	for _, r := range sink.recs {
+		if r.ModelError {
+			modelErr[fmt.Sprintf("%s|%d|%s", r.System, r.Run, r.CaseID)] = true
+		}
+	}
 	var scored []scoredRow
 	var failures []failureRow
 	for _, sys := range s.order {
@@ -266,15 +307,19 @@ func saveRun(cfg config, mc models.Config, gw models.Gateway, fake bool, s *setu
 				scored = append(scored, scoredRow{System: sys, Run: i + 1, CaseID: g.ID, Class: g.FailureClass,
 					Pass: g.Pass, Problems: g.Problems, FullPass: f.Pass, FullProblems: f.Problems})
 				if !g.Pass {
+					layer := "CHƯA PHÂN LOẠI"
+					if modelErr[fmt.Sprintf("%s|%d|%s", sys, i+1, g.ID)] {
+						layer = "PROVIDER" // máy gán: ca trượt vì lỗi gọi model, không vì câu trả lời
+					}
 					failures = append(failures, failureRow{System: sys, Run: i + 1, CaseID: g.ID, Class: g.FailureClass,
-						Problems: g.Problems, FirstWrongLayer: "CHƯA PHÂN LOẠI"})
+						Problems: g.Problems, FirstWrongLayer: layer})
 				}
 			}
 		}
 	}
 	pc := passCounts(graded)
-	agg := map[string]any{"verdicts": verdicts, "counts": counts, "eacl_unstable_cases": unstable, "blocked": s.blocked, "fake_model": fake,
-		"pass_count": pc, "flaky_cases": flakyCases(pc, cfg.k), "k": cfg.k, "pilot": cfg.pilot}
+	agg := map[string]any{"verdicts": verdicts, "counts": counts, "eacl_unstable_cases": unstable, "invalid_runs": invalid, "blocked": s.blocked,
+		"fake_model": fake, "dry_run": dry, "gate_pass": pass, "pass_count": pc, "flaky_cases": flakyCases(pc, cfg.k), "k": cfg.k, "pilot": cfg.pilot}
 	if cfg.pilot {
 		agg["pilot_main_k"] = pilotK(flakyCases(pc, cfg.k))
 	}
@@ -283,7 +328,7 @@ func saveRun(cfg config, mc models.Config, gw models.Gateway, fake bool, s *setu
 
 // smoke chạy N ca đầu MỘT lượt mỗi hệ: mọi câu hỏi phải không lỗi, và với model thật mọi lời gọi
 // model phải kết thúc bằng HTTP 200 — tức provider NHẬN đúng bộ tham số sẽ đóng băng.
-func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway, s *setup, sink *evidenceSink, fake bool, started time.Time) int {
+func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway, s *setup, sink *evidenceSink, fake, dry bool, started time.Time) int {
 	cases := s.cases[:min(cfg.smoke, len(s.cases))]
 	ok := true
 	var out strings.Builder
@@ -318,10 +363,15 @@ func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway,
 		res = "THỬ KHÓI: KHÔNG ĐẠT"
 	}
 	fmt.Fprintln(&out, res)
+	if dry {
+		fmt.Fprintln(&out, "(chạy khô: endpoint không chính thức — chưa chứng minh nhà cung cấp thật nhận bộ tham số)")
+	}
 	fmt.Print(out.String())
 	if cfg.out != "" {
 		m := newManifest(cfg, mc, gw, fake, s.order, len(cases), s.files)
 		m.StartedAt, m.FinishedAt, m.Blocked = started.Format(time.RFC3339), time.Now().Format(time.RFC3339), s.blocked
+		m.PackVersion, m.DryRun = s.packVersion, dry
+		m.SpentUSD, m.BudgetHit = sink.spent()
 		if err := writeEvidence(cfg.out, m, sink.recs, nil, map[string]any{"smoke": res}, nil, costs(sink.recs, mc.Model, s.order), out.String()); err != nil {
 			fmt.Fprintln(os.Stderr, "LỖI ghi bằng chứng:", err)
 			return 2
@@ -359,6 +409,7 @@ type setup struct {
 	counter               *evals.G7Counter
 	canaries              []string
 	paragraphs, documents int
+	packVersion           string
 }
 
 // build dựng EACL (như winrun.Run), các baseline và bộ đếm độc lập trên CÙNG một bộ dữ liệu và CÙNG
@@ -431,9 +482,10 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 		Directory: directory, Facts: res.Facts(), Knowledge: rag.NewMemoryIndex(cfg.tenant, docs), Model: counting,
 		Now: func() time.Time { return now },
 	}}, gw: counting}}
-	st := &setup{askers: askers, order: []string{sysEACL}, principals: principals, cases: cases, documents: len(docs),
-		files: append(append([]string(nil), files...), cfg.world, cfg.manifest, filepath.Join(cfg.pack, "metrics.yaml"),
-			filepath.Join(cfg.pack, "sources.yaml"), cfg.contract)}
+	packFiles, _ := filepath.Glob(filepath.Join(cfg.pack, "*.yaml"))
+	sort.Strings(packFiles)
+	st := &setup{askers: askers, order: []string{sysEACL}, principals: principals, cases: cases, documents: len(docs), packVersion: rt.PackVersion,
+		files: append(append(append([]string(nil), files...), packFiles...), cfg.world, cfg.manifest, cfg.contract)}
 
 	// Baseline RAG: mỗi quan sát của tenant một đoạn văn bản + cùng các tài liệu SOP, cùng gateway.
 	names := map[string]string{}

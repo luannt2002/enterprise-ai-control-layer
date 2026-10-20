@@ -148,7 +148,7 @@ func TestDirectLLMRawRowsAndWindow(t *testing.T) {
 	}
 	idOf := map[string]rawRow{}
 	for _, r := range rows {
-		for _, rec := range []string{"R-004", "R-005", "R-018", "R-021", "R-001"} {
+		for _, rec := range []string{"R-004", "R-005", "R-018", "R-021", "R-001", "R-008"} {
 			if strings.Contains(r.Text, "record_id="+rec+",") || strings.HasSuffix(r.Text, "record_id="+rec) {
 				idOf[rec] = r
 			}
@@ -192,6 +192,9 @@ func TestDirectLLMRawRowsAndWindow(t *testing.T) {
 	}
 	if got[idOf["R-018"].ID] {
 		t.Errorf("cửa sổ 19/10: không được có bản ghi ngày 15/09 (%s)", idOf["R-018"].ID)
+	}
+	if got[idOf["R-008"].ID] { // cận TRÊN (bản soát mã: M34)
+		t.Errorf("cửa sổ 19/10: không được có bản ghi ngày 20/10 (%s)", idOf["R-008"].ID)
 	}
 	if q := spy.reqs[0].Question; !strings.HasPrefix(q, "Hôm nay là ngày 20/10/2026") || !strings.HasSuffix(q, "q1") {
 		t.Errorf("câu gửi model = %q, muốn ngày hiện tại + câu hỏi", q)
@@ -374,20 +377,21 @@ func TestGatePass(t *testing.T) {
 	ok, bad := evals.G7Verdict{Pass: true}, evals.G7Verdict{Pass: false}
 	all := []string{sysEACL, sysB2Plus, sysB1, sysB2}
 	for _, c := range []struct {
-		name              string
-		order             []string
-		blocked, unstable []string
-		verdicts          map[string]evals.G7Verdict
-		want              bool
+		name                       string
+		order                      []string
+		blocked, unstable, invalid []string
+		verdicts                   map[string]evals.G7Verdict
+		want                       bool
 	}{
-		{"đủ cổng, đều đạt; B2 trượt chỉ báo cáo", all, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok, sysB2: bad}, true},
-		{"B1 trượt", all, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: bad}, false},
-		{"B1 không chạy", []string{sysEACL, sysB2Plus}, []string{"B1: thiếu -manifest"}, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
-		{"B1 vắng mà không ghi bị chặn", []string{sysEACL, sysB2Plus}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
-		{"lượt vô hiệu", all, nil, []string{"WIN-I-201"}, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
-		{"có hệ bị báo chặn dù các cổng có mặt", all, []string{"B1: lỗi dựng"}, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
+		{"đủ cổng, đều đạt; B2 trượt chỉ báo cáo", all, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok, sysB2: bad}, true},
+		{"B1 trượt", all, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: bad}, false},
+		{"B1 không chạy", []string{sysEACL, sysB2Plus}, []string{"B1: thiếu -manifest"}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
+		{"B1 vắng mà không ghi bị chặn", []string{sysEACL, sysB2Plus}, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
+		{"lượt vô hiệu (đường tất định)", all, nil, []string{"WIN-I-201"}, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
+		{"lượt vô hiệu (lỗi gọi model)", all, nil, nil, []string{"B1 lượt 2: 9/117 câu lỗi gọi model"}, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
+		{"có hệ bị báo chặn dù các cổng có mặt", all, []string{"B1: lỗi dựng"}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
 	} {
-		if got := gatePass(c.order, c.blocked, c.unstable, c.verdicts); got != c.want {
+		if got := gatePass(c.order, c.blocked, c.unstable, c.invalid, c.verdicts); got != c.want {
 			t.Errorf("%s: gatePass = %v, muốn %v", c.name, got, c.want)
 		}
 	}
@@ -419,6 +423,33 @@ func TestUnstablePathsAndCosts(t *testing.T) {
 	}
 	if got := unstablePaths(recs); len(got) != 1 || got[0] != "B" {
 		t.Errorf("unstablePaths = %v, muốn [B]", got)
+	}
+	// Câu CÓ gọi model: trích dẫn / outcome do model quyết, chỉ so route (bản soát mã S2-5); câu lỗi gọi
+	// model không tính là bất ổn đường tất định.
+	more := append(append([]askRecord(nil), recs...),
+		askRecord{System: sysEACL, Run: 1, CaseID: "C", Route: "RAG", Outcome: "RESOLVED", ModelCalls: 1, Citations: []string{"SOP#0"}},
+		askRecord{System: sysEACL, Run: 2, CaseID: "C", Route: "RAG", Outcome: "SYSTEM_FAILURE", ModelCalls: 1, Citations: []string{"SOP#3"}},
+		askRecord{System: sysEACL, Run: 1, CaseID: "D", Route: "RAG", ModelCalls: 1},
+		askRecord{System: sysEACL, Run: 2, CaseID: "D", Route: "SQL_QUERY", ModelCalls: 1},
+		askRecord{System: sysEACL, Run: 1, CaseID: "E", Route: "RAG", ModelCalls: 1},
+		askRecord{System: sysEACL, Run: 2, CaseID: "E", Route: "", ModelCalls: 1, ModelError: true},
+		askRecord{System: sysEACL, Run: 1, CaseID: "F", Route: "SQL_QUERY", Outcome: "RESOLVED"},
+		askRecord{System: sysEACL, Run: 2, CaseID: "F", Route: "SQL_QUERY", Outcome: "INSUFFICIENT_EVIDENCE"},
+		askRecord{System: sysEACL, Run: 1, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07", "RL-07"}},
+		askRecord{System: sysEACL, Run: 2, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07"}},
+		askRecord{System: sysEACL, Run: 1, CaseID: "H", Route: "SQL_QUERY", Conflicts: []string{"issued_fuel|EX-03|2026-10-19"}},
+		askRecord{System: sysEACL, Run: 2, CaseID: "H", Route: "SQL_QUERY"},
+	)
+	if got := unstablePaths(more); strings.Join(got, ",") != "B,D,F,G,H" {
+		t.Errorf("unstablePaths = %v, muốn [B D F G H]: C khác trích dẫn / outcome do model; E lỗi gọi model; F, G, H khác outcome / ứng viên / xung đột ở câu không gọi model", got)
+	}
+	inv := invalidRuns([]askRecord{
+		{System: sysB1, Run: 1, CaseID: "1", ModelCalls: 1}, {System: sysB1, Run: 1, CaseID: "2", ModelCalls: 1, ModelError: true},
+		{System: sysB2Plus, Run: 1, CaseID: "1", ModelCalls: 1},
+		{System: sysEACL, Run: 1, CaseID: "1"}, // không cần model: không vào mẫu số
+	})
+	if len(inv) != 1 || !strings.Contains(inv[0], "B1 lượt 1: 1/2") {
+		t.Errorf("invalidRuns = %v, muốn đúng một lượt vô hiệu của B1 (1/2 > 2%%)", inv)
 	}
 	c := costs(recs, "claude-sonnet-5-5", []string{sysEACL, sysB2Plus})
 	if c[1].USD != 3 || !c[1].Priced || c[0].USD != 0 {
@@ -477,5 +508,169 @@ func TestFlakyAndPilotK(t *testing.T) {
 	}
 	if pilotK(map[string][]string{sysB1: {"X", "Y"}}) != 5 {
 		t.Errorf("B1 có 2 ca chập chờn: muốn k = 5")
+	}
+	if pilotK(map[string][]string{sysEACL: {"X", "Y"}}) != 5 {
+		t.Errorf("EACL có 2 ca chập chờn: muốn k = 5 (ADR-0006 §6 tính cả EACL; bản soát mã S2-6)")
+	}
+}
+
+// writeNullWindows ghi hồ sơ cửa sổ B1 = null cho mọi ca của bộ 117 (B1 chỉ nhận entities.json + tài liệu).
+func writeNullWindows(t *testing.T) string {
+	t.Helper()
+	suite, err := evals.LoadWinSuite("../cases-independent.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list []map[string]any
+	for _, c := range suite.Cases {
+		list = append(list, map[string]any{"case_id": c.ID, "b1_window": nil})
+	}
+	b, _ := json.Marshal(list)
+	p := filepath.Join(t.TempDir(), "cua-so.json")
+	if err := os.WriteFile(p, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// S1-1 (bản soát mã độc lập 20/10 đêm): mọi lời gọi model lỗi thì baseline "trượt" vì hạ tầng và EACL
+// "thắng" — G7 KHÔNG được ĐẠT. Lượt mà > 2% câu cần model của một hệ lỗi khi gọi model là lượt VÔ HIỆU
+// (hợp đồng G7 §10); ca đó mang nhãn PROVIDER.
+func TestProviderOutageMakesRunInvalid(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = io.WriteString(w, `{"type":"error"}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
+		t.Setenv(k, v)
+	}
+	cfg := baseCfg(genData(t))
+	cfg.k, cfg.systems, cfg.manifest, cfg.out = 3, sysB2Plus+","+sysB1, writeNullWindows(t), t.TempDir()
+	if code := run(cfg); code == 0 {
+		t.Errorf("mọi lời gọi model lỗi 503: mã thoát 0 (ĐẠT) là sai")
+	}
+	sum, _ := os.ReadFile(filepath.Join(cfg.out, "ket-qua.md"))
+	if !strings.Contains(string(sum), "LƯỢT VÔ HIỆU (lỗi gọi model)") {
+		t.Errorf("ket-qua.md phải báo lượt vô hiệu vì lỗi gọi model:\n%s", sum)
+	}
+	// Phán quyết theo LUẬT (độc lập với việc chạy khô): không được ĐẠT.
+	var agg struct {
+		GatePass bool     `json:"gate_pass"`
+		Invalid  []string `json:"invalid_runs"`
+	}
+	b, _ := os.ReadFile(filepath.Join(cfg.out, "aggregate.json"))
+	if err := json.Unmarshal(b, &agg); err != nil {
+		t.Fatal(err)
+	}
+	if agg.GatePass || len(agg.Invalid) == 0 {
+		t.Errorf("mọi lời gọi model lỗi: gate_pass = %v, invalid_runs = %v; muốn KHÔNG ĐẠT và có lượt vô hiệu", agg.GatePass, agg.Invalid)
+	}
+	fail, _ := os.ReadFile(filepath.Join(cfg.out, "failures.jsonl"))
+	if !strings.Contains(string(fail), `"first_wrong_layer":"PROVIDER"`) {
+		t.Error("ca hỏng vì lỗi gọi model phải mang nhãn PROVIDER trong failures.jsonl")
+	}
+}
+
+// Trần ngân sách giữ trong MÃ (hợp đồng G7 §9; bản soát mã S3-4): chi tiêu tính từ usage × bảng giá; chạm
+// trần thì không gọi model nữa và lần chạy VÔ HIỆU. Mỗi phản hồi giả báo 1 triệu token vào = 2 USD với
+// Sonnet 5.5, trần 15 USD ⇒ tối đa 8 lời gọi tới được nhà cung cấp.
+func TestBudgetCapStopsCalls(t *testing.T) {
+	var mu sync.Mutex
+	n := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		n++
+		mu.Unlock()
+		_, _ = io.WriteString(w, `{"content":[{"type":"text","text":"{\"answer\": \"x\", \"evidence_ids\": []}"}],"usage":{"input_tokens":1000000,"output_tokens":0}}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
+		t.Setenv(k, v)
+	}
+	cfg := baseCfg(genData(t))
+	cfg.k, cfg.budget, cfg.out = 1, 15, t.TempDir()
+	run(cfg)
+	mu.Lock()
+	got := n
+	mu.Unlock()
+	if got > 8 {
+		t.Errorf("nhà cung cấp nhận %d lời gọi; trần 15 USD / 2 USD mỗi lời gọi ⇒ tối đa 8", got)
+	}
+	var m manifestInfo
+	b, _ := os.ReadFile(filepath.Join(cfg.out, "manifest.json"))
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if !m.BudgetHit || m.SpentUSD < 15 || len(m.Invalid) == 0 {
+		t.Errorf("manifest: budget_hit %v, spent %.2f, invalid %v; muốn chạm trần và lần chạy vô hiệu", m.BudgetHit, m.SpentUSD, m.Invalid)
+	}
+}
+
+// Endpoint không phải API chính thức ⇒ CHẠY KHÔ: mã thoát 2, manifest ghi dry_run + endpoint, kể cả khi
+// mọi lời gọi thành công. Manifest ghi PackVersion + băm mọi tệp pack; không có đường dẫn tuyệt đối.
+func TestDryRunIsNotEvidence(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"content":[{"type":"text","text":"{\"answer\": \"x\", \"evidence_ids\": []}"}],"usage":{"input_tokens":10,"output_tokens":5}}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+		t.Setenv(k, v)
+	}
+	cfg := baseCfg(genData(t))
+	abs, _ := filepath.Abs("../cases-independent.yaml")
+	cfg.cases, cfg.out = abs, t.TempDir()
+	if code := run(cfg); code != 2 {
+		t.Errorf("chạy qua endpoint không chính thức: mã thoát %d, muốn 2 (chạy khô)", code)
+	}
+	var m manifestInfo
+	b, _ := os.ReadFile(filepath.Join(cfg.out, "manifest.json"))
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatal(err)
+	}
+	if !m.DryRun || m.Endpoint != srv.URL || m.PackVersion == "" {
+		t.Errorf("manifest: dry_run %v, endpoint %q, pack_version %q", m.DryRun, m.Endpoint, m.PackVersion)
+	}
+	for k := range m.Files {
+		if filepath.IsAbs(k) {
+			t.Errorf("manifest có đường dẫn tuyệt đối: %s", k)
+		}
+	}
+	packs, _ := filepath.Glob("../../pack/*.yaml")
+	for _, f := range packs {
+		if _, ok := m.Files[filepath.ToSlash(f)]; !ok {
+			t.Errorf("manifest thiếu băm tệp pack %s", f)
+		}
+	}
+	sum, _ := os.ReadFile(filepath.Join(cfg.out, "ket-qua.md"))
+	if !strings.Contains(string(sum), "CHẠY KHÔ") {
+		t.Error("ket-qua.md phải ghi CHẠY KHÔ")
+	}
+}
+
+// Không ghi đè bằng chứng cũ; case_id trùng trong hồ sơ cửa sổ là lỗi.
+func TestEvidenceDirAndWindowGuards(t *testing.T) {
+	clearModelEnv(t)
+	cfg := baseCfg(genData(t))
+	cfg.out = t.TempDir()
+	if err := os.WriteFile(filepath.Join(cfg.out, "manifest.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := run(cfg); code != 2 {
+		t.Errorf("thư mục bằng chứng đã có tệp: mã thoát %d, muốn 2 (lỗi, không ghi đè)", code)
+	}
+	if b, _ := os.ReadFile(filepath.Join(cfg.out, "manifest.json")); string(b) != "{}" {
+		t.Error("bằng chứng cũ bị ghi đè")
+	}
+	loc, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
+	p := filepath.Join(t.TempDir(), "trung.json")
+	_ = os.WriteFile(p, []byte(`[{"case_id":"A","b1_window":null},{"case_id":"A","b1_window":{"from":"2026-10-18","to":"2026-10-20"}}]`), 0o644)
+	if _, err := loadWindows(p, loc); err == nil {
+		t.Error("case_id trùng trong hồ sơ cửa sổ: muốn lỗi")
 	}
 }

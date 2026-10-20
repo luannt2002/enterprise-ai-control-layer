@@ -377,7 +377,10 @@ func saveRun(cfg config, mc models.Config, gw models.Gateway, fake, dry, pass bo
 }
 
 // smoke chạy N ca đầu MỘT lượt mỗi hệ: mọi câu hỏi phải không lỗi, và với model thật mọi lời gọi
-// model phải kết thúc bằng HTTP 200 — tức provider NHẬN đúng bộ tham số sẽ đóng băng.
+// model phải kết thúc bằng HTTP 200 — tức provider NHẬN đúng bộ tham số sẽ đóng băng. Hệ cổng bị chặn
+// thì KHÔNG ĐẠT (mã 1). Chạy khô mà đạt thì mã 2: chưa chứng minh nhà cung cấp thật nhận tham số.
+// Giới hạn: lấy N ca ĐẦU nên đường gọi model của EACL có thể chưa được thử (dòng EACL ghi "lời gọi
+// model 0"); mọi hệ dùng chung một gateway nên bộ tham số vẫn được thử qua baseline.
 func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway, s *setup, sink *evidenceSink, fake, dry bool, started time.Time) int {
 	cases := s.cases[:min(cfg.smoke, len(s.cases))]
 	ok := true
@@ -408,6 +411,7 @@ func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway,
 	for _, b := range s.blocked {
 		fmt.Fprintf(&out, "HỆ CỔNG KHÔNG CHẠY: %s\n", b)
 	}
+	ok = ok && len(s.blocked) == 0 // hệ cổng chưa được thử thì thử khói chưa chứng minh được nó (C-13)
 	res := "THỬ KHÓI: ĐẠT"
 	if !ok {
 		res = "THỬ KHÓI: KHÔNG ĐẠT"
@@ -427,14 +431,17 @@ func smoke(ctx context.Context, cfg config, mc models.Config, gw models.Gateway,
 			return 2
 		}
 	}
+	// Mã thoát như run(): 0 chỉ khi nhà cung cấp THẬT nhận bộ tham số; chạy khô đạt là 2 (C-13).
 	switch {
 	case fake:
 		fmt.Println(blockedLine)
 		return 2
-	case ok:
-		return 0
+	case !ok:
+		return 1
+	case dry:
+		return 2
 	}
-	return 1
+	return 0
 }
 
 // passed đếm số ca đạt trong một Report.

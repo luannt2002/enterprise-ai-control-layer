@@ -574,8 +574,13 @@ func TestSmokeThroughFakeProvider(t *testing.T) {
 	}
 	cfg := baseCfg(genData(t))
 	cfg.smoke, cfg.out = 3, t.TempDir()
-	if code := run(cfg); code != 0 {
-		t.Fatalf("thử khói qua provider giả trả 200: mã thoát = %d, muốn 0", code)
+	// Endpoint httptest không phải API chính thức ⇒ chạy khô: mã 2 như run(), vì mã 0 chỉ được nghĩa là
+	// nhà cung cấp THẬT nhận bộ tham số (C-13, soát lượt 2). Kết quả thử khói vẫn phải là ĐẠT.
+	if code := run(cfg); code != 2 {
+		t.Fatalf("thử khói chạy khô qua provider giả trả 200: mã thoát = %d, muốn 2", code)
+	}
+	if got := smokeResult(t, cfg.out); got != "THỬ KHÓI: ĐẠT" {
+		t.Errorf("kết quả thử khói = %q, muốn THỬ KHÓI: ĐẠT", got)
 	}
 	if len(bodies) < 3 {
 		t.Fatalf("muốn ≥ 3 lời gọi (B2+ gọi mỗi ca một lần), được %d", len(bodies))
@@ -618,6 +623,43 @@ func TestSmokeThroughFakeProvider(t *testing.T) {
 	first, _ := msgs[0].(map[string]any)
 	if c, _ := first["content"].(string); !strings.HasPrefix(c, "Câu hỏi: Hôm nay là ngày 20/10/2026 (giờ Việt Nam).") {
 		t.Errorf("B2+ phải đưa ngày hiện tại trước câu hỏi, câu gửi model bắt đầu bằng %.80q", c)
+	}
+}
+
+// smokeResult đọc dòng kết quả thử khói trong aggregate.json của thư mục -out.
+func smokeResult(t *testing.T, out string) string {
+	t.Helper()
+	var agg map[string]any
+	b, err := os.ReadFile(filepath.Join(out, "aggregate.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(b, &agg); err != nil {
+		t.Fatal(err)
+	}
+	s, _ := agg["smoke"].(string)
+	return s
+}
+
+// Hệ cổng bị chặn (B1 thiếu -manifest) thì thử khói chưa thử hệ đó ⇒ KHÔNG ĐẠT, kể cả khi mọi lời gọi
+// của hệ khác trả 200 (C-13, soát lượt 2). Lượt thật đã dừng trước model (stopBeforeModel); đây là chạy khô.
+func TestSmokeKhongDatKhiHeCongBiChan(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"content":[{"type":"text","text":"{\"answer\": \"trả lời giả\", \"evidence_ids\": []}"}],"usage":{"input_tokens":100,"output_tokens":20}}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools", "EAIS_MODEL_EFFORT": "medium"} {
+		t.Setenv(k, v)
+	}
+	cfg := baseCfg(genData(t))
+	cfg.smoke, cfg.out, cfg.systems = 1, t.TempDir(), sysB2Plus+","+sysB1
+	if code := run(cfg); code != 1 {
+		t.Fatalf("thử khói khi B1 bị chặn: mã thoát = %d, muốn 1", code)
+	}
+	if got := smokeResult(t, cfg.out); got != "THỬ KHÓI: KHÔNG ĐẠT" {
+		t.Errorf("kết quả thử khói = %q, muốn THỬ KHÓI: KHÔNG ĐẠT", got)
 	}
 }
 

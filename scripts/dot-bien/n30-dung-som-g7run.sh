@@ -9,7 +9,8 @@ export PKGS="./evals/"
 m evals/runner.go '			bad("%sprincipal %q không có", AskErrorProblem, c.Principal)' '			bad("principal %q không có", c.Principal)' 'R1 ca thiếu principal không đánh dấu lỗi khi hỏi'
 export PKGS="./tenants/construction/win/g7run/"
 G=tenants/construction/win/g7run/main.go
-m $G '		if _, ok := principals[c.Principal]; !ok {' '		if _, ok := principals[c.Principal]; !ok && false {' 'B1 nhận principal lạ'
+# B1 (bỏ kiểm principal lạ trong vòng C-03 của build) nay TƯƠNG ĐƯƠNG: từ fbea42e, evals.ValidateWinSuite chạy trước cho từng
+# tệp ca với đúng tập principal đó (lớp kiểm thứ hai, giữ có chủ ý). Đột biến của lớp ValidateWinSuite: PF10.
 m $G '		if seen[c.ID] {' '		if false {' 'B2 nhận id ca trùng'
 m $G '		if err := checkOutDir(cfg.out); err != nil {' '		if err := checkOutDir(cfg.out); err != nil && false {' 'O1 không kiểm -out trước khi gọi model'
 m $G '	return len(blocked) > 0 && !fake && !dry' '	return false' 'S1 không dừng khi hệ cổng bị chặn'

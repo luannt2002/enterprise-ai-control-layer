@@ -1198,5 +1198,21 @@ func TestBuildTuChoiPrincipalLaVaIdTrung(t *testing.T) {
 		if _, err := build(cfg, gw, systems); err == nil {
 			t.Errorf("%s: build phải báo lỗi", name)
 		}
+	} // Id trùng GIỮA HAI tệp ca (glob khớp nhiều tệp): ValidateWinSuite kiểm từng tệp nên không thấy; vòng kiểm C-03 của
+	// build() phải bắt (soát C2: đột biến B2 sống khi chỉ có ca trùng trong cùng một tệp).
+	dir := t.TempDir()
+	one := fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"x\"\n    expect:\n      route: %s\n      outcome: %s\n", c0.ID, c0.FailureClass, c0.Principal, c0.Expect.Route, c0.Expect.Outcome)
+	for _, f := range []string{"a.yaml", "b.yaml"} {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte(one), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := baseCfg(data)
+	cfg.cases = filepath.Join(dir, "*.yaml")
+	clearModelEnv(t)
+	gw, _ := models.New(models.ConfigFromEnv())
+	systems, _ := parseSystems(sysB2Plus)
+	if _, err := build(cfg, gw, systems); err == nil || !strings.Contains(err.Error(), "hai lần") {
+		t.Errorf("id trùng giữa hai tệp: build phải báo lỗi id trùng, được %v", err)
 	}
 }

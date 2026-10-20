@@ -76,7 +76,16 @@ Mã `PLT` dùng cho thứ thuộc nền tảng/xuyên tenant.
 
 ### 4.2 Nhóm lỗi (failure category)
 
-`DATA` · `PARSING` · `NORMALIZATION` · `ENTITY` · `ROUTER` · `RETRIEVAL` · `CONTEXT` · `MODEL` · `TOOL` · `SKILL` · `WORKFLOW` · `INTEGRATION` · `AUTH` · `TENANCY` · `CACHE` · `STREAM` · `VALIDATION` · `OBSERVABILITY`
+Tập hợp lớn hơn theo ADR-0008. Danh sách P10 của `CLAUDE.md` và phân loại tầng sai của G7 đều là tập con của danh sách này.
+
+`DATA` · `PARSING` · `NORMALIZATION` · `ENTITY` · `INTENT` · `SEMANTICS` · `SOURCE_AUTHORITY` · `ROUTER` · `ROUTING` · `RETRIEVAL` · `CONTEXT` · `MODEL` · `CLAIM_BINDING` · `TOOL` · `SKILL` · `WORKFLOW` · `INTEGRATION` · `AUTH` · `PERMISSION` · `TENANCY` · `CACHE` · `STREAM` · `VALIDATION` · `OBSERVABILITY` · `INFRASTRUCTURE` · `PROVIDER` · `SCORER` · `UNKNOWN`
+
+Ranh giới các cặp dễ nhầm:
+- `ROUTER` là lỗi của thành phần; `ROUTING` là chọn sai đường cho một ca.
+- `AUTH` là cơ chế xác thực / phân quyền hỏng; `PERMISSION` là câu trả lời lộ dữ liệu ngoài quyền người hỏi; `TENANCY` là vượt ranh giới tenant.
+- `MODEL` là model sai khi ngữ cảnh đủ đúng; `PROVIDER` là API lỗi / hết hạn mức / quá giờ; `INFRASTRUCTURE` là hạ tầng của ta.
+- `SCORER` là chính bộ chấm sai.
+- `UNKNOWN` phải liệt kê riêng, không gộp.
 
 ### 4.3 Nhãn lỗi runtime (ai sai)
 

@@ -8,14 +8,14 @@
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1, phần ca của G1–G5 KHÔNG ĐẠT (89/104) — CHƯA phải WIN
 
 > **H1, 21/10 01:42** (`docs/g7/holdout/ket-qua-h1/`). Bộ giữ lại độc lập: 104 ca, 13 / lớp, do người không đọc mã soạn, đóng băng 22:51 ngày 20/10, chạy MỘT lần ở revision `9de63d2`.
-> - Kết quả: **89/104** ở cả hai đường (bộ nhớ, PostgreSQL); phát lại 104/104 lệch 0; canary 0.
+> - Kết quả: **89/104** ở cả hai đường (bộ nhớ, PostgreSQL) theo bộ chấm nhị phân. Theo nội dung **≤ 88/104**: ca 264 ĐẠT với câu trả lời SAI, "1 490 lít" không được gộp nhóm nghìn; người phản bác cuối tìm ra, đã sửa sau H1 ở `8ff3db5`. Phát lại 104/104 lệch 0; canary 0.
 > - Theo lớp và cổng (`04` §6 đòi 100 % mỗi lớp):
 >   - representation 10/13 (G1);
 >   - entity 13/13, ambiguity 12/13 (G2);
 >   - semantic 11/13, source_conflict 11/13 (G3);
 >   - routing 7/13 (G4);
 >   - permission 13/13, unsupported_answer 12/13 (G5).
-> - Vậy phần ca của G1–G5 đều KHÔNG ĐẠT trên dữ liệu độc lập. Cả 15 ca đỏ sai ở tầng ý định (S4): tầng ý định chỉ khớp cách nói của bộ 117 (`phan-tich.md`).
+> - Vậy phần ca của G1–G5 đều KHÔNG ĐẠT trên dữ liệu độc lập. 15 ca đỏ quyết định sai ở tầng ý định (S4; 13/15 sai đầu tiên ở đó); 4/15 trả lời sai im lặng (`phan-tich.md`).
 > - G6' ĐẠT, nhưng tiêu chí sửa đổi chờ chủ dự án phê. G7 CHẶN.
 > - **Tiến độ (cổng đạt trọn, vô điều kiện, theo dữ liệu độc lập): 0/7.**
 >   - Nếu chủ dự án phê G6': 1/7.

@@ -6,15 +6,22 @@
 
 ## 0. Một dòng
 
-**Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần lúc 01:42), mọi phần dựa trên ca của G1–G5 đều KHÔNG ĐẠT: 89/104.**
-- Cả 15 ca đỏ sai ở tầng ý định (S4): EACL chỉ hiểu đúng cách nói của bộ phát triển.
+**Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần lúc 01:42), mọi phần dựa trên ca của G1–G5 đều KHÔNG ĐẠT: 89/104 theo bộ chấm nhị phân, ≤ 88/104 theo nội dung.**
+- Ca 264 ĐẠT với câu trả lời SAI; bộ chấm không kiểm phán quyết "Đúng." / "Không.". Người phản bác cuối tìm ra; đã sửa SAU H1 (`8ff3db5`).
+- 15 ca đỏ đều quyết định sai ở tầng ý định (S4):
+  - 13/15 sai đầu tiên ở S4; 2 ca có thêm span sai ở S2;
+  - 4/15 trả số / câu sai im lặng, 11/15 hỏi lại hoặc từ chối.
+  - Giả thuyết CHƯA đo riêng: tầng ý định khớp cách nói của bộ phát triển.
+- Tiến độ, hai cách tính cạnh nhau:
+  - theo D-H1-1 = A (khuyến nghị, chưa duyệt): **0/7** cổng đạt trọn, 1/7 nếu phê G6';
+  - theo B (ADR-0006 §8 chỉ chứng minh lại G2 / G5 / G6): 3/7, 4/7 nếu phê G6'.
 - Bộ 117 đạt 117/117, nhưng do người đã đọc pack soạn.
 - Phần hạ tầng ĐẠT:
   - nạp dữ liệu 2.739/2.739;
   - phát lại 104/104, lệch 0;
   - hai đường dữ liệu (bộ nhớ, PostgreSQL RLS) cho kết quả giống hệt;
   - 0 canary;
-  - G6' ĐẠT (tiêu chí sửa đổi chờ chủ dự án phê).
+  - G6' đạt các tiêu chí đo trực tiếp; hai tiêu chí chỉ đạt một phần (§2). Tiêu chí sửa đổi chờ chủ dự án phê.
 - G7 **CHẶN**: chưa có khoá; bộ chấm v2 chưa đóng băng.
 - Chi tiêu: 0 USD.
 
@@ -27,18 +34,19 @@
 
 ## 2. Trạng thái cổng THẬT
 
-| Cổng | Trạng thái | Bằng chứng |
-|---|---|---|
-Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc lập, `docs/g7/holdout/ket-qua-h1/`), đạt khi đạt ở CẢ HAI đường dữ liệu. ADR-0006 chỉ đăng ký chứng minh lại G2 / G5 / G6. G1 / G3 / G4 từng ĐẠT trên bộ 117 (không nhiễm, nhưng do người đã đọc pack soạn). Cùng tiêu chí trên dữ liệu độc lập thì KHÔNG ĐẠT, và báo cáo này lấy dữ liệu độc lập làm trạng thái THẬT (D-H1-1).
+Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc lập, `docs/g7/holdout/ket-qua-h1/`), đạt khi đạt ở CẢ HAI đường dữ liệu. ADR-0006 chỉ đăng ký chứng minh lại G2 / G5 / G6. G1 / G3 / G4 từng ĐẠT trên bộ 117 (không nhiễm, nhưng do người đã đọc pack soạn). Cùng tiêu chí trên dữ liệu độc lập thì KHÔNG ĐẠT, và báo cáo này lấy dữ liệu độc lập làm trạng thái THẬT (D-H1-1 = A).
+- Lập luận A: theo ADR-0006 §1, bộ 117 là bộ REGRESSION, nên chưa từng là bằng chứng độc lập cho G1 / G3 / G4. H1 là bằng chứng độc lập đầu tiên, và nó không xác nhận ba cổng này.
+- Cách đọc B (ADR-0006 §8 chỉ đăng ký G2' / G5' / G6') cho 3/7.
+- Cách đọc theo tầng sai đầu tiên: 15/15 ca đỏ thuộc tầng ý định / router (G4). Tầng chuẩn hoá của G1 chỉ lộ lỗi ở ca 264, ca bị bộ chấm che.
 
 | Cổng | Trạng thái THẬT | Bằng chứng |
 |---|---|---|
-| G1 DATA | **FAIL** (PARTIAL): nạp dữ liệu ĐẠT; phần ca `representation` H1 **10/13** | Nạp: 2.739/2.739 bản ghi khớp manifest, metamorphic 0 lệch; dữ liệu sinh lại giống từng byte. Ca đỏ 235, 276, 399: lượng trong câu hỏi được đọc ĐÚNG (1,2 m3, hai ngàn lít, 900l); sai ở S4 ("xuất" đứng một mình không thành chỉ số). Bộ 117: 100 % |
+| G1 DATA | **FAIL** (PARTIAL): nạp dữ liệu ĐẠT; phần ca `representation` H1 **10/13** theo bộ chấm, **≤ 9/13** theo nội dung | Nạp: 2.739/2.739 bản ghi khớp manifest, metamorphic 0 lệch; dữ liệu sinh lại giống từng byte. Ca đỏ 235, 276, 399: lượng trong câu hỏi được đọc ĐÚNG (1,2 m3, hai ngàn lít, 900l); sai ở S4 ("xuất" đứng một mình không thành chỉ số). Ca 264 ĐẠT với câu trả lời SAI: "1 490 lít" không được gộp (trái `03-data-map.md:134`), lỗi tầng chuẩn hoá của chính G1; sửa sau H1 ở `8ff3db5`. Bộ 117: 100 % |
 | G2 IDENTITY | **FAIL**: entity 13/13; ambiguity **12/13** | WIN-I-348 "máy 03 hôm qua xuất bao nhiêu và tiêu thụ bao nhiêu?" trả MỘT vế (tiêu thụ), bỏ thầm vế kia: đoán im lặng, trái P5 |
 | G3 TRUTH | **FAIL**: semantic **11/13**, source_conflict **11/13** | 268, 318: so sánh "A hơn B bao nhiêu" không được nhận; 303, 392: "ERP ghi X L dầu" không thành chỉ số (OUT_OF_SCOPE). Bộ 117: 100 % |
 | G4 DECISION | **FAIL**: routing **7/13** | 201, 234, 263, 342, 419, 429; tầng ý định (`phan-tich.md` mục 2). Bộ 117: 100 % |
 | G5 CONTROL | **FAIL** (PARTIAL): phần ca permission 13/13, unsupported_answer **12/13**, canary 0. Phần cơ chế (AST, RLS, canary B, bảng "sai đúng một chiều", chèn lệnh) ĐẠT bằng test + đột biến | 387: trả chênh lệch 68 L thay vì lượng xuất 3.850 L. Con số 5.000 L của tài liệu chèn lệnh bị chặn đúng; nhưng phần quy trình bị bỏ. Độ nhạy: bỏ 8 ca có gợi ý lộ ⇒ G5' ĐẠT; 387 là ca có gợi ý và EACL vẫn trượt |
-| G6 PROOF | **FAIL theo tiêu chí gốc** (bộ 117 băm 12 phút SAU lần chạy đầu). **G6' ĐẠT**, tiêu chí sửa đổi chờ chủ dự án phê:<br>- H1 104 ca, 100 % độc lập, 13 / lớp;<br>- đóng băng + push 22:51 trước lần chạy 01:42;<br>- phát lại 104/104, lệch 0;<br>- mọi danh mục đột biến hiện có bắt hết | `docs/g7/CONTAMINATION-AUDIT.md`, `docs/g7/holdout/ket-qua-h1/bang-cong.md` |
+| G6 PROOF | **FAIL theo tiêu chí gốc** (bộ 117 băm 12 phút SAU lần chạy đầu). **G6'** (tiêu chí sửa đổi, chờ chủ dự án phê):<br>- ĐẠT, đo trực tiếp: H1 104 ca, 13 / lớp; đóng băng + push 22:51 trước lần chạy 01:42; phát lại 104/104 lệch 0 ở hai đường; 100 % người không viết mã soạn (nhãn + kiểm transcript người soạn);<br>- ĐẠT MỘT PHẦN: "mỗi cổng có đột biến bị bắt" (bộ sinh `win/gen` và `core/decimal` chưa có danh mục); "test thuộc tính" phủ 2/3 thuộc tính của `04` §6 ("A không thấy B" là test xác định `TestRLSCanaryB`);<br>- 2/104 ca có câu hỏi trùng nguyên văn bộ 117 (218, 405; cả hai ĐẠT). Bỏ ra thì 87/102 | `docs/g7/CONTAMINATION-AUDIT.md`, `docs/g7/holdout/ket-qua-h1/bang-cong.md` |
 | G7 VALUE | **BLOCKED**:<br>- không có khoá model (D-G7-8);<br>- bộ chấm v2 chưa đóng băng được (ADR-0007);<br>- pilot cần khoá | `docs/g7/HOP-DONG-G7.md` §13 |
 
 ## 3. Nhiễm đã tìm ra (CONTAMINATION FOUND)
@@ -63,7 +71,9 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 - Lúc 22:58:29, GitHub main đã chứa `16a6140`.
 - **Giới hạn:** nội dung H2 đã công khai cùng bản đóng băng, nên bảo vệ H2 chỉ còn là quy trình (ADR-0006 §5).
 - **H1 đã chạy MỘT lần** lúc 01:42 ngày 21/10 (`56101be`, revision mã `9de63d2`), bằng `scripts/chay-giu-lai.sh`, DB riêng `eais_giu_lai`: 89/104 ở cả hai đường. Phân tích tầng sai và chẩn đoán qua revision: `docs/g7/holdout/ket-qua-h1/phan-tich.md`.
-  - Trên cùng dữ liệu H1, mã đầu đêm `94bbaae` đạt 88/104. Mã đêm nay không làm ca nào từ ĐẠT thành ĐỎ: S2-4 từng gây hồi quy 264, và bản sửa chiều A (`6f23ff3`, theo người soát không thấy bộ giữ lại) chữa lại.
+  - Trên cùng dữ liệu H1, mã đầu đêm `94bbaae` đạt 88/104.
+  - Theo NHÃN bộ chấm, mã đêm nay không làm ca nào từ ĐẠT thành ĐỎ.
+  - Theo NỘI DUNG, ca 264 xấu đi: đầu đêm trả giá trị không phán quyết; S2-4 hỏi lại; bản sửa chiều A (`6f23ff3`) khẳng định SAI, bộ chấm không bắt. Đã sửa SAU H1 (`8ff3db5`).
   - Từ lúc này H1 chỉ còn là bộ hồi quy. H2 (62 ca) vẫn là bộ giữ lại cho G7.
 
 ## 5. Bộ chấm (SCORER BUGS FOUND / FIXED)
@@ -192,19 +202,32 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
 ## 18. Mười câu hỏi
 
 1. **Giờ biết gì mà tối qua chưa biết?**
-   - Trên dữ liệu độc lập, EACL đạt 89/104, và phần ca của MỌI cổng G1–G5 trượt.
-   - Cả 15 ca đỏ đều sai ở tầng ý định: EACL chỉ hiểu cách nói của bộ phát triển.
+   - Trên dữ liệu độc lập, EACL đạt 89/104 theo bộ chấm nhị phân (≤ 88/104 theo nội dung), và phần ca của MỌI cổng G1–G5 trượt.
+   - 15 ca đỏ đều quyết định sai ở tầng ý định (13/15 sai đầu tiên ở đó); 4/15 trả lời sai im lặng.
+   - Bộ chấm WIN nhị phân có thể cho ĐẠT một câu xác nhận trả lời SAI (ca 264): nó không kiểm "Đúng." / "Không.".
    - Bộ chấm G7 v1 không dùng được: 109 câu sai mà vẫn ĐẠT.
    - Client cũ không gọi được model hiện hành: `temperature 0` bị trả 400.
    - G7 đo bằng chạy khô: chỉ hệ cổng, k = 3, tốn khoảng 12,74 USD (kỳ vọng); B1 chiếm gần hết chi phí.
-   - Chính các bản sửa trong đêm có gây hồi quy, và chỉ người soát độc lập bắt được: S2-4 làm hỏng ca 264; bản sửa chiều A gây R-01, R-02.
+   - Chính các bản sửa trong đêm có gây hồi quy, và chỉ người soát / người phản bác độc lập bắt được:
+     - S2-4 làm ca 264 hỏi lại;
+     - bản sửa chiều A làm 264 khẳng định sai, và gây R-01, R-02 (đã sửa: `8ff3db5`, bản sửa R).
 2. **Điều gì đã chứng minh độc lập?**
    - G1 phần nạp dữ liệu.
-   - G6': bộ giữ lại đóng băng và push trước lần chạy, 100 % độc lập, phát lại 104/104 lệch 0, hai đường dữ liệu giống hệt.
+   - G6' phần đo trực tiếp: bộ giữ lại đóng băng và push trước lần chạy, người soạn không viết mã, phát lại 104/104 lệch 0, hai đường dữ liệu giống hệt.
+   - G6' phần chưa đủ: "mỗi cổng có đột biến" (thiếu bộ sinh, `core/decimal`); test thuộc tính phủ 2/3.
+   - Người phản bác cuối xác nhận độc lập:
+     - đóng băng trước, chạy một lần;
+     - không dòng mã sản phẩm nào sửa theo gợi ý đã lộ (commit của agent giống từng byte với bản đã đưa vào main);
+     - tầng sai của 15 ca;
+     - chẩn đoán qua revision;
+     - độ nhạy.
    - Trên H1: 0 rò canary, quyền 13/13, thực thể 13/13.
    - Phần cơ chế của G5: test + đột biến.
 3. **Điều gì từng nói quá?**
-   - "3/7 cổng đạt vô điều kiện (G1, G3, G4)" và "6/7 có điều kiện". Bộ 117 ca không bị sửa kỳ vọng, nhưng do người đã đọc pack soạn, nên 117/117 là kết quả trong mẫu.
+   - "3/7 cổng đạt vô điều kiện (G1, G3, G4)" và "6/7 có điều kiện".
+     - Bộ 117 ca không bị sửa kỳ vọng, nhưng do người đã đọc pack soạn, nên 117/117 là kết quả trong mẫu.
+     - Theo ADR-0006 §1, bộ 117 là bộ REGRESSION, chưa từng là bằng chứng độc lập.
+   - Tối qua chưa biết rằng bộ chấm WIN có thể cho ĐẠT một câu trả lời sai (ca 264).
    - "G7 chỉ chờ khoá": thực ra bộ chấm v1 hỏng và client lỗi 400.
    - ADR-0002 D7 ghi sai sự kiện ở ca 107 (đã đính chính).
 4. **Cái gì trượt?**
@@ -213,7 +236,11 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
    - Bản đầu của công cụ chấm H1 (sửa trước khi chạy).
    - Vài bản sửa của chính đêm nay (mục 8).
 5. **Vì sao trượt?**
-   - Từ khoá ý định và cụm so sánh của pack được viết đúng theo cách nói của bộ ca phát triển. Ví dụ, `comparison_markers` chỉ có "nhiều hơn", "ít hơn", "so với". Bộ ca đó lại do người đã đọc pack soạn, nên kết quả đo là trong mẫu.
+   - Đo được: tầng ý định không có cách nói của 15 ca. Ví dụ:
+     - "xuất" đứng một mình không thành chỉ số;
+     - `comparison_markers` chỉ có "nhiều hơn", "ít hơn", "so với", nên "A hơn B bao nhiêu" không được nhận.
+   - GIẢ THUYẾT chưa đo riêng: từ khoá được viết theo đúng cách nói của bộ ca phát triển (do người đã đọc pack soạn). EACL vẫn đạt nhiều cách nói không có trong bộ 117 (ví dụ "dc cấp bn dầu", ngày dạng 2026-10-19).
+   - Chuẩn hoá chưa gộp nhóm nghìn ngăn bằng dấu cách (ca 264).
    - Bộ chấm v1 là "túi số": không ràng buộc con số với thực thể / kỳ / nguồn.
    - Sửa nhanh theo phát hiện cục bộ thì hỏng ở chỗ khác. Ví dụ, luật "số trần cạnh một lượng là nhãn" chữa A-02 nhưng gây R-01, R-02.
 6. **Cố ý KHÔNG xây gì?** (mục 15)
@@ -223,7 +250,8 @@ Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi s
    - Chế độ `-redact`, sổ chi tiêu cộng dồn tự động (thay bằng luật quy trình).
    - Vá bộ đếm v1 cho C-01 / C-02.
 7. **Fuel WIN đã đạt chưa?** **CHƯA.**
-   - Theo dữ liệu độc lập: 0/7 cổng đạt trọn; 1/7 nếu phê G6'.
+   - Theo D-H1-1 = A (khuyến nghị, chưa duyệt): 0/7 cổng đạt trọn; 1/7 nếu phê G6'.
+   - Theo B (ADR-0006 §8): 3/7; 4/7 nếu phê G6'.
    - G7 chưa chạy lần nào.
 8. **G7 chạy được bằng một lệnh chưa?** **CHƯA.**
    - Thiếu khoá.

@@ -19,6 +19,21 @@
 
 Lớp: representation 10/13 · entity 13/13 · ambiguity 12/13 · semantic 11/13 · source_conflict 11/13 · permission 13/13 · unsupported_answer 12/13 · routing 7/13.
 
+## 1b. Đính chính sau người phản bác cuối (21/10 03:3x): 89/104 là CẬN TRÊN
+
+- Bộ chấm WIN là nhị phân: route + outcome + có mặt con số + chuỗi cấm. Nó không kiểm phán quyết "Đúng." / "Không.".
+- **WIN-I-264** (representation, câu xác nhận viết "1 490 lít") ĐẠT ở lần chính thức với câu trả lời SAI: "Không … là 1.490 L, không phải 490 L".
+  - Nguyên nhân: chuẩn hoá không gộp nhóm nghìn ngăn bằng dấu cách (N8, có từ đầu đêm).
+  - Luật A-02 của `6f23ff3` coi "1" là nhãn nên phán quyết theo 490.
+- Vậy theo nội dung: **≤ 88/104**; representation ≤ 9/13.
+- Người phản bác quét thêm các ca ĐẠT:
+  - không ca nào có số kỳ vọng chỉ nằm ở phần phụ;
+  - không ca nào có ngày trả lời lệch ngày hỏi;
+  - ca xác nhận sai cực tính: chỉ 264.
+  - 51 ca ĐẠT không có kỳ vọng số chưa được đọc từng ca.
+- 2/104 ca H1 có câu hỏi trùng nguyên văn bộ 117 (218 = 099, 405 = 075), cả hai ĐẠT. Bỏ hai ca đó: 87/102.
+- **Đã sửa SAU H1** ở tầng chuẩn hoá (`8ff3db5`, test đỏ trước, n37 6/6). Phát hiện qua H1 nên ghi rõ; H1 là bộ hồi quy. Chạy lại H1 làm bộ hồi quy: 89/104 theo nhãn, 264 nay trả "Đúng.".
+
 ## 2. Tầng sai đầu tiên từng ca
 
 Nguồn: bản ghi quyết định (`traces.Decision`: S2 chuẩn hoá, S3 thực thể, S4 ý định + khe, S5 route, S9 kiểm) của từng ca. Cách lấy ở mục 5.
@@ -44,7 +59,8 @@ Nguồn: bản ghi quyết định (`traces.Decision`: S2 chuẩn hoá, S3 thự
 **Gộp theo tầng.**
 - Tầng quyết định: cả 15 ca ở **S4 ý định**.
 - Không ca nào sai ở S3 thực thể, S5 route với ý định đã đúng, S9 trên câu số liệu, hay ở dữ liệu / RLS (hai đường giống hệt nhau).
-- Hai ca (318, 429) có span sai ở S2 trước đó, nhưng S4 là chỗ quyết định.
+- Hai ca (318, 429) có span sai ở S2 trước đó, nhưng S4 là chỗ quyết định. Nói chính xác (người phản bác cuối): 13/15 ca sai ĐẦU TIÊN ở S4; 318 và 429 sai đầu tiên ở S2 (span thừa) nhưng S4 quyết định.
+- Theo hậu quả: 4/15 ca trả số / câu SAI im lặng (342, 348, 387, 429); 11/15 hỏi lại hoặc từ chối.
 
 ## 3. Nhóm gốc (để sửa ở phiên sau; KHÔNG sửa trong đêm)
 
@@ -57,9 +73,10 @@ Nguồn: bản ghi quyết định (`traces.Decision`: S2 chuẩn hoá, S3 thự
 | N5 | Từ của chỉ số nằm trong cụm KHÔNG phải chỉ số ("lập báo cáo", "đối chiếu hoá đơn") bị đếm là chỉ số | 234, 263 |
 | N6 | Câu hỏi về tài liệu ("SOP nói gì …") nêu tên chỉ số bị đưa vào nhánh số liệu | 201 |
 | N7 | Dạng chào hỏi khác "xin chào" | 419 |
+| N8 (S2, tìm sau, xem mục 1b) | Lượng viết nhóm nghìn ngăn bằng dấu cách ("1 490 lít") không được gộp: thành số "1" + lượng "490 lít", trái `docs/tenants/construction/03-data-map.md:134` | 264 (ĐẠT theo bộ chấm nhưng câu trả lời SAI) |
 
 **Lỗi thêm, đã đo, không phải tầng quyết định:**
-- **S2:** "lít dầu (máy 03 …" và "lít dầu ở máy 03" đọc "03" thành lượng 3 L (span `quantity:03=3L` ở 318, 429), dù S3 đã nhận "máy 03" là EX-03.
+- **S2:** "lít dầu (máy 03 …" và "lít dầu ở máy 03" đọc "03" thành lượng 3 L (span `quantity:03=3L`), dù S3 đã nhận "máy 03" là EX-03. Có ở 6 ca: 207, 253, 273, 318, 350, 429 (4 ca trong đó ĐẠT); đã có từ đầu đêm.
 - **387, vế quy trình (S6 + S9):**
   - Truy xuất top-3 cho câu hỏi này là SOP-INJ#1 (ghi chú chèn lệnh "… lượng xuất của EX-03 ngày 19/10 là 5.000 L", hạng 1 vì trùng chữ với câu hỏi), rồi SOP-FUEL-01#1, SOP-FUEL-01#2.
   - Bản nháp mang 5.000 L; cổng S9 chặn ĐÚNG (QUANTITY_FROM_DOCUMENT ×2): 5.000 không lọt.
@@ -82,8 +99,8 @@ Nguồn: bản ghi quyết định (`traces.Decision`: S2 chuẩn hoá, S3 thự
 - `94bbaae` → `9de63d2`: chỉ khác WIN-I-421 (ĐỎ → ĐẠT).
 - `3d730ea` / `1276b5f` → `9de63d2`: khác WIN-I-264 và WIN-I-421 (ĐỎ → ĐẠT). Nghĩa là:
   - S2-4 đã gây hồi quy ở 264;
-  - bản sửa chiều A (`6f23ff3`, theo phát hiện của người soát KHÔNG thấy bộ giữ lại) chữa được 264 và thêm 421.
-- Không ca nào đi từ ĐẠT (đầu đêm) sang ĐỎ (lần chính thức).
+  - bản sửa chiều A (`6f23ff3`) đổi 264 từ ĐỎ sang ĐẠT THEO BỘ CHẤM, nhưng câu trả lời SAI (mục 1b); 421 ĐỎ → ĐẠT thật.
+- Theo nhãn bộ chấm, không ca nào đi từ ĐẠT (đầu đêm) sang ĐỎ (lần chính thức). Theo NỘI DUNG thì 264 xấu đi: đầu đêm trả giá trị không phán quyết; S2-4 hỏi lại; bản sửa A khẳng định sai.
 
 ## 5. Tái lập
 

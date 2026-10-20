@@ -147,8 +147,20 @@ func main() {
 	os.Exit(run(cfg))
 }
 
+// stopBeforeModel: lượt chạy THẬT (không model giả, không chạy khô) mà có hệ cổng bị chặn thì không gọi model —
+// kết luận chắc chắn là KHÔNG ĐẠT, gọi tiếp chỉ tốn tiền (C-04, soát lượt 2).
+func stopBeforeModel(blocked []string, fake, dry bool) bool {
+	return len(blocked) > 0 && !fake && !dry
+}
+
 func run(cfg config) int {
 	started := time.Now()
+	if cfg.out != "" {
+		if err := checkOutDir(cfg.out); err != nil {
+			fmt.Fprintln(os.Stderr, "LỖI:", err)
+			return 2
+		}
+	}
 	systems, err := parseSystems(cfg.systems)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
@@ -186,6 +198,10 @@ func run(cfg config) int {
 	s, err := build(cfg, gw, systems)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
+		return 2
+	}
+	if stopBeforeModel(s.blocked, fake, dry) {
+		fmt.Fprintln(os.Stderr, "LỖI: hệ cổng không chạy được, không gọi model:", strings.Join(s.blocked, "; "))
 		return 2
 	}
 	sink.setCases(s.cases)
@@ -507,6 +523,18 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 			return nil, err
 		}
 		cases = append(cases, suite.Cases...)
+	}
+	// C-03 (soát lượt 2): ca có principal không thuộc tenant được chấm, hoặc id trùng, không được âm thầm bỏ qua —
+	// trước đây ca đó không được hỏi, vắng khỏi bằng chứng thô, và ĐẠT nếu kỳ vọng là từ chối.
+	seen := map[string]bool{}
+	for _, c := range cases {
+		if _, ok := principals[c.Principal]; !ok {
+			return nil, fmt.Errorf("ca %s: principal %q không thuộc tenant %s trong world.yaml", c.ID, c.Principal, cfg.tenant)
+		}
+		if seen[c.ID] {
+			return nil, fmt.Errorf("id ca %s xuất hiện hai lần trong %q", c.ID, cfg.cases)
+		}
+		seen[c.ID] = true
 	}
 
 	// EACL: gateway bọc một bộ đếm lời gọi (cổng G4 đo bằng gateway, không bằng trace của hệ).

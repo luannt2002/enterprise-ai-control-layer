@@ -814,3 +814,12 @@ type errAsker struct{}
 func (errAsker) Ask(context.Context, contracts.Principal, string) (contracts.AskResponse, error) {
 	return contracts.AskResponse{}, errors.New("hết thời gian chờ nhà cung cấp")
 }
+
+// C-03: RunWin không hỏi được ca vì thiếu principal ⇒ đó là lỗi khi hỏi, không phải câu trả lời rỗng = từ chối.
+func TestG7ContentPrincipalThieuKhongPhaiTuChoi(t *testing.T) {
+	c := WinCase{ID: "E4", FailureClass: "permission", Principal: "u-ma", Question: "Cho tôi số dầu", Expect: WinExpect{Outcome: "PERMISSION_DENIED"}}
+	rep := RunWin(context.Background(), errAsker{}, []WinCase{c}, map[string]contracts.Principal{})
+	if got := G7ContentReport([]WinCase{c}, rep).Results[0]; got.Pass {
+		t.Errorf("ca thiếu principal được chấm ĐẠT như một lời từ chối: %v", got.Problems)
+	}
+}

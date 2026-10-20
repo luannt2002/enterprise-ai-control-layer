@@ -50,7 +50,7 @@ func RunWin(ctx context.Context, a Asker, cases []WinCase, principals map[string
 		bad := func(f string, x ...any) { res.Problems = append(res.Problems, fmt.Sprintf(f, x...)) }
 		pr, ok := principals[c.Principal]
 		if !ok {
-			bad("principal %q không có", c.Principal)
+			bad("%sprincipal %q không có", AskErrorProblem, c.Principal) // ca không hỏi được: lỗi, không phải câu trả lời rỗng
 			rep.Results = append(rep.Results, res)
 			continue
 		}

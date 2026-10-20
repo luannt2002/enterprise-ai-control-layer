@@ -455,9 +455,18 @@ type failureRow struct {
 }
 
 // writeEvidence ghi bộ bằng chứng của một lần chạy vào dir.
-func writeEvidence(dir string, m manifestInfo, recs []askRecord, scored []scoredRow, aggregate any, failures []failureRow, cost []costRow, summary string) error {
+// checkOutDir: thư mục bằng chứng chưa có hoặc rỗng. run() gọi nó TRƯỚC lời gọi model đầu tiên (C-04, soát lượt 2):
+// trước đây lỗi này chỉ lộ sau khi đã gọi model hết k lượt — tiền đã tiêu mà không còn bằng chứng thô.
+func checkOutDir(dir string) error {
 	if ents, err := os.ReadDir(dir); err == nil && len(ents) > 0 {
 		return fmt.Errorf("thư mục bằng chứng %s đã có tệp: không ghi đè bằng chứng cũ", filepath.Base(dir))
+	}
+	return nil
+}
+
+func writeEvidence(dir string, m manifestInfo, recs []askRecord, scored []scoredRow, aggregate any, failures []failureRow, cost []costRow, summary string) error {
+	if err := checkOutDir(dir); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
 	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
 	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
@@ -24,6 +25,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
 	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
+	"sync/atomic"
 )
 
 // genData sinh bộ dữ liệu functional (seed 42) vào thư mục tạm.
@@ -963,5 +965,74 @@ func TestVerdictChiDatKhiDuDieuKien(t *testing.T) {
 	}
 	if scorerFrozen {
 		t.Error("scorerFrozen = true khi ADR-0007 còn ĐỀ XUẤT: chỉ bật khi bộ chấm v2 đủ điều kiện đóng băng")
+	}
+}
+
+// C-04 (soát lượt 2): thư mục -out đã có tệp thì dừng TRƯỚC lời gọi model đầu tiên (trước đây: gọi hết k lượt rồi
+// mới báo lỗi ghi bằng chứng — tiền đã tiêu mà không còn bằng chứng thô).
+func TestRunDungTruocKhiGoiModelKhiOutCoTep(t *testing.T) {
+	var calls atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		_, _ = io.WriteString(w, `{"content":[{"type":"text","text":"{\"answer\": \"x\", \"evidence_ids\": []}"}],"usage":{"input_tokens":1,"output_tokens":1}}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "khoa-gia",
+		"EAIS_MODEL_BASE_URL": srv.URL} {
+		t.Setenv(k, v)
+	}
+	cfg := baseCfg(genData(t))
+	cfg.out = t.TempDir()
+	if err := os.WriteFile(filepath.Join(cfg.out, "manifest.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := run(cfg); code != 2 || calls.Load() != 0 {
+		t.Errorf("-out đã có tệp: mã %d, %d lời gọi model; muốn 2 và 0 lời gọi", code, calls.Load())
+	}
+}
+
+// C-04: lượt chạy THẬT (không model giả, không chạy khô) mà có hệ cổng bị chặn thì không gọi model.
+func TestDungKhiHeCongBiChan(t *testing.T) {
+	for _, c := range []struct {
+		blocked   []string
+		fake, dry bool
+		stop      bool
+	}{
+		{[]string{"B1: thiếu -manifest"}, false, false, true},
+		{nil, false, false, false},
+		{[]string{"B1: thiếu -manifest"}, true, false, false}, // model giả: chạy để thử ống nối
+		{[]string{"B1: thiếu -manifest"}, false, true, false}, // chạy khô: không tốn tiền
+	} {
+		if got := stopBeforeModel(c.blocked, c.fake, c.dry); got != c.stop {
+			t.Errorf("blocked %v fake %v dry %v: dừng = %v, muốn %v", c.blocked, c.fake, c.dry, got, c.stop)
+		}
+	}
+}
+
+// C-03: ca có principal không thuộc tenant được chấm, hoặc id ca trùng, là lỗi khi dựng — trước đây ca đó không được
+// hỏi, vắng khỏi bằng chứng thô, và được chấm ĐẠT nếu kỳ vọng là từ chối.
+func TestBuildTuChoiPrincipalLaVaIdTrung(t *testing.T) {
+	data := genData(t)
+	suite, err := evals.LoadWinSuite("../cases-independent.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c0, c1 := suite.Cases[0], suite.Cases[1]
+	for name, body := range map[string]string{
+		"principal lạ": fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: u-ma\n    question: \"x\"\n    expect:\n      outcome: PERMISSION_DENIED\n", c0.ID, c0.FailureClass),
+		"id trùng":     fmt.Sprintf("suite: win\ntenant: abc-infra\nreference_date: 2026-10-20\ncases:\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"x\"\n    expect:\n      outcome: RESOLVED\n  - id: %s\n    failure_class: %s\n    authored_by: independent\n    principal: %s\n    question: \"y\"\n    expect:\n      outcome: RESOLVED\n", c0.ID, c0.FailureClass, c0.Principal, c0.ID, c1.FailureClass, c1.Principal),
+	} {
+		cfg := baseCfg(data)
+		cfg.cases = filepath.Join(t.TempDir(), "ca.yaml")
+		if err := os.WriteFile(cfg.cases, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		clearModelEnv(t)
+		gw, _ := models.New(models.ConfigFromEnv())
+		systems, _ := parseSystems(sysB2Plus)
+		if _, err := build(cfg, gw, systems); err == nil {
+			t.Errorf("%s: build phải báo lỗi", name)
+		}
 	}
 }

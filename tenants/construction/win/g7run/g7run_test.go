@@ -548,6 +548,20 @@ func TestRunWritesEvidence(t *testing.T) {
 	if n := strings.Count(string(raw), "\n"); n != 2*m.Cases {
 		t.Errorf("raw-runs có %d dòng, muốn %d (EACL + B2+, mỗi ca một dòng)", n, 2*m.Cases)
 	}
+	// Mỗi câu của EACL mang bản ghi quyết định (S2–S10) để phân loại tầng sai đầu tiên mà không phải gọi lại
+	// model (hợp đồng §8; bản soát lượt 2, C-11). Baseline không có bản ghi quyết định.
+	for i, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
+		var r askRecord
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatal(err)
+		}
+		switch {
+		case r.System == sysEACL && (r.Decision == nil || r.Decision.Route != r.Route || r.Decision.Question != r.Question):
+			t.Errorf("dòng %d (EACL %s): bản ghi quyết định %+v; muốn có, cùng route %q và câu hỏi", i+1, r.CaseID, r.Decision, r.Route)
+		case r.System != sysEACL && r.Decision != nil:
+			t.Errorf("dòng %d (%s): baseline không được có bản ghi quyết định", i+1, r.System)
+		}
+	}
 }
 
 // Thử khói qua máy chủ HTTP giả với client model THẬT: yêu cầu không có temperature, có thinking +

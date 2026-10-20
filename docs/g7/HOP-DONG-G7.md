@@ -158,7 +158,7 @@ Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/`:
 | Tệp | Nội dung |
 |---|---|
 | `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EACL có đường tất định không ổn định |
-| `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token). Không có khoá |
+| `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token); với EACL thêm `decision` = bản ghi quyết định S2–S10 (`traces.Decision`) để gán tầng sai đầu tiên (§8) mà không gọi lại model (C-11). Không có khoá |
 | `scored.jsonl` | chấm nội dung + chấm đủ (RunWin) từng dòng |
 | `aggregate.json` | phán quyết D5 với từng baseline, `pass_count`, ca chập chờn, k (và k đề xuất nếu là pilot), số đếm độc lập |
 | `failures.jsonl` | ca trượt + `first_wrong_layer` |
@@ -166,6 +166,12 @@ Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/`:
 | `ket-qua.md` | bản đọc cho người |
 
 Không chỉ lưu điểm tổng hợp.
+
+**Đọc bằng chứng khi tập còn là bộ giữ lại** (bản soát lượt 2, C-11). `scored.jsonl`, `failures.jsonl`, `ket-qua.md` và `raw-runs.jsonl` chứa câu hỏi và kỳ vọng dạng chữ ("thiếu số 3850", "route = RAG, muốn SQL_QUERY"). Vì vậy:
+- chạy khô hay thử khói trên một tập còn là bộ giữ lại: thư mục `-out` đặt NGOÀI repo;
+- phiên viết mã chỉ đọc qua công cụ in số (`scripts/du-toan-g7.py`), không mở các tệp trên;
+- sau lần chạy thật, tập đã dùng xong, nên đọc được.
+- Chưa có chế độ che nội dung (`-redact`): nợ, ghi ở CHANGELOG.
 
 ## 12. Lệnh (khi đủ mục 13 và có khoá do chủ môi trường đặt)
 

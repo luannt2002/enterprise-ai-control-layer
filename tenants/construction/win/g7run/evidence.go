@@ -18,6 +18,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
 	"github.com/luannt2002/enterprise-ai-systems/evals"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-systems/observability/traces"
 )
 
 // Bằng chứng thô của một lần chạy G7 (ADR-0005 §7, -out): không có bằng chứng thô thì không có kết
@@ -67,6 +68,9 @@ type askRecord struct {
 	// trượt với nhãn PROVIDER; quá 2% câu như vậy trong một lượt của một hệ thì lượt VÔ HIỆU.
 	ModelError bool        `json:"model_error,omitempty"`
 	Calls      []modelCall `json:"calls,omitempty"`
+	// Decision: bản ghi quyết định của EACL cho câu này (S2–S10), để phân loại tầng sai đầu tiên mà không
+	// phải gọi lại model (hợp đồng §8; bản soát lượt 2, C-11). Baseline không có.
+	Decision *traces.Decision `json:"decision,omitempty"`
 }
 
 // path là đường tất định của câu trả lời EACL: giữa các lượt nó phải giống nhau, khác là lượt vô hiệu
@@ -178,6 +182,15 @@ type recorder struct {
 	sys   string
 	run   int
 	sink  *evidenceSink
+}
+
+// decision gắn bản ghi quyết định của EACL vào câu đang chạy (các hệ chạy tuần tự, như trace).
+func (s *evidenceSink) decision(d traces.Decision) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.cur != nil {
+		s.cur.Decision = &d
+	}
 }
 
 func newRecorder(a evals.Asker, sys string, run int, sink *evidenceSink) (*recorder, error) {

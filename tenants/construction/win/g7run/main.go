@@ -47,6 +47,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-systems/observability/traces"
 	"go.yaml.in/yaml/v3"
 	"golang.org/x/text/unicode/norm"
 )
@@ -206,6 +207,10 @@ func run(cfg config) int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
 		return 2
+	}
+	if ea, ok := s.askers[sysEACL].(eaisAsker); ok { // bản ghi quyết định của EACL vào bằng chứng thô (C-11)
+		ea.onDecision = sink.decision
+		s.askers[sysEACL] = ea
 	}
 	// Tệp nào phải băm vào bằng chứng mà không đọc được thì dừng TRƯỚC lời gọi model, không ghi băm rỗng (C-07).
 	for _, f := range append(slices.Clone(s.files), filepath.Join(cfg.data, "manifest.json")) {
@@ -715,6 +720,8 @@ func (g *countingGateway) Generate(ctx context.Context, req models.Request) (con
 type eaisAsker struct {
 	a  *pipeline.Ask
 	gw *countingGateway
+	// onDecision nhận bản ghi quyết định của từng câu (run() nối vào evidenceSink.decision; C-11).
+	onDecision func(traces.Decision)
 }
 
 func (e eaisAsker) ModelCalls() int  { return int(e.gw.n.Load()) }
@@ -722,6 +729,9 @@ func (e eaisAsker) ResetModelCalls() { e.gw.n.Store(0) }
 
 func (e eaisAsker) Ask(ctx context.Context, pr contracts.Principal, q string) (contracts.AskResponse, error) {
 	out, err := e.a.Handle(ctx, pr, contracts.AskRequest{ConversationID: "g7", MessageID: "g7", Text: q})
+	if err == nil && e.onDecision != nil {
+		e.onDecision(out.Decision)
+	}
 	return out.Response, err
 }
 

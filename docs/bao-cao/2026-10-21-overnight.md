@@ -95,7 +95,20 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 
 ## 8. Lỗi tìm ra / đã sửa (BUGS FOUND / FIXED)
 
-(bảng đầy đủ điền lúc chốt; nguồn: hai bản soát mã độc lập + đột biến + test mới)
+Theo nguồn phát hiện. "Đã sửa" nghĩa là có test đỏ trước khi sửa, xanh sau khi sửa, và đột biến cho nhánh mới.
+
+| Nguồn | Tìm ra | Xử lý |
+|---|---|---|
+| Phiên chính, đọc tài liệu nhà cung cấp | client gửi `temperature: 0` ⇒ model hiện hành lỗi 400 | sửa `750307a` |
+| Soát mã độc lập lượt 1 (21:22) | S1-1 g7run ra PASS giả khi mọi lời gọi baseline lỗi; S2-1/2/3 lượng tài liệu lọt + ghép số qua nhiều lượt thay; S2-4 cắt thầm vế đầu; S2-5, S2-6, S3-2, S3-4, S4; test hổng | sửa `a94b5fb`, `fe22e2a`, `5ce22ec`, `3d730ea` |
+| Người tấn công bộ chấm (170 đòn) | v1: 109 câu sai mà ĐẠT, 24 câu đúng mà TRƯỢT | ratchet `82baa71`; sửa phần chắc `6b7d963` (nợ 122 → 118); v2 thiết kế ADR-0007, chưa đóng băng |
+| Soát lượt 2, chiều B (công cụ bộ giữ lại) | 15 xác nhận. Ví dụ: G2' / G5' chỉ đọc đường bộ nhớ; phát lại 0 câu vẫn ĐẠT; CRLF lọt; chạy lại được nhiều lần | sửa `291d9bf` TRƯỚC H1 |
+| Soát lượt 2, chiều A (pipeline) | 12 xác nhận + 3 người phản bác tìm thêm. Phần lớn là hồi quy của chính `5ce22ec` / `3d730ea` | sửa `6f23ff3` TRƯỚC H1 |
+| Soát lượt 2, chiều C (harness G7) | 19 phát hiện, 3 bị bác (C-08, C-09, C-12). Ví dụ: C-06 G7 PASS được với bộ chấm v1 hỏng; C-18 khoá theo chuyển hướng HTTP; C-04 tốn tiền trước khi kiểm điều kiện | sửa C-03…C-07, C-10, C-11, C-13, C-17, C-18, C-19 (`d4b80be` … `50b1499`). C-01, C-02, C-14, C-15, C-16 thành ca thử bắt buộc của v2 (§12 đặc tả); v1 không vá vì `d4b80be` chặn mọi kết luận G7 khi bộ chấm chưa đóng băng |
+| Soát bản sửa chiều A (sau H1, người soát không thấy bộ giữ lại) | 12 phát hiện. Đo lại xác nhận: R-01, R-02 (S1), R-05, R-06 (S2), R-07, R-10 là HỒI QUY do `6f23ff3`, tức câu xác nhận trả "Đúng."/"Không." cho sai kỳ hoặc dải số. R-03, R-04 (S1), R-08, R-11 có sẵn từ đầu đêm | (đang sửa: workflow, kèm hai người soát đối kháng) |
+| Đột biến | sống: M23b, OR11, E3, BC9; tương đương: BC8; chuỗi gốc hỏng: S1, G35, PC6, PC9, PC10, FC2, AG | thêm test hoặc sửa chuỗi, chạy lại đến khi bắt hết |
+| Phiên chính | ký tự vô hình THẬT trong test (11 ký tự) và trong một thông điệp commit (chưa push) | `7be1593`; thông điệp sửa trước khi push |
+| H1 (sau lần chạy) | 15 ca đỏ, 7 nhóm gốc ở tầng ý định | KHÔNG sửa trong đêm (ADR-0006 §7); D-H1-2 |
 
 ## 9. Số test (TEST COUNTS)
 
@@ -159,7 +172,52 @@ Tiêu chí: `docs/04` §6. Phần ca đo trên **H1** (bộ giữ lại độc l
 
 ## 18. Mười câu hỏi
 
-(điền lúc chốt)
+1. **Giờ biết gì mà tối qua chưa biết?**
+   - Trên dữ liệu độc lập, EACL đạt 89/104, và phần ca của MỌI cổng G1–G5 trượt.
+   - Cả 15 ca đỏ đều sai ở tầng ý định: EACL chỉ hiểu cách nói của bộ phát triển.
+   - Bộ chấm G7 v1 không dùng được: 109 câu sai mà vẫn ĐẠT.
+   - Client cũ không gọi được model hiện hành: `temperature 0` bị trả 400.
+   - G7 đo bằng chạy khô: chỉ hệ cổng, k = 3, tốn khoảng 12,74 USD (kỳ vọng); B1 chiếm gần hết chi phí.
+   - Chính các bản sửa trong đêm có gây hồi quy, và chỉ người soát độc lập bắt được: S2-4 làm hỏng ca 264; bản sửa chiều A gây R-01, R-02.
+2. **Điều gì đã chứng minh độc lập?**
+   - G1 phần nạp dữ liệu.
+   - G6': bộ giữ lại đóng băng và push trước lần chạy, 100 % độc lập, phát lại 104/104 lệch 0, hai đường dữ liệu giống hệt.
+   - Trên H1: 0 rò canary, quyền 13/13, thực thể 13/13.
+   - Phần cơ chế của G5: test + đột biến.
+3. **Điều gì từng nói quá?**
+   - "3/7 cổng đạt vô điều kiện (G1, G3, G4)" và "6/7 có điều kiện". Bộ 117 ca không bị sửa kỳ vọng, nhưng do người đã đọc pack soạn, nên 117/117 là kết quả trong mẫu.
+   - "G7 chỉ chờ khoá": thực ra bộ chấm v1 hỏng và client lỗi 400.
+   - ADR-0002 D7 ghi sai sự kiện ở ca 107 (đã đính chính).
+4. **Cái gì trượt?**
+   - H1: 15/104 ca (representation 3, ambiguity 1, semantic 2, source_conflict 2, unsupported_answer 1, routing 6).
+   - Bộ chấm v1.
+   - Bản đầu của công cụ chấm H1 (sửa trước khi chạy).
+   - Vài bản sửa của chính đêm nay (mục 8).
+5. **Vì sao trượt?**
+   - Từ khoá ý định và cụm so sánh của pack được viết đúng theo cách nói của bộ ca phát triển. Ví dụ, `comparison_markers` chỉ có "nhiều hơn", "ít hơn", "so với". Bộ ca đó lại do người đã đọc pack soạn, nên kết quả đo là trong mẫu.
+   - Bộ chấm v1 là "túi số": không ràng buộc con số với thực thể / kỳ / nguồn.
+   - Sửa nhanh theo phát hiện cục bộ thì hỏng ở chỗ khác. Ví dụ, luật "số trần cạnh một lượng là nhãn" chữa A-02 nhưng gây R-01, R-02.
+6. **Cố ý KHÔNG xây gì?** (mục 15)
+   - Bộ chấm v2 bản 2; công khai mã nguyên mẫu v2.
+   - Trích lõi chung; đổi tên repo; Customer Ops.
+   - Sửa mã theo H1.
+   - Chế độ `-redact`, sổ chi tiêu cộng dồn tự động (thay bằng luật quy trình).
+   - Vá bộ đếm v1 cho C-01 / C-02.
+7. **Fuel WIN đã đạt chưa?** **CHƯA.**
+   - Theo dữ liệu độc lập: 0/7 cổng đạt trọn; 1/7 nếu phê G6'.
+   - G7 chưa chạy lần nào.
+8. **G7 chạy được bằng một lệnh chưa?** **CHƯA.**
+   - Thiếu khoá.
+   - Bộ chấm v2 chưa hiện thực (ƯỚC 10–15 ngày công) và chưa hiệu chỉnh trên pilot với người chấm mù.
+   - Tập của lượt chính chờ D-H1-3; trần chi phí chờ D-G7-18.
+   - Harness đã đủ: bằng chứng thô có bản ghi quyết định, thử khói, pilot, trần ngân sách bắt buộc, nhận biết chạy khô, dừng trước lời gọi model khi bị chặn.
+9. **EACL đang ở giai đoạn nào?**
+   - Vẫn là WIN MVP (Fuel), chưa đạt: đang ở bước "khôi phục bằng chứng → sửa tầng ý định", trước G7.
+   - Gói định nghĩa EACL V3 R0 chờ duyệt D-V3-01…10.
+10. **Một việc kế tiếp giá trị nhất?**
+    - Soạn và đóng băng bộ giữ lại mới H3: người không đọc mã soạn, ≥ 13 ca / lớp, đóng băng bằng cam kết băm.
+    - Làm việc này TRƯỚC khi sửa tầng ý định theo 7 nhóm gốc (dùng H1 làm bộ hồi quy).
+    - Không có H3 thì không chứng minh lại được G1–G5 sau khi sửa, và G7 cũng không có tập hợp lệ (D-H1-2, D-H1-3).
 
 ## 19. Bằng chứng thô
 

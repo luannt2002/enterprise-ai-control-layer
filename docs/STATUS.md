@@ -1,6 +1,6 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 20/10/2026 10:35. Phiên tự chạy **dừng lúc 10:33** theo lệnh chủ dự án; mã và tài liệu đã đồng bộ lên git (commit đầu tiên). Chưa phát hành phiên bản nào.
+> Cập nhật: 20/10/2026 20:45, **luồng chạy đêm 20→21/10 đang chạy** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Mọi số ở đây lấy từ lệnh chạy ngày 20/10/2026, trừ chỗ ghi **CHƯA ĐO**.
@@ -32,6 +32,26 @@
 | Scale smoke | ĐẠT | - `scripts/scale-smoke.sh`: 117/117 ở cả functional và smoke, câu trả lời giống từng byte; smoke 3,67 s, peak RSS 562,8 MiB (đo 10:35).<br>- Đường PG (`winreport -pg`): 117/117, từng ca và từng câu trả lời giống đường bộ nhớ; smoke 6,08 s, 653,7 MiB, kể cả nạp ~355 nghìn fact vào PG. |
 
 Mốc "≈ 20%" của tối 19/10 bỏ, vì nó ước theo cảm nhận. Từ nay chỉ đếm cổng có lệnh chứng minh.
+
+## Đêm 20→21/10 — khôi phục bằng chứng (đang chạy)
+
+Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác định trạng thái WIN thật; không tối ưu tỉ lệ đạt. Chưa gọi model thật, chi 0 USD (khoá model không có trong môi trường).
+
+| Việc | Trạng thái | Bằng chứng |
+|---|---|---|
+| Ghi quyết định chủ dự án (D-G7-1…11, D-V3, D-OP) | XONG | `docs/CHO-QUYET-DINH.md` (`c5ce51e`) |
+| Tái lập mốc `94bbaae` | XONG: test 224/0/0; 117/117 bộ nhớ + PG; phát lại 0 lệch; scale smoke ĐẠT; đột biến 69/69 | đầu ra thô ở máy |
+| ADR phương pháp, đăng ký TRƯỚC khi có bộ giữ lại | XONG | ADR-0005 (đã duyệt, D5 sửa đổi), ADR-0006 (bộ giữ lại) (`6f7b4f4`) |
+| Client model không gửi `temperature` | XONG; 10/10 đột biến bị bắt | `750307a` |
+| Harness G7:<br>- B2+ / B1 / B2″;<br>- bằng chứng thô `-out`, thử khói `-smoke`;<br>- ca chập chờn, `-pilot` | XONG; 22 đột biến bị bắt | `a1a5b6b`, `fdb3a18` |
+| `CompareG7` theo D5 sửa đổi:<br>- ANY-RUN lớp an ninh;<br>- 7 lớp, n ≥ 12;<br>- McNemar, Wilson;<br>- kiểm (id, lớp) | XONG; 10/10 đột biến bị bắt; test 248/0/0 | `a507e81` |
+| Kiểm toán nhiễm 117 ca | XONG: CLEAN 102, CONTAMINATED 3 (083/107/108), UNCERTAIN 12; G6 không đạt điều kiện "đóng băng trước W1" | `docs/g7/CONTAMINATION-AUDIT.md` (`a135c90`) |
+| **Bộ chấm G7 v1** | **BỊ PHÁ**: 170 đòn, 109 câu sai mà ĐẠT; không dùng làm bằng chứng | v2 đang thiết kế độc lập (người không đọc mã EACL) |
+| Bộ giữ lại độc lập | 229 ca do người không đọc mã soạn, có `truth`; đang soát độc lập (3 góc nhìn) rồi đóng băng + push TRƯỚC lần chạy đầu | `scripts/dong-bang-giu-lai.py` (`ed790bb`) |
+| Chứng minh lại G2 / G5 / G6 trên H1 | CHỜ đóng băng | — |
+| Soát độc lập mã (D-OP-5) | ĐANG | — |
+| `go mod tidy` (D-OP-2) | DỪNG: thêm 2 module ngoài kỳ vọng, đã hoàn nguyên, chờ chủ dự án | — |
+| Câu chờ quyết mới | D-G7-12: `docs/04` dòng 83 (thiếu vật tư → hỏi lại) trái ADR-0002 D7 | `docs/CHO-QUYET-DINH.md` |
 
 ## Bằng chứng đã chạy (20/10/2026)
 
@@ -144,6 +164,15 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 | Pack khai `reported_vs_issued` (dẫn xuất) nhưng không ý định nào dùng | thừa; câu so sánh đã đi đường `Compare` chung | giữ hoặc bỏ khi soát pack |
 
 ## Việc tiếp theo
+
+> Thứ tự của đêm 20→21/10 (bảng ngay trên):
+> 1. đóng băng bộ giữ lại;
+> 2. chứng minh lại G2 / G5 / G6 trên H1;
+> 3. bộ chấm v2 (ADR-0007) + test từ 170 đòn;
+> 4. dự toán chi phí;
+> 5. hợp đồng G7 sẵn sàng đóng băng sau pilot.
+>
+> Pilot và lượt G7 thật cần khoá do chủ môi trường đặt. Các mục dưới là danh sách ban ngày 20/10, giữ để đối chiếu.
 
 1. Chủ dự án soát các commit ngày 20/10 trên GitHub. Repo PUBLIC: thứ cố ý không lên git ở `docs/ops/README.md` mục 7.
 2. **G7:** làm theo `docs/g7/CHECKPOINT-A-H.md`:

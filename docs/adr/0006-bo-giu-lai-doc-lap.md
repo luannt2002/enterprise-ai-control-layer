@@ -103,6 +103,9 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
 - **Phần tất định, không tốn tiền, chạy trên H1:**
   - `winreport -cases docs/g7/holdout/h1.yaml` theo cả đường bộ nhớ lẫn PG;
   - phát lại bản ghi quyết định.
+- **Thủ tục chạy** (thêm 20/10 đêm, trước lần chạy H1 đầu tiên): `scripts/chay-giu-lai.sh <tệp ca> <thư mục ra>`.
+  - Chạy cả hai đường, rồi lập bảng cổng (`scripts/bang-cong-h1.py`). Ghi revision, giờ bắt đầu / kết thúc, băm tệp ca, băm dữ liệu.
+  - Từ chối chạy khi: thư mục ra đã có (mỗi tập chỉ chạy một lần); cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`.
 - **H2 không chạy** khi H1 còn là bộ giữ lại.
 - **Ca H1 trượt:**
   - ghi tầng sai đầu tiên + bất biến bị hỏng;

@@ -1,0 +1,20 @@
+# Ca mà phiên viết / tích hợp mã EACL đã thấy GỢI Ý kỳ vọng SAU khi đóng băng (16a6140), TRƯỚC mọi lần chạy.
+# Nguồn lộ: kết quả trả về của workflow soát kho (20/10 22:50) được thiết kế "chỉ số đếm", nhưng trường chữ tự do
+# not_checked của ba người soát nhắc mã ca kèm cơ sở kỳ vọng (vd nhóm INSUFFICIENT_EVIDENCE dựa vào dòng cách ly,
+# nhóm từ chối quyền). Phiên chính không đọc tệp ca. Tập đã đóng băng KHÔNG đổi; bảng H1 báo thêm G2' / G5' khi bỏ
+# các ca này (scripts/bang-cong-h1.py). Phiên chính không sửa mã theo các gợi ý này.
+WIN-I-222 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-240 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-247 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-290 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-305 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-357 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-363 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-387 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-213 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-260 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-315 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-382 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-427 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-230 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)
+WIN-I-371 gợi ý kỳ vọng lộ qua kết quả workflow soát kho (20/10 22:50)

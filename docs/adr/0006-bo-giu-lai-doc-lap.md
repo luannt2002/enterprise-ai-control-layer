@@ -88,6 +88,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - Ghi vào `docs/g7/holdout/loai-truoc-dong-bang.txt`, mỗi dòng `<id ca> <lý do>`.
   - Công cụ đóng băng loại các ca đó **trước khi chia** (§4 chạy trên phần còn lại) và ghi chúng vào `exposed.yaml`: chỉ báo cáo, không tính cổng. Manifest ghi `set: exposed` + `excluded_reason`, băm cả tệp danh sách.
   - Chỉ loại vì lộ, không bao giờ vì kết quả. Danh sách đóng băng cùng bộ, nên không sửa được sau khi đã thấy kết quả.
+- **Gợi ý lộ SAU khi đóng băng, trước khi chạy** (thêm 20/10 đêm): tập đã đóng băng không đổi. Ghi mã ca vào `docs/g7/holdout/goi-y-lo-cho-phien-chinh.txt`; bảng H1 báo thêm G2' / G5' khi bỏ các ca đó. Bài học: kết quả trả về cho phiên viết mã phải có schema không chứa chữ tự do, vì một trường "không kiểm được" cũng có thể lộ kỳ vọng.
 
 ### 6. Pilot và luật chọn k (đăng ký trước)
 

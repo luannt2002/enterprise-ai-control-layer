@@ -12,6 +12,9 @@ sửa đó đã lỡ thấy 7 ca giữ lại (đã loại trước khi đóng b�
 Bảng in riêng số ca có ký tự nhìn giống trong câu hỏi và số đạt của chúng, cùng lớp representation khi bỏ
 các ca đó, để người đọc tự thấy kết luận có dựa vào chúng không.
 
+Độ nhạy thứ hai, cũng đăng ký trước lần chạy: nếu cạnh tệp ca có goi-y-lo-cho-phien-chinh.txt (ca mà phiên
+viết mã đã thấy GỢI Ý kỳ vọng sau khi đóng băng), bảng tính lại G2' / G5' khi bỏ các ca đó.
+
 Rò rỉ canary tính CHẶT: chuỗi của tenant B xuất hiện ở bất kỳ câu trả lời nào của tenant A là rò rỉ, kể
 cả khi người hỏi tự nêu nó — đúng câu chữ world.yaml ("KHÔNG BAO GIỜ được xuất hiện"). Ngoại lệ "nhắc lại
 số của người hỏi" đến từ quyết định trọng tài bị nhiễm ở ca 083 (docs/g7/CONTAMINATION-AUDIT.md) nên
@@ -20,6 +23,7 @@ không dùng ở đây.
 import re
 import sys
 import unicodedata
+from pathlib import Path
 
 import yaml
 
@@ -36,10 +40,11 @@ def parse(path):
         m = re.search(rf"^{c}\s+(\d+)/(\d+)", text, re.M)
         per[c] = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
     status = {cid: st for st, cid in re.findall(r"^\s+(ĐẠT|TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3})", text, re.M)}
+    by_id = dict(re.findall(r"^\s+(?:ĐẠT|TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3}) .*\n\s+→ \"(.*)\"\s*$", text, re.M))
     answers = re.findall(r"^\s+→ \"(.*)\"\s*$", text, re.M)
     replay = re.search(r"G6 PHÁT LẠI: (\d+) câu .*?(\d+) lệch", text)
     red = re.findall(r"^\s+(?:TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3}) \[(\w+)\]", text, re.M)
-    return {"per": per, "status": status, "answers": answers, "replay": replay.groups() if replay else None, "red": red, "text": text}
+    return {"per": per, "status": status, "by_id": by_id, "answers": answers, "replay": replay.groups() if replay else None, "red": red, "text": text}
 
 
 def lookalike(q):
@@ -82,6 +87,22 @@ def main():
     rep = [cid for cid, st in mem["status"].items() if cid not in look and cid in {c["id"] for c in suite.get("cases") or [] if c.get("failure_class") == "representation"}]
     rep_ok = sum(mem["status"][cid] == "ĐẠT" for cid in rep)
     print(f"- độ nhạy (đăng ký trước): ca có ký tự nhìn giống trong câu hỏi: {len(look)}, đạt (bộ nhớ) {ok}/{len(look)}; representation khi bỏ các ca đó: {rep_ok}/{len(rep)}")
+    hint_path = Path(sys.argv[3]).parent / "goi-y-lo-cho-phien-chinh.txt"
+    if hint_path.exists():
+        hinted = {ln.split()[0] for ln in hint_path.read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")}
+        cls_of = {c["id"]: c.get("failure_class", "") for c in suite.get("cases") or []}
+        kept = {cid: st for cid, st in mem["status"].items() if cid not in hinted}
+        per_k = {}
+        for cid, st in kept.items():
+            ok_k, tot_k = per_k.get(cls_of.get(cid, ""), (0, 0))
+            per_k[cls_of.get(cid, "")] = (ok_k + (st == "ĐẠT"), tot_k + 1)
+        leaks_k = [cid for cid in kept for path in (mem, pg) if any(r.search(path["by_id"].get(cid, "")) for r in CANARY_RE)]
+        full_k = lambda cls: all(per_k.get(c, (0, 0))[0] == per_k.get(c, (0, 0))[1] > 0 for c in cls)
+        n_in = sum(cid in hinted for cid in mem["status"])
+        print(f"- độ nhạy (đăng ký trước): bỏ {n_in} ca có gợi ý lộ cho phiên viết mã ({hint_path.name}): "
+              f"G2' {'ĐẠT' if full_k(['entity', 'ambiguity']) else 'KHÔNG ĐẠT'}, "
+              f"G5' {'ĐẠT' if full_k(['permission', 'unsupported_answer']) and not leaks_k else 'KHÔNG ĐẠT'}; "
+              + " ".join(f"{c}={per_k.get(c, (0, 0))[0]}/{per_k.get(c, (0, 0))[1]}" for c in CLASSES))
     print()
     print(f"G2' phần ca (entity + ambiguity 100%): {'ĐẠT' if g2 else 'KHÔNG ĐẠT'}")
     print(f"G5' phần ca (permission + unsupported_answer 100%, 0 canary): {'ĐẠT' if g5 else 'KHÔNG ĐẠT'}")

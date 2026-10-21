@@ -1245,7 +1245,7 @@ Harness thì miễn cho pilot điều kiện "bộ chấm đã đóng băng" (`g
 | 11 | Xử lý `docs/study/` trước khi commit (tên cũ làm đỏ cổng danh tính) | phiên viết `docs/study` | test xanh | §0.2 |
 | 12 | Chọn tập chạy lượt chính W-G7: H3 với mã đóng băng ở `a1595f0`, hay soạn H4 | chủ dự án | W-G7 | `HOP-DONG-G7.md` §12 còn ghi "chờ D-H1-3, khuyến nghị H3"; H3 nay đã chạy, đã công bố, là hồi quy [SUY] |
 
-Câu khác còn mở nhưng không nằm trên đường găng: D-G7-12…14, tiêu chí G6' (chờ duyệt), D-V3-04 (hoãn tới R6), D-OP-3 (giấy phép), D-OP-9 (nhóm nghìn "3 850").
+Câu khác còn mở nhưng không nằm trên đường găng: D-G7-12…14, tiêu chí G6' (chờ duyệt), D-V3-04 (hoãn tới R6), D-OP-3 (giấy phép), D-OP-9 (nhóm nghìn "3 850"). Team thêm sau H3 (`7998751`): D-OP-11 (tập ứng viên khi hỏi lại vì bí danh mơ hồ; khuyến nghị (b), làm trong vòng sửa S4 sau khi H4 đóng băng) và D-OP-12 (luật chấm câu xác nhận chưa giải: chỉ nhận hỏi lại / thiếu bằng chứng, hay cả trả số không phán quyết; khuyến nghị giữ cho H4, quyết trước H5).
 
 ### 4.6 Giữ, xây, thử, hoãn (Design V1 §27, chỉnh theo repo)
 
@@ -1298,6 +1298,8 @@ Ranh giới không tuyệt đối: repo đã uỷ quyền cho agent tự quyết
 | 15 | D-V3-09 | Hết đường găng = R1 có **kết luận đáng tin**, WIN, PARTIAL hay FAIL đều được. Cho làm phần giấy của R2 song song; không code, không trích core, không tuyên bố R2 xong | 2 | thêm giới hạn |
 | 16 | Gói R0 | Duyệt có phạm vi: định nghĩa, luận đề, ranh giới. **Chưa** duyệt ngưỡng Customer Ops: phải suy từ rủi ro nghiệp vụ | 2 | không |
 | — | D-H1-3, D-G7-13, D-G7-14 | Đã làm theo khuyến nghị; chỉ cần ghi xác nhận vào `CHO` | — | — |
+
+**Yêu cầu team audit lại ROADMAP, trả lời câu hỏi và commit phản hồi:** `docs/PROMPT-AUDIT-ROADMAP.md` (tệp phản hồi: `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`).
 
 **Việc team agent làm được ngay, không cần chờ chủ dự án** (loại 1, không đổi hệ đang bị đo):
 1. Sửa harness canary: nạp hai tenant, thêm đối chứng dương chứng minh canary có thể đỏ.
@@ -2203,3 +2205,4 @@ Kiểm lời QuânIT cần tệp transcript (giữ ngoài repo): `grep -oF "<câ
 | 21/10/2026 trưa | `1c8005b` | Bản hợp nhất này. Gộp bản V0–V9; audit Design V1, hội thoại đi kèm và hai sơ đồ; cập nhật theo đợt push 11 commit (đổi danh tính, H3, ADR-0009). Đặt ở `docs/ROADMAP.md`, chưa commit |
 | 21/10/2026 chiều | `8280f40` | Soát độc lập 3 góc rồi vá (89 chỗ, thêm tiền tố DSN-). Pull đợt push trưa: H3 109/134, T2.1, T2.2. Dời 22 tham chiếu dòng. Thêm 7 phép thử bơm dữ liệu và câu quyết định mới về tập chạy W-G7 |
 | 21/10/2026 chiều | `8280f40` | Thêm §4.7: bàn quyết định đã phản biện, rút khuyến nghị "W-G7 trên H3". Commit và push lên origin để team agent audit |
+| 21/10/2026 chiều | `f85ee7f` | Thêm prompt `docs/PROMPT-AUDIT-ROADMAP.md` gửi team agent: 15 khẳng định cần xác nhận hoặc bác, 13 câu hỏi, khuôn tệp phản hồi bắt buộc |

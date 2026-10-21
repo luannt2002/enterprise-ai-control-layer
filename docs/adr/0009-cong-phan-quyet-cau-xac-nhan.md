@@ -90,3 +90,21 @@ Một câu xác nhận chỉ qua cổng khi phần chữ còn lại sau khi tr�
 - Test cũ bị nới thành vô hiệu (`TestCauXacNhanMotConSoVanTraLoi` so tiền tố rỗng) được siết lại; hai câu ngữ cảnh trả về kỳ vọng phán quyết cũ (vẫn đúng). Đếm của người soát: 60 câu cũ đổi kỳ vọng (55 dòng ghi ở trên đếm theo dòng mã).
 - Đột biến `n43`: 35 (20 cũ, chuỗi gốc đổi theo mã mới + 15 cho các nhánh mới) — 35 / 35 bị bắt.
 - Chưa làm (S3 của người soát, ghi lại): thêm từ trung tính để tăng độ phủ ("dạ", "giúp"…); gộp phần chia phạm vi hỏi đang lặp giữa `verdictGap` và `claimNumbers`.
+
+### Vòng 2 (T2.2, 21/10, trước khi chạy H3)
+
+Người soát D soát lại T2.1 (~0,77 triệu câu): 21 / 21 câu vòng 1 đóng; 0 phán quyết đảo chiều; không hồi quy. Còn các lỗ có sẵn từ T2:
+
+| Mã | Mức | Lỗ | Xử lý |
+|---|---|---|---|
+| R2-1 | CAO | một cụm xác nhận, HAI phát biểu cùng con số ("EX-03 … 3850 L, dự án A 3850 L, đúng không?" — dự án A thật là 5.050 L) ⇒ "Đúng." | ĐÃ ĐÓNG: con số xác nhận nhắc lại chỉ là cùng claim khi đứng liền kề (chỉ cách khoảng trắng / ngoặc) |
+| R2-2 | TB-CAO | mệnh đề hỏi chỉ nêu cấp cha ("…, dự án A đúng không?"), luật "phạm vi hỏi có tên thì phải có chủ thể" dùng phạm vi đã lùi về đầu câu | ĐÃ ĐÓNG: luật chủ thể dùng đầu mệnh đề chứa cụm xác nhận |
+| R2-3 | TB | lượng có dấu chấm / phẩy mà đơn vị chỉ suy từ thuật ngữ ("dầu 1,2") | ĐÃ ĐÓNG: không tính là có đơn vị (cái giá: "dầu 3.850" mất phán quyết) |
+| R2-4 | THẤP-TB | tên nguồn ở mệnh đề NGỮ CẢNH không chứa lượng ("Phiếu kho, RL-02 … đúng không?") không đối chiếu nguồn đã dùng | ghi lại, chưa làm |
+| R2-5 | TB | máy và dự án cùng nêu, nối bằng dấu rời ("Lu 02 : Dự án A …") — hệ chọn máy làm chủ thể | ghi lại: quyết định thiết kế (chủ thể = thực thể cụ thể nhất) |
+| R2-6…R2-9 | THẤP | bí danh mơ hồ có ứng viên là cấp cha; từ chỉ ngày trước span tháng / tuần; tên sai dấu vẫn khớp; "3,850 lít" đọc là nghìn | ghi lại |
+
+- Ba dòng vá R2-1 / R2-2 / R2-3 là bản vá thử CỦA NGƯỜI SOÁT; phiên chính áp nguyên văn và đo lại bằng test + bộ câu có đáp án độc lập của người soát — chưa có người soát thứ ba cho riêng phần này.
+- Test mới `TestCongPhanQuyetSoatDoiKhangVong2` (7 câu không phán quyết + 5 đối chứng), ghim thêm ba nhánh chưa có test đỏ: cấp cha nhiều tầng (danh mục giả lập 4 tầng `seed/entities-bon-tang.yaml`), từ chỉ lượng ở ngữ cảnh, hai kỳ đọc được.
+- Đo: test có PG 451/0/0; bộ 117 117/117 và H1 89/104 hai đường, 0 ca đổi nhãn, số ca có phán quyết không đổi so với T2.1 (15; 5); hai phát biểu một cụm (20.000 câu có đáp án độc lập): 11.375 → 0 phán quyết; văn phạm có dấu (60.000 câu): 33.209 phán quyết đúng, 0 sai; n43 41 / 41.
+- Cái giá ghi nhận (S3): câu không dấu mất 100% phán quyết; trần một lần đo áp cho tổng nhiều ngày / nhiều máy làm mất phán quyết đúng ("EX-03 tuần trước … 21000 L").

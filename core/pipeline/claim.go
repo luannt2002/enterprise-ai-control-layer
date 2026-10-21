@@ -43,16 +43,16 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	inName := func(s, e int) bool {
 		return slices.ContainsFunc(names, func(m mention) bool { return s < m.end && e > m.start })
 	}
-	lo := 0 // [lo, len): phạm vi hỏi; trước lo: ngữ cảnh
+	lo, qs := 0, 0 // [lo, len): phạm vi hỏi; trước lo: ngữ cảnh; qs: đầu mệnh đề chứa cụm xác nhận
 	if fs, fe, focus := intent.FocusClause(raw, a.RT.ConfirmMarkers); focus {
-		lo = fs
+		lo, qs = fs, fs
 		if !slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool {
 			return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= fs && sp.Start < fe && !inName(sp.Start, sp.End)
 		}) {
 			lo = sentenceStart(raw, fs) // mệnh đề hỏi không có số ("…, vậy đúng không?"): câu hỏi áp cho cả câu
 		}
 	}
-	if gap := subj.gap(names, lo); gap != "" {
+	if gap := subj.gap(names, qs); gap != "" {
 		return gap
 	}
 	covered := make([]bool, len(raw))
@@ -64,7 +64,7 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	for _, m := range names {
 		cover(m.start, m.end)
 	}
-	value := false
+	value, lastEnd := false, -1 // lastEnd: hết lần nhắc gần nhất của con số xác nhận
 	for _, sp := range in.Spans {
 		switch sp.Kind {
 		case contracts.ValueDate, contracts.ValuePeriod:
@@ -101,8 +101,11 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 			if c, err := decimal.Cmp(v.Number, claimed.Number); err != nil || c != 0 {
 				return "value"
 			}
+			if value && (sp.Start < lastEnd || strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {
+				return "value" // con số nhắc lại sau một mệnh đề khác ("EX-03 … 3850 L, dự án A 3850 L, đúng không?") là phát biểu thứ hai, không phải cùng một claim
+			}
 			cover(sp.Start, sp.End)
-			value = true
+			value, lastEnd = true, sp.End
 		}
 	}
 	if !value {
@@ -239,7 +242,7 @@ func sourceMentions(raw string, def sourceoftruth.MetricDef, used []string, lo i
 // dấu chấm / phẩy còn mơ hồ giữa phần nghìn và phần thập phân.
 func unitShown(sp contracts.Span) bool {
 	if sp.Kind == contracts.ValueQuantity {
-		return true
+		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,"))
 	}
 	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
 }

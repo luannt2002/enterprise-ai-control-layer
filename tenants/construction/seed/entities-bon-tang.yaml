@@ -1,0 +1,13 @@
+# Danh mục GIẢ LẬP bốn tầng (công ty → chương trình → dự án → máy) cho test cổng phán quyết: cấp cha nhiều tầng, bí danh mơ hồ giữa
+# hai chương trình ("chương trình mới"). Dùng cùng seed/facts-nguon-thap.yaml.
+entities:
+  - {id: CT-1, type: company, key: CT-1, name: Công ty ABC, aliases: [công ty ABC, tổng công ty ABC]}
+  - {id: CTR-1, type: program, key: CTR-1, name: Chương trình Quốc lộ, parent: CT-1, aliases: [chương trình quốc lộ, chương trình mới]}
+  - {id: CTR-2, type: program, key: CTR-2, name: Chương trình Đô thị, parent: CT-1, aliases: [chương trình đô thị, chương trình mới]}
+  - {id: PRJ-A, type: project, key: PRJ-A, name: Cầu A, parent: CTR-1, aliases: [dự án A, cầu A, công trình A]}
+  - {id: PRJ-B, type: project, key: PRJ-B, name: Đường B, parent: CTR-1, aliases: [dự án B, đường B]}
+  - {id: PRJ-C, type: project, key: PRJ-C, name: Hạ tầng đô thị C, parent: CTR-2, aliases: [dự án C, hạ tầng C]}
+  - {id: EX-03, type: equipment, key: EX-03, name: Máy xúc EX-03, parent: PRJ-A, aliases: [máy xúc 03, MX-03, máy 03]}
+  - {id: DZ-03, type: equipment, key: DZ-03, name: Máy ủi DZ-03, parent: PRJ-B, aliases: [máy ủi 03, máy 03]}
+  - {id: RL-02, type: equipment, key: RL-02, name: Lu rung RL-02, parent: PRJ-A, aliases: [lu 02, lu rung 02]}
+  - {id: EX-07, type: equipment, key: EX-07, name: Máy xúc EX-07, parent: PRJ-C, aliases: [máy xúc 07, máy 07]}

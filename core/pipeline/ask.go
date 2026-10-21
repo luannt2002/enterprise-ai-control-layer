@@ -681,8 +681,8 @@ func (a *Ask) confirmClaims(plan contracts.RoutePlan, in contracts.NormalizedInp
 	return a.claimNumbers(in, names, def)
 }
 
-// mention là khoảng byte [start, end) của một cụm tên thực thể (đã nhận ra, kể cả bí danh mơ hồ) trong NormalizedInput.Raw.
-// mention là một cụm tên thực thể trong câu: vị trí byte và các thực thể nó có thể chỉ tới (một, hoặc mọi ứng viên của bí danh mơ hồ).
+// mention là một cụm tên thực thể (đã nhận ra, kể cả bí danh mơ hồ): khoảng byte [start, end) trong NormalizedInput.Raw và các thực
+// thể nó có thể chỉ tới (một, hoặc mọi ứng viên của bí danh mơ hồ).
 type mention struct {
 	start, end int
 	ids        []string

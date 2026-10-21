@@ -33,11 +33,17 @@ func newAsk(t *testing.T) *pipeline.Ask {
 // newAskFacts là newAsk với một bộ fact khác (vd chỉ nguồn thẩm quyền thấp có số).
 func newAskFacts(t *testing.T, factsPath string) *pipeline.Ask {
 	t.Helper()
+	return newAskWith(t, "seed/entities.yaml", factsPath)
+}
+
+// newAskWith là newAsk với danh mục thực thể và bộ fact khác (vd danh mục nhiều tầng).
+func newAskWith(t *testing.T, entitiesPath, factsPath string) *pipeline.Ask {
+	t.Helper()
 	rt, err := tenant.Load("pack")
 	if err != nil {
 		t.Fatalf("nạp pack: %v", err)
 	}
-	dir, err := fixtures.LoadDirectory("seed/entities.yaml")
+	dir, err := fixtures.LoadDirectory(entitiesPath)
 	if err != nil {
 		t.Fatalf("nạp danh mục: %v", err)
 	}

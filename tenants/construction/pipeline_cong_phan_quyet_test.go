@@ -233,3 +233,45 @@ func TestCongPhanQuyetSoatDoiKhang(t *testing.T) {
 		}
 	}
 }
+
+// Soát đối kháng vòng 2 (vai D, trên T2.1): một cụm xác nhận mà HAI phát biểu cùng con số ("EX-03 … 3850 L, dự án A 3850 L, đúng
+// không?" — dự án A thật là 5.050 L), mệnh đề hỏi chỉ nêu cấp cha, lượng có dấu chấm / phẩy mà đơn vị chỉ suy từ thuật ngữ ("dầu 1,2")
+// ⇒ KHÔNG phán quyết. Đối chứng: số nhắc lại liền kề trong ngoặc, "dầu 3850", cấp cha nhiều tầng, từ chỉ lượng ở ngữ cảnh ⇒ VẪN phán
+// quyết; hai kỳ đọc được ⇒ không phán quyết.
+func TestCongPhanQuyetSoatDoiKhangVong2(t *testing.T) {
+	std := newAsk(t)
+	tiers := newAskWith(t, "seed/entities-bon-tang.yaml", "seed/facts-nguon-thap.yaml")
+	for _, q := range []string{
+		"EX-03 hôm nay được cấp 3850 L, dự án A 3850 L, đúng không?",
+		"EX-03 hôm nay được cấp 3850 L; dự án A cấp 3850 L; đúng không?",
+		"EX-03 hôm nay được cấp 3850 L (dự án A 3850 L) đúng không?",
+		"EX-03 hôm nay được cấp 3850 L, 3850 L, đúng không?",
+		"EX-03 hôm nay được cấp 3850 L, dự án A đúng không?",
+		"Lu 02 hôm nay được cấp dầu 1,2 đúng không?",
+		"EX-03 hôm nay tháng 10 được cấp 3850 L đúng không?",
+	} {
+		r := ask(t, std, user("director", ""), q).Response
+		if v := verdictOf(r.Answer); v != "" || r.Outcome != contracts.OutcomeResolved {
+			t.Errorf("%q: muốn trả số, KHÔNG phán quyết — được [%s] %q", q, r.Outcome, r.Answer)
+		}
+	}
+	for _, c := range []struct {
+		q, want string
+		tiers   bool
+	}{
+		{q: "EX-03 hôm nay được cấp 3850 L (3850 lít) đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp dầu 3850 đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3.850 L đúng không?", want: "Đúng."},
+		{q: "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 của công ty ABC hôm nay được cấp 3900 L đúng không?", want: "Đúng.", tiers: true}, // công ty là cấp cha 3 tầng
+	} {
+		a := std
+		if c.tiers {
+			a = tiers
+		}
+		r := ask(t, a, user("director", ""), c.q).Response
+		if v := verdictOf(r.Answer); v != c.want {
+			t.Errorf("%q: muốn %q — được [%s] %q", c.q, c.want, r.Outcome, r.Answer)
+		}
+	}
+}

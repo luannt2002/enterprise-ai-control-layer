@@ -6,20 +6,23 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 15:0x · **HEAD:** `49c841a` (cộng commit chứa tệp này)
+- **Cập nhật lúc:** 21/10/2026 15:2x · **HEAD:** `87b07fa` (cộng commit chứa tệp này)
 - **Đang làm:**
-  - soát độc lập lần ba cho 3 dòng vá T2.2 (§4 mục 5): 2 agent, mỗi người một worktree, đang chạy;
-  - soát độc lập thay đổi cổng danh tính `c366036`: đang chạy;
-  - soát độc lập BYPASSRLS `cc84b83`: chờ có khe agent.
+  - soát độc lập BYPASSRLS `cc84b83`: đang chạy;
+  - ghi ADR-0009 "Vòng 3";
+  - chốt ca 16:40.
 - **Xong từ lần trước:**
-  - **cổng danh tính đỏ do môi trường đã sửa** — `c366036`. Worktree của agent dựng trong repo làm cổng báo 34 vi phạm ở bản chép; nay cổng bỏ qua checkout git lồng, có ca âm, `.gitignore` bỏ qua `.claude/worktrees/`; n42 11/11 bị bắt;
-  - **K7 BYPASSRLS** — `cc84b83` (§4 mục 3, việc an ninh). `pgstore.Open` từ chối vai superuser / BYPASSRLS; ca âm gồm 3 vai; `w4-pg-rls` 9/9 bị bắt. Không đổi hành vi hỏi / trả lời;
-  - **ADR-0010 (ĐỀ XUẤT)**, tầng ý định S4 theo bất biến — `49c841a` (§4 mục 2; chưa áp mã);
-  - H4 đóng băng — `15f04f9`.
+  - **Soát lần ba T2.2 (§4 mục 5): KHÔNG ĐẠT.** Hai người soát độc lập cùng tìm ra một hồi quy S1 ở dòng vá (ii): câu hai vế bị phán quyết SAI chiều. Đã sửa ở `01d4348` (T2.3): kiểm chủ thể ở cả phạm vi câu lẫn mệnh đề hỏi; kèm sửa S3 của (iv) ("3,85k"). Test đỏ trước; n43 47/47 bị bắt. Bộ 117 / H1 hai đường / H3: 0 ca đổi nhãn, 0 câu trả lời đổi chữ.
+  - **Soát cổng danh tính `c366036`: KHÔNG ĐẠT** (S1: luật theo mục `.git` rộng hơn git). Đã sửa ở `87b07fa`: chỉ bỏ qua mục tên `.git` và đúng các đường git bỏ qua; n42 11/11 bị bắt.
+- **Còn mở, không phải hồi quy (có từ T2.1):**
+  - S1 dạng gương "3850 L (3850 L của dự án A) đúng không?" → "Đúng.";
+  - S2 các biến thể dấu câu của R2-2.
+
+  Cách sửa đề xuất (E3) có cái giá, nên làm ở ca sau với soát độc lập.
 - **Tiếp theo:**
-  1. thu kết quả 3 lượt soát độc lập; có lỗi thì sửa tiếp;
+  1. thu kết quả soát BYPASSRLS;
   2. chốt ca 16:40;
-  3. ca sau: phần còn lại của audit, vòng S4 theo ADR-0010, harness canary, handoff 01.
+  3. ca sau: phần còn lại của audit, E3 cho cổng phán quyết, vòng S4 theo ADR-0010.
 - **Bị chặn:**
   - lượt W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi;
   - code R2: chờ D-V3-09;
@@ -27,10 +30,10 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
   - đổi hành vi tầng nạp trước W-G7: chưa được phép;
   - (c) của ADR-0010: chờ D-OP-11;
   - cột Trả lời của D-H1-3; `HOP-DONG-G7.md` §12.
-- **Test** (15:0x): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 452/0/0. So theo tên với 14:43: +1 test (`TestOpenTuChoiVaiVuotRLS`), 0 mất, 0 đổi.
+- **Test** (15:19): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 453/0/0. So theo tên: +1 test (`TestCongPhanQuyetSoatLan3`), 0 mất, 0 đổi.
 - **Handoff / prompt đang mở:**
   - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
-  - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng (K7 nay đã sửa ở `cc84b83`);
+  - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng;
   - `PROMPT-BUILD-EACL.md`: đang làm theo.
 
 ## Nhật ký (thêm dòng, không xoá)
@@ -46,4 +49,7 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 | 21/10 15:0x | `c366036` | Cổng danh tính bỏ qua checkout git lồng; `.gitignore` bỏ qua `.claude/worktrees/` | Ca âm đỏ trước khi sửa; n42 trong gương: 11/11 bị bắt, 0 lệch (DT3 cập nhật theo mã mới) | Cổng từng đỏ do môi trường (34 vi phạm ở bản chép) |
 | 21/10 15:0x | `cc84b83` | `pgstore.Open` từ chối vai vượt RLS (K7) | Ca âm đỏ trước khi sửa; `w4-pg-rls` trong gương: 9/9 bị bắt (bản đầu BR3 SỐNG ⇒ thêm vai SUPERUSER NOBYPASSRLS); vai tạm sót 0 | Bản đầu sót 2 vai tạm (defer trước Cleanup), đã xoá |
 | 21/10 15:0x | `49c841a` | ADR-0010 ĐỀ XUẤT (S4) | — | Chưa áp mã |
-| 21/10 15:0x | commit chứa dòng này | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 452/0/0 | — |
+| 21/10 15:0x | `2f1b8c2` | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 452/0/0 | — |
+| 21/10 15:1x | `01d4348` | Cổng phán quyết T2.3: sửa hồi quy S1 của dòng vá (ii) và S3 của (iv) T2.2 (soát lần ba) | Test đỏ trước (`TestCongPhanQuyetSoatLan3`, 6 ca `TestVerdictGap`); n43 47/47 bị bắt (CG30 lần đầu không biên dịch ⇒ viết lại); 117: 117/117, H1 89/104 hai đường, H3 109/134 — 0 đổi nhãn / 0 đổi câu trả lời | Còn mở: S1 dạng gương, S2 dấu câu (có từ T2.1) |
+| 21/10 15:1x | `87b07fa` | Cổng danh tính: bỏ luật theo mục `.git` (soát độc lập: S1) | Ca âm đỏ trước (`stale/f.md`); n42 11/11 bị bắt | — |
+| 21/10 15:2x | commit chứa dòng này | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 453/0/0 | — |

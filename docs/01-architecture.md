@@ -34,7 +34,7 @@ Phần nào chỉ là đích thì ghi "ĐÍCH", không gọi là đang chạy. Q
 
 **Model chỉ là một capability xác suất nằm giữa một hệ phần mềm tất định.** Số liệu chính xác đến từ dữ liệu có cấu trúc; tri thức đến từ tài liệu có nguồn; quyết định đi đường nào do router theo luật; câu trả lời của model luôn bị kiểm bằng code trước khi tới người dùng.
 
-Mười nguyên tắc ràng buộc mọi thiết kế bên dưới:
+Mười ba nguyên tắc ràng buộc mọi thiết kế bên dưới:
 
 | # | Nguyên tắc | Hệ quả kỹ thuật |
 |---|---|---|
@@ -45,7 +45,7 @@ Mười nguyên tắc ràng buộc mọi thiết kế bên dưới:
 | P5 | Mơ hồ thì hỏi lại hoặc từ chối, không đoán | trường bắt buộc thiếu/mơ hồ → `CLARIFICATION`; không đủ bằng chứng → từ chối có lý do |
 | P6 | Nền tảng dùng chung ≠ tri thức dùng chung | khác biệt tenant nằm trong **pack** (dữ liệu cấu hình), core không có nhánh theo tên tenant |
 | P7 | Độ phức tạp phải được bằng chứng đòi | capability vào core khi có ca hỏng tái lập được + test (ADR-0002) |
-| P8 | Mọi câu trả lời truy được về nguồn | mỗi lượt ghi route, bằng chứng (nguồn + phiên bản), phán quyết kiểm, phiên bản pack |
+| P8 | Mọi câu trả lời truy được về nguồn | mỗi lượt ghi route, bằng chứng (nguồn + phiên bản), phán quyết kiểm, phiên bản pack (HIỆN CÓ: bản ghi quyết định trong bộ nhớ, bằng chứng ghi theo mã; nguồn + phiên bản và lưu bền: ĐÍCH) |
 | P9 | Benchmark ≠ chất lượng thật | đánh giá theo từng thành phần trên bộ ca của chính tenant, có ca bẩn/mơ hồ/xung đột |
 | P10 | Sai thì tìm tầng sai trước khi đổi model | trace tách từng chặng; lỗi mang nhãn `fault` đúng tầng |
 | P11 | Model được **đề xuất** chuyển trạng thái; **workflow engine sở hữu** trạng thái | trạng thái, phép chuyển, quyền, bất biến, giao dịch thuộc phần mềm; model chỉ đọc, phân loại, trích xuất, đề xuất, giải thích |
@@ -136,7 +136,7 @@ Kiểu `EntryType` (`EntryQuery`, `EntryCommand`, `EntryEvent`, `core/contracts/
 
 Hệ quả: **model không bao giờ thấy dữ liệu mà người hỏi không được xem.** Lọc quyền xảy ra trước khi bằng chứng vào `ContextPackage`, không phải dặn model "đừng tiết lộ".
 
-EAIS gồm bốn loại thành phần, và phần không phải AI chiếm đa số là dấu hiệu kiến trúc trưởng thành:
+EAIS gồm bốn loại thành phần, và phần không phải AI chiếm đa số là dấu hiệu kiến trúc trưởng thành. Bảng dưới phân loại thành phần của kiến trúc ĐÍCH; phần HIỆN CÓ xem bảng bảy mặt phẳng (§2):
 
 | Loại | Thành phần |
 |---|---|
@@ -170,7 +170,7 @@ Một module Go: `github.com/luannt2002/enterprise-ai-control-layer` (link git g
 Dòng ghi **ĐÍCH** là thư mục chưa có (kiểm bằng `git ls-files`), chỉ có trong kiến trúc đích. Các dòng còn lại có mã thật.
 
 ```text
-cmd/eais/                 ĐÍCH (P7, Phase 5): một binary, nhiều lệnh con: serve · migrate · seed · simulate · eval
+cmd/eais/                 ĐÍCH (mặt phẳng P7, Phase 5): một binary, nhiều lệnh con: serve · migrate · seed · simulate · eval
 core/
   contracts/              kiểu dữ liệu dùng chung (Evidence, Span, RoutePlan, Verdict, Fault…), tenant trong ngữ cảnh
   decimal/                số thập phân chính xác cho giá trị nghiệp vụ
@@ -191,18 +191,18 @@ intelligence/
   rag/                    chỉ mục từ khoá + IDF trong bộ nhớ, lọc tenant + ACL theo vai
                           ĐÍCH: chunking theo cấu trúc, embeddings, hybrid dense + sparse + RRF
   models/                 Model Gateway: model giả tất định + client kiểu Messages, cấu hình qua biến môi trường
-execution/                ĐÍCH (P4): tools · workflows · triggers · skills
+execution/                ĐÍCH (mặt phẳng P4): tools · workflows · triggers · skills
 reliability/
   validation/             kiểm đầu ra: số, mã, ngày, trích dẫn, chiều đo, ràng buộc claim
   clarification/          ĐÍCH (hỏi lại hiện nằm ở intelligence/router + core/pipeline)
-governance/               ĐÍCH (P5): auth · permissions · tenancy · audit
+governance/               ĐÍCH (mặt phẳng P5): auth · permissions · tenancy · audit
                           (quyền hiện ở intelligence/router; tenant ở core/contracts + platform/pgstore)
 observability/
   traces/                 đo từng chặng, unaccounted_ms, bản ghi quyết định + phát lại (trong bộ nhớ)
   cost/                   ĐÍCH
 platform/
   pgstore/                PostgreSQL: pool pgx, migration runner, Load, truy vấn qua RLS, đọc DSN từ biến môi trường
-  httpapi/                ĐÍCH (P7): /v1/ask · /v1/commands · /v1/events · /v1/workflows · /v1/tasks · /v1/ingest/* · /v1/health
+  httpapi/                ĐÍCH (mặt phẳng P7): /v1/ask · /v1/commands · /v1/events · /v1/workflows · /v1/tasks · /v1/ingest/* · /v1/health
 domain/                   ĐÍCH: sportsevents (event store, khử trùng, sửa muộn, projection)
 db/migrations/            0001_win.sql (4 bảng nghiệp vụ + RLS), 0002_dinh_danh_eais.sql (vai, GUC theo tên EAIS)
 tenants/
@@ -222,7 +222,7 @@ Thư mục chỉ được tạo khi có mã thật (`CLAUDE.md` §25). `executio
 
 ## 4. Các luồng (L0–L10)
 
-Khuôn mỗi luồng (như `docs/ROADMAP-DAY-DU.md` §5): **Đích** (sơ đồ) → **HIỆN CÓ** (bước có mã, kèm `tệp:dòng` / test) → **Thiếu** → **Phase**. Chỉ L1, L2 có mã chạy trọn; L6, L7, L8 có một phần; L3, L4, L5 là ĐÍCH.
+Khuôn mỗi luồng (như `docs/ROADMAP-DAY-DU.md` §5): **Đích** (sơ đồ) → **HIỆN CÓ** (bước có mã, kèm `tệp:dòng` / test) → **Thiếu** → **Phase**. L2 chạy trọn; L1 và L8 có cho Fuel (L1 còn lỗi im lặng); L0, L6, L7, L9 có một phần; L10 là quy trình người–agent; L3, L4, L5 là ĐÍCH.
 
 | Luồng | Trạng thái | Phase |
 |---|---|---|
@@ -250,7 +250,7 @@ việc nghiệp vụ → [CỔNG QUÂNIT, 9 câu] → hợp đồng tối thiể
   - cổng chứng minh của phase: G1–G7, chỉ cho Fuel (`evals/win.go:133`, `tenants/construction/win/g7run`);
   - kênh debug: `docs/debug-handoff/` (1 handoff).
 - **Thiếu:**
-  - cổng QuânIT mới là văn bản (`docs/ROADMAP-DAY-DU.md` §4.1), chưa áp tường minh cho việc nào;
+  - cổng QuânIT mới là văn bản (`docs/ROADMAP-DAY-DU.md` §4.1), chưa áp tường minh cho việc nào; chấm ngầm cho Fuel (bảng §7 của roadmap): đạt câu 2, 4, 5, 6; một phần câu 7; trượt câu 1, 3, 8, 9;
   - hợp đồng tối thiểu theo việc;
   - chọn chế độ A / B: mã chỉ chạy kiểu B;
   - chưa việc nào "ra": Fuel 0/7 cổng.
@@ -278,6 +278,7 @@ nguồn (tệp / DB / API / kênh) → đọc theo loại → chuẩn hoá biể
 | đối soát theo thẩm quyền | lúc HỎI: xếp thẩm quyền, dung sai, ngang hạng thì chuyển người duyệt (`data/sourceoftruth/query.go:64-197`) | `TestKhacNguonCungChiSoChonTheoThamQuyen`, `TestNgangThamQuyenThiKhongTuChon` | lệch trong dung sai không được nhắc; cộng mọi fact cùng nguồn, cùng ngày (`query.go:199-221`, đúng thiết kế theo `TestCungNguonCungNgayLaCongDon`) nên tin gửi lại có thể bị cộng đôi — chưa tái lập đầu-cuối |
 | sự thật đã đối soát | tính lại mỗi lượt hỏi (`query.go:50-61`) | `TestTrichDanVaXungDotGiuNguonGoc` | lưu bền; khử trùng bản ghi gửi lại |
 
+- Lỗi im lặng khác mà roadmap ghi theo số đo của `docs/ROADMAP.md` §0.4 (chưa đo lại ở đợt này): tin gửi lại thành `SYSTEM_FAILURE`; "máy 03" thành 3 L ở 6 ca H1 (đường nạp đã chặn bằng luật loại trừ ở `data/ingestion/ingest.go:266-269`, nên nhiều khả năng lỗi nằm ở luồng hỏi, bộ chuẩn hoá dùng chung).
 - **Phase:** 0a, 3 (sửa tận gốc ở L5). Nguồn DB / API / kênh: 4a, 8.
 - Bốn tầng của dữ liệu sự thật và các đường nạp đích: §5.
 
@@ -310,9 +311,9 @@ nguồn (tệp / DB / API / kênh) → đọc theo loại → chuẩn hoá biể
 
 Ba luật cứng của luồng (giữ bằng cấu trúc rẽ nhánh `ask.go:155-191`):
 
-1. **Route không cần diễn đạt thì không gọi model.** `SQL_QUERY`, `CALCULATION`, `CLARIFICATION`, `REJECT`, `HUMAN_ESCALATION` trả lời bằng mẫu câu (template) do tenant viết. Ứng dụng không tự sáng tác chữ cho khách.
+1. **Route không cần diễn đạt thì không gọi model.** `SQL_QUERY`, `CALCULATION`, `CLARIFICATION`, `REJECT`, `HUMAN_ESCALATION` trả lời bằng mẫu câu (template) do tenant viết. Chữ gửi khách đến từ mẫu câu của tenant; ngoại lệ hiện có: ghi chú giải thích do mã ghép vào câu hỏi lại (`core/pipeline/ask.go:139`, `:146`, `:1236`, `:1239`).
 2. **Model không bao giờ là nguồn của con số.** Mọi con số trong câu trả lời phải khớp (sau chuẩn hoá) một con số trong gói bằng chứng, hoặc là kết quả của bước `CALCULATION` có ghi phép tính.
-3. **Kiểm thất bại thì không giao câu đó.** Hành động lùi do pack quy định: `fallback` (mẫu câu "chưa đủ dữ liệu chính xác"), `clarify`, hoặc `escalate`.
+3. **Kiểm thất bại thì không giao câu đó.** Hành động lùi: `fallback` (mẫu câu "chưa đủ dữ liệu chính xác"), `clarify`, hoặc `escalate`. HIỆN CÓ: mã chọn hành động theo nhánh (`core/pipeline/ask.go:166`, `:359`, `:465`), pack chỉ viết mẫu câu (`templates.yaml`). Pack quy định hành động lùi: ĐÍCH (`validation.yaml`, §8).
 
 Router theo P13. HIỆN CÓ: chỉ nhánh luật. Classifier có cổng và ngưỡng tin cậy là ĐÍCH (Phase 6):
 
@@ -340,7 +341,7 @@ yêu cầu / đề xuất → kiểm schema → tenant → quyền (chế độ 
 → khoá chống trùng → thực thi → ĐỌC LẠI xác minh → audit → báo kết quả: ĐÃ LÀM / CHƯA BIẾT / THẤT BẠI
 ```
 
-Thiết kế pipeline lệnh (C0–C7), ĐÍCH:
+#### 4.1 Pipeline lệnh (C0–C7) — ĐÍCH
 
 ```text
 C0 accept (xác thực, idempotency key) ─► C1 tenant ─► C2 hiểu lệnh (chuẩn hoá + nhận dạng thực thể;
@@ -379,7 +380,7 @@ sự kiện (tin mới · phiếu mới · vượt ngưỡng · đính chính ·
 → kích hoạt COMMAND / WORKFLOW → outbox → idempotency
 ```
 
-Thiết kế pipeline sự kiện (E0–E6), ĐÍCH:
+#### 4.2 Pipeline sự kiện (E0–E6) — ĐÍCH
 
 ```text
 E0 nhận sự kiện (tin nhắn, bản ghi, cảm biến, provider) ─► E1 chuẩn hoá + nhận dạng thực thể
@@ -561,7 +562,7 @@ provider adapter (ánh xạ trường theo pack) ─► sự kiện chuẩn (k�
 
 Kiểu dữ liệu dùng chung nằm ở `core/contracts`. Interface do **bên dùng** khai báo (thành ngữ Go), nên chúng nằm cạnh pipeline và context engine; bảng dưới là hình dạng của chúng.
 
-> **Trạng thái.** Bảng dưới là hợp đồng ĐÍCH. HIỆN CÓ là hai interface Go: `KnowledgeRetriever` với `Retrieve(ctx, pr, query, k)` (`core/pipeline/ask.go:43-45`) và `models.Gateway` với `Generate(ctx, Request)` (`intelligence/models/models.go:20-22`). Chuẩn hoá, nhận dạng, ý định, định tuyến, kiểm hiện là hàm / kiểu cụ thể với chữ ký khác bảng (ví dụ `router.Route`, `intelligence/router/router.go:170`). `Tool`, `ContextBuilder`, `WorkflowEngine`, `Guard`, `TriggerEvaluator`, `CommandHandler`: chưa có.
+> **Trạng thái.** Bảng dưới là hợp đồng ĐÍCH. HIỆN CÓ bảy interface Go (không tính test). Hai cái khớp bảng: `KnowledgeRetriever` với `Retrieve(ctx, pr, query, k)` (`core/pipeline/ask.go:43-45`) và `models.Gateway` với `Generate(ctx, Request)` (`intelligence/models/models.go:20-22`). Các điểm tiếp hợp khác: `sourceoftruth.Store` (nguồn fact cho hợp đồng `StructuredDataSource`, `data/sourceoftruth/query.go:37`; bản PG ở `platform/pgstore/pgstore.go:87`), `entityresolution.Directory` (`data/entityresolution/resolver.go:43`), `ingestion.TextExtractor` (`data/ingestion/readers.go:20`), `evals.Asker` và `evals.ModelCounter` (`evals/runner.go:14`, `:21`). Chuẩn hoá, ý định, định tuyến, kiểm là hàm / kiểu cụ thể với chữ ký khác bảng (ví dụ `router.Route`, `intelligence/router/router.go:170`). `Tool`, `ContextBuilder`, `WorkflowEngine`, `Guard`, `TriggerEvaluator`, `CommandHandler`: chưa có.
 
 | Hợp đồng | Chữ ký (rút gọn) | Ai cung cấp |
 |---|---|---|
@@ -637,7 +638,7 @@ tenants/<domain>/pack/
 
 Core đọc pack qua `core/tenant`, kiểm toàn bộ lúc khởi động (**cấu hình hỏng thì không chạy**), và đóng dấu `pack_version` (băm nội dung) vào mọi lượt.
 
-> **Trạng thái.** HIỆN CÓ (`tenants/construction/pack/`, 7 tệp): `pack.yaml`, `lexicon.yaml`, `metrics.yaml`, `intents.yaml`, `templates.yaml`, cộng `policy.yaml` (vai → capability, phạm vi) và `sources.yaml` (loại nguồn → định dạng, cột, chỉ số) chưa có trong cây trên. Danh mục thực thể đọc từ `entities.json` của thư mục dữ liệu. `entities.yaml`, `tools.yaml`, `skills.yaml`, `workflows.yaml`, `triggers.yaml`, `validation.yaml`: ĐÍCH.
+> **Trạng thái.** HIỆN CÓ (`tenants/construction/pack/`, 7 tệp): `pack.yaml`, `lexicon.yaml`, `metrics.yaml`, `intents.yaml`, `templates.yaml`, cộng `policy.yaml` (vai → capability, phạm vi) và `sources.yaml` (loại nguồn → định dạng, cột, chỉ số) chưa có trong cây trên. Danh mục thực thể đọc từ `entities.json` của thư mục dữ liệu. `entities.yaml`, `tools.yaml`, `skills.yaml`, `workflows.yaml`, `triggers.yaml`, `validation.yaml`: ĐÍCH. Trong tệp có thật: `pack.yaml` hiện chỉ có `id`, `tenant`, `version`, `language`, `timezone`; model policy, ngân sách và ngưỡng ý định là ĐÍCH.
 
 Giới hạn của pack (P12) — để pack không thành "ngôn ngữ lập trình bằng YAML":
 
@@ -674,8 +675,8 @@ Hiện mọi cổng trong bảng đang **đóng**: chưa capability nào ở đ�
 | Router HTTP | chi v5 | ĐÍCH: chưa có HTTP, `go.mod` chưa có chi |
 | DB | PostgreSQL 17, driver pgx v5 | ảnh Docker ghim digest; pgvector: ĐÍCH |
 | Python | 3.12, dịch vụ tính toán sau ranh giới §11 | ĐÍCH: chưa có dịch vụ Python nào. Dịch vụ đầu tiên dự kiến: `document-parser`; không truy cập DB, không chứa luật nghiệp vụ |
-| Hàng đợi/cache | chưa dùng | Redis/Kafka chỉ thêm khi số đo đòi (ADR-0004) |
-| Model | qua Model Gateway, nhà cung cấp theo cấu hình tenant | không hard code model/URL trong mã |
+| Hàng đợi/cache | chưa dùng | Redis/Kafka chỉ thêm khi số đo đòi (`CLAUDE.md` §19; `docs/ROADMAP-DAY-DU.md` §6, Phase 9) |
+| Model | qua Model Gateway | HIỆN CÓ: cấu hình bằng biến môi trường toàn tiến trình (`EAIS_MODEL_*`), URL mặc định của nhà cung cấp gán ở `intelligence/models/messages.go:437`. Cấu hình theo tenant và ngân sách: ĐÍCH |
 
 ---
 

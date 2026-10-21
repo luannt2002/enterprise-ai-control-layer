@@ -275,3 +275,48 @@ func TestCongPhanQuyetSoatDoiKhangVong2(t *testing.T) {
 		}
 	}
 }
+
+// Soát lần ba (21/10, sau H3), hai người soát độc lập:
+//   - dòng vá (ii) của T2.2 thu hẹp kiểm chủ thể từ CÂU về mệnh đề chứa cụm xác nhận ⇒ câu hai vế mà vế sau nói về dự án A bị phán
+//     quyết theo EX-03 — SAI chiều (dự án A thật 5.050 L), T2.1 không phán quyết ⇒ kiểm chủ thể ở CẢ hai phạm vi;
+//   - dòng vá (iv) làm mất phán quyết oan khi lượng có chữ ("3,85k", "1,2 nghìn"): chữ đã xoá mơ hồ phần nghìn / thập phân.
+func TestCongPhanQuyetSoatLan3(t *testing.T) {
+	std := newAsk(t)
+	tiers := newAskWith(t, "seed/entities-bon-tang.yaml", "seed/facts-nguon-thap.yaml")
+	for _, c := range []struct {
+		q     string
+		tiers bool
+	}{
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A được cấp 5050 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A được cấp 3850 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A 5050 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L! Dự án A 3850 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L\nDự án A được cấp 3850 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp bao nhiêu dầu? Dự án A được cấp 3850 L, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3900 L. Công ty ABC 3900 L, đúng không?", tiers: true},
+	} {
+		a := std
+		if c.tiers {
+			a = tiers
+		}
+		r := ask(t, a, user("director", ""), c.q).Response
+		if v := verdictOf(r.Answer); v != "" {
+			t.Errorf("%q: chủ thể của câu hỏi chưa giải, muốn KHÔNG phán quyết — được [%s] %q", c.q, r.Outcome, r.Answer)
+		}
+	}
+	for _, c := range []struct{ q, want string }{
+		{q: "Dự án A hôm nay được cấp 5050 L đúng không?", want: "Đúng."}, // đối chứng: dự án A tự nó vẫn phán quyết được
+		{q: "EX-03 hôm nay được cấp dầu 3,85k đúng không?", want: "Đúng."},
+		{q: "Lu 02 hôm nay được cấp 1,2 nghìn dầu đúng không?", want: "Đúng."},
+		// ghim nhánh của hai dòng vá mà đột biến từng sống (người soát góc B): ngoặc đóng, ba lần nhắc liền kề, xuống dòng, dấu chấm
+		{q: "EX-03 hôm nay (được cấp 3850 L) 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L (3850 lít) (3850 L) đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L\n3850 L đúng không?", want: ""},
+		{q: "EX-03 hôm nay được cấp dầu 3.850 đúng không?", want: ""},
+	} {
+		r := ask(t, std, user("director", ""), c.q).Response
+		if v := verdictOf(r.Answer); v != c.want {
+			t.Errorf("%q: muốn %q — được [%s] %q", c.q, c.want, r.Outcome, r.Answer)
+		}
+	}
+}

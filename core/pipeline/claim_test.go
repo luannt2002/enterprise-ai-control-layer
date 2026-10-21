@@ -61,6 +61,14 @@ func TestVerdictGap(t *testing.T) {
 		{q: "EX-03 hôm nay ERP ghi 3900 L đúng không?", claimed: "3900", want: "source"},
 		// "tuần" trước một ngày là tuần chứa ngày đó, không phải ngày
 		{q: "EX-03 tuần 15/9 được cấp 3500 L đúng không?", claimed: "3500", want: "residual"},
+		// T2.2 (vòng 2 + soát lần ba): con số nhắc lại chỉ là cùng claim khi liền kề; kiểm chủ thể ở cả phạm vi câu lẫn mệnh đề hỏi;
+		// lượng đơn vị suy từ thuật ngữ mà có dấu chấm / phẩy là mơ hồ — trừ khi nguyên văn có chữ ("3,85k")
+		{q: "EX-03 hôm nay được cấp 3850 L, dự án A 3850 L, đúng không?", claimed: "3850", want: "value"},
+		{q: "EX-03 hôm nay được cấp 3850 L, dự án A đúng không?", claimed: "3850", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A được cấp 3850 L, đúng không?", claimed: "3850", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A 5050 L, đúng không?", claimed: "5050", want: "subject"},
+		{q: "Lu 02 hôm nay được cấp dầu 1,2 đúng không?", claimed: "1.2", want: "value"},
+		{q: "EX-03 hôm nay được cấp dầu 3,85k đúng không?", claimed: "3850"},
 	} {
 		in := rt.Normalizer.Normalize(c.q, normalization.Options{Now: now})
 		res, err := entityresolution.Resolve(ctx, dir, in)

@@ -52,8 +52,12 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 			lo = sentenceStart(raw, fs) // mệnh đề hỏi không có số ("…, vậy đúng không?"): câu hỏi áp cho cả câu
 		}
 	}
-	if gap := subj.gap(names, qs); gap != "" {
-		return gap
+	// Kiểm chủ thể ở CẢ hai phạm vi: cả câu hỏi ([lo, len) — "… 3850 L. Dự án A được cấp 3850 L, đúng không?" hỏi về dự án A) và
+	// riêng mệnh đề chứa cụm xác nhận ([qs, len) — "… 3850 L, dự án A đúng không?"). Một phạm vi không thay được phạm vi kia.
+	for _, from := range []int{lo, qs} {
+		if gap := subj.gap(names, from); gap != "" {
+			return gap
+		}
 	}
 	covered := make([]bool, len(raw))
 	cover := func(s, e int) {
@@ -242,7 +246,9 @@ func sourceMentions(raw string, def sourceoftruth.MetricDef, used []string, lo i
 // dấu chấm / phẩy còn mơ hồ giữa phần nghìn và phần thập phân.
 func unitShown(sp contracts.Span) bool {
 	if sp.Kind == contracts.ValueQuantity {
-		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,"))
+		// đơn vị suy từ thuật ngữ + dấu chấm / phẩy là mơ hồ phần nghìn / thập phân ("dầu 1,2") — trừ khi nguyên văn có chữ ("3,85k",
+		// "1,2 nghìn"): chữ đã nói hàng của con số
+		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))
 	}
 	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
 }

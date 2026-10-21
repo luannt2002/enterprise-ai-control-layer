@@ -40,7 +40,7 @@ m $A '		if withheld = a.verdictGap(in, names, it, def, claimed, subj, result.Use
 m $A '		text += a.fragment("confirm_withheld", vars)' '		_ = vars' 'AI2 bỏ mẩu chưa kết luận'
 m $C '	if !normalization.HasDiacritic(raw) {' '	if false && !normalization.HasDiacritic(raw) {' 'CG20 câu không dấu vẫn phán quyết'
 m $C '	if markerCount(raw, a.RT.ConfirmMarkers) != 1 {' '	if markerCount(raw, a.RT.ConfirmMarkers) > 9 {' 'CG21 nhiều cụm xác nhận vẫn phán quyết'
-m $C '	if gap := subj.gap(names, qs); gap != "" {' '	if gap := subj.gap(names, qs); false && gap != "" {' 'CG22 tắt kiểm chủ thể'
+m $C '		if gap := subj.gap(names, from); gap != "" {' '		if gap := subj.gap(names, from); false && gap != "" {' 'CG22 tắt kiểm chủ thể'
 m $C 'return id == s.id || s.ancestors[id] })' 'return true })' 'CG23 cụm tên chỉ thực thể khác (không phải cấp cha) vẫn phán quyết'
 m $C '	if inFocus && !subjectInFocus {' '	if false && inFocus && !subjectInFocus {' 'CG24 mệnh đề hỏi nêu thực thể khác chủ thể vẫn phán quyết'
 m $C '		s.ancestors[p] = true' '		s.ancestors[p] = false' 'CG25 không tính cấp cha của chủ thể'
@@ -56,8 +56,17 @@ m $Q '		usedSources[best.source] = true' '		usedSources["warehouse_slip"] = true
 m $A '		out = append(out, mention{start: e.Start, end: e.End, ids: []string{e.ID}})' '		out = append(out, mention{start: e.Start, end: e.End})' 'AI3 cụm tên không mang thực thể'
 m $A '		out = append(out, mention{start: m.Start, end: m.End, ids: ids})' '		out = append(out, mention{start: m.Start, end: m.End, ids: ids[:0]})' 'AI4 bí danh mơ hồ không mang ứng viên'
 m $C '			if value && (sp.Start < lastEnd || strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' '			if false && value && (sp.Start < lastEnd || strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'CG29 con số nhắc lại sau phát biểu khác vẫn là cùng claim'
-m $C '	if gap := subj.gap(names, qs); gap != "" {' '	if gap := subj.gap(names, lo+0*qs); gap != "" {' 'CG30 kiểm chủ thể theo phạm vi đã lùi về đầu câu'
-m $C '		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,"))' '		return true' 'CG31 lượng có dấu chấm / phẩy, đơn vị suy từ thuật ngữ, thành có đơn vị'
+m $C '	for _, from := range []int{lo, qs} {' '	for _, from := range []int{lo, lo+0*qs} {' 'CG30 kiểm chủ thể chỉ theo phạm vi đã lùi về đầu câu (bỏ mệnh đề hỏi)'
+m $C '		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))' '		return true' 'CG31 lượng có dấu chấm / phẩy, đơn vị suy từ thuật ngữ, thành có đơn vị'
 m $C '	for p := parent[id]; p != "" && !s.ancestors[p]; p = parent[p] {' '	for p := parent[id]; p != "" && !s.ancestors[p]; p = "" {' 'CG32 chỉ tính MỘT cấp cha'
 m $C '		coverPhrases(slices.Concat(a.RT.Intents.MetricKeywords(), labels, a.RT.QuantityMarkers), 0, lo)' '		coverPhrases(slices.Concat(a.RT.Intents.MetricKeywords(), labels), 0, lo)' 'CG33 từ chỉ lượng ở ngữ cảnh không được giải thích'
 m $C '	if len(readPeriods(in)) != 1 {' '	if len(readPeriods(in)) < 1 {' 'CG34 hai kỳ đọc được vẫn phán quyết'
+m $C '	for _, from := range []int{lo, qs} {' '	for _, from := range []int{qs, qs} {' 'CG35 kiểm chủ thể chỉ ở mệnh đề hỏi (bỏ phạm vi câu — hồi quy T2.2, soát lần ba)'
+m $C 'strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))' 'strings.ContainsAny(sp.Raw, ".,"))' 'CG36 lượng có chữ ("3,85k") vẫn bị coi là mơ hồ'
+m $C 'strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'strings.Trim(raw[lastEnd:sp.Start], " (") != "") {' 'CG37 ngoặc đóng giữa hai lần nhắc thành phát biểu khác'
+m $C 'strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'strings.Trim(raw[lastEnd:sp.Start], " ()\n") != "") {' 'CG38 xuống dòng giữa hai lần nhắc thành liền kề'
+m $C '			value, lastEnd = true, sp.End' '			if !value {
+				lastEnd = sp.End
+			}
+			value = true' 'CG39 khoảng liền kề đo từ lần nhắc ĐẦU thay vì lần gần nhất'
+m $C 'strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc' 'strings.ContainsAny(sp.Raw, ",") && !strings.ContainsFunc' 'CG40 lượng suy đơn vị có dấu chấm thành có đơn vị'

@@ -97,9 +97,9 @@ Người soát D soát lại T2.1 (~0,77 triệu câu): 21 / 21 câu vòng 1 đ�
 
 | Mã | Mức | Lỗ | Xử lý |
 |---|---|---|---|
-| R2-1 | CAO | một cụm xác nhận, HAI phát biểu cùng con số ("EX-03 … 3850 L, dự án A 3850 L, đúng không?" — dự án A thật là 5.050 L) ⇒ "Đúng." | ĐÃ ĐÓNG: con số xác nhận nhắc lại chỉ là cùng claim khi đứng liền kề (chỉ cách khoảng trắng / ngoặc) |
-| R2-2 | TB-CAO | mệnh đề hỏi chỉ nêu cấp cha ("…, dự án A đúng không?"), luật "phạm vi hỏi có tên thì phải có chủ thể" dùng phạm vi đã lùi về đầu câu | ĐÃ ĐÓNG: luật chủ thể dùng đầu mệnh đề chứa cụm xác nhận |
-| R2-3 | TB | lượng có dấu chấm / phẩy mà đơn vị chỉ suy từ thuật ngữ ("dầu 1,2") | ĐÃ ĐÓNG: không tính là có đơn vị (cái giá: "dầu 3.850" mất phán quyết) |
+| R2-1 | CAO | một cụm xác nhận, HAI phát biểu cùng con số ("EX-03 … 3850 L, dự án A 3850 L, đúng không?" — dự án A thật là 5.050 L) ⇒ "Đúng." | ĐÓNG MỘT PHẦN (xem Vòng 3): con số xác nhận nhắc lại chỉ là cùng claim khi đứng liền kề (chỉ cách khoảng trắng / ngoặc); dạng gương — tên đứng SAU lần nhắc lại — còn mở |
+| R2-2 | TB-CAO | mệnh đề hỏi chỉ nêu cấp cha ("…, dự án A đúng không?"), luật "phạm vi hỏi có tên thì phải có chủ thể" dùng phạm vi đã lùi về đầu câu | ĐÓNG MỘT PHẦN (xem Vòng 3): luật chủ thể dùng đầu mệnh đề chứa cụm xác nhận; dòng vá này gây hồi quy S1, đã sửa ở T2.3; biến thể dấu câu còn mở |
+| R2-3 | TB | lượng có dấu chấm / phẩy mà đơn vị chỉ suy từ thuật ngữ ("dầu 1,2") | ĐÃ ĐÓNG: không tính là có đơn vị (cái giá: "dầu 3.850" mất phán quyết); T2.3 trả lại phán quyết khi nguyên văn có chữ ("3,85k") |
 | R2-4 | THẤP-TB | tên nguồn ở mệnh đề NGỮ CẢNH không chứa lượng ("Phiếu kho, RL-02 … đúng không?") không đối chiếu nguồn đã dùng | ghi lại, chưa làm |
 | R2-5 | TB | máy và dự án cùng nêu, nối bằng dấu rời ("Lu 02 : Dự án A …") — hệ chọn máy làm chủ thể | ghi lại: quyết định thiết kế (chủ thể = thực thể cụ thể nhất) |
 | R2-6…R2-9 | THẤP | bí danh mơ hồ có ứng viên là cấp cha; từ chỉ ngày trước span tháng / tuần; tên sai dấu vẫn khớp; "3,850 lít" đọc là nghìn | ghi lại |
@@ -108,3 +108,26 @@ Người soát D soát lại T2.1 (~0,77 triệu câu): 21 / 21 câu vòng 1 đ�
 - Test mới `TestCongPhanQuyetSoatDoiKhangVong2` (7 câu không phán quyết + 5 đối chứng), ghim thêm ba nhánh chưa có test đỏ: cấp cha nhiều tầng (danh mục giả lập 4 tầng `seed/entities-bon-tang.yaml`), từ chỉ lượng ở ngữ cảnh, hai kỳ đọc được.
 - Đo: test có PG 451/0/0; bộ 117 117/117 và H1 89/104 hai đường, 0 ca đổi nhãn, số ca có phán quyết không đổi so với T2.1 (15; 5); hai phát biểu một cụm (20.000 câu có đáp án độc lập): 11.375 → 0 phán quyết; văn phạm có dấu (60.000 câu): 33.209 phán quyết đúng, 0 sai; n43 41 / 41.
 - Cái giá ghi nhận (S3): câu không dấu mất 100% phán quyết; trần một lần đo áp cho tổng nhiều ngày / nhiều máy làm mất phán quyết đúng ("EX-03 tuần trước … 21000 L").
+
+### Vòng 3 (T2.3, 21/10, sau H3: soát lần ba cho ba dòng vá T2.2)
+
+Hai người soát độc lập, mỗi người một worktree, chạy câu thật trên pack và dữ liệu hạt giống:
+- góc A tìm phản ví dụ;
+- góc B đo độ phủ test và đột biến.
+
+Cả hai cùng KHÔNG ĐẠT.
+
+| Mã | Mức | Phát hiện | Xử lý |
+|---|---|---|---|
+| R3-1 | **S1, HỒI QUY** | Dòng vá R2-2 thu hẹp kiểm chủ thể từ CÂU về mệnh đề chứa cụm xác nhận. Câu hai vế bị phán quyết theo EX-03, sai chiều (dự án A thật 5.050 L; T2.1 không phán quyết):<br>- "EX-03 hôm nay được cấp 3850 L. Dự án A được cấp 5050 L, đúng không?" → "Không.";<br>- "… Dự án A được cấp 3850 L, đúng không?" → "Đúng.".<br>15 câu hai vế đổi từ không phán quyết sang có phán quyết; ≥ 12 câu sai chiều | **ĐÃ SỬA (T2.3):** kiểm chủ thể ở CẢ phạm vi câu [lo, len) lẫn mệnh đề hỏi [qs, len) |
+| R3-2 | S3, hồi quy | Dòng vá R2-3 giữ oan "dầu 3,85k", "1,2 nghìn dầu": chữ đã nói hàng của con số | **ĐÃ SỬA (T2.3):** chỉ coi là mơ hồ khi nguyên văn không có chữ |
+| R3-3 | **S1, có từ T2.1** | Dạng gương: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?" → "Đúng." (dự án A thật 5.050 L). Phép kiểm liền kề chỉ nhìn đoạn GIỮA hai lần nhắc, không nhìn tên đứng sau | **CÒN MỞ.** Người soát đề xuất luật E3: "sau con số xác nhận đầu tiên chỉ được nhắc lại CHÍNH chủ thể". Đã chạy thử: đóng cả họ R3-3 + R3-4, 5 gói test xanh. Cái giá: định ngữ cấp cha đứng sau số mất phán quyết. Làm ở vòng sau, có soát độc lập |
+| R3-4 | S2, có từ T2.1 | R2-2 chỉ đóng khi dấu ngăn là `, ; . ? !` + khoảng trắng. Với ":", "-", "(", "[", xuống dòng, dấu phẩy thừa ("…, dự án A, đúng không?"), hoặc cấp cha đặt sau cụm xác nhận, hệ vẫn trả "Đúng." | **CÒN MỞ**, cùng hướng E3 |
+| R3-5 | S4 | Ba dòng vá chỉ được ghim bởi một test tích hợp; gói `core/pipeline` không tự bắt CG29–CG31; năm đột biến tinh còn sống | **ĐÃ SỬA:** 6 ca trong `TestVerdictGap`; 4 ca ghim trong `TestCongPhanQuyetSoatLan3`; n43 thêm CG35–CG40 |
+
+**Đo:**
+- Test đỏ trước, trên HEAD `2f1b8c2`: `TestCongPhanQuyetSoatLan3` gồm 7 câu không phán quyết (có bản 4 tầng) và 7 đối chứng / ghim.
+- Test có PG 453/0/0. n43: 47 / 47 bị bắt.
+- Bộ 117 117/117, H1 89/104 hai đường, H3 109/134: 0 ca đổi nhãn, 0 câu trả lời đổi chữ so với T2.2.
+
+**Bài học:** bộ 20.000 câu "hai phát biểu một cụm" của vòng 2 chỉ phủ dạng có dấu phẩy, nên không thấy dạng hai câu. Một bản vá do người soát đề xuất vẫn phải qua một người soát khác: ở đây chính bản vá đó sinh phán quyết sai chiều.

@@ -82,6 +82,7 @@ var legacyAllowed = map[string]allowance{
 	"docs/bao-cao/2026-10-21-ca-ngay.md":           {7, "HISTORICAL_EVIDENCE: báo cáo ca 21/10"},
 	"docs/bao-cao/2026-10-21-migration-eacl.md":    {27, "HISTORICAL_EVIDENCE: báo cáo đợt đổi tên sang EACL sáng 21/10"},
 	"docs/bao-cao/2026-10-21-overnight.md":         {8, "HISTORICAL_EVIDENCE: báo cáo đêm 20→21/10"},
+	"docs/bao-cao/2026-10-21-phan-hoi-doi-ten.md":  {47, "HISTORICAL_EVIDENCE: tệp phản hồi đợt đổi tên D-RM-02, nêu tên cũ để kiểm kê và ánh xạ"},
 	"docs/bao-cao/2026-10-21-phan-hoi-roadmap.md":  {4, "HISTORICAL_EVIDENCE: phản hồi audit ROADMAP (bản giữa chừng 21/10)"},
 	"docs/bao-cao/TIEN-DO-BUILD.md":                {1, "HISTORICAL_EVIDENCE: các dòng nhật ký đã ghi"},
 	"docs/g7/CHECKPOINT-A-H.md":                    {9, "HISTORICAL_EVIDENCE: checkpoint G7 20/10"},

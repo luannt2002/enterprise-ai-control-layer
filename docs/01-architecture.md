@@ -56,7 +56,7 @@ Mười nguyên tắc ràng buộc mọi thiết kế bên dưới:
 
 ## 2. Bảy mặt phẳng
 
-Bảy mặt phẳng cũng là bảy đường làm việc song song (`docs/ROADMAP-DAY-DU.md` §3).
+Bảy mặt phẳng cũng là bảy đường làm việc song song (`docs/ROADMAP-DAY-DU.md` §3). Mã P1–P7 ở bảng này là mặt phẳng, không phải nguyên tắc P1–P13 ở §1.
 
 | Mặt phẳng | Gồm | HIỆN CÓ | ĐÍCH (phase) |
 |---|---|---|---|

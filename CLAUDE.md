@@ -322,10 +322,10 @@ Nguồn: câu gốc ngày 20/10 (`d70ebc8`) cộng hai chế độ sở hữu c�
 
 Hai chế độ sở hữu:
 
-| Chế độ | Khi nào | Ai giữ business truth, permissions, state, transactions |
+| Chế độ | Khi nào | Ai giữ sự thật, quyền, giao dịch |
 |---|---|---|
 | A. Tích hợp | doanh nghiệp đã có CRM / ERP / app có API | app của khách; EAIS đọc và ghi qua API bằng token của người dùng |
-| B. Tự lo | doanh nghiệp chỉ có chat / Excel / giấy | EAIS: thu, chuẩn hoá, đối soát, lưu trữ |
+| B. Tự lo | doanh nghiệp chỉ có Zalo / Excel / giấy | EAIS: thu, chuẩn hoá, đối soát, lưu trữ |
 
 - Dùng lại hệ thống doanh nghiệp đã có khi hệ đó đang giữ sự thật.
 - Tự lo phần doanh nghiệp còn thiếu: thu dữ liệu, chuẩn hoá, đối soát.
@@ -363,9 +363,10 @@ Hai tenant tồn tại để kiểm chứng abstraction của platform.
 
 Không encode domain-specific behavior vào shared core chỉ để một tenant chạy được.
 
-Ghi chú tương thích (D-V3-06): câu sứ mệnh dùng ngày 21/10/2026, trước D-RM-02 — "tích hợp AI vào phần mềm doanh nghiệp đã có,
-phần mềm đó giữ business truth, permissions, state, transactions và workflows" — nay là chế độ A. Chế độ B là phần thêm theo
-D-RM-01. Luật ở §10–§38 không đổi.
+Ghi chú tương thích (D-V3-06): câu sứ mệnh dùng ngày 21/10/2026, trước D-RM-02 (`3c51bb0`), nguyên văn: "reference architecture
+và control layer chạy được để tích hợp AI capabilities xác suất vào phần mềm doanh nghiệp đã có, trong khi chính phần mềm đó giữ
+quyền quyết định với business truth, permissions, state, transactions và workflows". Nội dung đó nay là chế độ A. Chế độ B là
+phần thêm theo D-RM-01. Luật ở §10–§38 không đổi.
 
 ---
 
@@ -1047,7 +1048,7 @@ Các khu vực chính (đánh dấu "đích" = chưa có thư mục, chỉ có t
     docs/
     deploy/
 
-Bảy mặt phẳng P1–P7 và các luồng L0–L10, mỗi luồng tách hiện có / đích: `docs/ROADMAP-DAY-DU.md` §3, §5 và `docs/01-architecture.md`.
+Bảy mặt phẳng P1–P7 và các luồng L0–L10, mỗi luồng tách hiện có / đích: `docs/ROADMAP-DAY-DU.md` §3, §5 và `docs/01-architecture.md`. P1–P7 ở đây là mặt phẳng của roadmap, không phải nguyên lý P1–P10 ở §10.
 
 Không tạo folder chỉ vì target architecture có tên đó.
 

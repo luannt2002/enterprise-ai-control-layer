@@ -2,6 +2,8 @@
 
 > **Historical artifact** (D-V3-10, chủ dự án duyệt 20/10/2026): roadmap hiện hành ở `docs/v3/`. Giữ tệp này để truy nguồn gốc quyết định; không lập kế hoạch mới theo nó.
 >
+> **Từ tối 21/10/2026 (D-RM-01):** roadmap hiện hành là `docs/ROADMAP-DAY-DU.md`, dựng trên Phase 0–10 của tệp này; `docs/v3/` chỉ còn để tra cứu. Lập kế hoạch theo `docs/ROADMAP-DAY-DU.md`, không theo tệp này.
+>
 > **Mô tả EAIS có thể tiến hoá tới đâu, với điều kiện năng lực trước đó đã giành được quyền tồn tại.**
 >
 > Trạng thái: hướng đi đã chốt theo user ngày 19/10/2026 ("làm cái win trước, đạt rồi mới mở rộng ra roadmap đầy đủ"). Từng phase là **giả thuyết có điều kiện**, không phải danh sách việc.

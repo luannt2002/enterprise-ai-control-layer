@@ -2,6 +2,7 @@
 
 > Cập nhật: 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
+> **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "Việc hiện hành" ở mục Việc tiếp theo.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
@@ -188,7 +189,7 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 | Chỉ mục toàn văn PG | chưa có. Tài liệu lưu nguyên văn, cắt đoạn và chấm điểm trong Go lúc truy vấn; đủ cho WIN, chưa đo ở quy mô tài liệu lớn |
 | Soát độc lập mã W4–W7 | CHƯA: mã hôm nay mới qua tự soát + đột biến |
 | `go mod tidy` | chạy offline lỗi (cache thiếu dependency test của yaml). pgx v5.11.0 thêm từ cache; chạy lại khi có mạng |
-| Thể thao; COMMAND / EVENT / WORKFLOW | DEFER theo `05` |
+| Thể thao; COMMAND / EVENT / WORKFLOW | DEFER theo dòng ADR-0001 ở `docs/CHO-QUYET-DINH.md` §0 và D-RM-04 (`docs/ROADMAP-DAY-DU.md` §4.3) |
 | Tài liệu `docs/tenants/**`, `docs/requirements/**` | do agent viết; chưa soát độc lập; `phase` trong sổ yêu cầu chưa xếp lại theo WIN |
 
 ## Quan sát ngoài phạm vi (chưa sửa)
@@ -212,7 +213,7 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 > 4. phép đo (harness canary, cờ ước lượng, CI có PG); giấy Phase 0a và Phase 1 (mã COMMAND / WORKFLOW / EVENT chờ D-RM-04); Phase 6 nếu S4 vẫn là sàn; tài liệu lệch, handoff;
 > 5. phản hồi audit ROADMAP cho trọn (bản giữa chừng: `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`).
 >
-> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mở: D-RM-03, D-RM-04, D-OP-11, D-OP-12; đã quyết: D-RM-01, D-RM-02, D-OP-13).
+> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới từ 21/10: D-RM-03, D-RM-04, D-RM-05, D-OP-11, D-OP-12; đã quyết: D-RM-01, D-RM-02, D-OP-13; danh sách đủ ở §0 của tệp đó).
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

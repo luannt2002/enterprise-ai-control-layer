@@ -1,6 +1,6 @@
 # 04 — EAIS Core MVP: Enterprise Truth & Routing Proof
 
-> **Hợp đồng của R1** (Fuel Truth Benchmark, cổng W-G1…W-G7; D-V3-10, chủ dự án duyệt 20/10/2026); luật D5 sửa đổi ở ADR-0005. Hướng tổng thể: `docs/v3/`.
+> **Hợp đồng của R1** (Fuel Truth Benchmark, cổng W-G1…W-G7; D-V3-10, chủ dự án duyệt 20/10/2026); luật D5 sửa đổi ở ADR-0005. Hướng tổng thể: `docs/ROADMAP-DAY-DU.md` (D-RM-01; tệp này là hợp đồng của Phase 0b); `docs/v3/` chỉ còn để tra cứu.
 >
 > **Chứng minh phiên bản nhỏ nhất của EAIS đáng được tồn tại.**
 >

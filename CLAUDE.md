@@ -1028,24 +1028,26 @@ Nếu tenant mới yêu cầu sửa shared core:
 
 Target/current architecture phải được phân biệt rõ.
 
-Các khu vực chính:
+Các khu vực chính (đánh dấu "đích" = chưa có thư mục, chỉ có trong kiến trúc đích):
 
-    cmd/eais/
+    cmd/eais/          đích — mặt phẳng P7 Vận hành
     core/
     data/
     intelligence/
-    execution/
+    execution/         đích — mặt phẳng P4 Hành động
     reliability/
-    governance/
+    governance/        đích — một phần của P5 Kiểm soát
     observability/
     platform/
-    domain/
+    domain/            đích
     db/migrations/
     tenants/
     simulations/
     evals/
     docs/
     deploy/
+
+Bảy mặt phẳng P1–P7 và các luồng L0–L10, mỗi luồng tách hiện có / đích: `docs/ROADMAP-DAY-DU.md` §3, §5 và `docs/01-architecture.md`.
 
 Không tạo folder chỉ vì target architecture có tên đó.
 

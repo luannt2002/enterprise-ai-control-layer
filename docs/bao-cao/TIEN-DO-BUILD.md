@@ -6,17 +6,17 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 21:1x · **HEAD:** `7cad584` (cộng commit chứa tệp này).
-- **Xong từ lần trước:** Việc 3 mục 2, bước đo lại bản thử R4 (V5) của cổng phán quyết. CHƯA áp mã.
-  - Bộ câu tổng hợp 122.429 câu, dựng lại từ lượt thiết kế bị dừng (khớp md5): đóng 25.669 / 25.669 phán quyết ở câu chưa giải (R4-2 12.941, trong đó 7.168 sai chiều; R4-3 3.656; R4-4 9.072); 0 đổi chiều; 0 phán quyết mới. Câu rõ nghĩa mất 0 theo nhãn lại, 132 theo nhãn gốc. Bộ fuzz 77.062 câu: đóng 10.774 / 10.774.
-  - Bộ 117 / H1 / H3: 0 dòng khác. go test không PG: 455 test theo tên, 0 đổi kết quả.
-  - Chưa áp vì: không test nào chạy vào nhánh mới (tắt nhánh vẫn xanh hết); câu rõ nghĩa có ngày dạng số và bí danh "máy 03" đứng sau số bị mất phán quyết; V5 chặt hơn luật thử R4-4 ở câu bí danh chen giữa không có ngắt.
-  - Lời khai của lượt thiết kế lệch 3 chỗ: winreport cho V5 thực ra đã chạy; bộ câu không mất; "mất 0 câu rõ nghĩa" chỉ đúng sau nhãn lại.
+- **Cập nhật lúc:** 21/10/2026 21:2x · **HEAD:** `d5048b9` (cộng commit chứa tệp này).
+- **Xong từ lần trước:** soát mã độc lập bản thử R4 (V5), agent chỉ đọc. Không đổi mã.
+  - V5 chỉ BỚT phán quyết (nhánh mới chỉ trả "không phán quyết"): không đổi chiều, không thêm; 17 đầu vào xấu (rỗng, NFD, ký tự độ rộng 0, ngoặc lồng 300 tầng, 2.000 ký tự…): 0 crash.
+  - Xác nhận hai điều kiện chặn áp: 16 / 57 khối mã mới không test nào chạy; lỗ ngày dạng số nằm ở hàm kiểm "đoạn trơn" gặp `/`, `-`.
+  - **Phát hiện R-1, S1 còn mở ở cả HEAD và V5:** tên nguồn đứng trước số ở mệnh đề khác. "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?" → "Không." dù ERP ghi 3.900 L (BUILD đo lại). Người soát cho là cùng cơ chế với R2-4 của ADR-0009 (tên nguồn ở mệnh đề ngữ cảnh, đang xếp THẤP-TB); dạng này cho phán quyết SAI CHIỀU nên sẽ ghi thành lỗ S1 riêng và đóng trước H4.
+  - Đề xuất tách giai đoạn: lõi khoảng 35 dòng đóng R4-2 / R4-3 (S1) trước; phần bí danh và dấu câu (R4-4, S2) sau. Bảng 23 test đỏ-trước (14 âm, 9 dương), kỳ vọng suy từ ADR.
+- **Trạng thái R4 (bước đo lại, push trước):** V5 đóng 25.669 / 25.669 phán quyết ở câu chưa giải trên bộ câu tổng hợp, 0 đổi chiều, 0 phán quyết mới; 117 / H1 / H3 0 dòng khác. CHƯA áp.
 - **Đang làm:**
-  - soát mã độc lập bản thử R4 (agent chỉ đọc);
   - K1–K5 của phản hồi audit ROADMAP (brief §4 mục 7): bơm một dòng vào bản sao dữ liệu seed 42 rồi chạy winreport, mỗi nhóm có người đo lại độc lập; không sửa repo.
 - **Tiếp theo:**
-  1. Việc 3 mục 2: R4-2…R4-4 theo thứ tự test đỏ trước → sửa nhỏ nhất (V5 hay bản nhỏ hơn; sửa lỗ ngày dạng số) → đo bộ câu, fuzz, 117 / H1 / H3 → đột biến → soát độc lập → áp. Sau đó vòng S4 (ADR-0010) → H4 MỘT lần;
+  1. Việc 3 mục 2: R4-2…R4-4 theo thứ tự test đỏ trước → sửa nhỏ nhất (V5 hay bản nhỏ hơn; sửa lỗ ngày dạng số) → đo bộ câu, fuzz, 117 / H1 / H3 → đột biến → soát độc lập → áp; đóng luôn R-1 (S1, cùng quy trình). Sau đó vòng S4 (ADR-0010) → H4 MỘT lần;
   2. Việc 3 mục 3–7: phép đo (canary harness, cờ approx, CI có PG), giấy Phase 0a / 1, tài liệu lệch (danh sách trong tệp phản hồi đổi tên mục 7).
 - **Bị chặn:**
   - mã COMMAND / WORKFLOW / EVENT: chờ D-RM-04;
@@ -58,3 +58,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 21/10 19:5x | `945777c` … `903623d` (14 commit) + commit chứa dòng này | Việc 1 đổi tên lại EAIS (D-RM-02) + sửa sau 3 lượt soát độc lập; Việc 2 (ROADMAP-DAY-DU, 01-architecture, CLAUDE.md §9 / §25, README / STATUS / CONVENTIONS); D-RM-05 | vet sạch; gofmt 0; test có PG 455/0/0 (theo tên: 0 đổi, 4 cặp đổi tên, 2 mới); winreport 5 đường 0 dòng khác; đột biến 676/676, n42 25/25, w4 26/26; cổng danh tính xanh ở cây của TỪNG commit; quét riêng tư 0 dòng nghi | Tệp phản hồi theo khuôn §6: commit kế tiếp |
 | 21/10 20:2x | `1ccac76`, `4e18680` + commit chứa dòng này | Tệp phản hồi PROMPT-DOI-TEN (khuôn §6); chú thích lệch mã; push cả chuỗi sau khi mạng có lại | vet sạch; gofmt 0; test có PG 455/0/0 (cùng tên); cổng danh tính xanh ở cây của từng commit mới; quét riêng tư 0 dòng nghi | Mạng đứt 19:55 → 20:22 |
 | 21/10 21:1x | commit chứa dòng này | Việc 3 mục 2: đo lại bản thử R4 (V5) của cổng phán quyết; không đổi mã | Bộ câu dựng lại khớp md5; chấm lại từ đầu ra thô: đóng 25.669 / 25.669, 0 đổi chiều, 0 phán quyết mới; fuzz 10.774 / 10.774; 117 / H1 / H3 0 dòng khác; go test không PG 455 theo tên, 0 đổi | Chưa áp: thiếu test bảo vệ nhánh mới, lỗ ngày dạng số, chặt hơn luật thử R4-4. Hồ sơ đo chỉ ở máy BUILD |
+| 21/10 21:2x | commit chứa dòng này | Soát mã độc lập bản thử R4 (V5); không đổi mã | Agent chỉ đọc: 17 đầu vào xấu, 0 crash; tệp phủ: 16 / 57 khối mã mới không test nào chạy. BUILD đo lại R-1 bằng binary test dựng sẵn: "… ERP, 3900 L đúng không?" → "Không." ở HEAD và V5 | R-1 cùng cơ chế R2-4 của ADR-0009 (theo người soát); sai chiều nên ghi thành lỗ S1, đóng trước H4 |

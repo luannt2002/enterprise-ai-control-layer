@@ -35,4 +35,9 @@ mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);
 mm $M2 "      EXECUTE format('REVOKE ALL ON %I FROM eacl_app', t);" "      NULL;" 'MG4 0002 không gỡ quyền vai cũ'
 mm $M2 "      EXECUTE format('REVOKE ALL ON %I FROM eacl_app', t);" "      EXECUTE format('REVOKE SELECT ON %I FROM eacl_app', t);" 'MG5 0002 chỉ gỡ SELECT của vai cũ'
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO eais_app', t);" 'MG6 0002 cấp eais_app rộng hơn vai cũ'
+mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE, TRUNCATE ON %I TO eais_app', t);" 'X1 0002 cấp thêm TRUNCATE (không chịu RLS)'
+mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE, REFERENCES, TRIGGER ON %I TO eais_app', t);" 'X2 0002 cấp thêm REFERENCES, TRIGGER'
+mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app WITH GRANT OPTION', t);" 'X3 0002 cấp kèm GRANT OPTION'
+mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', t); EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" 'X4 0002 bỏ FORCE RLS'
+mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app, PUBLIC', t);" 'X5 0002 cấp qua PUBLIC (vai cũ có lại quyền)'
 psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"

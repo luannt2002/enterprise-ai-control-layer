@@ -233,8 +233,11 @@ func TestRLSCanaryB(t *testing.T) {
 	}
 }
 
-// Migration 0002 (D-RM-02): vai ứng dụng là eais_app, chính sách RLS đọc GUC eais.tenant_id. Vai eacl_app của 0001 không còn
-// quyền nào trên bảng nghiệp vụ, và đặt GUC tên cũ không mở dòng nào (đối chứng dương: GUC mới thấy đúng dòng của tenant).
+// Migration 0002 (D-RM-02): vai ứng dụng là eais_app, chính sách RLS đọc GUC eais.tenant_id. Kiểm ĐÚNG tập quyền, không chỉ vài quyền:
+// eais_app có SELECT / INSERT / DELETE như vai cũ của 0001 và không gì hơn — TRUNCATE (không chịu RLS: xoá sạch bảng của mọi tenant),
+// REFERENCES, TRIGGER, UPDATE, MAINTAIN (PG 17) hay quyền kèm GRANT OPTION đều là quyền thừa, kể cả khi đến qua PUBLIC; vai eacl_app
+// của 0001 không còn quyền nào (vai không có trong cụm thì coi là không có quyền); RLS vẫn ENABLE + FORCE trên cả 4 bảng; đặt GUC tên
+// cũ không mở dòng nào (đối chứng dương: GUC mới thấy đúng dòng của tenant).
 func TestMigration0002DinhDanhEAIS(t *testing.T) {
 	s, admin, app := open(t)
 	a := uniq("ta")
@@ -245,21 +248,42 @@ func TestMigration0002DinhDanhEAIS(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer adminConn.Close(ctx)
+	privs := []string{"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"}
+	var version int
+	if err := adminConn.QueryRow(ctx, "SELECT current_setting('server_version_num')::int").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version >= 170000 {
+		privs = append(privs, "MAINTAIN")
+	}
+	has := func(role, table, priv string) bool {
+		t.Helper()
+		var got bool
+		if err := adminConn.QueryRow(ctx, "SELECT CASE WHEN to_regrole($1) IS NULL THEN false ELSE has_table_privilege($2, $3, $4) END",
+			role, role, table, priv).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
 	for _, table := range []string{"entities", "entity_aliases", "facts", "documents"} {
-		for _, c := range []struct {
-			role, priv string
-			want       bool
-		}{
-			{"eais_app", "SELECT", true}, {"eais_app", "INSERT", true}, {"eais_app", "DELETE", true}, {"eais_app", "UPDATE", false},
-			{"eacl_app", "SELECT", false}, {"eacl_app", "INSERT", false}, {"eacl_app", "DELETE", false}, {"eacl_app", "UPDATE", false},
-		} {
-			var got bool
-			if err := adminConn.QueryRow(ctx, "SELECT has_table_privilege($1, $2, $3)", c.role, table, c.priv).Scan(&got); err != nil {
-				t.Fatal(err)
+		for _, priv := range privs {
+			want := priv == "SELECT" || priv == "INSERT" || priv == "DELETE"
+			if got := has("eais_app", table, priv); got != want {
+				t.Errorf("eais_app %s trên %s: được %v, muốn %v", priv, table, got, want)
 			}
-			if got != c.want {
-				t.Errorf("%s %s trên %s: được %v, muốn %v", c.role, c.priv, table, got, c.want)
+			if has("eais_app", table, priv+" WITH GRANT OPTION") {
+				t.Errorf("eais_app %s WITH GRANT OPTION trên %s: không được có", priv, table)
 			}
+			if has("eacl_app", table, priv) {
+				t.Errorf("vai cũ eacl_app còn %s trên %s", priv, table)
+			}
+		}
+		var enabled, forced bool
+		if err := adminConn.QueryRow(ctx, "SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid = $1::regclass", table).Scan(&enabled, &forced); err != nil {
+			t.Fatal(err)
+		}
+		if !enabled || !forced {
+			t.Errorf("%s: RLS ENABLE = %v, FORCE = %v, muốn cả hai bật", table, enabled, forced)
 		}
 	}
 	appConn, err := pgx.Connect(ctx, app)

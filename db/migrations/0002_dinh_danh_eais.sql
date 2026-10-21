@@ -1,6 +1,7 @@
 -- 0002 — định danh chạy theo tên EAIS (D-RM-02, tối 21/10/2026). 0001 có thể đã áp ở DB đang dùng nên không sửa; tệp này đưa
 -- mọi DB (đã áp 0001 từ trước, hay DB mới chạy 0001 rồi 0002) về cùng một trạng thái:
--- - vai ứng dụng eais_app (không superuser, không BYPASSRLS), cùng quyền SELECT / INSERT / DELETE như vai cũ;
+-- - vai ứng dụng eais_app, cùng quyền SELECT / INSERT / DELETE như vai cũ. Vai chưa có thì tạo NOSUPERUSER NOBYPASSRLS; vai là của cả
+--   cụm PG nên vai có sẵn thì 0002 không đổi thuộc tính — chốt chặn là pgstore.Open, từ chối vai vượt RLS (superuser hoặc BYPASSRLS);
 -- - chính sách tenant_isolation đọc GUC eais.tenant_id. GUC tên cũ (eacl.tenant_id) không còn mở dòng nào;
 -- - vai cũ eacl_app (0001 tạo; vai là của cả cụm PG nên không xoá ở đây) mất mọi quyền trên bảng nghiệp vụ của DB này.
 

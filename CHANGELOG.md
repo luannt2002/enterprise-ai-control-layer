@@ -13,7 +13,7 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
   - biến môi trường `EAIS_MODEL_*`, `EAIS_PG_ADMIN_DSN`, `EAIS_PG_DSN`; biến cùng tên tiền tố `EACL_` vẫn được đọc khi biến `EAIS_` không đặt (`models.modelEnv`, `pgstore.EnvDSN` mới, `scripts/chay-giu-lai.sh`);
   - migration mới `0002_dinh_danh_eais.sql` (không sửa `0001`): vai `eais_app`, GUC `eais.tenant_id`, vai `eacl_app` của 0001 mất mọi quyền trên bảng nghiệp vụ;
   - PG dev: compose `eais`, container `eais-pg`, database `eais`, database bộ giữ lại `eais_giu_lai`;
-  - mã hệ G7 `eais` (khoá JSON `eais_unstable_cases`); `scripts/du-toan-g7.py` vẫn đọc mã hệ `eacl` trong bằng chứng thô đã lưu.
+  - mã hệ G7 `eais`: trường `system` của `raw-runs.jsonl`, `scored.jsonl`, `failures.jsonl`, `cost.json` và mọi khoá theo mã hệ của `aggregate.json` (`counts`, `pass_count`, `flaky_cases`…) đổi `eacl` → `eais`; khoá `eacl_unstable_cases` → `eais_unstable_cases`. Công cụ đọc bằng chứng thô đã lưu phải nhận cả hai; hiện chỉ `scripts/du-toan-g7.py` đọc (trường `system` của `raw-runs.jsonl`) và đã nhận mã cũ.
 - Brief BUILD đổi tên tệp: `docs/PROMPT-BUILD-EACL.md` → `docs/PROMPT-BUILD-EAIS.md`.
 - Cổng danh tính đảo chiều: bắt tên EACL, bỏ đúng chuỗi link git trước khi đếm; giữ nguyên bằng chứng lịch sử, tệp đã băm, migration đã áp và muối băm chia bộ giữ lại.
 - Hành vi không đổi: test có PG so theo tên 0 mất / 0 đổi kết quả; bộ 117, H1, H3 ở cả hai đường: 0 dòng khác ngoài thời gian chạy.

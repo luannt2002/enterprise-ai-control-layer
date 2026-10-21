@@ -489,8 +489,8 @@ func main() {
 		}
 	}
 
-	// --- 5. Tổng quát hoá của EAIS: câu hỏi MỚI do tôi soạn (KHÔNG độc lập: đã đọc pack), model giả ---
-	fmt.Printf("\n[5] EAIS TRÊN CÂU HỎI DIỄN ĐẠT MỚI (n nhỏ, tự soạn sau khi đọc pack; chỉ là tín hiệu, không là ước lượng)\n")
+	// --- 5. Tổng quát hoá của EACL: câu hỏi MỚI do tôi soạn (KHÔNG độc lập: đã đọc pack), model giả ---
+	fmt.Printf("\n[5] EACL TRÊN CÂU HỎI DIỄN ĐẠT MỚI (n nhỏ, tự soạn sau khi đọc pack; chỉ là tín hiệu, không là ước lượng)\n")
 	ref, err := time.ParseInLocation("2006-01-02", "2026-10-20", rt.Location)
 	must(err)
 	now := ref.Add(10 * time.Hour)

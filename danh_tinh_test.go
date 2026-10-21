@@ -10,27 +10,44 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 )
 
-// Cổng danh tính: repo chỉ có MỘT danh tính sản phẩm hiện hành là EAIS (Enterprise AI Systems, D-RM-02). Tên dùng từ sáng tới
-// tối 21/10/2026 (mẫu dưới đây) chỉ được xuất hiện ở các tệp có lý do ghi trong legacyAllowed, không nhiều hơn số lần đã cho
-// phép: bằng chứng đóng băng không được sửa cho đẹp tên, còn tài liệu / mã hiện hành không được để tên cũ quay lại.
-var legacyIdentity = regexp.MustCompile(`(?i)eacl|enterprise[- ]ai[- ]control[- ]layer`)
+// Cổng danh tính: repo chỉ có MỘT danh tính sản phẩm hiện hành là EAIS (Enterprise AI Systems, D-RM-02). Tên dùng từ chiều
+// 20/10 (kế hoạch V3) tới tối 21/10/2026 (mẫu dưới đây) chỉ được xuất hiện ở các tệp có lý do ghi trong legacyAllowed, đúng bằng
+// số lần đã cho phép: bằng chứng đóng băng không được sửa cho đẹp tên, còn tài liệu / mã hiện hành không được để tên cũ quay lại.
+// Tên dài bị bắt ở mọi cách nối từ: dấu cách (kể cả khoảng trắng Unicode, xuống dòng), gạch nối, gạch dưới, dấu chấm, viết liền.
+var legacyIdentity = regexp.MustCompile(`(?i)eacl|enterprise[\p{Z}\t\n\v\f\r_.\-]*ai[\p{Z}\t\n\v\f\r_.\-]*control[\p{Z}\t\n\v\f\r_.\-]*layer`)
 
-// gitLink là tên repo, cũng là đường dẫn module Go và mọi import. D-RM-02 giữ nguyên link git, nên cổng bỏ đúng chuỗi này
-// (chữ thường, gạch nối) trước khi đếm; mọi dạng viết khác của tên dài vẫn bị đếm.
+// gitLink là tên repo, cũng là đường dẫn module Go và mọi import. D-RM-02 giữ nguyên link git, nên cổng thay đúng chuỗi này
+// (chữ thường, gạch nối) bằng một byte NUL trước khi đếm — thay chứ không xoá, để chữ hai bên không dính thành một lần khớp giả.
 const gitLink = "enterprise-ai-control-layer"
+
+// legacyCount đếm số lần tên cũ trong nội dung b (đã biết không phải tệp nhị phân). Không đếm link git, và không đếm "eACL" viết
+// đúng kiểu đó ngay sau một chữ cái: đó là chữ ACL (access control list) cuối một từ, ví dụ RetrieveACL, không phải tên sản phẩm.
+func legacyCount(b []byte) int {
+	b = bytes.ReplaceAll(b, []byte(gitLink), []byte{0})
+	n := 0
+	for _, m := range legacyIdentity.FindAllIndex(b, -1) {
+		if r, _ := utf8.DecodeLastRune(b[:m[0]]); string(b[m[0]:m[1]]) == "eACL" && unicode.IsLetter(r) {
+			continue
+		}
+		n++
+	}
+	return n
+}
 
 type allowance struct {
 	max    int
 	reason string // HISTORICAL_EVIDENCE · IMMUTABLE_HASHED_ARTIFACT · COMPATIBILITY_ALIAS · EXTERNAL_REFERENCE · FALSE_POSITIVE
 }
 
-// legacyAllowed: tiền tố đường dẫn (thư mục kết thúc bằng "/") hoặc tệp → số lần tối đa (0 = không giới hạn) + lý do.
-// Mọi mục là tệp với hạn mức đúng bằng số lần hiện có: tên cũ không lan thêm được, kể cả trong tài liệu lịch sử. Chỉ chính
-// tệp cổng (mẫu + ca âm) không giới hạn.
+// legacyAllowed: tiền tố đường dẫn (thư mục kết thúc bằng "/") hoặc tệp → hạn mức (0 = không giới hạn) + lý do. Hạn mức khác 0
+// phải ĐÚNG BẰNG số lần hiện có: nhiều hơn là tên cũ lan thêm, ít hơn là hạn mức thừa để tên cũ quay lại mà không bị bắt — cả
+// hai đều đỏ. Chỉ chính tệp cổng (mẫu + ca âm) không giới hạn.
 var legacyAllowed = map[string]allowance{
-	"CHANGELOG.md":                                 {19, "HISTORICAL_EVIDENCE: các mục 21/10/2026 ghi đúng tên, module, biến và GUC lúc đó; mục đổi tên lại tối 21/10 nêu tên cũ"},
+	"CHANGELOG.md":                                 {20, "HISTORICAL_EVIDENCE: các mục 21/10/2026 ghi đúng tên, module, biến và GUC lúc đó; mục đổi tên lại tối 21/10 nêu tên cũ"},
 	"danh_tinh_test.go":                            {0, "FALSE_POSITIVE: chính mẫu và ca âm của cổng này"},
 	"db/migrations/0001_win.sql":                   {7, "IMMUTABLE_HASHED_ARTIFACT: migration đã áp; định danh chạy đổi bằng 0002"},
 	"db/migrations/0002_dinh_danh_eais.sql":        {4, "COMPATIBILITY_ALIAS: migration gỡ quyền vai eacl_app của 0001, GUC tên cũ hết tác dụng"},
@@ -39,7 +56,7 @@ var legacyAllowed = map[string]allowance{
 	"docs/PROMPT-BUILD-EAIS.md":                    {6, "HISTORICAL_EVIDENCE: §4 mục 1 của brief nêu tên cũ để định nghĩa phép đổi D-RM-02"},
 	"docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md":          {18, "HISTORICAL_EVIDENCE: yêu cầu đổi tên D-RM-02, nêu tên cũ để định nghĩa phép đổi"},
 	"docs/ROADMAP.md":                              {96, "HISTORICAL_EVIDENCE: tài liệu tra cứu theo mốc 8280f40 (khung D-RM-01)"},
-	"docs/adr/0006-bo-giu-lai-doc-lap.md":          {1, "IMMUTABLE_HASHED_ARTIFACT: muối băm chia bộ giữ lại đã đóng băng (§4)"},
+	"docs/adr/0006-bo-giu-lai-doc-lap.md":          {1, "HISTORICAL_EVIDENCE: muối băm chia bộ giữ lại (§4); đổi chuỗi là đổi cách chia H1 / H2 đã đóng băng"},
 	"docs/bao-cao/2026-10-20-win-mvp.md":           {1, "HISTORICAL_EVIDENCE: báo cáo ngày 20/10"},
 	"docs/bao-cao/2026-10-21-ca-ngay.md":           {7, "HISTORICAL_EVIDENCE: báo cáo ca 21/10"},
 	"docs/bao-cao/2026-10-21-migration-eacl.md":    {26, "HISTORICAL_EVIDENCE: báo cáo đợt đổi tên sang EACL sáng 21/10"},
@@ -59,26 +76,27 @@ var legacyAllowed = map[string]allowance{
 	"docs/study/CLAUDE-EACL-DRAFT.md":              {14, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10, câu gắn danh tính lúc đó"},
 	"docs/study/README.md":                         {7, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10"},
 	"docs/study/legacy-to-eacl.md":                 {11, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10, câu gắn danh tính lúc đó"},
-	"docs/v3/00-CONTEXT-AUDIT.md":                  {13, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/01-CURRENT-STATE-MATRIX.md":           {9, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/02-BASELINE-EVIDENCE.md":              {6, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/03-REQUIREMENTS-TRACEABILITY.md":      {4, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/04-IMPLEMENTATION-DAG.md":             {2, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/05-R0-DEFINITION-FREEZE.md":           {17, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/06-MVP-TASK-BACKLOG.md":               {16, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/08-RISK-REGISTER.md":                  {7, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
-	"docs/v3/09-EVIDENCE-INDEX.md":                 {3, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng của gói kế hoạch; trỏ nguồn ở máy)"},
+	"docs/v3/00-CONTEXT-AUDIT.md":                  {13, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/)"},
+	"docs/v3/01-CURRENT-STATE-MATRIX.md":           {9, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
+	"docs/v3/02-BASELINE-EVIDENCE.md":              {6, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
+	"docs/v3/03-REQUIREMENTS-TRACEABILITY.md":      {4, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
+	"docs/v3/04-IMPLEMENTATION-DAG.md":             {2, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/)"},
+	"docs/v3/05-R0-DEFINITION-FREEZE.md":           {17, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
+	"docs/v3/06-MVP-TASK-BACKLOG.md":               {16, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
+	"docs/v3/08-RISK-REGISTER.md":                  {7, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/)"},
+	"docs/v3/09-EVIDENCE-INDEX.md":                 {3, "HISTORICAL_EVIDENCE: kế hoạch V3 20/10 (tên riêng 'EACL V3', nguồn ở máy docs/sources/eacl-v3/) + chỗ đợt đổi tên sáng 21/10 (35c8e61) đổi máy móc từ tên gốc"},
 	"intelligence/models/messages.go":              {2, "COMPATIBILITY_ALIAS: modelEnv đọc EACL_MODEL_* (tên trước D-RM-02, D-G7-8) khi biến EAIS_ không đặt"},
 	"intelligence/models/messages_params_test.go":  {8, "COMPATIBILITY_ALIAS: test của modelEnv"},
-	"intelligence/rag/rag_test.go":                 {1, "FALSE_POSITIVE: TestRetrieveACLRongKhongAiDoc (chữ ACL)"},
 	"platform/pgstore/env.go":                      {1, "COMPATIBILITY_ALIAS: EnvDSN đọc EACL_PG_* khi biến EAIS_ không đặt"},
 	"platform/pgstore/env_test.go":                 {6, "COMPATIBILITY_ALIAS: test của EnvDSN"},
-	"platform/pgstore/pgstore_test.go":             {7, "FALSE_POSITIVE (TestRetrieveACL: chữ ACL) + COMPATIBILITY_ALIAS: sau 0002 vai eacl_app và GUC eacl.tenant_id hết tác dụng"},
+	"platform/pgstore/pgstore_test.go":             {4, "COMPATIBILITY_ALIAS: test 0002 — vai eacl_app không còn quyền, GUC eacl.tenant_id không mở dòng"},
 	"scripts/chay-giu-lai.sh":                      {3, "COMPATIBILITY_ALIAS: đọc DSN EACL_PG_* như pgstore.EnvDSN"},
-	"scripts/dong-bang-giu-lai.py":                 {2, "IMMUTABLE_HASHED_ARTIFACT: muối băm chia bộ giữ lại đã đóng băng (SALT)"},
-	"scripts/dot-bien/n42-danh-tinh.sh":            {2, "FALSE_POSITIVE: chuỗi đột biến của chính cổng này và của biến môi trường tương thích"},
+	"scripts/dong-bang-giu-lai.py":                 {2, "HISTORICAL_EVIDENCE: muối băm chia bộ giữ lại (SALT); đổi chuỗi là đổi cách chia H1 / H2 đã đóng băng"},
+	"scripts/dot-bien/n42-danh-tinh.sh":            {7, "FALSE_POSITIVE: chuỗi đột biến của chính mẫu và luật đếm của cổng này (DT1, DT13, DT17, DT18)"},
 	"scripts/dot-bien/w4-pg-rls.sh":                {5, "FALSE_POSITIVE: chuỗi đột biến của migration 0002 (GUC / vai tên cũ)"},
 	"scripts/du-toan-g7.py":                        {2, "COMPATIBILITY_ALIAS: đọc mã hệ \"eacl\" trong bằng chứng thô đã lưu trước D-RM-02"},
+	"scripts/kiem-ke-doi-ten.py":                   {22, "FALSE_POSITIVE: mẫu đếm và luật xếp nhóm của công cụ kiểm kê đổi tên (PROMPT-DOI-TEN §2.1)"},
+	"tenants/construction/win/d5probe/main.go":     {2, "HISTORICAL_EVIDENCE: chương trình đo của bản soát D5 (20/10), giữ nguyên văn nhãn in ra"},
 }
 
 // skipped: thư mục / tệp không thuộc nội dung repo. Git không bao giờ theo dõi mục tên .git (thư mục hay tệp); nguồn riêng của chủ
@@ -99,6 +117,7 @@ func skipped(rel string, d fs.DirEntry) bool {
 func legacyHits(t *testing.T, root string, allowed map[string]allowance) []string {
 	t.Helper()
 	var bad []string
+	seen := map[string]bool{}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -121,14 +140,18 @@ func legacyHits(t *testing.T, root string, allowed map[string]allowance) []strin
 		if bytes.IndexByte(b, 0) >= 0 { // tệp nhị phân
 			return nil
 		}
-		n := len(legacyIdentity.FindAllIndex(bytes.ReplaceAll(b, []byte(gitLink), nil), -1))
+		n := legacyCount(b)
 		if n == 0 {
 			return nil
 		}
 		for k, a := range allowed {
 			if rel == k || (strings.HasSuffix(k, "/") && strings.HasPrefix(rel, k)) {
+				seen[k] = true
 				if a.max > 0 && n > a.max {
 					bad = append(bad, rel+": "+strconv.Itoa(n)+" lần, cho phép "+strconv.Itoa(a.max)+" ("+a.reason+")")
+				}
+				if a.max > 0 && n < a.max {
+					bad = append(bad, rel+": "+strconv.Itoa(n)+" lần, hạn mức "+strconv.Itoa(a.max)+" thừa: hạ xuống "+strconv.Itoa(n)+" ("+a.reason+")")
 				}
 				return nil
 			}
@@ -138,6 +161,11 @@ func legacyHits(t *testing.T, root string, allowed map[string]allowance) []strin
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	for k, a := range allowed { // mục cho tệp không còn lần nào: hạn mức thừa nhất
+		if a.max > 0 && !strings.HasSuffix(k, "/") && !seen[k] {
+			bad = append(bad, k+": 0 lần, hạn mức "+strconv.Itoa(a.max)+" thừa: bỏ mục ("+a.reason+")")
+		}
 	}
 	sort.Strings(bad)
 	return bad
@@ -161,10 +189,20 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 		"cmd/x/main.go":                    "package main // vẫn gọi eacl\n",
 		"tenants/construction/pack/x.yaml": "name: ok\n",
 		// link git (D-RM-02 giữ nguyên): đường dẫn module, import, URL clone không tính; tên dài viết kiểu khác vẫn tính
-		"core/y/y.go":                        "import \"github.com/luannt2002/enterprise-ai-control-layer/core/contracts\"\n",
-		"docs/clone.md":                      "git clone https://github.com/luannt2002/enterprise-ai-control-layer.git && cd enterprise-ai-control-layer\n",
-		"docs/ten-dai.md":                    "Enterprise-AI-Control-Layer · enterprise ai control layer\n",
-		"core/z/z.go":                        "// EACL github.com/luannt2002/enterprise-ai-control-layer\n",
+		"core/y/y.go":     "import \"github.com/luannt2002/enterprise-ai-control-layer/core/contracts\"\n",
+		"docs/clone.md":   "git clone https://github.com/luannt2002/enterprise-ai-control-layer.git && cd enterprise-ai-control-layer\n",
+		"docs/ten-dai.md": "Enterprise-AI-Control-Layer · enterprise ai control layer\n",
+		"core/z/z.go":     "// EACL github.com/luannt2002/enterprise-ai-control-layer\n",
+		// tên dài ở mọi cách nối từ (soát C-01): gạch dưới, CamelCase / viết liền, dấu chấm, hai dấu cách, xuống dòng, khoảng trắng Unicode
+		"docs/noi-tu.md": "enterprise_ai_control_layer · EnterpriseAIControlLayer · enterpriseaicontrollayer · Enterprise.AI.Control.Layer · " +
+			"Enterprise  AI  Control  Layer · Enterprise\nAI Control\nLayer · Enterprise\u00a0AI\u00a0Control\u00a0Layer\n",
+		// link git bị thay bằng NUL, không bị xoá: chữ hai bên không được dính thành "eacl" giả (soát C-04)
+		"docs/ghep.md": "xeacenterprise-ai-control-layerlx\n",
+		// chữ ACL cuối một từ không phải tên sản phẩm (soát C-06); tên sản phẩm dính sau chữ cái vẫn bị đếm
+		"core/acl/acl.go": "func TestRetrieveACL() {} // ReleaseACL, CreateACL\n",
+		"core/he/he.go":   "sysEACL, EACLPass, eaclAsker\n",
+		// hạn mức thừa: tệp có 1 lần mà mục cho phép ghi 3 (soát C-05)
+		"docs/thua.md":                       "EACL một lần\n",
 		"docs/sources/holdout-h3/kit/kiemca": "\x00EACL",
 		"CA-2026-10-21.local.md":             "sổ ca ở máy nhắc EACL\n",
 		"bin/cong-cu":                        "\x00EACL nhị phân",
@@ -188,15 +226,16 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got := strings.Join(legacyHits(t, root, map[string]allowance{"CHANGELOG.md": {2, "thử"}, "docs/bao-cao/": {0, "thử"}}), "\n")
+	got := strings.Join(legacyHits(t, root, map[string]allowance{"CHANGELOG.md": {2, "thử"}, "docs/bao-cao/": {0, "thử"}, "docs/thua.md": {3, "thử"}, "docs/da-sua.md": {2, "thử"}}), "\n")
 	for _, want := range []string{"README.md: 2 lần", "CHANGELOG.md: 3 lần, cho phép 2", "cmd/x/main.go: 1 lần", ".claude/ghi-chu.md: 1 lần", "stale/f.md: 1 lần",
-		"docs/ten-dai.md: 2 lần", "core/z/z.go: 1 lần"} {
+		"docs/ten-dai.md: 2 lần", "core/z/z.go: 1 lần", "docs/noi-tu.md: 7 lần", "core/he/he.go: 3 lần", "docs/thua.md: 1 lần, hạn mức 3 thừa: hạ xuống 1",
+		"docs/da-sua.md: 0 lần, hạn mức 2 thừa: bỏ mục"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("thiếu vi phạm %q trong:\n%s", want, got)
 		}
 	}
 	for _, not := range []string{"docs/sources", "docs/bao-cao", "pack/x.yaml", ".local.md", "bin/cong-cu", ".claude/worktrees", "stale/.git",
-		"core/y/y.go", "docs/clone.md"} {
+		"core/y/y.go", "docs/clone.md", "docs/ghep.md", "core/acl/acl.go"} {
 		if strings.Contains(got, not) {
 			t.Errorf("báo oan %q:\n%s", not, got)
 		}

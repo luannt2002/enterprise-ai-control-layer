@@ -71,7 +71,7 @@ Roadmap hiện hành là `docs/ROADMAP-DAY-DU.md`:
 
 Thứ tự ưu tiên:
 
-**1. ĐỔI TÊN LẠI (D-RM-02): làm đầu tiên, trước mọi việc khác.**
+**1. ĐỔI TÊN LẠI (D-RM-02): làm đầu tiên, trước mọi việc khác.** Chi tiết, việc viết lại các luồng và khuôn trả lời: `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md`.
 
 Lời chủ dự án: "đổi hết tất cả tên ở code, ở doc, ở md lại thành cái tên kia; chỉ có cái link git chưa đổi thôi". "Cái tên kia" là tên gốc ngày 20/10: xem `CLAUDE.md` §9 và `docs/01-architecture.md:3` ở commit `d70ebc8`.
 

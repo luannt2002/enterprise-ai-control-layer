@@ -45,7 +45,7 @@ Mốc phải ra (đo 21/10/2026 tại `9dede54`, Go 1.26.4; đếm mọi sự ki
 
 Lệch mốc thì dừng lại tìm nguyên nhân trước khi làm gì khác. Phân loại trước khi sửa: môi trường, đỏ sẵn, hay hồi quy thật (CLAUDE.md §32).
 
-Container PG dựng trước tối 21/10/2026 mang tên project compose cũ (`eacl`, container `eacl-pg`, database `eacl`): gỡ bằng `docker compose -p eacl down` rồi dựng lại bằng lệnh trên (dữ liệu tmpfs, không mất gì). Database đã áp `0001_win.sql` thì migration `0002_dinh_danh_eais.sql` tự chuyển GUC và vai ứng dụng sang tên hiện hành (`eais.tenant_id`, `eais_app`) và gỡ quyền của vai cũ.
+Container PG dựng trong khoảng 09:29 → 18:4x ngày 21/10/2026 mang tên project compose cũ (`eacl`, container `eacl-pg`, database `eacl`): gỡ bằng `docker compose -p eacl down` rồi dựng lại bằng lệnh trên (dữ liệu tmpfs, không mất gì). Container dựng trước đó (20/10) đã mang tên hiện hành. Database đã áp `0001_win.sql` thì migration `0002_dinh_danh_eais.sql` tự chuyển GUC và vai ứng dụng sang tên hiện hành (`eais.tenant_id`, `eais_app`) và gỡ quyền của vai cũ.
 
 Bộ giữ lại (`scripts/chay-giu-lai.sh`) chỉ chạy trên database riêng `eais_giu_lai`: tạo bằng `docker exec eais-pg psql -U postgres -c "CREATE DATABASE eais_giu_lai"`, rồi đặt `EAIS_PG_ADMIN_DSN` / `EAIS_PG_DSN` trỏ vào nó (migration tự áp khi chạy; 21/10 đã thử với database bộ giữ lại tên khi đó: đường PG 117/117).
 

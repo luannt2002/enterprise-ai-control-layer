@@ -1,4 +1,4 @@
-> **Nguồn:** đặc tả cuối của giám khảo độc lập (workflow thiết kế bộ chấm G7 v2, 21/10/2026 rạng sáng): hai người thiết kế không đọc mã / pack EAIS, không mở bộ giữ lại; một giám khảo chấm, đo lại và tổng hợp. Giữ nguyên văn, chỉ thay đường dẫn máy bằng `<scratch>`. Quyết định ghi ở `docs/adr/0007-bo-cham-g7-v2.md`. Mã nguyên mẫu (≈ 5,6 nghìn dòng) giữ ở máy, chưa công khai khi chưa soát.
+> **Nguồn:** đặc tả cuối của giám khảo độc lập (workflow thiết kế bộ chấm G7 v2, 21/10/2026 rạng sáng): hai người thiết kế không đọc mã / pack EAIS, không mở bộ giữ lại; một giám khảo chấm, đo lại và tổng hợp. Giữ nguyên văn, chỉ thay đường dẫn máy bằng `<scratch>` và tên sản phẩm theo hai đợt đổi tên ngày 21/10 (sáng; tối theo D-RM-02). Quyết định ghi ở `docs/adr/0007-bo-cham-g7-v2.md`. Mã nguyên mẫu (≈ 5,6 nghìn dòng) giữ ở máy, chưa công khai khi chưa soát.
 
 # G7-CV2: đặc tả cuối bộ chấm nội dung G7 v2
 

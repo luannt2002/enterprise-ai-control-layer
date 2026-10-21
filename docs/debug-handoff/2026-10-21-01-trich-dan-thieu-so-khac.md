@@ -31,3 +31,13 @@ Suggested BUILD investigation: thêm bằng chứng của otherMetrics vào cita
 ## Trạng thái BUILD
 
 (BUILD điền: NHẬN / ĐANG LÀM / XONG `<commit>` / BÁC: `<lý do + lệnh>` / BLOCKED_FOR_OWNER — kèm ngày)
+
+- **NHẬN** — 21/10/2026 14:4x, phiên BUILD, HEAD `acd09c8`. Chưa sửa trong ca này. Lý do:
+  - trích dẫn là trường mà bộ chấm WIN có kiểm (ví dụ lý do đỏ "thiếu trích dẫn SOP-FUEL-01" ở H3);
+  - vì vậy sửa xong phải đo lại bộ 117 ca và H1 trên cả hai đường, không làm vội trước giờ chốt ca.
+
+  Kế hoạch ở ca sau:
+  1. test đỏ trước: khẳng định mọi số trong câu trả lời câu xác nhận có id trong citations và trong `Decision.Evidence`;
+  2. thêm bằng chứng của `otherMetrics` vào citations;
+  3. xét Replay / Diff có cần so phần này không;
+  4. đột biến, rồi soát độc lập.

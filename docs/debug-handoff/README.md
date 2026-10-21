@@ -8,4 +8,4 @@ Phiên debug chạy và trace EACL ở một mốc cố định, **không sửa 
 
 | Tệp | Lỗi | Mức | Trạng thái BUILD |
 |---|---|---|---|
-| `2026-10-21-01-trich-dan-thieu-so-khac.md` | 3 số "các số khác cùng kỳ" được S9 kiểm nhưng không có trong trích dẫn và bản ghi quyết định | THẤP | chưa điền |
+| `2026-10-21-01-trich-dan-thieu-so-khac.md` | 3 số "các số khác cùng kỳ" được S9 kiểm nhưng không có trong trích dẫn và bản ghi quyết định | THẤP | NHẬN (21/10 14:4x) |

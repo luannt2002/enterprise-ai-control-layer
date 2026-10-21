@@ -20,7 +20,8 @@ import (
 // ngữ cảnh, RLS chặn phần còn lại.
 type Store struct{ pool *pgxpool.Pool }
 
-// Open mở pool tới dsn (vai eacl_app) và kiểm kết nối.
+// Open mở pool tới dsn (vai eacl_app) và kiểm kết nối. Vai vượt được RLS (superuser hoặc BYPASSRLS) bị từ chối: với vai
+// đó RLS không chặn gì, và Load (DELETE FROM dựa vào RLS) xoá dữ liệu của MỌI tenant.
 func Open(ctx context.Context, dsn string) (*Store, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
@@ -29,6 +30,16 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
 		return nil, contracts.Label(contracts.Infra("postgres"), err)
+	}
+	var role string
+	var super, bypass bool
+	if err := pool.QueryRow(ctx, "SELECT rolname, rolsuper, rolbypassrls FROM pg_catalog.pg_roles WHERE rolname = current_user").Scan(&role, &super, &bypass); err != nil {
+		pool.Close()
+		return nil, contracts.Label(contracts.Infra("postgres"), err)
+	}
+	if super || bypass {
+		pool.Close()
+		return nil, contracts.Errorf(contracts.FaultPolicy, "vai "+role+" vượt RLS (superuser hoặc BYPASSRLS): Store chỉ chạy bằng vai mà RLS chặn được (vd eacl_app)")
 	}
 	return &Store{pool: pool}, nil
 }

@@ -16,3 +16,6 @@ m platform/pgstore/pgstore.go '	if t, ok := contracts.TenantFrom(ctx); ok && t !
 m core/pipeline/ask.go '	ctx = contracts.WithTenant(ctx, pr.TenantID)' '	_ = contracts.WithTenant' 'PF S1 không gắn tenant vào ngữ cảnh'
 m platform/pgstore/load.go '		for _, table := range []string{"entity_aliases", "facts", "documents", "entities"} {' '		for _, table := range []string{} {' 'PG Load không thay dữ liệu cũ'
 m platform/pgstore/pgstore.go '			f.OccurredOn = time.Date(on.Year(), on.Month(), on.Day(), 0, 0, 0, 0, from.Location())' '			f.OccurredOn = on' 'PH ngày fact sai múi giờ'
+m platform/pgstore/pgstore.go '	if super || bypass {' '	if false {' 'BR1 Open không kiểm vai vượt RLS'
+m platform/pgstore/pgstore.go '	if super || bypass {' '	if super {' 'BR2 Open chỉ chặn superuser, lọt vai BYPASSRLS'
+m platform/pgstore/pgstore.go '	if super || bypass {' '	if bypass {' 'BR3 Open chỉ chặn BYPASSRLS, lọt superuser'

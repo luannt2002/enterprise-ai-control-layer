@@ -3,6 +3,7 @@ package pgstore_test
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -81,6 +82,58 @@ func TestGUCLayTuNguCanh(t *testing.T) {
 	if err := s.Load(bare, nil, nil, nil); contracts.FaultOf(err) != contracts.FaultPolicy {
 		t.Errorf("Load không tenant: muốn lỗi %s, được %v", contracts.FaultPolicy, err)
 	}
+}
+
+// Open chỉ nhận vai KHÔNG vượt được RLS: DSN quản trị trỏ nhầm vào Store thì Load (DELETE FROM dựa vào RLS) xoá dữ liệu
+// của MỌI tenant. Ca âm: vai quản trị dựng sẵn (superuser + BYPASSRLS), một vai chỉ BYPASSRLS và một vai chỉ SUPERUSER (vẫn
+// vượt RLS dù NOBYPASSRLS) đều bị từ chối với lỗi chính sách; vai ứng dụng mở được.
+func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
+	_, admin, app := open(t)
+	ctx := context.Background()
+	u, err := url.Parse(admin)
+	if err != nil || u.User == nil {
+		t.Fatalf("DSN quản trị phải ở dạng URL có tên vai (docs/ops/README.md): %v", err)
+	}
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Cleanup chạy ngược thứ tự đăng ký: xoá vai tạm trước, đóng kết nối sau (defer sẽ đóng kết nối TRƯỚC Cleanup).
+	t.Cleanup(func() { conn.Close(context.Background()) })
+	dsns := map[string]string{"quản trị dựng sẵn": admin}
+	for name, attrs := range map[string]string{"bypass": "NOSUPERUSER BYPASSRLS", "super": "SUPERUSER NOBYPASSRLS"} {
+		role := fmt.Sprintf("eacl_test_%s_%d", name, os.Getpid())
+		if _, err := conn.Exec(ctx, "DROP ROLE IF EXISTS "+role); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := conn.Exec(ctx, "CREATE ROLE "+role+" LOGIN "+attrs); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if _, err := conn.Exec(context.Background(), "DROP ROLE IF EXISTS "+role); err != nil {
+				t.Errorf("xoá vai tạm %s: %v", role, err)
+			}
+		})
+		r := *u
+		r.User = url.User(role)
+		dsns[attrs] = r.String()
+	}
+	for name, dsn := range dsns {
+		s, err := pgstore.Open(ctx, dsn)
+		if err == nil {
+			s.Close()
+			t.Errorf("%s: Open phải từ chối vai vượt RLS", name)
+			continue
+		}
+		if contracts.FaultOf(err) != contracts.FaultPolicy || !strings.Contains(err.Error(), "RLS") {
+			t.Errorf("%s: muốn lỗi %s nêu RLS, được %v", name, contracts.FaultPolicy, err)
+		}
+	}
+	s, err := pgstore.Open(ctx, app)
+	if err != nil {
+		t.Fatalf("vai ứng dụng phải mở được: %v", err)
+	}
+	s.Close()
 }
 
 // Canary B: không dòng / thực thể / fact / tài liệu nào của B tới được từ A (cho phép + từ chối),

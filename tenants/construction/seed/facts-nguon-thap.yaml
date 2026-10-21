@@ -1,0 +1,8 @@
+# Fact GIẢ LẬP cho cổng phán quyết (ADR-0009): ngày 19/10 chỉ nguồn thẩm quyền THẤP có số — không có phiếu xuất kho cho EX-03, không
+# có báo cáo ngày. Câu "phiếu xuất kho ghi …" / "báo cáo ngày ghi …" không được phán quyết vì số trả lời không lấy từ nguồn được nêu.
+facts:
+  - {id: n01, metric: issued_fuel, entity: EX-03, on: 2026-10-19, value: "3900", unit: L, source: erp, ref: ERP-1, raw: "ERP ghi nhận xuất 3900 L", at: "2026-10-19T18:00:00+07:00"}
+  - {id: n02, metric: reported_fuel, entity: EX-03, on: 2026-10-19, value: "4000", unit: L, source: chat_message, ref: ZL-1, raw: "máy 03 lấy 4k", at: "2026-10-19T07:30:00+07:00", by: đội trưởng Hùng}
+  - {id: n03, metric: reported_fuel, entity: RL-02, on: 2026-10-19, value: "1200", unit: L, source: site_report_form, ref: R-1}
+  - {id: n04, metric: issued_fuel, entity: RL-02, on: 2026-10-19, value: "1200", unit: L, source: warehouse_slip, ref: PX-1}
+  - {id: n05, metric: issued_fuel, entity: RL-02, on: 2026-10-19, value: "1250", unit: L, source: erp, ref: ERP-2, at: "2026-10-19T19:00:00+07:00"}

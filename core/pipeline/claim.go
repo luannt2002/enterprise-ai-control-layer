@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"unicode"
@@ -19,9 +20,12 @@ import (
 // thứ hai, nhãn, mốc chưa đọc, phủ định, so sánh, nguồn / nghĩa khác, từ lạ — làm mất phán quyết, không bao giờ đổi chiều phán quyết.
 //
 // Phạm vi hỏi là mệnh đề chứa cụm xác nhận và các mệnh đề sau nó (như claimNumbers). Mệnh đề đứng TRƯỚC là ngữ cảnh: được chứa thêm
-// lượng tự mang đơn vị, tên chỉ số / nguồn bất kỳ của pack — sự kiện người hỏi nêu về chỉ số khác — nhưng mọi chữ khác vẫn phải
-// được giải thích ("Không tính ERP, …" vẫn mất phán quyết).
-func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contracts.Intent, def sourceoftruth.MetricDef, claimed contracts.Value) string {
+// lượng tự mang đơn vị, từ khoá của các ý định số liệu, tên nguồn bất kỳ của pack, từ chỉ lượng — sự kiện người hỏi nêu về chỉ số khác —
+// nhưng mọi chữ khác vẫn phải được giải thích ("Không tính ERP, …" vẫn mất phán quyết).
+//
+// subj là chủ thể hệ đã trả lời (kèm các cấp cha); used là các loại nguồn thực sự tạo nên con số trả lời.
+func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contracts.Intent, def sourceoftruth.MetricDef,
+	claimed contracts.Value, subj subjectFacts, used []string) string {
 	idef, ok := a.RT.Intents.Def(it.Name)
 	if !ok || idef.Weak {
 		return "metric" // chỉ số theo quy ước của pack ("bao nhiêu"), không do người hỏi nêu
@@ -30,6 +34,12 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 		return "period" // không nêu mốc (kỳ mặc định của pack) hoặc nhiều mốc
 	}
 	raw := in.Raw
+	if !normalization.HasDiacritic(raw) {
+		return "accent" // câu không dấu: bộ chuẩn hoá khớp bỏ dấu nên nhiều chữ trùng nhau ("co" = có / cỡ, "dau" = dầu / đầu)
+	}
+	if markerCount(raw, a.RT.ConfirmMarkers) != 1 {
+		return "marker" // nhiều cụm xác nhận là nhiều claim; một phán quyết không trả lời đủ
+	}
 	inName := func(s, e int) bool {
 		return slices.ContainsFunc(names, func(m mention) bool { return s < m.end && e > m.start })
 	}
@@ -41,6 +51,9 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 		}) {
 			lo = sentenceStart(raw, fs) // mệnh đề hỏi không có số ("…, vậy đúng không?"): câu hỏi áp cho cả câu
 		}
+	}
+	if gap := subj.gap(names, lo); gap != "" {
+		return gap
 	}
 	covered := make([]bool, len(raw))
 	cover := func(s, e int) {
@@ -78,10 +91,11 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 				}
 				continue
 			}
-			// MỌI con số khác trong phạm vi hỏi phải chính là con số được xác nhận, viết ra với đơn vị cùng chiều đo. Dấu xấp xỉ / chặn / mẫu
-			// số ("khoảng", "~", ">", "/ngày") nằm ngoài span số nên thành phần dư ở bước cuối.
+			// MỌI con số khác trong phạm vi hỏi phải chính là con số được xác nhận, viết ra với đơn vị cùng chiều đo và nằm trong miền
+			// của chỉ số (ngoài miền: dấu chấm / phẩy hay đơn vị có thể đã bị đọc sai — "3.850 m3" thành 3.850.000 L). Dấu xấp xỉ / chặn /
+			// mẫu số ("khoảng", "~", ">", "/ngày") nằm ngoài span số nên thành phần dư ở bước cuối.
 			v, ok := a.inMetricUnit(sp.Value, def)
-			if !ok || !unitShown(sp) {
+			if !ok || !unitShown(sp) || def.InRange(v.Number) != nil {
 				return "value"
 			}
 			if c, err := decimal.Cmp(v.Number, claimed.Number); err != nil || c != 0 {
@@ -94,6 +108,13 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	if !value {
 		return "value"
 	}
+	srcSpans, gap := sourceMentions(raw, def, used, lo)
+	if gap != "" {
+		return gap
+	}
+	for _, sp := range srcSpans {
+		cover(sp[0], sp[1])
+	}
 	coverPhrases := func(phrases []string, from, to int) {
 		for _, p := range phrases {
 			for _, sp := range normalization.PhraseSpans(raw, p) {
@@ -103,10 +124,11 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 			}
 		}
 	}
-	// phạm vi hỏi: từ khoá của CHÍNH ý định, nguồn có thẩm quyền cao nhất của CHÍNH chỉ số ("phiếu xuất kho … đúng không?": con số được so
-	// đúng với nguồn người hỏi nêu); nguồn thấp hơn ("ERP ghi …") là claim về con số của nguồn đó ⇒ không giải thích.
-	coverPhrases(slices.Concat(idef.Keywords, topSourceLabels(def), a.RT.ConfirmMarkers, a.RT.ClaimNeutral), 0, len(raw))
+	// từ khoá của CHÍNH ý định (ở mọi mệnh đề), cụm xác nhận, từ trung tính của pack
+	coverPhrases(slices.Concat(idef.Keywords, a.RT.ConfirmMarkers, a.RT.ClaimNeutral), 0, len(raw))
 	if lo > 0 {
+		// ngữ cảnh: thêm từ khoá của các ý định số liệu, tên nguồn bất kỳ của pack, từ chỉ lượng ("Đội báo 2k, vậy …") — KHÔNG thêm từ
+		// khoá của ý định quy trình / chào hỏi / phép tính dẫn xuất ("Làm gì có, …", "Hello, …", "Khi lệch, …")
 		var labels []string
 		for _, id := range a.RT.Metrics.MetricIDs() {
 			m, _ := a.RT.Metrics.Metric(id)
@@ -114,7 +136,7 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 				labels = append(labels, s.Label)
 			}
 		}
-		coverPhrases(slices.Concat(a.RT.Intents.Keywords(), labels, a.RT.QuantityMarkers), 0, lo)
+		coverPhrases(slices.Concat(a.RT.Intents.MetricKeywords(), labels, a.RT.QuantityMarkers), 0, lo)
 	}
 	for i := 0; i < len(raw); {
 		r, n := utf8.DecodeRuneInString(raw[i:])
@@ -126,31 +148,98 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	return ""
 }
 
-// claimSeparators là dấu câu ngăn cách, không mang nghĩa claim; mọi ký tự khác chưa được giải thích đều là phần dư.
-const claimSeparators = ",.;:?!()[]\"'“”‘’…-–—"
+// claimSeparators là dấu câu ngăn cách, không mang nghĩa claim; mọi ký tự khác chưa được giải thích đều là phần dư. Gạch ngắn / dài
+// ("–", "—") KHÔNG ở đây: dính vào số thì chúng là dấu âm mà bộ chuẩn hoá không đọc ("–3850 L").
+const claimSeparators = ",.;:?!()[]\"'“”‘’…-"
 
-// topSourceLabels trả cách gọi các nguồn có thẩm quyền CAO NHẤT của chỉ số (authority nhỏ nhất).
-func topSourceLabels(def sourceoftruth.MetricDef) []string {
-	best := 0
-	for _, s := range def.Sources {
-		if best == 0 || s.Authority < best {
-			best = s.Authority
-		}
-	}
-	var out []string
-	for _, s := range def.Sources {
-		if s.Authority == best && s.Label != "" {
-			out = append(out, s.Label)
-		}
-	}
-	return out
+// subjectFacts là chủ thể hệ đã trả lời và các cấp cha của nó (máy → dự án).
+type subjectFacts struct {
+	id        string
+	ancestors map[string]bool
 }
 
-// unitShown báo con số tự mang chiều đo: lượng có đơn vị (viết rõ, hoặc suy từ thuật ngữ vật tư đứng cạnh: "4k dầu"), hoặc số có
-// dạng lượng ("4k", "4.000", "bốn ngàn"). Số trần trơn ("3850", "912") không nói được nó là lít, số phiếu hay số thứ tự.
+// subjectOf lấy chủ thể hệ đã trả lời và các cấp cha của nó từ danh mục thực thể.
+func (a *Ask) subjectOf(ctx context.Context, id string) (subjectFacts, error) {
+	all, err := a.Deps.Directory.Entities(ctx)
+	if err != nil {
+		return subjectFacts{}, contracts.Label(contracts.Infra("directory"), err)
+	}
+	parent := make(map[string]string, len(all))
+	for _, e := range all {
+		parent[e.ID] = e.Parent
+	}
+	s := subjectFacts{id: id, ancestors: map[string]bool{}}
+	for p := parent[id]; p != "" && !s.ancestors[p]; p = parent[p] {
+		s.ancestors[p] = true
+	}
+	return s, nil
+}
+
+// gap trả "subject" khi chủ thể của claim chưa giải: một cụm tên chỉ về thực thể khác chủ thể mà không phải cấp cha của nó ("EX-03
+// của dự án B", "Dự án A … cho EX-03"), hoặc phạm vi hỏi có nêu tên mà không nêu chủ thể ("EX-03 … 3850 L, vậy dự án A … đúng không?").
+func (s subjectFacts) gap(names []mention, lo int) string {
+	inFocus, subjectInFocus := false, false
+	for _, m := range names {
+		if !slices.ContainsFunc(m.ids, func(id string) bool { return id == s.id || s.ancestors[id] }) {
+			return "subject"
+		}
+		if m.start >= lo {
+			inFocus = true
+			subjectInFocus = subjectInFocus || slices.Contains(m.ids, s.id)
+		}
+	}
+	if inFocus && !subjectInFocus {
+		return "subject"
+	}
+	return ""
+}
+
+// markerCount đếm số cụm xác nhận rời nhau trong câu ("có đúng không" là một cụm dù "có đúng" và "đúng không" chồng lên nhau).
+func markerCount(raw string, markers []string) int {
+	var spans [][2]int
+	for _, m := range markers {
+		spans = append(spans, normalization.PhraseSpans(raw, m)...)
+	}
+	slices.SortFunc(spans, func(x, y [2]int) int { return x[0] - y[0] })
+	n, end := 0, -1
+	for _, sp := range spans {
+		if sp[0] >= end {
+			n++
+		}
+		end = max(end, sp[1])
+	}
+	return n
+}
+
+// sourceMentions trả vị trí các tên nguồn của chỉ số (nhãn + bí danh của pack) trong phạm vi hỏi [lo, len). Tên nguồn chỉ được giải
+// thích khi con số trả lời lấy ĐÚNG và CHỈ từ nguồn đó: "phiếu xuất kho ghi 3900 L đúng không?" mà 3.900 L là của ERP ⇒ "source".
+func sourceMentions(raw string, def sourceoftruth.MetricDef, used []string, lo int) ([][2]int, string) {
+	var out [][2]int
+	for _, s := range def.Sources {
+		for _, p := range append([]string{s.Label}, s.Aliases...) {
+			if p == "" {
+				continue
+			}
+			for _, sp := range normalization.PhraseSpans(raw, p) {
+				if sp[0] < lo {
+					continue
+				}
+				if len(used) != 1 || used[0] != s.Type {
+					return nil, "source"
+				}
+				out = append(out, sp)
+			}
+		}
+	}
+	return out, ""
+}
+
+// unitShown báo con số tự mang chiều đo: lượng có đơn vị (viết rõ, hoặc suy từ thuật ngữ vật tư đứng cạnh: "4k dầu"), hoặc số có chữ
+// ("4k", "bốn ngàn"). Số trần — kể cả có dấu chấm / phẩy ("3850", "3.850", "1,2") — không nói được nó là lít, khối hay số thứ tự, và
+// dấu chấm / phẩy còn mơ hồ giữa phần nghìn và phần thập phân.
 func unitShown(sp contracts.Span) bool {
 	if sp.Kind == contracts.ValueQuantity {
 		return true
 	}
-	return strings.ContainsFunc(sp.Raw, func(r rune) bool { return unicode.IsLetter(r) || r == '.' || r == ',' })
+	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
 }

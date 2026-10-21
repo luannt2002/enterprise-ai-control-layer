@@ -41,6 +41,8 @@ type SourceRank struct {
 	Type      string `yaml:"type"`
 	Authority int    `yaml:"authority"`
 	Label     string `yaml:"label"` // cách gọi nguồn trong câu trả lời ("phiếu xuất kho")
+	// Aliases: cách gọi khác của chính nguồn đó trong câu hỏi ("phiếu kho"); cổng phán quyết coi chúng là tên nguồn.
+	Aliases []string `yaml:"aliases"`
 }
 
 // SourceLabel trả cách gọi một loại nguồn trong một chỉ số; không khai thì trả mã nguồn.

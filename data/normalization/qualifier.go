@@ -46,8 +46,9 @@ var periodWords = []struct {
 	{"tuần", QualifierWeek}, {"tháng", QualifierMonth}, {"quý", QualifierQuarter}, {"năm", QualifierYear},
 }
 
-// PeriodWordBefore trả khoảng byte của từ chỉ kỳ ("ngày", "hôm", "mùng", "tuần"…) đứng NGAY TRƯỚC vị trí start, chỉ cách khoảng trắng
-// ("ngày" của "ngày 13/10"); ok = false khi không có. Từ đó là một phần của mốc bắt đầu ở start.
+// PeriodWordBefore trả khoảng byte của từ chỉ NGÀY ("ngày", "hôm", "mùng", "mồng") đứng NGAY TRƯỚC vị trí start, chỉ cách khoảng
+// trắng ("ngày" của "ngày 13/10"); ok = false khi không có. Từ đó là một phần của mốc ngày bắt đầu ở start. Từ chỉ kỳ khác không phải:
+// "tuần 15/9" là tuần chứa 15/9, không phải ngày 15/9.
 func PeriodWordBefore(raw string, start int) (ws, we int, ok bool) {
 	if start < 0 || start > len(raw) {
 		return 0, 0, false
@@ -57,7 +58,7 @@ func PeriodWordBefore(raw string, start int) (ws, we int, ok bool) {
 		return 0, 0, false
 	}
 	for _, pw := range periodWords {
-		if wordIs(raw, ws, we, pw.word) {
+		if pw.kind == QualifierDay && wordIs(raw, ws, we, pw.word) {
 			return ws, we, true
 		}
 	}

@@ -418,7 +418,11 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	claimed, confirm := a.claimedValue(in, names, metric)
 	if confirm && compare == "" {
 		def, _ := a.RT.Metrics.Metric(metric)
-		if withheld = a.verdictGap(in, names, it, def, claimed); withheld != "" {
+		subj, err := a.subjectOf(ctx, entitySlot.Entity.ID)
+		if err != nil {
+			return err
+		}
+		if withheld = a.verdictGap(in, names, it, def, claimed, subj, result.UsedSources); withheld != "" {
 			plan.Reason = "câu xác nhận chưa giải đủ chiều: " + withheld
 		}
 	}
@@ -678,17 +682,25 @@ func (a *Ask) confirmClaims(plan contracts.RoutePlan, in contracts.NormalizedInp
 }
 
 // mention là khoảng byte [start, end) của một cụm tên thực thể (đã nhận ra, kể cả bí danh mơ hồ) trong NormalizedInput.Raw.
-type mention struct{ start, end int }
+// mention là một cụm tên thực thể trong câu: vị trí byte và các thực thể nó có thể chỉ tới (một, hoặc mọi ứng viên của bí danh mơ hồ).
+type mention struct {
+	start, end int
+	ids        []string
+}
 
 // mentionsOf trả vị trí của MỌI cụm tên thực thể trong câu — cả các lần nhắc thứ hai của cùng một thực thể và các bí danh mơ hồ mà
 // router gỡ về một thực thể sau đó (thực thể ấy lấy từ danh sách ứng viên nên không mang vị trí, xem contracts.AmbiguousMention).
 func mentionsOf(res contracts.Resolution) []mention {
 	var out []mention
 	for _, e := range res.Entities {
-		out = append(out, mention{e.Start, e.End})
+		out = append(out, mention{start: e.Start, end: e.End, ids: []string{e.ID}})
 	}
 	for _, m := range res.Ambiguous {
-		out = append(out, mention{m.Start, m.End})
+		ids := make([]string, 0, len(m.Candidates))
+		for _, c := range m.Candidates {
+			ids = append(ids, c.ID)
+		}
+		out = append(out, mention{start: m.Start, end: m.End, ids: ids})
 	}
 	return out
 }

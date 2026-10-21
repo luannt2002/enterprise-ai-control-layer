@@ -56,6 +56,8 @@ type Result struct {
 	NeedsReview bool // còn xung đột không tự giải được
 	Evidence    []contracts.Evidence
 	Conflicts   []contracts.Conflict
+	// UsedSources: các loại nguồn thực sự tạo nên Total (nguồn được chọn ở từng cặp thực thể – ngày), sắp xếp, không trùng.
+	UsedSources []string
 }
 
 // Query trả tổng đã hoà giải của một chỉ số.
@@ -97,6 +99,7 @@ func (c *Catalog) Query(ctx context.Context, store Store, q MetricQuery) (Result
 
 	total := "0"
 	var used []string
+	usedSources := map[string]bool{}
 	for _, k := range keys {
 		bySource := groups[k]
 		type candidate struct {
@@ -171,6 +174,7 @@ func (c *Catalog) Query(ctx context.Context, store Store, q MetricQuery) (Result
 			total = t
 		}
 		used = append(used, best.ids...)
+		usedSources[best.source] = true
 	}
 
 	if res.NeedsReview {
@@ -178,6 +182,7 @@ func (c *Catalog) Query(ctx context.Context, store Store, q MetricQuery) (Result
 	}
 	v := contracts.Value{Kind: contracts.ValueQuantity, Number: total, Unit: def.Unit, Approx: res.Approx}
 	res.Total = &v
+	res.UsedSources = slices.Sorted(maps.Keys(usedSources))
 	res.Evidence = append(res.Evidence, contracts.Evidence{
 		ID:      "calc:" + q.Metric,
 		Kind:    contracts.EvidenceCalculation,

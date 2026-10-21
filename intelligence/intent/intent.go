@@ -159,11 +159,14 @@ func responseOnly(r contracts.RouteKind) bool {
 	return r == contracts.RouteClarification || r == contracts.RouteReject
 }
 
-// Keywords trả mọi từ khoá của mọi ý định (để luồng hỏi biết một cụm là tên một chỉ số / ý định đã khai trong pack).
-func (s *Set) Keywords() []string {
+// MetricKeywords trả từ khoá của các ý định đọc thẳng một chỉ số (route SQL_QUERY, không "yếu"): người hỏi có thể nêu số của chỉ
+// số khác làm ngữ cảnh cho câu xác nhận ("Đội báo 2k, vậy … đúng không?"). Không gồm ý định quy trình, chào hỏi, phép tính dẫn xuất.
+func (s *Set) MetricKeywords() []string {
 	var out []string
 	for _, d := range s.defs {
-		out = append(out, d.Keywords...)
+		if contracts.RouteKind(d.Route) == contracts.RouteSQLQuery && !d.Weak {
+			out = append(out, d.Keywords...)
+		}
 	}
 	return out
 }

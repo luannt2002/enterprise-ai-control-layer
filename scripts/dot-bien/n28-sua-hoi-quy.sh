@@ -19,8 +19,8 @@ A=core/pipeline/ask.go D=data/normalization/datetime.go E=data/normalization/eng
 m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
 
 m $R 'Start: spans[i].start, End: spans[i+n-1].end,' '' 'A01a cụm mơ hồ không mang vị trí (Start/End)'
-m $A 'out = append(out, mention{m.Start, m.End})' '_ = m' 'A01b cụm bí danh mơ hồ (máy 03 do router gỡ) không được loại khỏi con số xác nhận'
-m $A 'out = append(out, mention{e.Start, e.End})' '_ = e' 'A01c lần nhắc thứ hai / bí danh rõ của máy không được loại khỏi con số xác nhận'
+m $A 'out = append(out, mention{start: m.Start, end: m.End, ids: ids})' '_ = ids' 'A01b cụm bí danh mơ hồ (máy 03 do router gỡ) không được loại khỏi con số xác nhận'
+m $A 'out = append(out, mention{start: e.Start, end: e.End, ids: []string{e.ID}})' '_ = e' 'A01c lần nhắc thứ hai / bí danh rõ của máy không được loại khỏi con số xác nhận'
 m $A 'claimedValue(in, names, metric)' 'claimedValue(in, nil, metric)' 'A01d câu xác nhận không loại tên máy khi chọn con số được xác nhận'
 m $A 'visible = nil' '_ = visible' 'A01e hỏi lại về con số vẫn kể ra các máy ứng viên'
 m $A 'sp.Start < m.end && sp.End > m.start' false 'A01f số trong tên máy bị tính là con số xác nhận'

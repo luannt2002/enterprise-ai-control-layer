@@ -27,6 +27,12 @@ var today = time.Date(2026, 10, 19, 10, 0, 0, 0, time.FixedZone("ICT", 7*3600))
 
 func newAsk(t *testing.T) *pipeline.Ask {
 	t.Helper()
+	return newAskFacts(t, "seed/facts.yaml")
+}
+
+// newAskFacts là newAsk với một bộ fact khác (vd chỉ nguồn thẩm quyền thấp có số).
+func newAskFacts(t *testing.T, factsPath string) *pipeline.Ask {
+	t.Helper()
 	rt, err := tenant.Load("pack")
 	if err != nil {
 		t.Fatalf("nạp pack: %v", err)
@@ -35,7 +41,7 @@ func newAsk(t *testing.T) *pipeline.Ask {
 	if err != nil {
 		t.Fatalf("nạp danh mục: %v", err)
 	}
-	facts, err := fixtures.LoadFacts("seed/facts.yaml", rt, dir)
+	facts, err := fixtures.LoadFacts(factsPath, rt, dir)
 	if err != nil {
 		t.Fatalf("nạp fact: %v", err)
 	}

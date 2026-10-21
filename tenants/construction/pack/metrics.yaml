@@ -25,7 +25,7 @@ metrics:
     min: "0"
     max: "20000"
     sources:
-      - {type: warehouse_slip, authority: 1, label: phiếu xuất kho}
+      - {type: warehouse_slip, authority: 1, label: phiếu xuất kho, aliases: [phiếu kho]}
       - {type: erp, authority: 2, label: ERP}
       - {type: excel_summary, authority: 2, label: bảng tổng hợp}
 

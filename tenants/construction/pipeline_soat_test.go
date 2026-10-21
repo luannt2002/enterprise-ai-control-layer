@@ -348,7 +348,8 @@ func TestCauXacNhanNhieuConSoThiHoiLai(t *testing.T) {
 	}
 }
 
-// Câu xác nhận chỉ MỘT con số (kể cả số được nhắc lại cùng giá trị, hay số ngữ cảnh ở mệnh đề trước) vẫn ra "Đúng."/"Không.".
+// Câu xác nhận chỉ MỘT con số (kể cả số ngữ cảnh ở mệnh đề trước) vẫn ra "Đúng."/"Không.". Cùng giá trị viết hai cách ở hai mệnh đề hỏi
+// ("4k đúng không, 4000 lít thì sao?") là hai cụm hỏi nên chỉ trả số, không phán quyết (ADR-0009).
 func TestCauXacNhanMotConSoVanTraLoi(t *testing.T) {
 	a := newAsk(t)
 	for _, c := range []struct{ text, prefix string }{
@@ -360,11 +361,11 @@ func TestCauXacNhanMotConSoVanTraLoi(t *testing.T) {
 		// số trong TÊN thực thể ("03" của "máy xúc 03") không phải con số xác nhận
 		{"Máy xúc 03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
 		// số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi là ngữ cảnh
-		{"EX-03 hôm nay đội báo 3k, báo cáo ghi 5 m3, vậy được cấp 3850 L đúng không?", ""},
-		{"EX-03 hôm nay đội báo 3k, vậy được cấp 4000 L đúng không?", ""},
+		{"EX-03 hôm nay đội báo 3k, báo cáo ghi 5 m3, vậy được cấp 3850 L đúng không?", "Đúng."},
+		{"EX-03 hôm nay đội báo 3k, vậy được cấp 4000 L đúng không?", "Không."},
 	} {
 		r := ask(t, a, user("director", ""), c.text).Response
-		if r.Outcome != contracts.OutcomeResolved || !strings.HasPrefix(r.Answer, c.prefix) {
+		if r.Outcome != contracts.OutcomeResolved || verdictOf(r.Answer) != c.prefix { // "" = trả số, không phán quyết
 			t.Errorf("%q: muốn RESOLVED %q…, được [%s] %q", c.text, c.prefix, r.Outcome, r.Answer)
 		}
 	}

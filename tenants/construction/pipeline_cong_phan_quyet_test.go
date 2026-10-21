@@ -161,3 +161,75 @@ func TestCongPhanQuyetChieuChuaGiai(t *testing.T) {
 		}
 	}
 }
+
+// Soát đối kháng độc lập (vai D, 21/10): các câu cổng từng hứa đóng mà chưa đóng — chủ thể (A, B), đơn vị / định dạng số (C), câu không
+// dấu (D), "tuần" trước một ngày (E), nguồn (F: chạy trên bộ fact chỉ nguồn thấp), gạch dài làm mất dấu âm (G), từ khoá của ý định không
+// phải số liệu ở mệnh đề ngữ cảnh (H), thuật ngữ / mã / tiền / số trần có dấu chấm trong phạm vi hỏi. Mọi câu phải KHÔNG phán quyết
+// (vẫn trả số liệu); claim đã giải đủ chiều thì VẪN phán quyết (đối chứng dương).
+func TestCongPhanQuyetSoatDoiKhang(t *testing.T) {
+	std, low := newAsk(t), newAskFacts(t, "seed/facts-nguon-thap.yaml")
+	for _, c := range []struct {
+		q   string
+		low bool
+	}{
+		{q: "Dự án A hôm nay được cấp 5050 L, vậy EX-03 được cấp 3850 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L, vậy dự án A được cấp 5050 L đúng không?"},
+		{q: "Dự án A hôm nay được cấp 3850 L cho EX-03 đúng không?"},
+		{q: "Cầu A (EX-03) hôm nay được cấp 3850 L đúng không?"},
+		{q: "Hôm nay dự án A được cấp 5050 L. EX-03 được cấp 5050 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L đúng không, dự án A 3850 L đúng không?"},
+		{q: "EX-03 của dự án B hôm nay được cấp 3850 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L cho dự án B đúng không?"},
+		{q: "Lu 02 hôm nay được cấp 1,2 đúng không?"},
+		{q: "Lu 02 hôm nay được cấp 1,200 khối đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3.850 m3 đúng không?"},
+		{q: "EX-03 hom nay duoc cap co 4k dung khong?"},
+		{q: "EX-03 hom nay duoc cap do 4000 L dung khong?"},
+		{q: "EX-03 hom nay co the duoc cap 3850 L dung khong?"},
+		{q: "Du an A dau thang 9 duoc cap 4600 L dung khong?"},
+		{q: "EX-03 dau nam nay duoc cap 7350 L dung khong?"},
+		{q: "Dự án A tuần 15/9 được cấp 4600 L đúng không?"},
+		{q: "EX-03 hôm nay phiếu xuất kho ghi 3900 L đúng không?", low: true},
+		{q: "EX-03 hôm nay phiếu kho ghi 3900 L đúng không?", low: true},
+		{q: "EX-03 hôm nay báo cáo ngày ghi 4000 L đúng không?", low: true},
+		{q: "EX-03 hôm nay được cấp –3850 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp —3850 L đúng không?"},
+		{q: "Làm gì có, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "Khi lệch, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L khối lượng đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L PX-0913 đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L 25.000 đồng đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3.850 đúng không?"},
+	} {
+		a := std
+		if c.low {
+			a = low
+		}
+		r := ask(t, a, user("director", ""), c.q).Response
+		if v := verdictOf(r.Answer); v != "" || r.Outcome != contracts.OutcomeResolved {
+			t.Errorf("%q: muốn trả số, KHÔNG phán quyết — được [%s] %q", c.q, r.Outcome, r.Answer)
+		}
+	}
+	for _, c := range []struct {
+		q, want string
+		low     bool
+	}{
+		{q: "Máy 03 của dự án A hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 của dự án A hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Dự án A hôm nay được cấp 3850 L đúng không?", want: "Không."},
+		{q: "EX-03 hôm nay phiếu xuất kho ghi 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay ERP ghi được cấp 3900 L đúng không?", want: "Đúng.", low: true}, // hôm nay chỉ ERP có số
+		{q: "Lu rung 02 hôm nay được cấp 1,2 m3 đúng không?", want: "Đúng."},
+		{q: "Đội báo 2k, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L có đúng không?", want: "Đúng."}, // "có đúng" và "đúng không" chồng nhau: MỘT cụm xác nhận
+	} {
+		a := std
+		if c.low {
+			a = low
+		}
+		r := ask(t, a, user("director", ""), c.q).Response
+		if v := verdictOf(r.Answer); v != c.want {
+			t.Errorf("%q: muốn %q — được [%s] %q", c.q, c.want, r.Outcome, r.Answer)
+		}
+	}
+}

@@ -74,6 +74,9 @@ func ToneKey(s string) string {
 	return norm.NFC.String(base.String()) + string(tone)
 }
 
+// HasDiacritic báo chuỗi có chữ mang dấu tiếng Việt không — câu không dấu được khớp bằng bản bỏ dấu, nên nhiều chữ trùng nhau.
+func HasDiacritic(s string) bool { return hasDiacritic(s) }
+
 // hasDiacritic báo chuỗi có chữ mang dấu tiếng Việt không.
 func hasDiacritic(s string) bool {
 	for _, r := range s {

@@ -6,7 +6,9 @@
 Đếm từng LẦN XUẤT HIỆN của mẫu (?i)eacl|enterprise[- ]ai[- ]control[- ]layer trong tệp git theo dõi ở revision đó
 (git grep), và in thêm số DÒNG theo đúng lệnh gợi ý của prompt (bỏ docs/bao-cao/). Luật xếp nhóm:
 - A  link git: lần khớp nằm trong chuỗi "enterprise-ai-control-layer" (tên repo = đường dẫn module Go, import, URL);
-- FP khớp nhầm: chữ "eACL" (ACL viết hoa ngay sau một từ, ví dụ RetrieveACL) — không phải tên sản phẩm;
+- FP khớp nhầm: chữ "eACL" ngay sau một chữ cái (ACL cuối một từ, ví dụ RetrieveACL) — không phải tên sản phẩm; cùng luật với
+     cổng danh tính (danh_tinh_test.go). Mẫu đếm ở đây là mẫu của lệnh gợi ý trong prompt (tên dài nối bằng gạch nối / một dấu
+     cách), hẹp hơn mẫu của cổng; ở các mốc so trong tệp phản hồi hai mẫu cho cùng số;
 - E  bằng chứng lịch sử / tệp đã băm: tệp hoặc thư mục trong E_FILES / E_PREFIX, dòng chứa muối băm chia bộ giữ lại,
      mọi dòng của CHANGELOG.md trừ dòng mở đầu;
 - C  định danh chạy trong mã (không phải docs/): lần khớp nằm trong biến môi trường, GUC, vai, database, khoá JSON,
@@ -41,7 +43,7 @@ def group(path, line, m):
         if i <= m.start() < i + len(GITLINK):
             return "A"
         i = lo.find(GITLINK, i + 1)
-    if m.group(0) == "eACL":
+    if m.group(0) == "eACL" and m.start() > 0 and line[m.start() - 1].isalpha():
         return "FP"
     if path in E_FILES or path.startswith(E_PREFIX) or SALT in line:
         return "E"

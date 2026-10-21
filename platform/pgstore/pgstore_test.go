@@ -235,7 +235,8 @@ func TestRLSCanaryB(t *testing.T) {
 
 // Migration 0002 (D-RM-02): vai ứng dụng là eais_app, chính sách RLS đọc GUC eais.tenant_id. Kiểm ĐÚNG tập quyền, không chỉ vài quyền:
 // eais_app có SELECT / INSERT / DELETE như vai cũ của 0001 và không gì hơn — TRUNCATE (không chịu RLS: xoá sạch bảng của mọi tenant),
-// REFERENCES, TRIGGER, UPDATE, MAINTAIN (PG 17) hay quyền kèm GRANT OPTION đều là quyền thừa, kể cả khi đến qua PUBLIC; vai eacl_app
+// REFERENCES, TRIGGER, UPDATE, MAINTAIN (PG 17) hay quyền kèm GRANT OPTION đều là quyền thừa, kể cả khi đến qua PUBLIC hay cấp theo
+// cột (UPDATE / REFERENCES trên một cột); vai eacl_app
 // của 0001 không còn quyền nào (vai không có trong cụm thì coi là không có quyền); RLS vẫn ENABLE + FORCE trên cả 4 bảng; đặt GUC tên
 // cũ không mở dòng nào (đối chứng dương: GUC mới thấy đúng dòng của tenant).
 func TestMigration0002DinhDanhEAIS(t *testing.T) {
@@ -256,14 +257,20 @@ func TestMigration0002DinhDanhEAIS(t *testing.T) {
 	if version >= 170000 {
 		privs = append(privs, "MAINTAIN")
 	}
-	has := func(role, table, priv string) bool {
+	// check hỏi một quyền của vai trên bảng: fn là has_table_privilege (quyền mức bảng) hay has_any_column_privilege (có ở ÍT NHẤT
+	// một cột — bắt cả quyền cấp theo cột, ví dụ UPDATE (tenant_id)).
+	check := func(fn, role, table, priv string) bool {
 		t.Helper()
 		var got bool
-		if err := adminConn.QueryRow(ctx, "SELECT CASE WHEN to_regrole($1) IS NULL THEN false ELSE has_table_privilege($2, $3, $4) END",
+		if err := adminConn.QueryRow(ctx, "SELECT CASE WHEN to_regrole($1) IS NULL THEN false ELSE "+fn+"($2, $3, $4) END",
 			role, role, table, priv).Scan(&got); err != nil {
 			t.Fatal(err)
 		}
 		return got
+	}
+	has := func(role, table, priv string) bool {
+		t.Helper()
+		return check("has_table_privilege", role, table, priv)
 	}
 	for _, table := range []string{"entities", "entity_aliases", "facts", "documents"} {
 		for _, priv := range privs {
@@ -276,6 +283,15 @@ func TestMigration0002DinhDanhEAIS(t *testing.T) {
 			}
 			if has("eacl_app", table, priv) {
 				t.Errorf("vai cũ eacl_app còn %s trên %s", priv, table)
+			}
+		}
+		for _, priv := range []string{"SELECT", "INSERT", "UPDATE", "REFERENCES"} { // quyền mức cột
+			want := priv == "SELECT" || priv == "INSERT"
+			if got := check("has_any_column_privilege", "eais_app", table, priv); got != want {
+				t.Errorf("eais_app %s ở mức cột trên %s: được %v, muốn %v", priv, table, got, want)
+			}
+			if check("has_any_column_privilege", "eacl_app", table, priv) {
+				t.Errorf("vai cũ eacl_app còn %s ở mức cột trên %s", priv, table)
 			}
 		}
 		var enabled, forced bool

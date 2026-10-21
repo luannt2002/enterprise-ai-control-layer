@@ -63,7 +63,7 @@ func TestMessagesGateway(t *testing.T) {
 	}
 	// C-05 (soát lượt 2): API trả 200 hợp lệ nhưng MODEL viết văn xuôi thay vì JSON ⇒ đó là đầu ra của model, không
 	// phải lỗi nhà cung cấp (hợp đồng G7 §10: PROVIDER = 429 / 5xx / quá giờ / không tới được). Bản nháp mang nguyên
-	// văn xuôi, KHÔNG có claim (cổng Bound của EACL sẽ chặn); baseline thì được chấm theo nội dung câu đó. Kỳ vọng cũ
+	// văn xuôi, KHÔNG có claim (cổng Bound của EAIS sẽ chặn); baseline thì được chấm theo nội dung câu đó. Kỳ vọng cũ
 	// (KindBadResponse) khẳng định hành vi sai: nó làm lời từ chối bằng văn xuôi của baseline thành PROVIDER + trượt.
 	status, reply = http.StatusOK, `{"content":[{"type":"text","text":"Tôi không thể trả lời câu hỏi này vì bằng chứng không đủ."}]}`
 	if d, err := m.Generate(ctx, req); err != nil || d.Text != "Tôi không thể trả lời câu hỏi này vì bằng chứng không đủ." || len(d.Claims) != 0 {
@@ -106,10 +106,10 @@ func TestNewTheoCauHinh(t *testing.T) {
 	if m, ok := g.(*Messages); err != nil || !ok || m.BaseURL == "" || m.MaxTokens <= 0 {
 		t.Errorf("anthropic đủ cấu hình: được %+v (lỗi %v)", g, err)
 	}
-	t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
-	t.Setenv("EACL_MODEL", "m-env")
-	t.Setenv("EACL_MODEL_API_KEY", "k-env")
-	t.Setenv("EACL_MODEL_MAX_TOKENS", "300")
+	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EAIS_MODEL", "m-env")
+	t.Setenv("EAIS_MODEL_API_KEY", "k-env")
+	t.Setenv("EAIS_MODEL_MAX_TOKENS", "300")
 	if c := ConfigFromEnv(); c.Provider != "anthropic" || c.Model != "m-env" || c.APIKey != "k-env" || c.MaxTokens != 300 {
 		t.Errorf("ConfigFromEnv = %+v", Config{Provider: c.Provider, Model: c.Model, MaxTokens: c.MaxTokens})
 	}

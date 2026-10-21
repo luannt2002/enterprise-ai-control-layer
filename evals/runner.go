@@ -9,7 +9,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
-// Asker là thứ runner chấm: nhận câu hỏi của một principal, trả phản hồi. EACL và baseline RAG
+// Asker là thứ runner chấm: nhận câu hỏi của một principal, trả phản hồi. EAIS và baseline RAG
 // cùng hiện thực interface này để so trên cùng bộ ca (G7).
 type Asker interface {
 	Ask(ctx context.Context, pr contracts.Principal, question string) (contracts.AskResponse, error)

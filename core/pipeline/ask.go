@@ -1,4 +1,4 @@
-// Package pipeline điều phối các lối vào của EACL. File này là luồng HỎI (S0–S10).
+// Package pipeline điều phối các lối vào của EAIS. File này là luồng HỎI (S0–S10).
 //
 // Ba luật cứng (docs/01-architecture.md §4):
 //  1. Route không cần diễn đạt thì không gọi model — trả lời bằng mẫu câu của tenant.

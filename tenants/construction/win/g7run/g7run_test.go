@@ -46,7 +46,7 @@ func baseCfg(data string) config {
 
 // clearModelEnv đảm bảo test chạy bằng model giả bất kể môi trường của người chạy.
 func clearModelEnv(t *testing.T) {
-	for _, k := range []string{"EACL_MODEL_PROVIDER", "EACL_MODEL", "EACL_MODEL_API_KEY", "EACL_MODEL_BASE_URL", "EACL_MODEL_THINKING", "EACL_MODEL_EFFORT", "EACL_MODEL_TEMPERATURE", "EACL_MODEL_MAX_RETRIES", "EACL_MODEL_MAX_TOKENS"} {
+	for _, k := range []string{"EAIS_MODEL_PROVIDER", "EAIS_MODEL", "EAIS_MODEL_API_KEY", "EAIS_MODEL_BASE_URL", "EAIS_MODEL_THINKING", "EAIS_MODEL_EFFORT", "EAIS_MODEL_TEMPERATURE", "EAIS_MODEL_MAX_RETRIES", "EAIS_MODEL_MAX_TOKENS"} {
 		t.Setenv(k, "")
 	}
 }
@@ -581,9 +581,9 @@ func TestRunWritesEvidence(t *testing.T) {
 	}
 	raw, _ := os.ReadFile(filepath.Join(cfg.out, "raw-runs.jsonl"))
 	if n := strings.Count(string(raw), "\n"); n != 2*m.Cases {
-		t.Errorf("raw-runs có %d dòng, muốn %d (EACL + B2+, mỗi ca một dòng)", n, 2*m.Cases)
+		t.Errorf("raw-runs có %d dòng, muốn %d (EAIS + B2+, mỗi ca một dòng)", n, 2*m.Cases)
 	}
-	// Mỗi câu của EACL mang bản ghi quyết định (S2–S10) để phân loại tầng sai đầu tiên mà không phải gọi lại
+	// Mỗi câu của EAIS mang bản ghi quyết định (S2–S10) để phân loại tầng sai đầu tiên mà không phải gọi lại
 	// model (hợp đồng §8; bản soát lượt 2, C-11). Baseline không có bản ghi quyết định.
 	for i, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
 		var r askRecord
@@ -591,12 +591,12 @@ func TestRunWritesEvidence(t *testing.T) {
 			t.Fatal(err)
 		}
 		switch {
-		case r.System == sysEACL && (r.Decision == nil || r.Decision.Route != r.Route || r.Decision.Question != r.Question):
-			t.Errorf("dòng %d (EACL %s): bản ghi quyết định %+v; muốn có, cùng route %q và câu hỏi", i+1, r.CaseID, r.Decision, r.Route)
-		case r.System == sysEACL && r.Decision.DataVersion != m.DataManifest:
+		case r.System == sysEAIS && (r.Decision == nil || r.Decision.Route != r.Route || r.Decision.Question != r.Question):
+			t.Errorf("dòng %d (EAIS %s): bản ghi quyết định %+v; muốn có, cùng route %q và câu hỏi", i+1, r.CaseID, r.Decision, r.Route)
+		case r.System == sysEAIS && r.Decision.DataVersion != m.DataManifest:
 			// phát lại so DataVersion: bản ghi phải gắn đúng bộ dữ liệu đã phục vụ (soát C2, F-10)
-			t.Errorf("dòng %d (EACL %s): data_version %q; muốn băm manifest dữ liệu %q", i+1, r.CaseID, r.Decision.DataVersion, m.DataManifest)
-		case r.System != sysEACL && r.Decision != nil:
+			t.Errorf("dòng %d (EAIS %s): data_version %q; muốn băm manifest dữ liệu %q", i+1, r.CaseID, r.Decision.DataVersion, m.DataManifest)
+		case r.System != sysEAIS && r.Decision != nil:
 			t.Errorf("dòng %d (%s): baseline không được có bản ghi quyết định", i+1, r.System)
 		}
 	}
@@ -620,8 +620,8 @@ func TestSmokeThroughFakeProvider(t *testing.T) {
 	defer srv.Close()
 	clearModelEnv(t)
 	const key = "khoa-test-khong-duoc-lo"
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": key,
-		"EACL_MODEL_BASE_URL": srv.URL, "EACL_MODEL_THINKING": "between_tools", "EACL_MODEL_EFFORT": "medium"} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": key,
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools", "EAIS_MODEL_EFFORT": "medium"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -701,8 +701,8 @@ func TestSmokeKhongDatKhiHeCongBiChan(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "k",
-		"EACL_MODEL_BASE_URL": srv.URL, "EACL_MODEL_THINKING": "between_tools", "EACL_MODEL_EFFORT": "medium"} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools", "EAIS_MODEL_EFFORT": "medium"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -723,8 +723,8 @@ func TestSmokeFailsWhenProviderRejects(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "m", "EACL_MODEL_API_KEY": "k",
-		"EACL_MODEL_BASE_URL": srv.URL, "EACL_MODEL_THINKING": "between_tools"} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -737,7 +737,7 @@ func TestSmokeFailsWhenProviderRejects(t *testing.T) {
 // Luật kết luận: ĐẠT chỉ khi mọi baseline cổng chạy được và đạt; hệ chỉ-báo-cáo trượt không ảnh hưởng.
 func TestGatePass(t *testing.T) {
 	ok, bad := evals.G7Verdict{Pass: true}, evals.G7Verdict{Pass: false}
-	all := []string{sysEACL, sysB2Plus, sysB1, sysB2}
+	all := []string{sysEAIS, sysB2Plus, sysB1, sysB2}
 	for _, c := range []struct {
 		name                       string
 		order                      []string
@@ -747,8 +747,8 @@ func TestGatePass(t *testing.T) {
 	}{
 		{"đủ cổng, đều đạt; B2 trượt chỉ báo cáo", all, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok, sysB2: bad}, true},
 		{"B1 trượt", all, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: bad}, false},
-		{"B1 không chạy", []string{sysEACL, sysB2Plus}, []string{"B1: thiếu -manifest"}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
-		{"B1 vắng mà không ghi bị chặn", []string{sysEACL, sysB2Plus}, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
+		{"B1 không chạy", []string{sysEAIS, sysB2Plus}, []string{"B1: thiếu -manifest"}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
+		{"B1 vắng mà không ghi bị chặn", []string{sysEAIS, sysB2Plus}, nil, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok}, false},
 		{"lượt vô hiệu (đường tất định)", all, nil, []string{"WIN-I-201"}, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
 		{"lượt vô hiệu (lỗi gọi model)", all, nil, nil, []string{"B1 lượt 2: 9/117 câu lỗi gọi model"}, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
 		{"có hệ bị báo chặn dù các cổng có mặt", all, []string{"B1: lỗi dựng"}, nil, nil, map[string]evals.G7Verdict{sysB2Plus: ok, sysB1: ok}, false},
@@ -772,14 +772,14 @@ func TestDomainRules(t *testing.T) {
 	}
 }
 
-// Đường tất định của EACL khác giữa hai lượt ⇒ ca đó bị liệt kê (lượt vô hiệu, ADR-0005 §5); baseline
+// Đường tất định của EAIS khác giữa hai lượt ⇒ ca đó bị liệt kê (lượt vô hiệu, ADR-0005 §5); baseline
 // khác nhau giữa các lượt thì không tính (model ngẫu nhiên là chuyện bình thường của baseline).
 func TestUnstablePathsAndCosts(t *testing.T) {
 	recs := []askRecord{
-		{System: sysEACL, Run: 1, CaseID: "A", Route: "SQL_QUERY", Outcome: "RESOLVED"},
-		{System: sysEACL, Run: 2, CaseID: "A", Route: "SQL_QUERY", Outcome: "RESOLVED"},
-		{System: sysEACL, Run: 1, CaseID: "B", Route: "RAG", Outcome: "RESOLVED", Citations: []string{"SOP#0"}},
-		{System: sysEACL, Run: 2, CaseID: "B", Route: "RAG", Outcome: "RESOLVED", Citations: []string{"SOP#1"}},
+		{System: sysEAIS, Run: 1, CaseID: "A", Route: "SQL_QUERY", Outcome: "RESOLVED"},
+		{System: sysEAIS, Run: 2, CaseID: "A", Route: "SQL_QUERY", Outcome: "RESOLVED"},
+		{System: sysEAIS, Run: 1, CaseID: "B", Route: "RAG", Outcome: "RESOLVED", Citations: []string{"SOP#0"}},
+		{System: sysEAIS, Run: 2, CaseID: "B", Route: "RAG", Outcome: "RESOLVED", Citations: []string{"SOP#1"}},
 		{System: sysB2Plus, Run: 1, CaseID: "A", Route: "RAG", Calls: []modelCall{{InputTokens: 1_000_000, OutputTokens: 100_000}}},
 		{System: sysB2Plus, Run: 2, CaseID: "A", Route: "CLARIFICATION"},
 	}
@@ -789,18 +789,18 @@ func TestUnstablePathsAndCosts(t *testing.T) {
 	// Câu CÓ gọi model: trích dẫn / outcome do model quyết, chỉ so route (bản soát mã S2-5); câu lỗi gọi
 	// model không tính là bất ổn đường tất định.
 	more := append(append([]askRecord(nil), recs...),
-		askRecord{System: sysEACL, Run: 1, CaseID: "C", Route: "RAG", Outcome: "RESOLVED", ModelCalls: 1, Citations: []string{"SOP#0"}},
-		askRecord{System: sysEACL, Run: 2, CaseID: "C", Route: "RAG", Outcome: "SYSTEM_FAILURE", ModelCalls: 1, Citations: []string{"SOP#3"}},
-		askRecord{System: sysEACL, Run: 1, CaseID: "D", Route: "RAG", ModelCalls: 1},
-		askRecord{System: sysEACL, Run: 2, CaseID: "D", Route: "SQL_QUERY", ModelCalls: 1},
-		askRecord{System: sysEACL, Run: 1, CaseID: "E", Route: "RAG", ModelCalls: 1},
-		askRecord{System: sysEACL, Run: 2, CaseID: "E", Route: "", ModelCalls: 1, ModelError: true},
-		askRecord{System: sysEACL, Run: 1, CaseID: "F", Route: "SQL_QUERY", Outcome: "RESOLVED"},
-		askRecord{System: sysEACL, Run: 2, CaseID: "F", Route: "SQL_QUERY", Outcome: "INSUFFICIENT_EVIDENCE"},
-		askRecord{System: sysEACL, Run: 1, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07", "RL-07"}},
-		askRecord{System: sysEACL, Run: 2, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07"}},
-		askRecord{System: sysEACL, Run: 1, CaseID: "H", Route: "SQL_QUERY", Conflicts: []string{"issued_fuel|EX-03|2026-10-19"}},
-		askRecord{System: sysEACL, Run: 2, CaseID: "H", Route: "SQL_QUERY"},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "C", Route: "RAG", Outcome: "RESOLVED", ModelCalls: 1, Citations: []string{"SOP#0"}},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "C", Route: "RAG", Outcome: "SYSTEM_FAILURE", ModelCalls: 1, Citations: []string{"SOP#3"}},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "D", Route: "RAG", ModelCalls: 1},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "D", Route: "SQL_QUERY", ModelCalls: 1},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "E", Route: "RAG", ModelCalls: 1},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "E", Route: "", ModelCalls: 1, ModelError: true},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "F", Route: "SQL_QUERY", Outcome: "RESOLVED"},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "F", Route: "SQL_QUERY", Outcome: "INSUFFICIENT_EVIDENCE"},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07", "RL-07"}},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "G", Route: "CLARIFICATION", Candidates: []string{"EX-07"}},
+		askRecord{System: sysEAIS, Run: 1, CaseID: "H", Route: "SQL_QUERY", Conflicts: []string{"issued_fuel|EX-03|2026-10-19"}},
+		askRecord{System: sysEAIS, Run: 2, CaseID: "H", Route: "SQL_QUERY"},
 	)
 	if got := unstablePaths(more); strings.Join(got, ",") != "B,D,F,G,H" {
 		t.Errorf("unstablePaths = %v, muốn [B D F G H]: C khác trích dẫn / outcome do model; E lỗi gọi model; F, G, H khác outcome / ứng viên / xung đột ở câu không gọi model", got)
@@ -808,12 +808,12 @@ func TestUnstablePathsAndCosts(t *testing.T) {
 	inv := invalidRuns([]askRecord{
 		{System: sysB1, Run: 1, CaseID: "1", ModelCalls: 1}, {System: sysB1, Run: 1, CaseID: "2", ModelCalls: 1, ModelError: true},
 		{System: sysB2Plus, Run: 1, CaseID: "1", ModelCalls: 1},
-		{System: sysEACL, Run: 1, CaseID: "1"}, // không cần model: không vào mẫu số
+		{System: sysEAIS, Run: 1, CaseID: "1"}, // không cần model: không vào mẫu số
 	})
 	if len(inv) != 1 || !strings.Contains(inv[0], "B1 lượt 1: 1/2") {
 		t.Errorf("invalidRuns = %v, muốn đúng một lượt vô hiệu của B1 (1/2 > 2%%)", inv)
 	}
-	c := costs(recs, "claude-sonnet-5-5", []string{sysEACL, sysB2Plus})
+	c := costs(recs, "claude-sonnet-5-5", []string{sysEAIS, sysB2Plus})
 	if c[1].USD != 3 || !c[1].Priced || c[0].USD != 0 {
 		t.Errorf("chi phí = %+v, muốn B2+ = 1 MTok × 2 + 0,1 MTok × 10 = 3 USD", c)
 	}
@@ -829,7 +829,7 @@ func TestSmokeFailsOnBadResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "m", "EACL_MODEL_API_KEY": "k", "EACL_MODEL_BASE_URL": srv.URL} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -850,17 +850,17 @@ func TestFlakyAndPilotK(t *testing.T) {
 		return r
 	}
 	graded := map[string][]evals.Report{
-		sysEACL:   {rep(true, true, false), rep(true, true, false), rep(true, true, false)},
+		sysEAIS:   {rep(true, true, false), rep(true, true, false), rep(true, true, false)},
 		sysB2Plus: {rep(true, false, true), rep(false, false, true), rep(true, true, true)},
 		sysB2:     {rep(true, false, false), rep(false, true, false), rep(true, true, false)},
 	}
 	pc := passCounts(graded)
-	if pc[sysB2Plus]["A"] != 2 || pc[sysB2Plus]["C"] != 3 || pc[sysEACL]["C"] != 0 {
+	if pc[sysB2Plus]["A"] != 2 || pc[sysB2Plus]["C"] != 3 || pc[sysEAIS]["C"] != 0 {
 		t.Errorf("pass_count = %v", pc)
 	}
 	f := flakyCases(pc, 3)
-	if len(f[sysEACL]) != 0 || strings.Join(f[sysB2Plus], ",") != "A,B" || strings.Join(f[sysB2], ",") != "A,B" {
-		t.Errorf("ca chập chờn = %v, muốn EACL [], B2+ [A B], B2 [A B]", f)
+	if len(f[sysEAIS]) != 0 || strings.Join(f[sysB2Plus], ",") != "A,B" || strings.Join(f[sysB2], ",") != "A,B" {
+		t.Errorf("ca chập chờn = %v, muốn EAIS [], B2+ [A B], B2 [A B]", f)
 	}
 	if pilotK(f) != 5 {
 		t.Errorf("B2+ có 2 ca chập chờn: muốn k = 5")
@@ -871,8 +871,8 @@ func TestFlakyAndPilotK(t *testing.T) {
 	if pilotK(map[string][]string{sysB1: {"X", "Y"}}) != 5 {
 		t.Errorf("B1 có 2 ca chập chờn: muốn k = 5")
 	}
-	if pilotK(map[string][]string{sysEACL: {"X", "Y"}}) != 5 {
-		t.Errorf("EACL có 2 ca chập chờn: muốn k = 5 (ADR-0006 §6 tính cả EACL; bản soát mã S2-6)")
+	if pilotK(map[string][]string{sysEAIS: {"X", "Y"}}) != 5 {
+		t.Errorf("EAIS có 2 ca chập chờn: muốn k = 5 (ADR-0006 §6 tính cả EAIS; bản soát mã S2-6)")
 	}
 }
 
@@ -895,7 +895,7 @@ func writeNullWindows(t *testing.T) string {
 	return p
 }
 
-// S1-1 (bản soát mã độc lập 20/10 đêm): mọi lời gọi model lỗi thì baseline "trượt" vì hạ tầng và EACL
+// S1-1 (bản soát mã độc lập 20/10 đêm): mọi lời gọi model lỗi thì baseline "trượt" vì hạ tầng và EAIS
 // "thắng" — G7 KHÔNG được ĐẠT. Lượt mà > 2% câu cần model của một hệ lỗi khi gọi model là lượt VÔ HIỆU
 // (hợp đồng G7 §10); ca đó mang nhãn PROVIDER.
 func TestProviderOutageMakesRunInvalid(t *testing.T) {
@@ -905,8 +905,8 @@ func TestProviderOutageMakesRunInvalid(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "k",
-		"EACL_MODEL_BASE_URL": srv.URL, "EACL_MODEL_MAX_RETRIES": "0"} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -950,8 +950,8 @@ func TestBudgetCapStopsCalls(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "k",
-		"EACL_MODEL_BASE_URL": srv.URL, "EACL_MODEL_MAX_RETRIES": "0"} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -1003,7 +1003,7 @@ func TestRunNganSachVaTepBam(t *testing.T) {
 		{"trần hợp lệ", 7.5, "", true},
 	} {
 		clearModelEnv(t)
-		for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "k", "EACL_MODEL_BASE_URL": srv.URL} {
+		for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 			t.Setenv(k, v)
 		}
 		mu.Lock()
@@ -1043,7 +1043,7 @@ func TestDryRunIsNotEvidence(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "k", "EACL_MODEL_BASE_URL": srv.URL} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -1140,8 +1140,8 @@ func TestRunDungTruocKhiGoiModelKhiOutCoTep(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": "claude-sonnet-5-5", "EACL_MODEL_API_KEY": "khoa-gia",
-		"EACL_MODEL_BASE_URL": srv.URL} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "khoa-gia",
+		"EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))

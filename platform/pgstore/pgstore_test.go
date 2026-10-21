@@ -21,13 +21,9 @@ import (
 // phải đạt): báo cáo WIN ghi rõ đường PG có chạy hay không.
 func open(t *testing.T) (*pgstore.Store, string, string) {
 	t.Helper()
-	admin, app := os.Getenv("EACL_PG_ADMIN_DSN"), os.Getenv("EACL_PG_DSN")
+	admin, app := pgstore.EnvDSN()
 	if admin == "" || app == "" {
-		if os.Getenv("EAIS_PG_ADMIN_DSN")+os.Getenv("EAIS_PG_DSN") != "" {
-			// môi trường còn đặt DSN theo tiền tố trước 21/10/2026: báo lỗi thay vì bỏ qua lặng lẽ cả đường PG (RLS)
-			t.Fatal("DSN PG phải đặt ở EACL_PG_ADMIN_DSN / EACL_PG_DSN (biến EAIS_PG_* không còn được đọc)")
-		}
-		t.Skip("chưa có EACL_PG_ADMIN_DSN / EACL_PG_DSN — xem deploy/docker-compose.yml")
+		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
 	}
 	ctx := context.Background()
 	if err := pgstore.Migrate(ctx, admin); err != nil {
@@ -63,7 +59,7 @@ func uniq(p string) contracts.TenantID {
 	return contracts.TenantID(fmt.Sprintf("%s-%d", p, time.Now().UnixNano()))
 }
 
-// GUC eacl.tenant_id của mọi lệnh lấy từ tenant gắn vào ngữ cảnh (S1 gắn từ Principal); ngữ cảnh
+// GUC eais.tenant_id của mọi lệnh lấy từ tenant gắn vào ngữ cảnh (S1 gắn từ Principal); ngữ cảnh
 // không mang tenant thì lệnh bị từ chối trước khi chạm DB.
 func TestGUCLayTuNguCanh(t *testing.T) {
 	s, _, _ := open(t)
@@ -113,7 +109,7 @@ func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 	suffix := fmt.Sprintf("%d_%d", os.Getpid(), time.Now().UnixNano()%1_000_000)
 	refuse := map[string]string{"quản trị dựng sẵn": admin}
 	for name, attrs := range map[string]string{"bypass": "NOSUPERUSER BYPASSRLS", "super": "SUPERUSER NOBYPASSRLS"} {
-		role := "eacl_test_" + name + "_" + suffix
+		role := "eais_test_" + name + "_" + suffix
 		if _, err := conn.Exec(ctx, "CREATE ROLE "+role+" NOLOGIN "+attrs); err != nil {
 			t.Fatal(err)
 		}
@@ -135,7 +131,7 @@ func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 			t.Errorf("%s: muốn lỗi %s nêu RLS, được %v", name, contracts.FaultPolicy, err)
 		}
 	}
-	for name, dsn := range map[string]string{"vai ứng dụng": app, "vai ứng dụng qua role= trên DSN quản trị": withRole("eacl_app")} {
+	for name, dsn := range map[string]string{"vai ứng dụng": app, "vai ứng dụng qua role= trên DSN quản trị": withRole("eais_app")} {
 		s, err := pgstore.Open(ctx, dsn)
 		if err != nil {
 			t.Fatalf("%s phải mở được: %v", name, err)
@@ -195,7 +191,7 @@ func TestRLSCanaryB(t *testing.T) {
 		var n int
 		err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
 			if guc != "" {
-				if _, err := tx.Exec(ctx, "SELECT set_config('eacl.tenant_id', $1, true)", guc); err != nil {
+				if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", guc); err != nil {
 					return err
 				}
 			}
@@ -225,7 +221,7 @@ func TestRLSCanaryB(t *testing.T) {
 	}
 	// từ chối ghi: GUC = A mà ghi dòng mang tenant B → RLS WITH CHECK chặn
 	err = pgx.BeginFunc(ctx, appConn, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SELECT set_config('eacl.tenant_id', $1, true)", string(a)); err != nil {
+		if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", string(a)); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO facts (tenant_id, id, metric, entity_id, occurred_on, value, unit, source_type, ord)
@@ -234,6 +230,54 @@ func TestRLSCanaryB(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "row-level security") {
 		t.Errorf("ghi chéo tenant: muốn bị RLS chặn, được %v", err)
+	}
+}
+
+// Migration 0002 (D-RM-02): vai ứng dụng là eais_app, chính sách RLS đọc GUC eais.tenant_id. Vai eacl_app của 0001 không còn
+// quyền nào trên bảng nghiệp vụ, và đặt GUC tên cũ không mở dòng nào (đối chứng dương: GUC mới thấy đúng dòng của tenant).
+func TestMigration0002DinhDanhEAIS(t *testing.T) {
+	s, admin, app := open(t)
+	a := uniq("ta")
+	seed(t, s, a, "Máy xúc EX-03", "3850", "")
+	ctx := context.Background()
+	adminConn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer adminConn.Close(ctx)
+	for _, table := range []string{"entities", "entity_aliases", "facts", "documents"} {
+		for _, c := range []struct {
+			role, priv string
+			want       bool
+		}{
+			{"eais_app", "SELECT", true}, {"eais_app", "INSERT", true}, {"eais_app", "DELETE", true}, {"eais_app", "UPDATE", false},
+			{"eacl_app", "SELECT", false}, {"eacl_app", "INSERT", false}, {"eacl_app", "DELETE", false}, {"eacl_app", "UPDATE", false},
+		} {
+			var got bool
+			if err := adminConn.QueryRow(ctx, "SELECT has_table_privilege($1, $2, $3)", c.role, table, c.priv).Scan(&got); err != nil {
+				t.Fatal(err)
+			}
+			if got != c.want {
+				t.Errorf("%s %s trên %s: được %v, muốn %v", c.role, c.priv, table, got, c.want)
+			}
+		}
+	}
+	appConn, err := pgx.Connect(ctx, app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer appConn.Close(ctx)
+	for guc, want := range map[string]int{"eacl.tenant_id": 0, "eais.tenant_id": 1} {
+		var n int
+		err := pgx.BeginFunc(ctx, appConn, func(tx pgx.Tx) error {
+			if _, err := tx.Exec(ctx, "SELECT set_config($1, $2, true)", guc, string(a)); err != nil {
+				return err
+			}
+			return tx.QueryRow(ctx, "SELECT count(*) FROM facts WHERE tenant_id = $1", string(a)).Scan(&n)
+		})
+		if err != nil || n != want {
+			t.Errorf("GUC %s = tenant A: thấy %d fact (lỗi %v), muốn %d", guc, n, err, want)
+		}
 	}
 }
 

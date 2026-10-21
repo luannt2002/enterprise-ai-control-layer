@@ -12,7 +12,7 @@ ca (tập, frozen_hash) với bản đã đóng băng: in KHỚP (thoát 0) ho�
 loai-truoc-dong-bang.txt.
 Đầu ra (cùng thư mục): pilot.yaml, h1.yaml, h2.yaml, holdout-manifest.json; exposed.yaml nếu có ca bị loại.
 
-Loại trước khi chia (ADR-0006 §5): ca đã LỘ cho người viết mã EACL trước khi đóng băng không còn là bộ
+Loại trước khi chia (ADR-0006 §5): ca đã LỘ cho người viết mã EAIS trước khi đóng băng không còn là bộ
 giữ lại. loai-truoc-dong-bang.txt mỗi dòng "<id ca> <lý do>" (dòng trống và dòng "#" bỏ qua). Ca bị loại
 không vào pilot / h1 / h2, mà vào exposed.yaml (chỉ báo cáo), set = "exposed" kèm excluded_reason trong
 manifest. Việc chia dưới đây chạy trên các ca CÒN LẠI. Id không có trong kho hay trùng là lỗi.
@@ -25,7 +25,7 @@ Mỗi ca được cắt theo KHỐI VĂN BẢN (từ dòng "  - id: WIN-…" t�
 giữ nguyên từng byte của ca. frozen_hash của ca = sha256 khối đó. Phần đầu tệp (suite, tenant,
 reference_date, "cases:") chép nguyên.
 
-Công cụ CHỈ in số đếm và băm, không in nội dung ca: người viết mã của EACL không được đọc kỳ vọng
+Công cụ CHỈ in số đếm và băm, không in nội dung ca: người viết mã của EAIS không được đọc kỳ vọng
 của bộ giữ lại trước khi chạy (ADR-0006 §3).
 """
 import hashlib

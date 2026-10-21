@@ -193,7 +193,7 @@ func (m *Messages) Generate(ctx context.Context, req Request) (contracts.Draft, 
 	}
 	if err := json.Unmarshal([]byte(jsonObject(text.String())), &out); err != nil {
 		// API trả lời hợp lệ nhưng MODEL viết văn xuôi thay vì JSON: đó là đầu ra của model, không phải lỗi nhà cung
-		// cấp (C-05, soát lượt 2). Giữ nguyên văn, KHÔNG claim ⇒ cổng Bound của EACL chặn; baseline chấm theo nội dung.
+		// cấp (C-05, soát lượt 2). Giữ nguyên văn, KHÔNG claim ⇒ cổng Bound của EAIS chặn; baseline chấm theo nội dung.
 		return contracts.Draft{Text: strings.TrimSpace(text.String()), Model: m.Model, Usage: usage}, nil
 	}
 	d := contracts.Draft{Text: strings.TrimSpace(out.Answer), Model: m.Model, Usage: usage}
@@ -378,9 +378,9 @@ func EndpointForLog(raw string) string {
 	return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String()
 }
 
-// ConfigFromEnv đọc cấu hình từ EACL_MODEL_PROVIDER, EACL_MODEL, EACL_MODEL_BASE_URL,
-// EACL_MODEL_API_KEY, EACL_MODEL_MAX_TOKENS, EACL_MODEL_TEMPERATURE, EACL_MODEL_THINKING,
-// EACL_MODEL_EFFORT, EACL_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
+// ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
+// EAIS_MODEL_API_KEY, EAIS_MODEL_MAX_TOKENS, EAIS_MODEL_TEMPERATURE, EAIS_MODEL_THINKING,
+// EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
 
 func ConfigFromEnv() Config {
 	c := Config{
@@ -405,17 +405,17 @@ func ConfigFromEnv() Config {
 	return c
 }
 
-// legacyModelEnvPrefix là tiền tố biến môi trường model đã cấp cho môi trường chạy trước 21/10/2026 (khoá model được
-// dặn đặt ở EAIS_MODEL_API_KEY). Chỉ modelEnv đọc nó, và chỉ khi biến EACL_ cùng tên KHÔNG được đặt.
-const legacyModelEnvPrefix = "EAIS_MODEL"
+// legacyModelEnvPrefix là tiền tố biến môi trường model dùng từ sáng tới tối 21/10/2026, trước D-RM-02 (D-G7-8 dặn đặt khoá
+// model ở EACL_MODEL_API_KEY). Chỉ modelEnv đọc nó, và chỉ khi biến EAIS_ cùng tên KHÔNG được đặt.
+const legacyModelEnvPrefix = "EACL_MODEL"
 
-// modelEnv đọc EACL_MODEL[_<name>] (name rỗng = EACL_MODEL). Biến EACL_ đã đặt — kể cả đặt rỗng — luôn thắng; không đặt
+// modelEnv đọc EAIS_MODEL[_<name>] (name rỗng = EAIS_MODEL). Biến EAIS_ đã đặt — kể cả đặt rỗng — luôn thắng; không đặt
 // thì đọc biến cùng tên của tiền tố tương thích legacyModelEnvPrefix.
 func modelEnv(name string) string {
 	if name != "" {
 		name = "_" + name
 	}
-	if v, ok := os.LookupEnv("EACL_MODEL" + name); ok {
+	if v, ok := os.LookupEnv("EAIS_MODEL" + name); ok {
 		return v
 	}
 	return os.Getenv(legacyModelEnvPrefix + name)
@@ -429,7 +429,7 @@ func New(c Config) (Gateway, error) {
 		return &Extractive{}, nil
 	case "anthropic":
 		if c.Model == "" || c.APIKey == "" {
-			return nil, contracts.Errorf(contracts.FaultCode, "provider anthropic cần EACL_MODEL và EACL_MODEL_API_KEY")
+			return nil, contracts.Errorf(contracts.FaultCode, "provider anthropic cần EAIS_MODEL và EAIS_MODEL_API_KEY")
 		}
 		m := &Messages{Provider: c.Provider, BaseURL: c.BaseURL, APIKey: c.APIKey, Model: c.Model, MaxTokens: c.MaxTokens,
 			Thinking: c.Thinking, Effort: c.Effort, MaxRetries: c.MaxRetries}
@@ -437,10 +437,10 @@ func New(c Config) (Gateway, error) {
 			m.BaseURL = "https://api.anthropic.com"
 		}
 		if !secureEndpoint(m.BaseURL) {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EACL_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", EndpointForLog(m.BaseURL)))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", EndpointForLog(m.BaseURL)))
 		}
 		if c.MaxTokens < 0 {
-			return nil, contracts.Errorf(contracts.FaultCode, "EACL_MODEL_MAX_TOKENS phải là số nguyên dương")
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_TOKENS phải là số nguyên dương")
 		}
 		if m.MaxTokens == 0 {
 			m.MaxTokens = 1024
@@ -448,18 +448,18 @@ func New(c Config) (Gateway, error) {
 		if c.Temperature != "" {
 			t, err := strconv.ParseFloat(c.Temperature, 64)
 			if err != nil {
-				return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EACL_MODEL_TEMPERATURE %q không phải số", c.Temperature))
+				return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_TEMPERATURE %q không phải số", c.Temperature))
 			}
 			m.Temperature = &t
 		}
 		if c.Thinking != "" && !slices.Contains(ThinkingTypes, c.Thinking) {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EACL_MODEL_THINKING %q không thuộc %v", c.Thinking, ThinkingTypes))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_THINKING %q không thuộc %v", c.Thinking, ThinkingTypes))
 		}
 		if c.Effort != "" && !slices.Contains(EffortLevels, c.Effort) {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EACL_MODEL_EFFORT %q không thuộc %v", c.Effort, EffortLevels))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_EFFORT %q không thuộc %v", c.Effort, EffortLevels))
 		}
 		if c.MaxRetries < 0 || c.MaxRetries > MaxRetriesLimit {
-			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EACL_MODEL_MAX_RETRIES phải là số trong [0, %d]", MaxRetriesLimit))
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_MAX_RETRIES phải là số trong [0, %d]", MaxRetriesLimit))
 		}
 		return m, nil
 	}

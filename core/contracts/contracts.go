@@ -1,7 +1,7 @@
-// Package contracts chứa các kiểu dữ liệu dùng chung giữa mọi thành phần của EACL.
+// Package contracts chứa các kiểu dữ liệu dùng chung giữa mọi thành phần của EAIS.
 //
 // Package này chỉ chứa KIỂU, không chứa hành vi phụ thuộc hạ tầng, và không import
-// package nào khác của EACL — nhờ vậy mọi package đều dùng được nó mà không sinh
+// package nào khác của EAIS — nhờ vậy mọi package đều dùng được nó mà không sinh
 // vòng import. Interface (Normalizer, Router, Validator…) do bên dùng khai báo cạnh
 // chỗ dùng, theo thành ngữ Go.
 //

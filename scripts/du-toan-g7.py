@@ -9,7 +9,7 @@
 - token ra mỗi lời gọi: tối thiểu 50 · kỳ vọng 150 · xấu nhất = max_tokens (trần cứng của API, gồm cả
   thinking nếu có).
 Giá Sonnet 5.5 (Pricing chính thức, tra 20/10/2026): vào 2 USD, ra 10 USD mỗi triệu token.
-Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EACL, B1, B2+;
+Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EAIS, B1, B2+;
 chỉ báo cáo: B2, B2″, B2-oracle.
 Trần 15 USD là của TOÀN BỘ G7 (hợp đồng §9): cờ vượt trần xét cả tổng hệ cổng, tổng mọi hệ được chạy, và tổng
 kèm dự phòng (thử khói 3 ca + chạy lại TRỌN lượt chính với cùng k sau lượt vô hiệu, §10: lượt k = 1 không ra
@@ -21,9 +21,11 @@ from pathlib import Path
 
 PRICE_IN, PRICE_OUT = 2.0, 10.0  # USD / triệu token, claude-sonnet-5-5
 SCEN = {"tối thiểu": (3.0, 50), "kỳ vọng": (2.5, 150), "xấu nhất": (1.5, None)}  # None = max_tokens
-GATE = ["eacl", "b1", "b2plus"]
+GATE = ["eais", "b1", "b2plus"]
 REPORT = ["b2", "b2pp", "b2oracle"]
-LABEL = {"eacl": "EACL", "b1": "B1", "b2plus": "B2+", "b2": "B2", "b2pp": "B2″", "b2oracle": "B2-oracle"}
+LABEL = {"eais": "EAIS", "b1": "B1", "b2plus": "B2+", "b2": "B2", "b2pp": "B2″", "b2oracle": "B2-oracle"}
+# Mã hệ trong bằng chứng thô đã lưu trước D-RM-02 (g7run ghi "eacl" từ 20/10 tới tối 21/10/2026): đọc như mã hiện hành.
+LEGACY_SYSTEM = {"eacl": "eais"}
 
 
 def measure(d):
@@ -35,7 +37,7 @@ def measure(d):
             if not req:
                 continue
             user = "".join(m.get("content", "") for m in req.get("messages", []) if isinstance(m.get("content"), str))
-            s = r["system"]
+            s = LEGACY_SYSTEM.get(r["system"], r["system"])
             calls[s] = calls.get(s, 0) + 1
             chars[s] = chars.get(s, 0) + len(req.get("system", "")) + len(user)
             max_tok = req.get("max_tokens", max_tok)

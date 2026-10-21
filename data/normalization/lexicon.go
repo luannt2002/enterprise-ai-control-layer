@@ -110,7 +110,7 @@ type Engine struct {
 }
 
 // Compile kiểm toàn bộ lexicon và trả lỗi gom đủ mọi chỗ sai — cấu hình hỏng thì không
-// được chạy (luật khởi động của EACL).
+// được chạy (luật khởi động của EAIS).
 func Compile(lex Lexicon) (*Engine, error) {
 	var errs []string
 	fail := func(format string, a ...any) { errs = append(errs, fmt.Sprintf(format, a...)) }

@@ -8,13 +8,13 @@ import (
 
 // Nhãn "lỗi do ai" (docs/CONVENTIONS.md §4.3).
 //
-// Một lỗi ra khỏi EACL mà không có nhãn thì người trực không biết nên sửa mã, hỏi nhà
+// Một lỗi ra khỏi EAIS mà không có nhãn thì người trực không biết nên sửa mã, hỏi nhà
 // cung cấp, chờ hạ tầng hay báo bên gọi gửi lại. Mọi lỗi nên mang đúng một nhãn.
 const (
 	FaultInput  = "input"  // bên gọi gửi sai — sửa request, đừng thử lại y nguyên
 	FaultPolicy = "policy" // bị chính sách chặn: quyền, phạm vi
 	FaultData   = "data"   // dữ liệu tenant thiếu/hỏng/xung đột không tự giải được
-	FaultCode   = "code"   // lỗi của chính EACL — thử lại không giúp gì
+	FaultCode   = "code"   // lỗi của chính EAIS — thử lại không giúp gì
 )
 
 // Loại lỗi của nhà cung cấp/hạ tầng — nửa sau của nhãn "third_party:<provider>:<kind>"

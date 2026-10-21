@@ -204,7 +204,7 @@ func isBoundaryBefore(s string, i int) bool {
 }
 
 // ContainsPhrase tìm cụm từ ở ranh giới từ trong văn bản, theo cùng luật dấu với mọi so
-// khớp của EACL: gõ không dấu vẫn khớp; có dấu thì phải đúng dấu.
+// khớp của EAIS: gõ không dấu vẫn khớp; có dấu thì phải đúng dấu.
 func ContainsPhrase(text, phrase string) bool {
 	text, phrase = NFC(text), NFC(phrase)
 	for i := 0; i < len(text); {

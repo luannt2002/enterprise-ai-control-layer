@@ -29,7 +29,7 @@ func main() {
 	flag.StringVar(&cfg.CasesGlob, "cases", "tenants/construction/win/cases-*.yaml", "các tệp ca WIN")
 	flag.StringVar(&cfg.Tenant, "tenant", "abc-infra", "tenant được chấm")
 	verbose := flag.Bool("v", false, "in cả ca đạt")
-	usePG := flag.Bool("pg", false, "đọc dữ liệu qua PostgreSQL (EACL_PG_ADMIN_DSN + EACL_PG_DSN, xem deploy/docker-compose.yml)")
+	usePG := flag.Bool("pg", false, "đọc dữ liệu qua PostgreSQL (EAIS_PG_ADMIN_DSN + EAIS_PG_DSN, xem deploy/docker-compose.yml)")
 	flag.Parse()
 	if cfg.Data == "" {
 		fmt.Fprintln(os.Stderr, "thiếu -data")
@@ -37,9 +37,9 @@ func main() {
 	}
 	path := "bộ nhớ"
 	if *usePG {
-		admin, app := os.Getenv("EACL_PG_ADMIN_DSN"), os.Getenv("EACL_PG_DSN")
+		admin, app := pgstore.EnvDSN()
 		if admin == "" || app == "" {
-			fmt.Fprintln(os.Stderr, "-pg cần EACL_PG_ADMIN_DSN và EACL_PG_DSN")
+			fmt.Fprintln(os.Stderr, "-pg cần EAIS_PG_ADMIN_DSN và EAIS_PG_DSN")
 			os.Exit(2)
 		}
 		ctx := context.Background()

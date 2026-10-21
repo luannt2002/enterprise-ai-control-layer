@@ -31,7 +31,7 @@ import (
 // Các hệ của G7 (ADR-0005 §2). Baseline cổng: B2+ và B1 — G7 PASS cần đạt với CẢ hai. Chỉ báo cáo:
 // B2 (baseline cũ), B2″ và B2-oracle.
 const (
-	sysEACL   = "eacl"
+	sysEAIS   = "eais"
 	sysB1     = "b1"     // LLM trực tiếp trên bản ghi thô trong cửa sổ ngày của ca
 	sysB2Plus = "b2plus" // RAG đơn giản có năng lực: đoạn có dự án + bí danh + mã nguồn; ngày hiện tại
 	sysB2     = "b2"     // baseline cũ: đoạn thiếu bí danh
@@ -40,15 +40,15 @@ const (
 	sysB2Oracle = "b2oracle"
 )
 
-var sysLabel = map[string]string{sysEACL: "EACL", sysB1: "B1", sysB2Plus: "B2+", sysB2: "B2", sysB2PP: "B2″", sysB2Oracle: "B2-oracle"}
+var sysLabel = map[string]string{sysEAIS: "EAIS", sysB1: "B1", sysB2Plus: "B2+", sysB2: "B2", sysB2PP: "B2″", sysB2Oracle: "B2-oracle"}
 
 // gateSystems là các baseline cổng, theo thứ tự in.
 var gateSystems = []string{sysB2Plus, sysB1}
 
-// parseSystems đọc danh sách hệ của cờ -systems; EACL luôn có và luôn đứng đầu.
+// parseSystems đọc danh sách hệ của cờ -systems; EAIS luôn có và luôn đứng đầu.
 func parseSystems(s string) ([]string, error) {
-	out := []string{sysEACL}
-	seen := map[string]bool{sysEACL: true}
+	out := []string{sysEAIS}
+	seen := map[string]bool{sysEAIS: true}
 	for _, x := range strings.Split(s, ",") {
 		x = strings.TrimSpace(x)
 		if x == "" || seen[x] {
@@ -206,7 +206,7 @@ var rawSpecs = []rawSpec{
 }
 
 // readRawRows đọc MỌI bản ghi thô của thư mục một tenant (kể cả bản ghi bẩn) + báo cáo PDF (một bản ghi
-// mỗi báo cáo, ngày lấy từ tên tệp). Không import bộ nạp của EACL: B1 không được nhận dữ liệu đã chuẩn hoá.
+// mỗi báo cáo, ngày lấy từ tên tệp). Không import bộ nạp của EAIS: B1 không được nhận dữ liệu đã chuẩn hoá.
 func readRawRows(dir string, loc *time.Location, pdf ingestion.TextExtractor) ([]rawRow, error) {
 	var out []rawRow
 	for _, s := range rawSpecs {
@@ -472,7 +472,7 @@ func loadTruths(path string) (map[string]*caseTruth, error) {
 }
 
 // genRecord là một bản ghi trong manifest.json của BỘ SINH: giá trị chuẩn (lít) của bản ghi, độc lập
-// với bộ nạp của EACL. Bản ghi bị cách ly không có value_l. Key trùng Observation.Key của bộ nạp.
+// với bộ nạp của EAIS. Bản ghi bị cách ly không có value_l. Key trùng Observation.Key của bộ nạp.
 type genRecord struct {
 	Tenant  string `json:"tenant"`
 	Key     string `json:"key"`
@@ -501,7 +501,7 @@ func loadGenRecords(path string) ([]genRecord, error) {
 }
 
 // perCaseNumbers tính G7CounterConfig.PerCase: số được phép RIÊNG cho từng ca của bộ đếm claim không
-// căn cứ. Nguồn: truth của hồ sơ ca và manifest.json của BỘ SINH — không qua bộ nạp của EACL, nên độc
+// căn cứ. Nguồn: truth của hồ sơ ca và manifest.json của BỘ SINH — không qua bộ nạp của EAIS, nên độc
 // lập với hệ được chấm. Số riêng của một ca: truth.value, other_values[].value, và value_l của mọi bản
 // ghi thuộc tenant được chấm mà ca trỏ tới bằng truth.record_ids (khớp key hoặc world_id) hoặc có thực
 // thể thuộc truth.entities với ngày trong truth.period. Ca không có truth thì không có số riêng (chặt hơn).

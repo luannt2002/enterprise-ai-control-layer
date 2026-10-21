@@ -1,4 +1,4 @@
-// Package db giữ migration SQL của EACL, nhúng vào binary để test và công cụ áp cùng một bản.
+// Package db giữ migration SQL của EAIS, nhúng vào binary để test và công cụ áp cùng một bản.
 package db
 
 import "embed"

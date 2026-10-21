@@ -2,7 +2,7 @@
 //
 // Tiền và số lượng phải so khớp TUYỆT ĐỐI: float64 làm "1602000" lệch ở chữ số cuối sau
 // một phép nhân đơn vị, rồi phép "khớp với bằng chứng" đỏ oan. Mọi số nghiệp vụ trong
-// EACL đi qua package này.
+// EAIS đi qua package này.
 package decimal
 
 import (

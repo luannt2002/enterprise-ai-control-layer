@@ -14,7 +14,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
-// Baseline phải là Asker và ModelCounter để runner (evals.RunWin) chấm nó như chấm EACL.
+// Baseline phải là Asker và ModelCounter để runner (evals.RunWin) chấm nó như chấm EAIS.
 var (
 	_ evals.Asker        = (*RAG)(nil)
 	_ evals.ModelCounter = (*RAG)(nil)

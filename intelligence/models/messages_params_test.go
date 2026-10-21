@@ -163,16 +163,16 @@ func TestNewKiemThamSo(t *testing.T) {
 	if g, _ := New(base); g.(*Messages).Temperature != nil {
 		t.Error("không cấu hình temperature: muốn nil (không gửi)")
 	}
-	t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
-	t.Setenv("EACL_MODEL_THINKING", "between_tools")
-	t.Setenv("EACL_MODEL_EFFORT", "medium")
-	t.Setenv("EACL_MODEL_TEMPERATURE", "")
+	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EAIS_MODEL_THINKING", "between_tools")
+	t.Setenv("EAIS_MODEL_EFFORT", "medium")
+	t.Setenv("EAIS_MODEL_TEMPERATURE", "")
 	if c := ConfigFromEnv(); c.Thinking != "between_tools" || c.Effort != "medium" || c.Temperature != "" || c.MaxRetries != 2 {
 		t.Errorf("ConfigFromEnv = %+v", Config{Thinking: c.Thinking, Effort: c.Effort, Temperature: c.Temperature, MaxRetries: c.MaxRetries})
 	}
-	t.Setenv("EACL_MODEL_MAX_RETRIES", "x")
+	t.Setenv("EAIS_MODEL_MAX_RETRIES", "x")
 	if c := ConfigFromEnv(); c.MaxRetries >= 0 {
-		t.Errorf("EACL_MODEL_MAX_RETRIES sai: muốn giá trị âm để New chặn, được %d", c.MaxRetries)
+		t.Errorf("EAIS_MODEL_MAX_RETRIES sai: muốn giá trị âm để New chặn, được %d", c.MaxRetries)
 	}
 }
 
@@ -274,15 +274,15 @@ func TestKhongTheoChuyenHuong(t *testing.T) {
 	}
 }
 
-// C-18: EACL_MODEL_MAX_TOKENS hỏng là lỗi cấu hình, không bị bỏ im lặng về mặc định.
+// C-18: EAIS_MODEL_MAX_TOKENS hỏng là lỗi cấu hình, không bị bỏ im lặng về mặc định.
 func TestMaxTokensHongLaLoi(t *testing.T) {
 	for _, v := range []string{"abc", "-5", "0"} {
-		t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
-		t.Setenv("EACL_MODEL", "m")
-		t.Setenv("EACL_MODEL_API_KEY", "k")
-		t.Setenv("EACL_MODEL_MAX_TOKENS", v)
+		t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+		t.Setenv("EAIS_MODEL", "m")
+		t.Setenv("EAIS_MODEL_API_KEY", "k")
+		t.Setenv("EAIS_MODEL_MAX_TOKENS", v)
 		if _, err := New(ConfigFromEnv()); err == nil {
-			t.Errorf("EACL_MODEL_MAX_TOKENS=%q: muốn lỗi cấu hình", v)
+			t.Errorf("EAIS_MODEL_MAX_TOKENS=%q: muốn lỗi cấu hình", v)
 		}
 	}
 }
@@ -327,22 +327,22 @@ func TestLoiTruyenTaiKhongInBiMatTrongURL(t *testing.T) {
 	}
 }
 
-// Biến model chuẩn là EACL_MODEL_*; biến cùng tên tiền tố EAIS_MODEL_* (khoá đã cấp cho môi trường chạy trước 21/10/2026)
-// chỉ được đọc khi biến EACL_ KHÔNG được đặt — đặt EACL_ (kể cả rỗng) luôn thắng.
+// Biến model chuẩn là EAIS_MODEL_*; biến cùng tên tiền tố EACL_MODEL_* (tên dùng 21/10/2026 trước D-RM-02, D-G7-8 dặn đặt
+// khoá ở đó) chỉ được đọc khi biến EAIS_ KHÔNG được đặt — đặt EAIS_ (kể cả rỗng) luôn thắng.
 func TestConfigFromEnvTienToTuongThich(t *testing.T) {
-	for _, k := range []string{"EACL_MODEL_PROVIDER", "EACL_MODEL", "EACL_MODEL_API_KEY", "EAIS_MODEL_PROVIDER", "EAIS_MODEL", "EAIS_MODEL_API_KEY"} {
+	for _, k := range []string{"EAIS_MODEL_PROVIDER", "EAIS_MODEL", "EAIS_MODEL_API_KEY", "EACL_MODEL_PROVIDER", "EACL_MODEL", "EACL_MODEL_API_KEY"} {
 		t.Setenv(k, "")
 		os.Unsetenv(k)
 	}
-	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
-	t.Setenv("EAIS_MODEL", "m-cu")
-	t.Setenv("EAIS_MODEL_API_KEY", "k-cu")
+	t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EACL_MODEL", "m-cu")
+	t.Setenv("EACL_MODEL_API_KEY", "k-cu")
 	if c := ConfigFromEnv(); c.Provider != "anthropic" || c.Model != "m-cu" || c.APIKey != "k-cu" {
-		t.Errorf("chỉ có EAIS_MODEL_*: muốn đọc dự phòng, được provider %q model %q, khoá rỗng = %v", c.Provider, c.Model, c.APIKey == "")
+		t.Errorf("chỉ có EACL_MODEL_*: muốn đọc dự phòng, được provider %q model %q, khoá rỗng = %v", c.Provider, c.Model, c.APIKey == "")
 	}
-	t.Setenv("EACL_MODEL", "m-moi")
-	t.Setenv("EACL_MODEL_API_KEY", "")
+	t.Setenv("EAIS_MODEL", "m-moi")
+	t.Setenv("EAIS_MODEL_API_KEY", "")
 	if c := ConfigFromEnv(); c.Model != "m-moi" || c.APIKey != "" {
-		t.Errorf("EACL_MODEL_* đã đặt phải thắng (kể cả đặt rỗng): model %q, khoá rỗng = %v", c.Model, c.APIKey == "")
+		t.Errorf("EAIS_MODEL_* đã đặt phải thắng (kể cả đặt rỗng): model %q, khoá rỗng = %v", c.Model, c.APIKey == "")
 	}
 }

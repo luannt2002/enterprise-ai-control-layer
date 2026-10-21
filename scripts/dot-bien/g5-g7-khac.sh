@@ -14,7 +14,7 @@ PKGS=. m core/contracts/contracts.go '	Text           string `json:"text"`
 	TenantID       TenantID
 }' 'TB AskRequest có TenantID'
 export PKGS="./evals/..."
-m evals/g7.go '	return c.Eligible && c.Total > 0 && (c.EACLPass-c.BaselinePass)*100 >= G7LeadPoints*c.Total' '	return c.Eligible && c.Total > 0 && (c.EACLPass-c.BaselinePass)*100 >= (G7LeadPoints-1)*c.Total' 'S1 ngưỡng hơn 19 điểm'
+m evals/g7.go '	return c.Eligible && c.Total > 0 && (c.EAISPass-c.BaselinePass)*100 >= G7LeadPoints*c.Total' '	return c.Eligible && c.Total > 0 && (c.EAISPass-c.BaselinePass)*100 >= (G7LeadPoints-1)*c.Total' 'S1 ngưỡng hơn 19 điểm'
 m evals/g7.go '		if have[n] && !asked[n] {' '		if have[n] && (!asked[n] || asked[n]) {' 'S2 rò rỉ tính cả số người hỏi đưa ra'
 m evals/g7.go '	if v := e.Value; v != nil && !have[abs(v.Number)] {' '	if v := e.Value; v != nil && false {' 'S3 chấm nội dung bỏ kiểm số'
 m evals/g7.go '	return n[(len(n)-1)/2]' '	return n[len(n)-1]' 'S4 trung vị thành lượt tốt nhất'

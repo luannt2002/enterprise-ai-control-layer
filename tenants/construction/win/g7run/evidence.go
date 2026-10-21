@@ -68,12 +68,12 @@ type askRecord struct {
 	// trượt với nhãn PROVIDER; quá 2% câu như vậy trong một lượt của một hệ thì lượt VÔ HIỆU.
 	ModelError bool        `json:"model_error,omitempty"`
 	Calls      []modelCall `json:"calls,omitempty"`
-	// Decision: bản ghi quyết định của EACL cho câu này (S2–S10), để phân loại tầng sai đầu tiên mà không
+	// Decision: bản ghi quyết định của EAIS cho câu này (S2–S10), để phân loại tầng sai đầu tiên mà không
 	// phải gọi lại model (hợp đồng §8; bản soát lượt 2, C-11). Baseline không có.
 	Decision *traces.Decision `json:"decision,omitempty"`
 }
 
-// path là đường tất định của câu trả lời EACL: giữa các lượt nó phải giống nhau, khác là lượt vô hiệu
+// path là đường tất định của câu trả lời EAIS: giữa các lượt nó phải giống nhau, khác là lượt vô hiệu
 // (ADR-0005 §5). Câu KHÔNG gọi model thì so đủ route, outcome, ứng viên, xung đột, trích dẫn. Câu CÓ gọi
 // model thì chỉ so route (chọn trước khi gọi model): trích dẫn là id do model chọn, outcome phụ thuộc
 // việc kiểm bản nháp ngẫu nhiên (bản soát mã độc lập, S2-5).
@@ -184,7 +184,7 @@ type recorder struct {
 	sink  *evidenceSink
 }
 
-// decision gắn bản ghi quyết định của EACL vào câu đang chạy (các hệ chạy tuần tự, như trace).
+// decision gắn bản ghi quyết định của EAIS vào câu đang chạy (các hệ chạy tuần tự, như trace).
 func (s *evidenceSink) decision(d traces.Decision) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -235,9 +235,9 @@ func (r *recorder) Ask(ctx context.Context, pr contracts.Principal, q string) (c
 	r.sink.mu.Lock()
 	lastFailed := len(rec.Calls) > 0 && rec.Calls[len(rec.Calls)-1].Error != ""
 	r.sink.mu.Unlock()
-	// Baseline lỗi khi hỏi = lỗi gọi model / hạ tầng của lượt chạy, không phải câu trả lời của nó. EACL lỗi
-	// khi hỏi mà không do nhà cung cấp là lỗi của chính EACL: tính là ca trượt bình thường.
-	rec.ModelError = lastFailed || (err != nil && (r.sys != sysEACL || strings.HasPrefix(contracts.FaultOf(err), "third_party:")))
+	// Baseline lỗi khi hỏi = lỗi gọi model / hạ tầng của lượt chạy, không phải câu trả lời của nó. EAIS lỗi
+	// khi hỏi mà không do nhà cung cấp là lỗi của chính EAIS: tính là ca trượt bình thường.
+	rec.ModelError = lastFailed || (err != nil && (r.sys != sysEAIS || strings.HasPrefix(contracts.FaultOf(err), "third_party:")))
 	r.sink.mu.Lock()
 	r.sink.cur = nil
 	r.sink.recs = append(r.sink.recs, *rec)
@@ -248,12 +248,12 @@ func (r *recorder) Ask(ctx context.Context, pr contracts.Principal, q string) (c
 func (r *recorder) ModelCalls() int  { return r.mc.ModelCalls() }
 func (r *recorder) ResetModelCalls() { r.mc.ResetModelCalls() }
 
-// unstablePaths trả các ca mà đường tất định của EACL khác nhau giữa các lượt (ADR-0005 §5).
+// unstablePaths trả các ca mà đường tất định của EAIS khác nhau giữa các lượt (ADR-0005 §5).
 func unstablePaths(recs []askRecord) []string {
 	first := map[string]string{}
 	bad := map[string]bool{}
 	for _, r := range recs {
-		if r.System != sysEACL || r.ModelError { // lỗi nhà cung cấp tính riêng (invalidRuns), không là bất ổn đường tất định
+		if r.System != sysEAIS || r.ModelError { // lỗi nhà cung cấp tính riêng (invalidRuns), không là bất ổn đường tất định
 			continue
 		}
 		if p, ok := first[r.CaseID]; !ok {
@@ -304,10 +304,10 @@ func flakyCases(counts map[string]map[string]int, k int) map[string][]string {
 	return out
 }
 
-// pilotK là luật chọn k đăng ký trước (ADR-0006 §6): pilot chạy k = 5; hệ nào trong EACL, B2+, B1 có
+// pilotK là luật chọn k đăng ký trước (ADR-0006 §6): pilot chạy k = 5; hệ nào trong EAIS, B2+, B1 có
 // ≥ 2 ca chập chờn thì lượt chính k = 5, không thì k = 3.
 func pilotK(flaky map[string][]string) int {
-	for _, g := range append([]string{sysEACL}, gateSystems...) {
+	for _, g := range append([]string{sysEAIS}, gateSystems...) {
 		if len(flaky[g]) >= 2 {
 			return 5
 		}
@@ -443,7 +443,7 @@ type manifestInfo struct {
 	Pilot        bool                  `json:"pilot"`
 	PriceTable   map[string][2]float64 `json:"price_usd_per_mtok"`
 	BudgetUSD    float64               `json:"budget_usd"`
-	Unstable     []string              `json:"eacl_unstable_cases,omitempty"`
+	Unstable     []string              `json:"eais_unstable_cases,omitempty"`
 	Invalid      []string              `json:"invalid_runs,omitempty"`
 	PackVersion  string                `json:"pack_version"`
 	Endpoint     string                `json:"endpoint,omitempty"`

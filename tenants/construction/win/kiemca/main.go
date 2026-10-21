@@ -1,4 +1,4 @@
-// kiemca kiểm ĐỊNH DẠNG các tệp ca WIN mà KHÔNG chạy EACL và KHÔNG in nội dung ca (câu hỏi, kỳ vọng): dùng cho bộ giữ
+// kiemca kiểm ĐỊNH DẠNG các tệp ca WIN mà KHÔNG chạy EAIS và KHÔNG in nội dung ca (câu hỏi, kỳ vọng): dùng cho bộ giữ
 // lại trước khi chạy, vì người viết mã không được đọc kỳ vọng của bộ giữ lại (ADR-0006 §3). In số ca theo lớp hỏng, số ca
 // có kỳ vọng số liệu, và lỗi định dạng (mã ca + tên trường, như evals.ValidateWinSuite). Thoát 0 khi không lỗi, 1 khi có
 // lỗi định dạng, 2 khi không đọc được tệp.

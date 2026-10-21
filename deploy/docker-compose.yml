@@ -3,15 +3,15 @@
 # - chỉ nghe ở 127.0.0.1, xác thực "trust" ⇒ KHÔNG có mật khẩu nào phải ghi vào repo;
 # - dữ liệu nằm trên tmpfs: dừng container là mất, mỗi lần chạy bắt đầu sạch.
 # Dùng: docker compose -f deploy/docker-compose.yml up -d --wait
-#       EACL_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable \
-#       EACL_PG_DSN=postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable go test ./platform/...
-name: eacl
+#       EAIS_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:25432/eais?sslmode=disable \
+#       EAIS_PG_DSN=postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable go test ./platform/...
+name: eais
 services:
   pg:
     image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
-    container_name: eacl-pg
+    container_name: eais-pg
     environment:
-      POSTGRES_DB: eacl
+      POSTGRES_DB: eais
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "127.0.0.1:25432:5432"
@@ -19,7 +19,7 @@ services:
       - /var/lib/postgresql/data
     mem_limit: 1g
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "eacl"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "eais"]
       interval: 2s
       timeout: 3s
       retries: 30

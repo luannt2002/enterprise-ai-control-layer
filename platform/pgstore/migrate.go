@@ -13,7 +13,7 @@ import (
 )
 
 // Migrate áp các migration chưa áp, theo thứ tự tên tệp, mỗi tệp một giao dịch, ghi vào
-// schema_migrations. Chạy bằng vai QUẢN TRỊ (tạo vai eacl_app, bật RLS), không bằng eacl_app.
+// schema_migrations. Chạy bằng vai QUẢN TRỊ (tạo vai eais_app, bật RLS), không bằng eais_app.
 func Migrate(ctx context.Context, adminDSN string) error {
 	conn, err := pgx.Connect(ctx, adminDSN)
 	if err != nil {

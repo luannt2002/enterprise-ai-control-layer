@@ -19,3 +19,4 @@ m platform/pgstore/pgstore.go '			f.OccurredOn = time.Date(on.Year(), on.Month()
 m platform/pgstore/pgstore.go '	if super || bypass {' '	if false {' 'BR1 Open không kiểm vai vượt RLS'
 m platform/pgstore/pgstore.go '	if super || bypass {' '	if super {' 'BR2 Open chỉ chặn superuser, lọt vai BYPASSRLS'
 m platform/pgstore/pgstore.go '	if super || bypass {' '	if bypass {' 'BR3 Open chỉ chặn BYPASSRLS, lọt superuser'
+m platform/pgstore/pgstore.go 'WHERE rolname = current_user' 'WHERE rolname = session_user' 'BR4 Open xét vai đăng nhập (session_user) thay vì vai hiệu lực'

@@ -86,13 +86,23 @@ func TestGUCLayTuNguCanh(t *testing.T) {
 
 // Open chỉ nhận vai KHÔNG vượt được RLS: DSN quản trị trỏ nhầm vào Store thì Load (DELETE FROM dựa vào RLS) xoá dữ liệu
 // của MỌI tenant. Ca âm: vai quản trị dựng sẵn (superuser + BYPASSRLS), một vai chỉ BYPASSRLS và một vai chỉ SUPERUSER (vẫn
-// vượt RLS dù NOBYPASSRLS) đều bị từ chối với lỗi chính sách; vai ứng dụng mở được.
+// vượt RLS dù NOBYPASSRLS) đều bị từ chối với lỗi chính sách. Ca dương: vai ứng dụng; và vai ứng dụng đặt bằng role= trên DSN
+// quản trị — Open xét vai HIỆU LỰC (current_user), không xét vai đăng nhập.
+// Vai tạm là NOLOGIN, vào bằng tham số role= trên DSN quản trị: không cần mật khẩu / pg_hba, và vai sót lại khi tiến trình bị
+// kill thì không đăng nhập được.
 func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 	_, admin, app := open(t)
 	ctx := context.Background()
 	u, err := url.Parse(admin)
 	if err != nil || u.User == nil {
-		t.Fatalf("DSN quản trị phải ở dạng URL có tên vai (docs/ops/README.md): %v", err)
+		t.Skipf("DSN quản trị không ở dạng URL có tên vai (docs/ops/README.md) — không dựng được DSN role=: %v", err)
+	}
+	withRole := func(role string) string {
+		r := *u
+		q := r.Query()
+		q.Set("role", role)
+		r.RawQuery = q.Encode()
+		return r.String()
 	}
 	conn, err := pgx.Connect(ctx, admin)
 	if err != nil {
@@ -100,13 +110,11 @@ func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 	}
 	// Cleanup chạy ngược thứ tự đăng ký: xoá vai tạm trước, đóng kết nối sau (defer sẽ đóng kết nối TRƯỚC Cleanup).
 	t.Cleanup(func() { conn.Close(context.Background()) })
-	dsns := map[string]string{"quản trị dựng sẵn": admin}
+	suffix := fmt.Sprintf("%d_%d", os.Getpid(), time.Now().UnixNano()%1_000_000)
+	refuse := map[string]string{"quản trị dựng sẵn": admin}
 	for name, attrs := range map[string]string{"bypass": "NOSUPERUSER BYPASSRLS", "super": "SUPERUSER NOBYPASSRLS"} {
-		role := fmt.Sprintf("eacl_test_%s_%d", name, os.Getpid())
-		if _, err := conn.Exec(ctx, "DROP ROLE IF EXISTS "+role); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := conn.Exec(ctx, "CREATE ROLE "+role+" LOGIN "+attrs); err != nil {
+		role := "eacl_test_" + name + "_" + suffix
+		if _, err := conn.Exec(ctx, "CREATE ROLE "+role+" NOLOGIN "+attrs); err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() {
@@ -114,11 +122,9 @@ func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 				t.Errorf("xoá vai tạm %s: %v", role, err)
 			}
 		})
-		r := *u
-		r.User = url.User(role)
-		dsns[attrs] = r.String()
+		refuse[attrs] = withRole(role)
 	}
-	for name, dsn := range dsns {
+	for name, dsn := range refuse {
 		s, err := pgstore.Open(ctx, dsn)
 		if err == nil {
 			s.Close()
@@ -129,11 +135,13 @@ func TestOpenTuChoiVaiVuotRLS(t *testing.T) {
 			t.Errorf("%s: muốn lỗi %s nêu RLS, được %v", name, contracts.FaultPolicy, err)
 		}
 	}
-	s, err := pgstore.Open(ctx, app)
-	if err != nil {
-		t.Fatalf("vai ứng dụng phải mở được: %v", err)
+	for name, dsn := range map[string]string{"vai ứng dụng": app, "vai ứng dụng qua role= trên DSN quản trị": withRole("eacl_app")} {
+		s, err := pgstore.Open(ctx, dsn)
+		if err != nil {
+			t.Fatalf("%s phải mở được: %v", name, err)
+		}
+		s.Close()
 	}
-	s.Close()
 }
 
 // Canary B: không dòng / thực thể / fact / tài liệu nào của B tới được từ A (cho phép + từ chối),

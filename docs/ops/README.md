@@ -33,6 +33,11 @@ go vet ./... && gofmt -l . && go test ./... -count=1
 scripts/scale-smoke.sh
 ```
 
+Test PG (`platform/pgstore`) tạo tạm các vai `eacl_test_*` trong chính cụm PG mà `EACL_PG_ADMIN_DSN` trỏ tới, tức cụm dùng chung với `eacl_giu_lai`:
+- vai tạm là `NOLOGIN`, vào bằng tham số `role=` trên DSN quản trị, và bị xoá khi test xong;
+- nếu tiến trình bị kill giữa chừng, vai có thể sót nhưng không đăng nhập được;
+- kiểm vai sót: `SELECT rolname FROM pg_roles WHERE rolname LIKE 'eacl_test_%'`.
+
 Mốc phải ra (đo 21/10/2026 tại `9dede54`, Go 1.26.4; đếm mọi sự kiện pass / fail / skip của `go test -json`, kể cả test con):
 - `go vet` sạch, `gofmt -l` rỗng;
 - `go test`: **440 PASS / 0 FAIL / 0 SKIP** (317 test cấp cao). Không có biến PG: 435 PASS + 5 SKIP (5 test PG);

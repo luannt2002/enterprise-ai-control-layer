@@ -6,13 +6,14 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 19:5x · **HEAD:** `903623d` (cộng commit chứa tệp này)
+- **Cập nhật lúc:** 21/10/2026 20:2x · **HEAD:** `4e18680` (cộng commit chứa tệp này). Mạng đứt 19:55 → 20:22 nên các commit từ `945777c` lên `origin/main` cùng một lần push.
 - **Xong từ lần trước** (PROMPT-DOI-TEN-VA-LUONG-MOI):
   - Việc 1, đổi tên lại EAIS (D-RM-02): `945777c` (cổng danh tính đảo chiều), `423e4d3` (mã + định danh chạy + migration 0002), `730926f` (tài liệu + `docs/PROMPT-BUILD-EAIS.md`);
   - soát độc lập 2 lượt (workflow, sonnet, chỉ đọc): lượt 1 — 0 S1, 3 S2; lượt 2 — 0 S1, 1 S2 (Việc 2); soát riêng 01-architecture — 0 S1, 5 S2. Đã sửa hết S2 và các S3 rẻ: `dbdf7ca`, `7738a3d`, `cdf7d84`, `efc2cad`, `2b8fb94`, `903623d`;
   - Việc 2: `52c9399` (ROADMAP-DAY-DU dùng tên EAIS; README / STATUS / CONVENTIONS), `34240a9` (CLAUDE.md §9, commit riêng), `bff56c4` (§25), `9da639c` (01-architecture theo 7 mặt phẳng + L0–L10);
   - câu mở mới D-RM-05 (`93649ba`).
-- **Đang làm:** tệp phản hồi `docs/bao-cao/2026-10-21-phan-hoi-doi-ten.md` (khuôn §6).
+- **Xong thêm:** tệp phản hồi `docs/bao-cao/2026-10-21-phan-hoi-doi-ten.md` (khuôn §6, `1ccac76`); hai chú thích lệch mã (`4e18680`, brief §4 mục 7).
+- **Đang làm:** Việc 3 mục 2 — đo lại thiết kế R4 bằng workflow (dựng lại corpus từ transcript của lượt phân tích bị dừng, soát mã bản diff, đo trên corpus + 117 / H1 / H3); chưa sửa mã cổng phán quyết.
 - **Tiếp theo:**
   1. Việc 3 mục 2: đóng R4-2…R4-4 của cổng phán quyết (đo lại thiết kế V4 / V5 trước khi tin) → vòng S4 (ADR-0010) → H4 MỘT lần;
   2. Việc 3 mục 3–7: phép đo, giấy Phase 0a / 1, tài liệu lệch (danh sách trong tệp phản hồi mục 7).
@@ -54,3 +55,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 21/10 16:4x | `d6afad7` | Chốt ca lần cuối: mục sự cố 09:14 trong báo cáo, đo cuối, ghi nhận phân tích thiết kế R4 bị DỪNG giữa chừng | `go test -count=1 ./...` có PG 453/0/0; 117 / H1 / H3 không đổi | Lịch ca xoá sau commit này |
 | 21/10 18:1x | `ca62760` | NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI (HEAD `32c8cfe`) | — | Bắt đầu Việc 1 (kiểm kê trước khi sửa) |
 | 21/10 19:5x | `945777c` … `903623d` (14 commit) + commit chứa dòng này | Việc 1 đổi tên lại EAIS (D-RM-02) + sửa sau 3 lượt soát độc lập; Việc 2 (ROADMAP-DAY-DU, 01-architecture, CLAUDE.md §9 / §25, README / STATUS / CONVENTIONS); D-RM-05 | vet sạch; gofmt 0; test có PG 455/0/0 (theo tên: 0 đổi, 4 cặp đổi tên, 2 mới); winreport 5 đường 0 dòng khác; đột biến 676/676, n42 25/25, w4 26/26; cổng danh tính xanh ở cây của TỪNG commit; quét riêng tư 0 dòng nghi | Tệp phản hồi theo khuôn §6: commit kế tiếp |
+| 21/10 20:2x | `1ccac76`, `4e18680` + commit chứa dòng này | Tệp phản hồi PROMPT-DOI-TEN (khuôn §6); chú thích lệch mã; push cả chuỗi sau khi mạng có lại | vet sạch; gofmt 0; test có PG 455/0/0 (cùng tên); cổng danh tính xanh ở cây của từng commit mới; quét riêng tư 0 dòng nghi | Mạng đứt 19:55 → 20:22 |

@@ -15,10 +15,19 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 - ADR-0006 (§10 đăng ký trước ở `5ee31c8`): tên database chạy bộ giữ lại đổi theo danh tính; chỉ đổi tên, luật không đổi.
 - Soát độc lập migration: 0 lỗi S1. Đã sửa: chuỗi gốc đột biến MS8 (`9dede54`); mốc vận hành đo lại tại `9dede54` (test có PG 440/0/0, gồm cổng danh tính); nhãn "Historical artifact" cho 4 tài liệu lịch sử còn thiếu; cổng danh tính đếm hạn mức theo từng tệp. Báo cáo: `docs/bao-cao/2026-10-21-migration-eacl.md`.
 
+### Ca ngày 21/10/2026 — cổng phán quyết câu xác nhận (ADR-0009)
+
+- `core/pipeline/claim.go` `verdictGap`: chỉ mở đầu bằng "Đúng." / "Không." khi claim {chủ thể, chỉ số, kỳ, giá trị, đơn vị, chiều} đã giải bằng bằng chứng dương VÀ mọi ký tự của câu được giải thích (fail-closed, không danh sách chặn). Không qua cổng ⇒ trả số liệu có thẩm quyền + mẩu cố định `confirm_withheld`.
+- Pack: khoá mới `claim_neutral_words` (danh sách CHO PHÉP duy nhất), mẫu `confirm_withheld`. Hàm mới `intent.Set.Keywords`, `normalization.PeriodWordBefore`.
+- Test: 8 test mới (15 câu thăm dò, 75 phép chen metamorphic, từ trung tính, nguồn và ngữ cảnh, mẫu, chiều chưa giải, `TestVerdictGap`, `PeriodWordBefore`); 55 dòng kỳ vọng phán quyết trong test cũ đổi thành "không phán quyết" (mã hoá luật danh sách đóng mà hợp đồng câu xác nhận thay thế), không dòng nào đổi chiều.
+- Đo (trước khi chạy H3): test có PG 448/0/0; bộ 117 ca 117/117; H1 89/104 hai đường, 0 ca đổi nhãn; số ca có phán quyết 117: 23 → 18, H1: 6 → 5, 0 thêm, 0 đổi chiều; 15 câu thăm dò: 0 phán quyết sai.
+- Đột biến: n43 20/20; toàn bộ 35 danh mục 618 bị bắt / 0 sống (chuỗi gốc BA của `w5-g4-acl.sh` đổi theo mã mới).
+
 ### Ca ngày 21/10/2026 — chuẩn bị H3
 
 - ADR-0006 §10: luật soạn / đóng băng bằng cam kết băm / chạy một lần / chấm H3, đăng ký trước khi có tệp H3.
 - `kiemca` (kiểm định dạng bộ giữ lại không in nội dung), `scripts/cam-ket-giu-lai.py`, `scripts/kiem-nhiem-soan.py`; đột biến n40 7/7, n41 12/12.
+- H3 đóng băng bằng cam kết băm (`259d38d`, 11:04): 134 ca, 82 có kỳ vọng số; quy trình và các điểm lệch công khai trong commit.
 
 ### Đêm 20→21/10/2026 — khôi phục bằng chứng (chưa gọi model thật, chi 0 USD)
 

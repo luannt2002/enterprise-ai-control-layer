@@ -159,6 +159,15 @@ func responseOnly(r contracts.RouteKind) bool {
 	return r == contracts.RouteClarification || r == contracts.RouteReject
 }
 
+// Keywords trả mọi từ khoá của mọi ý định (để luồng hỏi biết một cụm là tên một chỉ số / ý định đã khai trong pack).
+func (s *Set) Keywords() []string {
+	var out []string
+	for _, d := range s.defs {
+		out = append(out, d.Keywords...)
+	}
+	return out
+}
+
 // Def trả định nghĩa của một ý định.
 func (s *Set) Def(name string) (Def, bool) {
 	for _, d := range s.defs {

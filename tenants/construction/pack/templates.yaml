@@ -22,6 +22,9 @@ templates:
   confirm_yes: "Đúng. {metric_label} của {entity_name} {period} theo nguồn có thẩm quyền là {value} {unit}.{approx_note}{conflict_note}{others_note}"
   confirm_no: "Không. {metric_label} của {entity_name} {period} theo nguồn có thẩm quyền là {value} {unit}, không phải {claimed}.{approx_note}{conflict_note}{others_note}"
   others_note: " Các số khác cùng kỳ: {others}."
+  # Câu xác nhận mà claim chưa giải đủ chiều (ADR-0009): trả số như câu hỏi thường, KHÔNG phán quyết. Không chép chữ của người hỏi
+  # (có thể mang số làm lớp kiểm số chặn oan).
+  confirm_withheld: " Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
   approx_mark: " (ước lượng)"
   # Câu hỏi quy trình: {procedure} là phần model diễn đạt từ đoạn tài liệu (đã qua kiểm), {title}
   # là tên tài liệu được trích dẫn. Nhãn "trích văn bản quy trình" cho người đọc biết số trong phần

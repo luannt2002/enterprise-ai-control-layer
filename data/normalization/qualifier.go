@@ -46,6 +46,24 @@ var periodWords = []struct {
 	{"tuần", QualifierWeek}, {"tháng", QualifierMonth}, {"quý", QualifierQuarter}, {"năm", QualifierYear},
 }
 
+// PeriodWordBefore trả khoảng byte của từ chỉ kỳ ("ngày", "hôm", "mùng", "tuần"…) đứng NGAY TRƯỚC vị trí start, chỉ cách khoảng trắng
+// ("ngày" của "ngày 13/10"); ok = false khi không có. Từ đó là một phần của mốc bắt đầu ở start.
+func PeriodWordBefore(raw string, start int) (ws, we int, ok bool) {
+	if start < 0 || start > len(raw) {
+		return 0, 0, false
+	}
+	ws, we = wordBefore(raw, start)
+	if we <= ws {
+		return 0, 0, false
+	}
+	for _, pw := range periodWords {
+		if wordIs(raw, ws, we, pw.word) {
+			return ws, we, true
+		}
+	}
+	return 0, 0, false
+}
+
 // spanWords: từ đứng NGAY SAU con số thì số đó đếm một khoảng thời gian ("7 ngày qua", "2 tuần", "3 tháng gần đây").
 var spanWords = []string{"ngày", "tuần", "tháng", "quý", "năm"}
 

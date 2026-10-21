@@ -355,13 +355,13 @@ func TestCauXacNhanMotConSoVanTraLoi(t *testing.T) {
 		{"EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
 		{"EX-03 hôm nay được cấp 4000 L đúng không?", "Không."},
 		// cùng giá trị 4000 L viết hai cách (kể cả khác đơn vị): không phải hai con số khác nhau
-		{"EX-03 hôm nay được cấp 4k đúng không, 4000 lít thì sao?", "Không."},
-		{"EX-03 hôm nay được cấp 4k đúng không, 4 m3 thì sao?", "Không."},
+		{"EX-03 hôm nay được cấp 4k đúng không, 4000 lít thì sao?", ""},
+		{"EX-03 hôm nay được cấp 4k đúng không, 4 m3 thì sao?", ""},
 		// số trong TÊN thực thể ("03" của "máy xúc 03") không phải con số xác nhận
 		{"Máy xúc 03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
 		// số ở mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi là ngữ cảnh
-		{"EX-03 hôm nay đội báo 3k, báo cáo ghi 5 m3, vậy được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay đội báo 3k, vậy được cấp 4000 L đúng không?", "Không."},
+		{"EX-03 hôm nay đội báo 3k, báo cáo ghi 5 m3, vậy được cấp 3850 L đúng không?", ""},
+		{"EX-03 hôm nay đội báo 3k, vậy được cấp 4000 L đúng không?", ""},
 	} {
 		r := ask(t, a, user("director", ""), c.text).Response
 		if r.Outcome != contracts.OutcomeResolved || !strings.HasPrefix(r.Answer, c.prefix) {

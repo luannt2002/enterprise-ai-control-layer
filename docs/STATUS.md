@@ -17,7 +17,7 @@
 >   - permission 13/13, unsupported_answer 12/13 (G5).
 > - Vậy phần ca của G1–G5 đều KHÔNG ĐẠT trên dữ liệu độc lập. 15 ca đỏ quyết định sai ở tầng ý định (S4; 13/15 sai đầu tiên ở đó, 2/15 ở S2); 4/15 trả lời sai không báo, 1/15 báo thiếu dữ liệu của chỉ số sai (`phan-tich.md`).
 > - G6' PARTIAL (dòng tiến độ ngay dưới); tiêu chí sửa đổi chờ chủ dự án phê. G7 CHẶN.
-> - **Câu xác nhận ("… đúng không?")**: trên 15 câu thăm dò của người soát, đầu đêm `94bbaae` phán quyết sai 8/15, bản cuối sai **15/15** — 7 câu là HỒI QUY của chính các bản sửa đêm nay (`3d730ea`, `6f23ff3`, `a8b0858`). Mã chính CHƯA sửa (báo cáo sáng mục 8). D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều; bản sửa vào sau khi đóng băng H3 (ADR-0006 §10).
+> - **Câu xác nhận ("… đúng không?")**: trên 15 câu thăm dò của người soát, đầu đêm `94bbaae` phán quyết sai 8/15, bản cuối sai **15/15** — 7 câu là HỒI QUY của chính các bản sửa đêm nay (`3d730ea`, `6f23ff3`, `a8b0858`). D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều. Đã sửa bằng cổng phán quyết fail-closed (ADR-0009), vào mã SAU khi H3 đóng băng (`259d38d`): 15 câu thăm dò còn 0 phán quyết sai; câu chưa giải đủ chiều trả số liệu kèm mẩu "Chưa kết luận đúng hay sai…". H3 chưa chạy.
 > - **Tiến độ (cổng đạt trọn, vô điều kiện, theo dữ liệu độc lập): 0/7.**
 >   - G6' là PARTIAL (đột biến mỗi cổng, test thuộc tính chưa đủ; 15 ca lộ gợi ý trước đóng băng không bị loại): chỉ thành 1/7 khi chủ dự án phê tiêu chí VÀ làm đủ phần còn thiếu.
 >   - Nếu D-H1-1 chọn giữ bộ 117 cho G1 / G3 / G4: 3/7 (không khuyến nghị: bộ 117 không phải bằng chứng độc lập).
@@ -188,7 +188,7 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 ## Việc tiếp theo (20/10 — đã thay)
 
-> Việc hiện hành (ca 21/10): đóng băng bộ giữ lại H3 (ADR-0006 §10), rồi đưa bản sửa câu xác nhận vào mã chính và chạy H3 một lần. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
+> Việc hiện hành (ca 21/10): H3 đã đóng băng (`259d38d`, 134 ca); bản sửa câu xác nhận (ADR-0009) đã vào mã; tiếp: sửa kỳ mặc định lặng lẽ (cụm C2), rồi chạy H3 MỘT lần khi đủ 5 điều kiện ADR-0006 §10. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

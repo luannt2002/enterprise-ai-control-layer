@@ -615,12 +615,13 @@ func TestSoSanhHaiNghia(t *testing.T) {
 	}
 }
 
-// Câu xác nhận nhiều mệnh đề: mệnh đề chứa "đúng không" là câu hỏi — ý định VÀ con số được hỏi lấy
-// từ đó; các mệnh đề trước ("đội báo 4k, báo cáo ghi 4 m3") chỉ là ngữ cảnh.
+// Câu xác nhận nhiều mệnh đề: mệnh đề chứa "đúng không" là câu hỏi — ý định lấy từ đó; các mệnh đề trước ("đội báo 4k, báo cáo ghi
+// 4 m3") chỉ là ngữ cảnh. Từ ADR-0009 câu này trả số liệu KHÔNG phán quyết: ngữ cảnh nêu nghĩa khác ("đội báo", "báo cáo ghi") là phần
+// chưa được giải thích của claim.
 func TestCauXacNhanNhieuMenhDe(t *testing.T) {
 	r := ask(t, newAsk(t), user("director", ""), "Hôm nay cả đội báo 4k, báo cáo ghi 4 m3, vậy EX-03 được cấp 4k dầu đúng không?").Response
-	if r.Intent != "fuel_issued" || !strings.HasPrefix(r.Answer, "Không.") || !strings.Contains(r.Answer, "3.850 L, không phải 4.000 L") {
-		t.Errorf("muốn trả lời câu hỏi CẤP 4k: Không, 3.850 L — được %s → %q", r.Intent, r.Answer)
+	if r.Intent != "fuel_issued" || r.Outcome != contracts.OutcomeResolved || verdictOf(r.Answer) != "" || !strings.Contains(r.Answer, "3.850 L") {
+		t.Errorf("muốn trả số dầu CẤP (3.850 L), không phán quyết — được %s/%s → %q", r.Intent, r.Outcome, r.Answer)
 	}
 }
 

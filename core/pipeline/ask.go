@@ -414,7 +414,15 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	}
 	ignore := []string{entitySlot.Entity.Name, entitySlot.Entity.Key}
 	tmpl := plan.Template
-	if claimed, ok := a.claimedValue(in, names, metric); ok && compare == "" {
+	withheld := "" // chiều của claim chưa giải được: câu xác nhận chỉ được trả số, không phán quyết (ADR-0009)
+	claimed, confirm := a.claimedValue(in, names, metric)
+	if confirm && compare == "" {
+		def, _ := a.RT.Metrics.Metric(metric)
+		if withheld = a.verdictGap(in, names, it, def, claimed); withheld != "" {
+			plan.Reason = "câu xác nhận chưa giải đủ chiều: " + withheld
+		}
+	}
+	if confirm && compare == "" && withheld == "" {
 		// Câu xác nhận: so BẰNG TUYỆT ĐỐI với số có thẩm quyền, rồi kê các nghĩa khác cùng kỳ
 		// (mỗi số kèm nhãn của nó) — "4k" có thể là số báo cáo, không phải số xuất kho.
 		tmpl = "confirm_no"
@@ -437,7 +445,11 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		claims = append(claims, otherClaims...)
 	}
 	// S8 — dựng câu bằng mẫu của tenant (route số liệu không gọi model)
-	draft := contracts.Draft{Text: a.render(tmpl, vars), FromTemplate: true, Claims: claims}
+	text := a.render(tmpl, vars)
+	if withheld != "" {
+		text += a.fragment("confirm_withheld", vars)
+	}
+	draft := contracts.Draft{Text: text, FromTemplate: true, Claims: claims}
 
 	// S9 — kiểm: số có trong bằng chứng (lớp lọc đầu), rồi mỗi số ràng buộc đủ sáu chiều.
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {

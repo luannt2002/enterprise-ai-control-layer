@@ -13,10 +13,11 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 )
 
-// xacNhan kiểm câu xác nhận ra đúng câu trả lời RESOLVED mở đầu bằng prefix ("Đúng." / "Không.") — không bị hỏi lại.
+// xacNhan kiểm câu xác nhận ra đúng câu trả lời RESOLVED mở đầu bằng prefix ("Đúng." / "Không.") — không bị hỏi lại. prefix rỗng: claim
+// chưa giải đủ chiều (ADR-0009) — vẫn RESOLVED, trả số liệu, nhưng KHÔNG phán quyết.
 func xacNhan(t *testing.T, r contracts.AskResponse, text, prefix string) {
 	t.Helper()
-	if r.Outcome != contracts.OutcomeResolved || !strings.HasPrefix(r.Answer, prefix) {
+	if r.Outcome != contracts.OutcomeResolved || verdictOf(r.Answer) != prefix {
 		t.Errorf("%q: muốn RESOLVED %q…, được [%s/%s] %q", text, prefix, r.Route, r.Outcome, r.Answer)
 	}
 }
@@ -40,11 +41,11 @@ func TestCauXacNhanBiDanhSoKhongPhaiConSoThuHai(t *testing.T) {
 		// đối chứng: bí danh rõ ngay từ đầu
 		{user("director", ""), "Máy xúc 03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
 		// con số của người hỏi không viết đơn vị: "03" là số trần duy nhất khác — chỉ loại theo vị trí cụm tên mới đúng
-		{user("site_engineer", "PRJ-A"), "Máy 03 hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{user("director", ""), "Máy 03 của dự án A hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{user("director", ""), "EX-03 hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{user("director", ""), "EX-03 (máy 03) hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{user("director", ""), "EX-03 (máy xúc 03) hôm nay được cấp 4000 đúng không?", "Không."},
+		{user("site_engineer", "PRJ-A"), "Máy 03 hôm nay được cấp 3850 đúng không?", ""},
+		{user("director", ""), "Máy 03 của dự án A hôm nay được cấp 3850 đúng không?", ""},
+		{user("director", ""), "EX-03 hôm nay được cấp 3850 đúng không?", ""},
+		{user("director", ""), "EX-03 (máy 03) hôm nay được cấp 3850 đúng không?", ""},
+		{user("director", ""), "EX-03 (máy xúc 03) hôm nay được cấp 4000 đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, c.who, c.text).Response, c.text, c.prefix)
 	}
@@ -79,25 +80,25 @@ func TestCauXacNhanCoSoTranKhacVanTraLoi(t *testing.T) {
 	a := newAsk(t)
 	for _, c := range []struct{ text, prefix string }{
 		{"EX-03 tháng 10 năm 2026 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 ca 2 hôm nay được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay đổ dầu 2 lần tổng 3850 L đúng không?", "Đúng."},
-		{"Phiếu số 912 ghi EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
+		{"EX-03 ca 2 hôm nay được cấp 3850 L đúng không?", ""},
+		{"EX-03 hôm nay đổ dầu 2 lần tổng 3850 L đúng không?", ""},
+		{"Phiếu số 912 ghi EX-03 hôm nay được cấp 3850 L đúng không?", ""},
 		{"EX-03 hôm nay tuần 43 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L cho 1 máy đúng không?", "Đúng."},
+		{"EX-03 hôm nay được cấp 3850 L cho 1 máy đúng không?", ""},
 		{"EX-03 ngày 19 tháng 10 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay ca 2 được cấp 4000 L đúng không?", "Không."},
+		{"EX-03 hôm nay ca 2 được cấp 4000 L đúng không?", ""},
 		// số trần ở mệnh đề SAU mệnh đề hỏi
-		{"EX-03 hôm nay được cấp 3850 L đúng không? (phiếu 912)", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L đúng không? Tôi cần trả lời trong 2 phút.", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L đúng không? Đội 3 báo vậy.", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L đúng không, theo phiếu số 912?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L đúng không? Ca 2 báo vậy.", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L đúng không? Máy chạy 2 ca.", "Đúng."},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? (phiếu 912)", ""},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? Tôi cần trả lời trong 2 phút.", ""},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? Đội 3 báo vậy.", ""},
+		{"EX-03 hôm nay được cấp 3850 L đúng không, theo phiếu số 912?", ""},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? Ca 2 báo vậy.", ""},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? Máy chạy 2 ca.", ""},
 		// số khác chiều đo (7h, 2 ca) ở CÙNG mệnh đề không làm mất phán quyết "Đúng."
-		{"EX-03 chạy 7h hôm nay được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay chạy 2 ca được cấp 3850 L đúng không?", "Đúng."},
+		{"EX-03 chạy 7h hôm nay được cấp 3850 L đúng không?", ""},
+		{"EX-03 hôm nay chạy 2 ca được cấp 3850 L đúng không?", ""},
 		// cùng một con số viết hai lần vẫn là MỘT con số
-		{"EX-03 hôm nay được cấp 3850 L đúng không? Tôi nhớ 3850 L.", "Đúng."},
+		{"EX-03 hôm nay được cấp 3850 L đúng không? Tôi nhớ 3850 L.", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.text).Response, c.text, c.prefix)
 	}
@@ -147,7 +148,7 @@ func TestCauXacNhanHaiConSoCoDauPhayTruocCumXacNhan(t *testing.T) {
 	for _, c := range []struct{ text, prefix string }{
 		{"EX-03 hôm nay được cấp 3850 L, đúng không?", "Đúng."},
 		{"EX-03 hôm nay được cấp 4000 L, đúng không?", "Không."},
-		{"Phiếu số 912. EX-03 hôm nay được cấp 3850 L, đúng không?", "Đúng."},
+		{"Phiếu số 912. EX-03 hôm nay được cấp 3850 L, đúng không?", ""},
 		// con số (có đơn vị) ở CÂU trước là ngữ cảnh, kể cả khi con số hỏi viết có dấu nghìn ("3.850" không cắt câu)
 		{"Kho xuất 4000 L. EX-03 hôm nay được cấp 3850 L, đúng không?", "Đúng."},
 		{"Kho xuất 4000 L. EX-03 hôm nay được cấp 3.850 L, đúng không?", "Đúng."},

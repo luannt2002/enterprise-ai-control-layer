@@ -39,6 +39,9 @@ type intentsFile struct {
 	// ConfirmMarkers: cụm biến câu hỏi số liệu thành câu XÁC NHẬN một con số người dùng đưa ra
 	// ("4k đúng không?"). Có khai thì phải có mẫu confirmTemplates.
 	ConfirmMarkers []string `yaml:"confirm_markers"`
+	// ClaimNeutralWords: từ KHÔNG mang nghĩa claim (lịch sự, trợ từ, trợ động từ) mà câu xác nhận được phép chứa mà vẫn phán quyết
+	// (ADR-0009). Đây là danh sách CHO PHÉP: thiếu một từ chỉ làm câu mất phán quyết (an toàn), không bao giờ làm phán quyết sai.
+	ClaimNeutralWords []string `yaml:"claim_neutral_words"`
 	// IgnorePhrases, DefaultTerms: chính sách phân loại (xem intent.Options).
 	IgnorePhrases []string `yaml:"ignore_phrases"`
 	DefaultTerms  []string `yaml:"default_terms"`
@@ -52,7 +55,7 @@ type intentsFile struct {
 }
 
 // confirmTemplates là các mẫu câu cần có khi pack khai confirm_markers.
-var confirmTemplates = []string{"confirm_yes", "confirm_no", "others_note", "approx_mark"}
+var confirmTemplates = []string{"confirm_yes", "confirm_no", "others_note", "approx_mark", "confirm_withheld"}
 
 // knowledgeTemplates là các mẫu câu cần có khi pack có ý định route RAG (tài liệu không trả lời
 // được: câu hỏi thuần tài liệu, và phần quy trình của câu HYBRID).
@@ -104,6 +107,8 @@ type Runtime struct {
 	Templates   map[string]string
 	// ConfirmMarkers: cụm biến câu hỏi số liệu thành câu xác nhận ("đúng không?").
 	ConfirmMarkers []string
+	// ClaimNeutral: từ trung tính mà câu xác nhận được chứa mà vẫn phán quyết (ADR-0009).
+	ClaimNeutral []string
 	// QuantityMarkers: cụm cho biết câu hỏi đòi một lượng ("bao nhiêu").
 	QuantityMarkers []string
 }
@@ -208,6 +213,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 		}
 		rt.Router = router.Settings{UnmatchedRoute: inf.UnmatchedRoute, UnmatchedTemplate: inf.UnmatchedTemplate}
 		rt.ConfirmMarkers = inf.ConfirmMarkers
+		rt.ClaimNeutral = inf.ClaimNeutralWords
 		rt.QuantityMarkers = inf.QuantityMarkers
 	}
 

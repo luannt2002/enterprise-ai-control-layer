@@ -13,7 +13,7 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 **Trạng thái (21/10/2026):**
 - Bài chứng minh đầu tiên là **Fuel WIN**: đối soát nhiên liệu cho tenant xây dựng, đạt khi qua đủ 7 cổng G1–G7 ([`docs/04-core-mvp.md`](docs/04-core-mvp.md) §6). **H1** là bộ ca giữ lại độc lập: do người không đọc mã soạn, đóng băng trước, chỉ chạy một lần (ADR-0006).
 - Fuel WIN: **0/7 cổng** trên H1 (104 ca): 89/104 ca đạt; G1–G5 chưa đạt, G6' một phần, G7 bị chặn (chưa có khoá model, bộ chấm v2 chưa có).
-- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng. Hướng sửa đã chốt ngày 21/10: chỉ mở đầu bằng "Đúng." / "Không." khi claim đã giải đủ chiều. Mã chính CHƯA sửa; bản sửa vào sau khi đóng băng bộ giữ lại mới H3 (ADR-0006 §10).
+- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng. Đã sửa ngày 21/10 bằng cổng phán quyết fail-closed ([ADR-0009](docs/adr/0009-cong-phan-quyet-cau-xac-nhan.md)): chỉ mở đầu bằng "Đúng." / "Không." khi claim đã giải đủ chiều; 15 câu thăm dò còn 0 phán quyết sai. Bản sửa vào mã SAU khi bộ giữ lại mới H3 đóng băng (`259d38d`); H3 chưa chạy.
 - Chi tiết: [`docs/STATUS.md`](docs/STATUS.md), báo cáo mới nhất ở [`docs/bao-cao/`](docs/bao-cao/).
 
 | Đọc gì | Ở đâu |

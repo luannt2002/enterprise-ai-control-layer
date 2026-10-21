@@ -6,7 +6,7 @@ Tệp này là bản bàn giao công khai: pull repo về là đủ để chạy
 
 **WIN MVP: CHƯA phải WIN.** Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần 01:42 ngày 21/10), phần ca của G1–G5 đều KHÔNG ĐẠT (89/104). Theo dữ liệu độc lập: 0/7 cổng đạt trọn (G6' còn PARTIAL); theo cách đọc chỉ G2 / G5 / G6 (ADR-0006 §8, không khuyến nghị): 3/7 — chủ dự án chốt ở D-H1-1.
 - Bộ 117 ca (bộ hồi quy) đạt 117/117; nạp dữ liệu 2.739/2.739; phát lại 104/104 lệch 0.
-- Câu xác nhận ("… đúng không?"): bản cuối phán quyết sai 15/15 câu thăm dò của người soát (đầu đêm 8/15; 7 câu là hồi quy của chính đêm nay), mã chính CHƯA sửa — báo cáo sáng mục 8. D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều; bản sửa vào sau khi đóng băng H3 (ADR-0006 §10).
+- Câu xác nhận ("… đúng không?"): bản cuối phán quyết sai 15/15 câu thăm dò của người soát (đầu đêm 8/15; 7 câu là hồi quy của chính đêm nay), báo cáo sáng mục 8. D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều. Đã sửa bằng cổng phán quyết (ADR-0009), vào mã sau khi H3 đóng băng (`259d38d`); 15 câu thăm dò còn 0 phán quyết sai.
 - **G7 CHẶN**: chưa có khoá model; bộ chấm v2 chưa đóng băng.
 
 Chi tiết: `docs/STATUS.md`. Báo cáo đêm: `docs/bao-cao/2026-10-21-overnight.md`. Báo cáo ngày 20/10: `docs/bao-cao/2026-10-20-win-mvp.md`.

@@ -62,10 +62,10 @@ func TestCauXacNhanMotVeVanPhanQuyet(t *testing.T) {
 	for _, c := range []struct{ q, prefix string }{
 		{"EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
 		{"EX-03 hôm nay được cấp 4000 L đúng không?", "Không."},
-		{"EX-03 hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay theo phiếu 912 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay ca 2 được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay theo phiếu 12-45 được cấp 3850 L đúng không?", "Đúng."},
+		{"EX-03 hôm nay được cấp 3850 đúng không?", ""},
+		{"EX-03 hôm nay theo phiếu 912 được cấp 3850 L đúng không?", ""},
+		{"EX-03 hôm nay ca 2 được cấp 3850 L đúng không?", ""},
+		{"EX-03 hôm nay theo phiếu 12-45 được cấp 3850 L đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.q).Response, c.q, c.prefix)
 	}
@@ -78,8 +78,8 @@ func TestCauXacNhanMotVeVanPhanQuyet(t *testing.T) {
 func TestCauXacNhanSoNoiSauLuongDungChungDonVi(t *testing.T) {
 	a := newAsk(t)
 	for _, c := range []struct{ q, prefix string }{
-		{"EX-03 hôm nay được cấp 3,85 m3 hay 3,85 đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3,85 m3 (hoặc 3,85) đúng không?", "Đúng."},
+		{"EX-03 hôm nay được cấp 3,85 m3 hay 3,85 đúng không?", ""},
+		{"EX-03 hôm nay được cấp 3,85 m3 (hoặc 3,85) đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.q).Response, c.q, c.prefix)
 	}

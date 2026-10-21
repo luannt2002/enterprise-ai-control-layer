@@ -8,6 +8,11 @@ unmatched_template: out_of_scope
 # theo nguồn có thẩm quyền, kèm các số khác cùng kỳ (đều có nhãn) — không xác nhận theo cảm tính.
 confirm_markers: [đúng không, phải không, có đúng, đúng chưa, đúng ko, phải ko, đúng hông]
 
+# Câu xác nhận chỉ được phán quyết "Đúng." / "Không." khi MỌI chữ của câu được giải thích: thực thể, mốc đọc được, từ khoá của chính
+# ý định, thuật ngữ vật tư, đúng một con số có đơn vị, cụm xác nhận, hoặc một từ dưới đây (ADR-0009). Đây là danh sách CHO PHÉP:
+# thiếu một từ chỉ làm câu mất phán quyết (vẫn trả số), không bao giờ làm phán quyết sai. Chỉ thêm từ không mang nghĩa claim.
+claim_neutral_words: [cho hỏi, cho tôi hỏi, cho em hỏi, cho mình hỏi, xin hỏi, ơi, ạ, à, nhé, nhỉ, nha, vậy, thế, đã, có, là, được, dc, đc, của, cho, ghi, đo]
+
 # Cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" không phải "dùng" = tiêu thụ).
 ignore_phrases: [người dùng, người sử dụng]
 

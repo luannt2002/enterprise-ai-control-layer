@@ -81,25 +81,26 @@ func TestCauXacNhanLuongTheoMauSoKhongThayConSoDuocHoi(t *testing.T) {
 	}
 	// đối chứng: lượng theo mẫu số đứng MỘT mình vẫn là con số được hỏi (như bản cha); câu bình thường vẫn trả lời
 	for _, c := range []struct{ text, prefix string }{
-		{"EX-03 hôm nay được cấp 3850 L/ngày đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 4000 L/ngày đúng không?", "Không."},
+		{"EX-03 hôm nay được cấp 3850 L/ngày đúng không?", ""},
+		{"EX-03 hôm nay được cấp 4000 L/ngày đúng không?", ""},
 		{"EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 4000 đúng không?", "Không."},
+		{"EX-03 hôm nay được cấp 3850 đúng không?", ""},
+		{"EX-03 hôm nay được cấp 4000 đúng không?", ""},
 		{"EX-03 hôm nay được cấp 3,85 m3 đúng không?", "Đúng."},
 		// cùng một con số viết hai cách nối với nhau vẫn là MỘT con số
-		{"EX-03 hôm nay được cấp 3850 hay 3850 L đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3,85 hay 3,85 m3 đúng không?", "Đúng."},
-		{"EX-03 hôm nay được cấp 3850 L, hay 3850 L đúng không?", "Đúng."},
+		{"EX-03 hôm nay được cấp 3850 hay 3850 L đúng không?", ""},
+		{"EX-03 hôm nay được cấp 3,85 hay 3,85 m3 đúng không?", ""},
+		{"EX-03 hôm nay được cấp 3850 L, hay 3850 L đúng không?", ""},
 		// "vậy", "và", "còn" mở đầu mệnh đề MỚI: con số của mệnh đề trước vẫn là ngữ cảnh (A-02)
 		{"Đội báo 2k, vậy EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
-		{"Kho xuất 4000 L, và EX-03 hôm nay được cấp 3850 L đúng không?", "Đúng."},
+		{"Kho xuất 4000 L, và EX-03 hôm nay được cấp 3850 L đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.text).Response, c.text, c.prefix)
 	}
 }
 
-// R-02 (đối chứng với A-02) — từ nối chỉ nối hai CON SỐ: nhãn, số đếm và số của câu sau vẫn không là con số thứ hai.
+// R-02 (đối chứng với A-02) — từ nối chỉ nối hai CON SỐ: nhãn, số đếm và số của câu sau vẫn không là con số thứ hai (không hỏi lại về
+// con số). Từ ADR-0009 các câu này trả số liệu KHÔNG phán quyết: nhãn / số đếm ("2 xe", "phiếu 912", "ca 2") là phần claim chưa kiểm được.
 func TestCauXacNhanTuNoiKhongBienNhanThanhConSo(t *testing.T) {
 	a := newAsk(t)
 	for _, text := range []string{
@@ -111,7 +112,7 @@ func TestCauXacNhanTuNoiKhongBienNhanThanhConSo(t *testing.T) {
 		"EX-03 hôm nay ca 2 hay ca 3 được cấp 3850 L đúng không?",
 		"EX-03 hôm nay được cấp 3850 L và phiếu 912 đúng không?",
 	} {
-		xacNhan(t, ask(t, a, user("director", ""), text).Response, text, "Đúng.")
+		xacNhan(t, ask(t, a, user("director", ""), text).Response, text, "")
 	}
 	// Danh từ NGOÀI danh sách đóng của nhãn / số đếm: trước đây theo luật A-02 (số trần bị bỏ khi câu có lượng viết rõ đơn vị) nên ra "Đúng.".
 	// Luật A-02 đã bỏ vì nó cũng đổi câu mơ hồ thành phán quyết SAI (soát R: R-A06, R-A07, B-02, B-03); số đi với danh từ lạ nay là con số thứ
@@ -137,7 +138,7 @@ func TestDauChamLungKhongPhaiHetCau(t *testing.T) {
 		{"Hôm nay EX-03 được cấp 4000 L ... đúng không?", "Không."},
 		{"Hôm nay EX-03 được cấp 3850 L .... đúng không?", "Đúng."},
 		{"Hôm nay EX-03 được cấp 3850 L … đúng không?", "Đúng."},
-		{"Hôm nay EX-03 được cấp 3850 ... đúng không?", "Đúng."},
+		{"Hôm nay EX-03 được cấp 3850 ... đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.text).Response, c.text, c.prefix)
 	}
@@ -304,16 +305,16 @@ func TestMocThoiGianKhopKyDocDuocVanPhanQuyet(t *testing.T) {
 		{"EX-03 tháng 10 năm 2026 được cấp 3850 L đúng không?", "Đúng."},
 		{"EX-03 ngày 19 tháng 10 năm 2026 được cấp 3850 L đúng không?", "Đúng."},
 		// số trần không đơn vị: mốc khớp không làm số đó thành "con số thứ hai"
-		{"EX-03 hôm nay tuần 43 được cấp 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay năm 2026 được cấp 4000 đúng không?", "Không."},
+		{"EX-03 hôm nay tuần 43 được cấp 3850 đúng không?", ""},
+		{"EX-03 hôm nay năm 2026 được cấp 4000 đúng không?", ""},
 		// số trần ngay trước một mốc đã đọc là CON SỐ được hỏi, không phải số đếm tuần / tháng / năm của mốc đó
-		{"EX-03 được cấp 3850 tuần này đúng không?", "Đúng."}, // tổng tuần này (19–25/10) là 3.850 L
-		{"EX-03 được cấp 4000 tuần này đúng không?", "Không."},
-		{"EX-03 được cấp 500 tuần này đúng không?", "Không."}, // số nhỏ trước "tuần này": con số, không đếm tuần (tuần của "tuần này" là kỳ đã đọc)
-		{"EX-03 được cấp 3850 hôm nay đúng không?", "Đúng."},
-		{"EX-03 được cấp 3850 tháng 10 đúng không?", "Đúng."},
-		{"EX-03 xuất kho 3850 hôm nay đúng không?", "Đúng."},
-		{"EX-03 hôm nay phiếu kho 3850 đúng không?", "Đúng."},
+		{"EX-03 được cấp 3850 tuần này đúng không?", ""}, // tổng tuần này (19–25/10) là 3.850 L
+		{"EX-03 được cấp 4000 tuần này đúng không?", ""},
+		{"EX-03 được cấp 500 tuần này đúng không?", ""}, // số nhỏ trước "tuần này": con số, không đếm tuần (tuần của "tuần này" là kỳ đã đọc)
+		{"EX-03 được cấp 3850 hôm nay đúng không?", ""},
+		{"EX-03 được cấp 3850 tháng 10 đúng không?", ""},
+		{"EX-03 xuất kho 3850 hôm nay đúng không?", ""},
+		{"EX-03 hôm nay phiếu kho 3850 đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.text).Response, c.text, c.prefix)
 	}
@@ -340,11 +341,11 @@ func TestCauXacNhanKhongNeuLuongNaoKhongPhanQuyetTheoSoNhan(t *testing.T) {
 	}
 	// số trần ĐỨNG SAU từ khoá số liệu vẫn là con số được hỏi (không phải nhãn)
 	for _, c := range []struct{ text, prefix string }{
-		{"EX-03 hôm nay được cấp 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay đã nhận 4000 đúng không?", "Không."},
+		{"EX-03 hôm nay được cấp 3850 đúng không?", ""},
+		{"EX-03 hôm nay đã nhận 4000 đúng không?", ""},
 		{"EX-03 hôm nay được cấp dầu 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay ca 2 được cấp 3850 đúng không?", "Đúng."},
-		{"EX-03 hôm nay phiếu 912 cấp 4000 đúng không?", "Không."},
+		{"EX-03 hôm nay ca 2 được cấp 3850 đúng không?", ""},
+		{"EX-03 hôm nay phiếu 912 cấp 4000 đúng không?", ""},
 	} {
 		xacNhan(t, ask(t, a, user("director", ""), c.text).Response, c.text, c.prefix)
 	}

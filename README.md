@@ -13,7 +13,8 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 **Trạng thái (21/10/2026):**
 - Bài chứng minh đầu tiên là **Fuel WIN**: đối soát nhiên liệu cho tenant xây dựng, đạt khi qua đủ 7 cổng G1–G7 ([`docs/04-core-mvp.md`](docs/04-core-mvp.md) §6). **H1** là bộ ca giữ lại độc lập: do người không đọc mã soạn, đóng băng trước, chỉ chạy một lần (ADR-0006).
 - Fuel WIN: **0/7 cổng** trên H1 (104 ca): 89/104 ca đạt; G1–G5 chưa đạt, G6' một phần, G7 bị chặn (chưa có khoá model, bộ chấm v2 chưa có).
-- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng. Đã sửa ngày 21/10 bằng cổng phán quyết fail-closed ([ADR-0009](docs/adr/0009-cong-phan-quyet-cau-xac-nhan.md)): chỉ mở đầu bằng "Đúng." / "Không." khi claim đã giải đủ chiều; 15 câu thăm dò còn 0 phán quyết sai. Bản sửa vào mã SAU khi bộ giữ lại mới H3 đóng băng (`259d38d`); H3 chưa chạy.
+- Bộ giữ lại độc lập thứ hai **H3** (134 ca, đóng băng trước mọi bản sửa, chạy một lần ngày 21/10): **109/134**; mốc trước bản sửa chạy trên cùng H3: 113/134. Phần ca G1–G5 vẫn chưa đạt ⇒ vẫn **0/7**.
+- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng. Đã sửa ngày 21/10 bằng cổng phán quyết fail-closed ([ADR-0009](docs/adr/0009-cong-phan-quyet-cau-xac-nhan.md)): chỉ mở đầu bằng "Đúng." / "Không." khi claim đã giải đủ chiều; 15 câu thăm dò còn 0 phán quyết sai. Trên H3 (câu do người độc lập soạn): 0 phán quyết sai chiều ở cả mốc lẫn bản sửa; cổng giữ lại 12 phán quyết đúng (28 → 16 trên 42 ca xác nhận), 4 trong số đó làm ca trượt — cái giá đo được của "không phán quyết khi chưa giải đủ".
 - Chi tiết: [`docs/STATUS.md`](docs/STATUS.md), báo cáo mới nhất ở [`docs/bao-cao/`](docs/bao-cao/).
 
 | Đọc gì | Ở đâu |

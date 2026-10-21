@@ -5,7 +5,13 @@
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
-## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1, phần ca của G1–G5 KHÔNG ĐẠT (89/104) — CHƯA phải WIN
+## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
+
+> **H3, 21/10 13:08** (`docs/g7/holdout-h3/`). Bộ giữ lại độc lập thứ ba: 134 ca, đóng băng bằng cam kết băm 11:04 (`259d38d`) TRƯỚC mọi bản sửa ngữ nghĩa của ca, chạy MỘT lần ở `9091c84` (mã T2.2 `a1595f0`).
+> - Kết quả: **109/134** ở cả hai đường; phát lại 134/134, 0 lệch; 0 canary. Theo lớp: representation 16/17, entity 14/14, ambiguity 12/18, semantic 14/16, source_conflict 12/18, permission 16/18, unsupported_answer 14/18, routing 11/15 ⇒ phần ca G1–G5 KHÔNG ĐẠT; G6' phần đo được ĐẠT.
+> - Đối chứng mốc `016422e` (chỉ chẩn đoán): **113/134**. Bản sửa của ca trượt ròng 4 ca (507, 564, 602, 650; 0 ca ngược lại) — cả 4 là câu xác nhận có lời khẳng định sai mà cổng phán quyết giữ lại một "Không." vốn đúng.
+> - 42 ca xác nhận: mốc 28 phán quyết đúng chiều / 0 sai chiều / 13 không phán quyết; bản sửa 16 / 0 / 26. Độ nhạy 3 (đăng ký trước): chặt 0, nới 1.
+> - H3 từ nay là bộ HỒI QUY. Tầng sai đầu tiên của 25 ca đỏ: xem báo cáo ca ngày 21/10.
 
 > **H1, 21/10 01:42** (`docs/g7/holdout/ket-qua-h1/`). Bộ giữ lại độc lập: 104 ca, 13 / lớp, do người không đọc mã soạn, đóng băng 22:51 ngày 20/10, chạy MỘT lần ở revision `9de63d2`.
 > - Kết quả: **89/104** ở cả hai đường (bộ nhớ, PostgreSQL) theo bộ chấm nhị phân. Theo nội dung **≤ 88/104**: ca 264 ĐẠT với câu trả lời SAI ("1 490 lít" không được gộp nhóm nghìn); người phản bác cuối tìm ra. Sửa sau H1 ở `8ff3db5`: bản chốt trả "Đúng. … 1.490 L"; H1 làm bộ hồi quy trên bản chốt (`15ed135`): 89/104, 0 ca đổi nhãn. Hai bản thay thế để đóng các lỗ còn lại đều bị soát bác (`fd4d19c` sinh số mồ côi — revert `2a87e63`; `3066044` nuốt số của tên thiết bị — không vào main) ⇒ nhóm nghìn còn lỗi đã đo (D-OP-9). Phát lại 104/104 lệch 0; canary 0.

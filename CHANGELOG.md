@@ -31,6 +31,7 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 - `kiemca` (kiểm định dạng bộ giữ lại không in nội dung), `scripts/cam-ket-giu-lai.py`, `scripts/kiem-nhiem-soan.py`; đột biến n40 7/7, n41 12/12.
 - H3 đóng băng bằng cam kết băm (`259d38d`, 11:04): 134 ca, 82 có kỳ vọng số; quy trình và các điểm lệch công khai trong commit.
 - Độ nhạy 3 của ADR-0006 §10 (ca xác nhận ĐỎ chỉ vì trả số không phán quyết khi kỳ vọng hỏi lại / thiếu bằng chứng) tính trong `scripts/bang-cong-h1.py`, hai mức chặt / nới; test `TestBangCongDoNhay3`; đột biến n27 27/27. Cố định TRƯỚC lần chạy H3.
+- H3 chạy MỘT lần (13:08, `9091c84`, mã T2.2): 109/134 hai đường; mốc `016422e` trên cùng H3: 113/134 — bản sửa trượt ròng 4 ca, đều do cổng phán quyết giữ lại "Không." đúng; 0 phán quyết sai chiều ở cả hai. Kết quả `docs/g7/holdout-h3/ket-qua-h3/`, mốc `…/ket-qua-h3-moc/` (`69d568c`).
 
 ### Đêm 20→21/10/2026 — khôi phục bằng chứng (chưa gọi model thật, chi 0 USD)
 

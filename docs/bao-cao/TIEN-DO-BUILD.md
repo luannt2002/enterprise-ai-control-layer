@@ -6,30 +6,24 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 16:4x, CHỐT CA · **HEAD:** `2e4897b` (cộng commit chứa tệp này)
-- **Đang làm:** không còn gì. Ca 21/10 đã chốt; báo cáo `docs/bao-cao/2026-10-21-ca-ngay.md`.
-- **DỪNG giữa chừng:** phân tích thiết kế R4-2…R4-4 (agent chỉ đo, không đẩy mã), dừng lúc chốt ca vì hết giờ.
-  - Lời khai của agent, chưa đo lại: có một biến thể (V5) đóng 10.774/10.774 câu lỗ trên bộ fuzz mở rộng, 0 câu rõ nghĩa mất phán quyết, 0 câu đổi chiều.
-  - V5 CHƯA chạy winreport (bộ 117 / H1 / H3), CHƯA soát độc lập.
-  - Bản thử và kết quả được giữ ở máy (`docs/sources/`, không công khai).
-- **Xong trong ca (chiều):** H4 đóng băng; BYPASSRLS; cổng danh tính; T2.3 → E3 → sửa sau soát (`936d090`); ADR-0009 Vòng 3–4; ADR-0010 ĐỀ XUẤT; phản hồi audit bản giữa chừng.
-- **Tiếp theo (ca sau):**
-  1. phản hồi audit ROADMAP cho trọn;
-  2. đóng R4-2, R4-3 (S1) và R4-4 (S2), bắt đầu từ V4 / V5; TRƯỚC khi chạy H4;
-  3. vòng sửa S4 theo ADR-0010, rồi chạy H4 MỘT lần.
+- **Cập nhật lúc:** 21/10/2026 18:1x · **HEAD:** `32c8cfe` (cộng commit chứa tệp này)
+- **NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI** (18:0x, HEAD `32c8cfe`). Đã đọc trọn: `CHO` §0 (D-RM-01, D-RM-02) và §4; `ROADMAP-DAY-DU.md`; brief BUILD §4.
+- **Đang làm:** Việc 1, đổi tên lại (D-RM-02): kiểm kê theo 6 nhóm A–F TRƯỚC khi sửa.
+- **Tiếp theo:**
+  1. đổi mã, định danh chạy (bí danh tương thích, migration mới) và cổng danh tính;
+  2. đổi tài liệu và tên tệp;
+  3. soát độc lập trước khi push;
+  4. Việc 2: viết lại các luồng;
+  5. Việc 3: brief §4 mục 2–7.
 - **Bị chặn:**
-  - lượt W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi;
-  - code R2: chờ D-V3-09;
-  - sửa `CLAUDE.md`: gộp vào đợt duyệt R0;
-  - D-OP-11, D-OP-12; cột Trả lời của D-H1-3; `HOP-DONG-G7.md` §12.
-- **Test cuối ca** (16:4x, `2e4897b`):
-  - `go vet ./...` 0 dòng; `gofmt` trên tệp đang theo dõi 0;
-  - `go test -count=1 ./...` có PG 453/0/0;
-  - bộ 117 ca 117/117; H1 89/104 hai đường; H3 109/134.
+  - mã COMMAND / WORKFLOW / EVENT: chờ D-RM-04;
+  - dữ liệu / người nghiệp vụ thật: chờ D-RM-03;
+  - W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi.
+- **Test** (cuối ca 21/10, `2e4897b`): test có PG 453/0/0.
 - **Handoff / prompt đang mở:**
+  - `PROMPT-DOI-TEN-VA-LUONG-MOI.md`: ĐANG LÀM;
   - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
-  - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng;
-  - `PROMPT-BUILD-EACL.md`: đang làm theo.
+  - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng.
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -54,4 +48,5 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 | 21/10 15:4x | `9a1d8b0` | Tài liệu chốt ca (báo cáo, STATUS, CHANGELOG, ADR-0009, tiến độ) | Cổng danh tính ĐẠT | Bản trước khi có kết quả 2 lượt soát cuối |
 | 21/10 15:55 | `936d090` | Sửa sau soát T2.3 (R4-1 "1,2k5"); ghim E3 (soát: ĐẠT CÓ GHI CHÚ) | Test đỏ trước; n43 53/53; bộ 117 / H1 hai đường / H3: 0 đổi; test có PG 453/0/0 | Còn mở R4-2…R4-4 (có từ T2.1) |
 | 21/10 16:0x | `2e4897b` | Chốt ca: ADR-0009 Vòng 4, báo cáo ca bản cuối, STATUS, CHANGELOG, tiến độ | Cổng danh tính ĐẠT | Ca 21/10 kết thúc |
-| 21/10 16:4x | commit chứa dòng này | Chốt ca lần cuối: mục sự cố 09:14 trong báo cáo, đo cuối, ghi nhận phân tích thiết kế R4 bị DỪNG giữa chừng | `go test -count=1 ./...` có PG 453/0/0; 117 / H1 / H3 không đổi | Lịch ca xoá sau commit này |
+| 21/10 16:4x | `d6afad7` | Chốt ca lần cuối: mục sự cố 09:14 trong báo cáo, đo cuối, ghi nhận phân tích thiết kế R4 bị DỪNG giữa chừng | `go test -count=1 ./...` có PG 453/0/0; 117 / H1 / H3 không đổi | Lịch ca xoá sau commit này |
+| 21/10 18:1x | commit chứa dòng này | NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI (HEAD `32c8cfe`) | — | Bắt đầu Việc 1 (kiểm kê trước khi sửa) |

@@ -28,14 +28,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/pipeline"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
-	"github.com/luannt2002/enterprise-ai-systems/evals"
-	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/pipeline"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals/baseline"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
 const tn = "abc-infra"

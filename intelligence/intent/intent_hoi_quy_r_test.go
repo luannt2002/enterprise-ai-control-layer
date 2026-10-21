@@ -3,7 +3,7 @@ package intent
 import (
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // R-06 — câu QUY TRÌNH thuần nêu nhiều thực thể cùng loại không bị hỏi lại "máy hoặc dự án" chỉ vì một từ khoá số liệu yếu: hỏi lại chỉ khi câu có dấu hiệu

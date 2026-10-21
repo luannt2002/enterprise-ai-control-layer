@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
 // Ràng buộc claim ĐỦ BỘ (docs/04 mục 6, G5). Mỗi con số trong câu trả lời số liệu phải là giá

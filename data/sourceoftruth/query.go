@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
 // Observation là điều một nguồn đã nói/ghi: nguyên văn, nguồn, thời điểm.

@@ -1,7 +1,7 @@
 // Package pgstore là tầng lưu trữ PostgreSQL của dữ liệu nghiệp vụ (lát W4): fact, danh mục thực
 // thể, tài liệu tri thức. Cách ly tenant bằng RLS: mọi lệnh chạy trong MỘT giao dịch đặt
-// SET LOCAL eais.tenant_id từ tenant của Principal (contracts.TenantFrom, do S1 gắn) — không có
-// tenant thì từ chối, không truy vấn. Ứng dụng kết nối bằng vai eais_app, vai không bỏ qua được RLS.
+// SET LOCAL eacl.tenant_id từ tenant của Principal (contracts.TenantFrom, do S1 gắn) — không có
+// tenant thì từ chối, không truy vấn. Ứng dụng kết nối bằng vai eacl_app, vai không bỏ qua được RLS.
 package pgstore
 
 import (
@@ -10,17 +10,17 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
 // Store đọc / ghi dữ liệu nghiệp vụ của MỌI tenant qua một pool; tenant của từng lệnh lấy từ
 // ngữ cảnh, RLS chặn phần còn lại.
 type Store struct{ pool *pgxpool.Pool }
 
-// Open mở pool tới dsn (vai eais_app) và kiểm kết nối.
+// Open mở pool tới dsn (vai eacl_app) và kiểm kết nối.
 func Open(ctx context.Context, dsn string) (*Store, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
@@ -44,10 +44,10 @@ func tenantOf(ctx context.Context) (contracts.TenantID, error) {
 	return t, nil
 }
 
-// inTenant chạy fn trong một giao dịch đã đặt GUC eais.tenant_id (SET LOCAL: hết giao dịch là hết).
+// inTenant chạy fn trong một giao dịch đã đặt GUC eacl.tenant_id (SET LOCAL: hết giao dịch là hết).
 func (s *Store) inTenant(ctx context.Context, tenant contracts.TenantID, fn func(pgx.Tx) error) error {
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", string(tenant)); err != nil {
+		if _, err := tx.Exec(ctx, "SELECT set_config('eacl.tenant_id', $1, true)", string(tenant)); err != nil {
 			return err
 		}
 		return fn(tx)
@@ -58,7 +58,7 @@ func (s *Store) inTenant(ctx context.Context, tenant contracts.TenantID, fn func
 	return nil
 }
 
-// Setting trả giá trị GUC eais.tenant_id mà một lệnh của Store thấy — để test đọc lại.
+// Setting trả giá trị GUC eacl.tenant_id mà một lệnh của Store thấy — để test đọc lại.
 func (s *Store) Setting(ctx context.Context) (string, error) {
 	tenant, err := tenantOf(ctx)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *Store) Setting(ctx context.Context) (string, error) {
 	}
 	var v string
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
-		return tx.QueryRow(ctx, "SELECT current_setting('eais.tenant_id', true)").Scan(&v)
+		return tx.QueryRow(ctx, "SELECT current_setting('eacl.tenant_id', true)").Scan(&v)
 	})
 	return v, err
 }

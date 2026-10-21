@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"go.yaml.in/yaml/v3"
 )
 

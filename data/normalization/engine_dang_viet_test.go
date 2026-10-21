@@ -3,7 +3,7 @@ package normalization
 import (
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // quantities trả các span lượng (có đơn vị) của một lần chuẩn hoá.

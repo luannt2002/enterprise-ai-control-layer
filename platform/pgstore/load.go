@@ -6,9 +6,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
 // loadBatch là số dòng mỗi lệnh INSERT … unnest (COPY không chạy trên bảng có RLS).
@@ -39,7 +39,7 @@ func (s *Store) Load(ctx context.Context, entities []entityresolution.Entity, fa
 		}
 		for _, d := range docs {
 			if _, err := tx.Exec(ctx, `INSERT INTO documents (tenant_id, id, title, body, acl)
-				VALUES (current_setting('eais.tenant_id'), $1, $2, $3, $4)`, d.ID, d.Title, d.Body, d.ACL); err != nil {
+				VALUES (current_setting('eacl.tenant_id'), $1, $2, $3, $4)`, d.ID, d.Title, d.Body, d.ACL); err != nil {
 				return err
 			}
 		}
@@ -63,12 +63,12 @@ func loadEntities(ctx context.Context, tx pgx.Tx, es []entityresolution.Entity) 
 		}
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO entities (tenant_id, id, type, key, name, parent_id, ord)
-		SELECT current_setting('eais.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[])`,
+		SELECT current_setting('eacl.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[])`,
 		ids, types, keys, names, parents, ords); err != nil {
 		return err
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO entity_aliases (tenant_id, entity_id, alias, source, ord)
-		SELECT current_setting('eais.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::int[])`,
+		SELECT current_setting('eacl.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::int[])`,
 		aEntity, aText, aSource, aOrd)
 	return err
 }
@@ -89,7 +89,7 @@ func loadFacts(ctx context.Context, tx pgx.Tx, fs []sourceoftruth.Fact, offset i
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO facts (tenant_id, id, metric, entity_id, occurred_on, value, unit, approx,
 			source_type, source_ref, raw, observed_at, reported_by, ord)
-		SELECT current_setting('eais.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[]::date[],
+		SELECT current_setting('eacl.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[]::date[],
 			$5::text[]::numeric[], $6::text[], $7::bool[], $8::text[], $9::text[], $10::text[], $11::timestamptz[], $12::text[], $13::bigint[])`,
 		ids, metrics, ents, days, values, units, approx, stype, sref, raw, observed, by, ords)
 	return err

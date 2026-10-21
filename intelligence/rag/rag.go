@@ -16,8 +16,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // Document là một tài liệu tri thức (SOP, quy định) của MỘT tenant.

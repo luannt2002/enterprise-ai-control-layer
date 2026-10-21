@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"go.yaml.in/yaml/v3"
 )
 

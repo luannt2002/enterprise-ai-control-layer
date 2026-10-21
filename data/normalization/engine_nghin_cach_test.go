@@ -3,7 +3,7 @@ package normalization
 import (
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Nhóm nghìn ngăn bằng MỘT dấu cách là cách viết lượng mà tài liệu tenant yêu cầu chuẩn hoá

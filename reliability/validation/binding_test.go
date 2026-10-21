@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Bằng chứng mẫu — DỮ LIỆU test, không phải luật của core.

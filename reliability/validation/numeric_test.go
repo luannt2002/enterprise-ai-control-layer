@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 func litres(number string) contracts.ContextPackage {

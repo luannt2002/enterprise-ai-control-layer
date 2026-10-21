@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // docEngine là lexicon mẫu giống cách pack cầu đường khai chiều thể tích — DỮ LIỆU test.

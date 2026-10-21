@@ -13,7 +13,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/luannt2002/enterprise-ai-systems/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
 	"go.yaml.in/yaml/v3"
 )
 

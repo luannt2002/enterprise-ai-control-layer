@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Dữ liệu test, không phải luật của core.

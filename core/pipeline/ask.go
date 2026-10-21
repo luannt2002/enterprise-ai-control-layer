@@ -1,4 +1,4 @@
-// Package pipeline điều phối các lối vào của EAIS. File này là luồng HỎI (S0–S10).
+// Package pipeline điều phối các lối vào của EACL. File này là luồng HỎI (S0–S10).
 //
 // Ba luật cứng (docs/01-architecture.md §4):
 //  1. Route không cần diễn đạt thì không gọi model — trả lời bằng mẫu câu của tenant.
@@ -18,17 +18,17 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/intent"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/router"
-	"github.com/luannt2002/enterprise-ai-systems/observability/traces"
-	"github.com/luannt2002/enterprise-ai-systems/reliability/validation"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
+	"github.com/luannt2002/enterprise-ai-control-layer/reliability/validation"
 )
 
 // MaxTextRunes là trần độ dài câu hỏi. Vượt trần là lỗi đầu vào, không phải lỗi hệ thống.

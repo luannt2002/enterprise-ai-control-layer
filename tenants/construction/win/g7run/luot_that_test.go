@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 )
 
 // fakeOfficial cho mọi kết nối HTTP (kể cả tới api.anthropic.com:443) vào một máy chủ TLS cục bộ, nên run() đi đúng
@@ -37,8 +37,8 @@ func fakeOfficial(t *testing.T) *atomic.Int64 {
 	}
 	t.Cleanup(func() { http.DefaultTransport = old })
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "khoa-gia-khong-that",
-		"EAIS_MODEL_THINKING": contractThinking, "EAIS_MODEL_EFFORT": contractEffort} {
+	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": contractModel, "EACL_MODEL_API_KEY": "khoa-gia-khong-that",
+		"EACL_MODEL_THINKING": contractThinking, "EACL_MODEL_EFFORT": contractEffort} {
 		t.Setenv(k, v)
 	}
 	return &n
@@ -61,9 +61,9 @@ func TestLuotThatTuChoiTruocLoiGoiModel(t *testing.T) {
 		{"lượt chính khi bộ chấm chưa đóng băng", nil, func(c *config) { c.k = 3 }},
 		{"pilot thiếu -out", nil, func(c *config) { c.pilot, c.k, c.out = true, 5, "" }},
 		{"pilot -out là một tệp", nil, func(c *config) { c.pilot, c.k, c.out = true, 5, file }},
-		{"pilot lệch max_tokens", map[string]string{"EAIS_MODEL_MAX_TOKENS": "64"}, func(c *config) { c.pilot, c.k = true, 5 }},
-		{"pilot có temperature", map[string]string{"EAIS_MODEL_TEMPERATURE": "0.5"}, func(c *config) { c.pilot, c.k = true, 5 }},
-		{"pilot lệch số lần thử lại", map[string]string{"EAIS_MODEL_MAX_RETRIES": "0"}, func(c *config) { c.pilot, c.k = true, 5 }},
+		{"pilot lệch max_tokens", map[string]string{"EACL_MODEL_MAX_TOKENS": "64"}, func(c *config) { c.pilot, c.k = true, 5 }},
+		{"pilot có temperature", map[string]string{"EACL_MODEL_TEMPERATURE": "0.5"}, func(c *config) { c.pilot, c.k = true, 5 }},
+		{"pilot lệch số lần thử lại", map[string]string{"EACL_MODEL_MAX_RETRIES": "0"}, func(c *config) { c.pilot, c.k = true, 5 }},
 		{"pilot lệch top-k", nil, func(c *config) { c.pilot, c.k, c.topK = true, 5, 3 }},
 		{"pilot chấm full", nil, func(c *config) { c.pilot, c.k, c.grade = true, 5, gradeFull }},
 		{"pilot có hệ cổng bị chặn (B1 thiếu -manifest)", nil, func(c *config) { c.pilot, c.k, c.systems = true, 5, sysB2Plus+","+sysB1 }},
@@ -101,7 +101,7 @@ func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 		"https://api.anthropic.com.", "https://Api.Anthropic.Com.:443/", "https://gateway.example.com"} {
 		t.Run(u, func(t *testing.T) {
 			calls := fakeOfficial(t)
-			t.Setenv("EAIS_MODEL_BASE_URL", u)
+			t.Setenv("EACL_MODEL_BASE_URL", u)
 			cfg := baseCfg(data)
 			cfg.k, cfg.out = 3, filepath.Join(t.TempDir(), "out")
 			if code := run(cfg); code != 2 || calls.Load() != 0 {
@@ -115,7 +115,7 @@ func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 		"https://api.anthropic.com:8443": 2} {
 		t.Run("thử khói "+u, func(t *testing.T) {
 			calls := fakeOfficial(t)
-			t.Setenv("EAIS_MODEL_BASE_URL", u)
+			t.Setenv("EACL_MODEL_BASE_URL", u)
 			cfg := baseCfg(data)
 			cfg.smoke = 1
 			if code := run(cfg); code != want || calls.Load() == 0 {
@@ -126,7 +126,7 @@ func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 	// Proxy có hệ cổng bị chặn (B1 thiếu -manifest): kết luận chắc chắn KHÔNG ĐẠT nên dừng trước lời gọi model như lượt thật.
 	t.Run("proxy, pilot có hệ cổng bị chặn", func(t *testing.T) {
 		calls := fakeOfficial(t)
-		t.Setenv("EAIS_MODEL_BASE_URL", "https://gateway.example.com")
+		t.Setenv("EACL_MODEL_BASE_URL", "https://gateway.example.com")
 		cfg := baseCfg(data)
 		cfg.pilot, cfg.k, cfg.systems, cfg.out = true, 5, sysB2Plus+","+sysB1, filepath.Join(t.TempDir(), "out")
 		if code := run(cfg); code != 2 || calls.Load() != 0 {
@@ -203,8 +203,8 @@ func TestBangChungKhongGhiBiMatTrongURL(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "k",
-		"EAIS_MODEL_BASE_URL": srv.URL + "/BIMATPATH/?api_key=BIMATQUERY"} {
+	for k, v := range map[string]string{"EACL_MODEL_PROVIDER": "anthropic", "EACL_MODEL": contractModel, "EACL_MODEL_API_KEY": "k",
+		"EACL_MODEL_BASE_URL": srv.URL + "/BIMATPATH/?api_key=BIMATQUERY"} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))

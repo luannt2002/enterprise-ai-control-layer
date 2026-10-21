@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
-	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/gen"
 )
 
 // Bộ kiểm metamorphic G1 có chặn thật: kỳ vọng của bộ sinh lệch 1 lít thì MỌI biểu diễn của bản ghi

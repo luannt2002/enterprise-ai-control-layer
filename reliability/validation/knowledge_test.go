@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // testEngine dựng bộ chuẩn hoá từ lexicon mẫu — DỮ LIỆU test, không phải luật của core.

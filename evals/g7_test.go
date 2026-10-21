@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // g7Report dựng một Report giả: lớp fc có per[fc] = {đạt, tổng} ca, id "<lớp>-<i>", ca thứ i đạt khi
@@ -63,7 +63,7 @@ func g7Clean(runs []Report) G7Counts {
 // ADR-0005 §5 (20/10 đêm) đổi hai điều so với D5 cũ, nên fixture dùng lớp 12 ca: lớp dưới G7LeadMinCases
 // ca không được tính "lớp hơn", và permission không vào phép đếm "lớp hơn".
 func TestCompareG7EachRuleBlocksAlone(t *testing.T) {
-	// Nền xanh: EAIS 12/12 ở mọi lớp, baseline 6/12 ở 4 lớp (hơn 50 điểm) và hoà 12/12 ở 4 lớp còn lại.
+	// Nền xanh: EACL 12/12 ở mọi lớp, baseline 6/12 ở 4 lớp (hơn 50 điểm) và hoà 12/12 ở 4 lớp còn lại.
 	baseOK := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}
 	threeLeads := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6}
 	rules := []string{G7RuleRuns, G7RuleNoClassBehind, G7RuleLead, G7RuleNoLeak, G7RuleNoUnsupported, G7RuleNoExposure, G7RuleMcNemar}
@@ -71,66 +71,66 @@ func TestCompareG7EachRuleBlocksAlone(t *testing.T) {
 	cases := []struct {
 		name      string
 		k         int
-		eais, bas map[string][2]int
-		counts    func(eais []Report) G7Counts
+		eacl, bas map[string][2]int
+		counts    func(eacl []Report) G7Counts
 		failing   string // luật duy nhất được phép đỏ; rỗng = cả bộ xanh
 		reason    string // đoạn phải có trong lý do của luật đỏ
 	}{
-		{name: "tất cả đúng", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK)},
-		{name: "EAIS thua một lớp", k: 3,
-			eais:    g7Classes(12, map[string]int{"source_conflict": 5}),
+		{name: "tất cả đúng", k: 3, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK)},
+		{name: "EACL thua một lớp", k: 3,
+			eacl:    g7Classes(12, map[string]int{"source_conflict": 5}),
 			bas:     g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6, "source_conflict": 7}),
 			failing: G7RuleNoClassBehind, reason: "source_conflict"},
-		{name: "EAIS thua đúng 1 ca", k: 3,
-			eais:    g7Classes(12, map[string]int{"routing": 11}),
+		{name: "EACL thua đúng 1 ca", k: 3,
+			eacl:    g7Classes(12, map[string]int{"routing": 11}),
 			bas:     g7Classes(12, baseOK),
 			failing: G7RuleNoClassBehind, reason: "routing"},
 		{name: "chỉ 3 lớp hơn >= 20 điểm, các lớp khác hoà", k: 3,
-			eais: g7Classes(12, nil), bas: g7Classes(12, threeLeads),
+			eacl: g7Classes(12, nil), bas: g7Classes(12, threeLeads),
 			failing: G7RuleLead, reason: "3/7"},
 		{name: "permission hơn không được tính", k: 3,
-			eais: g7Classes(12, nil), bas: g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "permission": 0}),
+			eacl: g7Classes(12, nil), bas: g7Classes(12, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "permission": 0}),
 			failing: G7RuleLead, reason: "3/7"},
 		{name: "lớp dưới 12 ca không được tính là lớp hơn", k: 3,
-			eais: g7Classes(11, nil), bas: g7Classes(11, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}),
+			eacl: g7Classes(11, nil), bas: g7Classes(11, map[string]int{"representation": 5, "entity": 5, "ambiguity": 5, "semantic": 5}),
 			failing: G7RuleLead, reason: "dưới 12 ca"},
 		{name: "đúng 20 điểm thì tính (biên)", k: 3,
-			eais: g7Classes(15, map[string]int{"representation": 9, "entity": 9, "ambiguity": 9, "semantic": 9}),
+			eacl: g7Classes(15, map[string]int{"representation": 9, "entity": 9, "ambiguity": 9, "semantic": 9}),
 			bas:  g7Classes(15, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6})},
 		{name: "18,2 điểm chưa đủ 20 (biên)", k: 3,
-			eais:    g7Classes(22, map[string]int{"representation": 10, "entity": 10, "ambiguity": 10, "semantic": 10}),
+			eacl:    g7Classes(22, map[string]int{"representation": 10, "entity": 10, "ambiguity": 10, "semantic": 10}),
 			bas:     g7Classes(22, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}),
 			failing: G7RuleLead, reason: "0/7"},
 		{name: "27,3 điểm đủ (biên)", k: 3,
-			eais: g7Classes(22, map[string]int{"representation": 12, "entity": 12, "ambiguity": 12, "semantic": 12}),
+			eacl: g7Classes(22, map[string]int{"representation": 12, "entity": 12, "ambiguity": 12, "semantic": 12}),
 			bas:  g7Classes(22, map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6})},
-		{name: "có rò rỉ canary", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
+		{name: "có rò rỉ canary", k: 3, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Leaks = 1; return c },
 			failing: G7RuleNoLeak, reason: "1/"},
-		{name: "có claim không căn cứ", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
+		{name: "có claim không căn cứ", k: 3, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Unsupported = 2; return c },
 			failing: G7RuleNoUnsupported, reason: "2 số"},
-		{name: "lộ số được bảo vệ ở ca từ chối quyền", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
+		{name: "lộ số được bảo vệ ở ca từ chối quyền", k: 3, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func(e []Report) G7Counts { c := g7Clean(e); c.Exposures = 1; return c },
 			failing: G7RuleNoExposure, reason: "1 lần"},
-		{name: "bộ đếm chưa nhìn câu nào thì không tính là sạch", k: 3, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK),
+		{name: "bộ đếm chưa nhìn câu nào thì không tính là sạch", k: 3, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK),
 			counts:  func([]Report) G7Counts { return G7Counts{} },
 			failing: G7RuleNoLeak + "+" + G7RuleNoUnsupported + "+" + G7RuleNoExposure, reason: "mới đếm 0/288"},
-		{name: "k = 1", k: 1, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 1"},
-		{name: "k chẵn", k: 4, eais: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 4"},
+		{name: "k = 1", k: 1, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 1"},
+		{name: "k chẵn", k: 4, eacl: g7Classes(12, nil), bas: g7Classes(12, baseOK), failing: G7RuleRuns, reason: "k = 4"},
 		{name: "lớp không có ca thì không đo được", k: 3,
-			eais:    map[string][2]int{"representation": {12, 12}, "entity": {12, 12}, "ambiguity": {12, 12}, "semantic": {12, 12}, "source_conflict": {12, 12}, "permission": {12, 12}, "unsupported_answer": {12, 12}},
+			eacl:    map[string][2]int{"representation": {12, 12}, "entity": {12, 12}, "ambiguity": {12, 12}, "semantic": {12, 12}, "source_conflict": {12, 12}, "permission": {12, 12}, "unsupported_answer": {12, 12}},
 			bas:     map[string][2]int{"representation": {6, 12}, "entity": {6, 12}, "ambiguity": {6, 12}, "semantic": {6, 12}, "source_conflict": {12, 12}, "permission": {12, 12}, "unsupported_answer": {12, 12}},
 			failing: G7RuleNoClassBehind, reason: "routing"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			eais, bas := g7Repeat(c.k, g7Report(c.eais)), g7Repeat(c.k, g7Report(c.bas))
-			counts := g7Clean(eais)
+			eacl, bas := g7Repeat(c.k, g7Report(c.eacl)), g7Repeat(c.k, g7Report(c.bas))
+			counts := g7Clean(eacl)
 			if c.counts != nil {
-				counts = c.counts(eais)
+				counts = c.counts(eacl)
 			}
-			v, err := CompareG7(eais, bas, counts)
+			v, err := CompareG7(eacl, bas, counts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -172,23 +172,23 @@ func TestCompareG7UsesMedianOfThreeRuns(t *testing.T) {
 		per["semantic"] = [2]int{semantic, 12}
 		return g7Report(per)
 	}
-	// EAIS có một lượt hỏng (0): trung vị 12. Baseline 2, 11, 3: trung vị 3 (trung bình 5,3, lớn nhất 11).
-	eais := []Report{run(12), run(0), run(12)}
+	// EACL có một lượt hỏng (0): trung vị 12. Baseline 2, 11, 3: trung vị 3 (trung bình 5,3, lớn nhất 11).
+	eacl := []Report{run(12), run(0), run(12)}
 	bas := []Report{base(2), base(11), base(3)}
-	v, err := CompareG7(eais, bas, g7Clean(eais))
+	v, err := CompareG7(eacl, bas, g7Clean(eacl))
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := v.Classes[3] // semantic
-	if got.Class != "semantic" || got.EAISPass != 12 || got.BaselinePass != 3 || got.EAIS != 100 || got.Baseline != 25 || got.Lead != 75 {
-		t.Errorf("semantic = %+v, muốn EAIS 12/12 (100%%), baseline 3/12 (25%%), chênh 75", got)
+	if got.Class != "semantic" || got.EACLPass != 12 || got.BaselinePass != 3 || got.EACL != 100 || got.Baseline != 25 || got.Lead != 75 {
+		t.Errorf("semantic = %+v, muốn EACL 12/12 (100%%), baseline 3/12 (25%%), chênh 75", got)
 	}
 	if !v.Pass {
 		t.Errorf("4 lớp hơn >= 20 điểm, không lớp nào thua, đếm sạch: muốn ĐẠT\n%s", v.Format())
 	}
 	// Thứ tự lượt không đổi kết quả.
-	eais2, bas2 := []Report{eais[1], eais[2], eais[0]}, []Report{bas[2], bas[0], bas[1]}
-	if v2, _ := CompareG7(eais2, bas2, g7Clean(eais2)); v2.Classes[3] != got {
+	eacl2, bas2 := []Report{eacl[1], eacl[2], eacl[0]}, []Report{bas[2], bas[0], bas[1]}
+	if v2, _ := CompareG7(eacl2, bas2, g7Clean(eacl2)); v2.Classes[3] != got {
 		t.Errorf("đổi thứ tự lượt làm đổi trung vị: %+v ≠ %+v", v2.Classes[3], got)
 	}
 }
@@ -200,36 +200,36 @@ func TestCompareG7RejectsInputsThatAreNotComparable(t *testing.T) {
 	stray := g7Report(g7Classes(10, nil))
 	stray.Results[0].FailureClass = "semantics" // lớp gõ sai
 	relabel := g7Report(g7Classes(10, nil))
-	relabel.Results[0].FailureClass = "routing" // lớp có thật, nhưng khác nhãn của EAIS cho cùng id (bản tấn công F11)
+	relabel.Results[0].FailureClass = "routing" // lớp có thật, nhưng khác nhãn của EACL cho cùng id (bản tấn công F11)
 	cases := []struct {
 		name      string
-		eais, bas []Report
+		eacl, bas []Report
 		want      string
 	}{
 		{"không có lượt nào", nil, nil, "k ≥ 1"},
-		{"khác số lượt", g7Repeat(3, ok), g7Repeat(2, ok), "EAIS 3, baseline 2"},
-		{"EAIS lượt 2 khác bộ ca", []Report{ok, other, ok}, g7Repeat(3, ok), "EAIS lượt 2"},
+		{"khác số lượt", g7Repeat(3, ok), g7Repeat(2, ok), "EACL 3, baseline 2"},
+		{"EACL lượt 2 khác bộ ca", []Report{ok, other, ok}, g7Repeat(3, ok), "EACL lượt 2"},
 		{"baseline lượt 3 khác bộ ca", g7Repeat(3, ok), []Report{ok, ok, other}, "baseline lượt 3"},
 		{"lớp lạ", g7Repeat(3, stray), g7Repeat(3, stray), `"semantics"`},
 		{"lớp lạ chỉ ở baseline", g7Repeat(3, ok), g7Repeat(3, stray), `baseline lượt 1: lớp hỏng lạ "semantics"`},
 		{"cùng id mà baseline gắn lớp khác", g7Repeat(3, ok), g7Repeat(3, relabel), "baseline lượt 1 không cùng bộ ca (id + lớp)"},
 	}
 	for _, c := range cases {
-		if _, err := CompareG7(c.eais, c.bas, G7Counts{}); err == nil || !strings.Contains(err.Error(), c.want) {
+		if _, err := CompareG7(c.eacl, c.bas, G7Counts{}); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: lỗi = %v, muốn có %q", c.name, err, c.want)
 		}
 	}
 }
 
 func TestG7VerdictFormat(t *testing.T) {
-	eais := g7Repeat(3, g7Report(g7Classes(12, nil)))
-	bad, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(12, nil))), g7Clean(eais)) // hoà hết: không lớp nào hơn
+	eacl := g7Repeat(3, g7Report(g7Classes(12, nil)))
+	bad, _ := CompareG7(eacl, g7Repeat(3, g7Report(g7Classes(12, nil))), g7Clean(eacl)) // hoà hết: không lớp nào hơn
 	for _, want := range []string{"TRUNG VỊ QUA 3 LƯỢT", "representation", "LUẬT D5", G7RuleLead, "KHÔNG ĐẠT", "D5: KHÔNG ĐẠT"} {
 		if !strings.Contains(bad.Format(), want) {
 			t.Errorf("Format thiếu %q:\n%s", want, bad.Format())
 		}
 	}
-	good, _ := CompareG7(eais, g7Repeat(3, g7Report(g7Classes(12, map[string]int{"representation": 0, "entity": 0, "ambiguity": 0, "semantic": 0}))), g7Clean(eais))
+	good, _ := CompareG7(eacl, g7Repeat(3, g7Report(g7Classes(12, map[string]int{"representation": 0, "entity": 0, "ambiguity": 0, "semantic": 0}))), g7Clean(eacl))
 	if f := good.Format(); !strings.Contains(f, "D5: ĐẠT") || !strings.Contains(f, "≥ 20") {
 		t.Errorf("Format của bản ĐẠT thiếu phán quyết / dấu lớp hơn:\n%s", f)
 	}
@@ -295,7 +295,7 @@ func TestG7ContentReportGradesOnlyContent(t *testing.T) {
 
 // Lý do có G7ContentReport: baseline RAG đưa ĐÚNG con số nhưng luôn trả route RAG và gọi model một lần,
 // nên RunWin (chấm cả nhãn kiến trúc) cho nó trượt mọi ca và luật D5 không bao giờ đỏ — gate vô nghĩa.
-// Chấm theo nội dung thì baseline đúng ngang EAIS → hoà → D5 ĐỎ ở luật lead. Test khoá cả hai nửa.
+// Chấm theo nội dung thì baseline đúng ngang EACL → hoà → D5 ĐỎ ở luật lead. Test khoá cả hai nửa.
 func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 	q := "Hôm qua máy 03 được cấp bao nhiêu dầu?"
 	zero := 0
@@ -306,13 +306,13 @@ func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 				Expect: WinExpect{Route: "SQL_QUERY", Outcome: "RESOLVED", Value: &WinValue{Number: "3850", Unit: "L"}, ModelCalls: &zero}})
 		}
 	}
-	eaisAsk := &countingAsker{fixedAsker: fixedAsker{q: {Route: "SQL_QUERY", Outcome: "RESOLVED", Answer: "Dầu kho xuất của EX-03 ngày 19/10/2026: 3.850 L."}}}
+	eaclAsk := &countingAsker{fixedAsker: fixedAsker{q: {Route: "SQL_QUERY", Outcome: "RESOLVED", Answer: "Dầu kho xuất của EX-03 ngày 19/10/2026: 3.850 L."}}}
 	ragAsk := &countingAsker{fixedAsker: fixedAsker{q: {Route: "RAG", Outcome: "RESOLVED", Answer: "Theo phiếu xuất kho, EX-03 hôm qua được cấp 3850 lít."}}, calls: 1}
 	prs := map[string]contracts.Principal{"p": {}}
 	runs := func(a Asker) []Report {
 		return []Report{RunWin(context.Background(), a, cases, prs), RunWin(context.Background(), a, cases, prs), RunWin(context.Background(), a, cases, prs)}
 	}
-	eaisFull, ragFull := runs(eaisAsk), runs(ragAsk)
+	eaclFull, ragFull := runs(eaclAsk), runs(ragAsk)
 	regrade := func(rs []Report) []Report {
 		out := make([]Report, len(rs))
 		for i, r := range rs {
@@ -322,7 +322,7 @@ func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 	}
 
 	// Nửa 1: chấm đủ kỳ vọng — baseline đúng số vẫn trượt cả 8 lớp, D5 ĐẠT dù baseline đúng.
-	full, err := CompareG7(eaisFull, ragFull, g7Clean(eaisFull))
+	full, err := CompareG7(eaclFull, ragFull, g7Clean(eaclFull))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,26 +330,26 @@ func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 		t.Fatalf("giả định của bài thử sai: chấm đủ kỳ vọng phải làm baseline đúng số vẫn 0%% và D5 ĐẠT oan\n%s", full.Format())
 	}
 	// Nửa 2: chấm theo nội dung — hai hệ đúng ngang nhau, hoà ở mọi lớp, D5 ĐỎ vì không lớp nào hơn.
-	eaisC, ragC := regrade(eaisFull), regrade(ragFull)
-	content, err := CompareG7(eaisC, ragC, g7Clean(eaisC))
+	eaclC, ragC := regrade(eaclFull), regrade(ragFull)
+	content, err := CompareG7(eaclC, ragC, g7Clean(eaclC))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range content.Classes {
-		if c.EAIS != 100 || c.Baseline != 100 || c.Lead != 0 {
-			t.Errorf("lớp %s: EAIS %.0f%%, baseline %.0f%% — muốn hoà 100%%", c.Class, c.EAIS, c.Baseline)
+		if c.EACL != 100 || c.Baseline != 100 || c.Lead != 0 {
+			t.Errorf("lớp %s: EACL %.0f%%, baseline %.0f%% — muốn hoà 100%%", c.Class, c.EACL, c.Baseline)
 		}
 	}
 	if r, _ := content.Rule(G7RuleLead); content.Pass || r.Pass {
-		t.Errorf("baseline đúng ngang EAIS thì luật lead phải ĐỎ:\n%s", content.Format())
+		t.Errorf("baseline đúng ngang EACL thì luật lead phải ĐỎ:\n%s", content.Format())
 	}
 	if r, _ := content.Rule(G7RuleNoClassBehind); !r.Pass {
 		t.Errorf("hoà thì không lớp nào thua: %+v", r)
 	}
-	// Baseline đưa số sai thì EAIS hơn ở mọi lớp và D5 ĐẠT: gate đỏ được mà cũng xanh được.
+	// Baseline đưa số sai thì EACL hơn ở mọi lớp và D5 ĐẠT: gate đỏ được mà cũng xanh được.
 	wrong := &countingAsker{fixedAsker: fixedAsker{q: {Route: "RAG", Outcome: "RESOLVED", Answer: "Khoảng 4.000 L, đúng."}}, calls: 1}
 	wrongC := regrade(runs(wrong))
-	if v, _ := CompareG7(eaisC, wrongC, g7Clean(eaisC)); !v.Pass {
+	if v, _ := CompareG7(eaclC, wrongC, g7Clean(eaclC)); !v.Pass {
 		t.Errorf("baseline đưa số sai: muốn D5 ĐẠT\n%s", v.Format())
 	}
 }
@@ -358,16 +358,16 @@ func TestG7ContentGradingKeepsD5HonestAgainstACorrectBaseline(t *testing.T) {
 // Bộ đếm độc lập
 // ---------------------------------------------------------------------------
 
-// Bộ đếm KHÔNG được import gói nào của EAIS: dùng chung bộ chuẩn hoá thì sai cùng chỗ với EAIS và chấm
-// EAIS là đúng (docs/04 §6 G5 + G7).
-func TestG7DoesNotImportEAIS(t *testing.T) {
+// Bộ đếm KHÔNG được import gói nào của EACL: dùng chung bộ chuẩn hoá thì sai cùng chỗ với EACL và chấm
+// EACL là đúng (docs/04 §6 G5 + G7).
+func TestG7DoesNotImportEACL(t *testing.T) {
 	f, err := parser.ParseFile(token.NewFileSet(), "g7.go", nil, parser.ImportsOnly)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, imp := range f.Imports {
-		if p, _ := strconv.Unquote(imp.Path.Value); strings.HasPrefix(p, "github.com/luannt2002/enterprise-ai-systems") {
-			t.Errorf("g7.go import %s: bộ đếm độc lập không được dùng gói nào của EAIS", p)
+		if p, _ := strconv.Unquote(imp.Path.Value); strings.HasPrefix(p, "github.com/luannt2002/enterprise-ai-control-layer") {
+			t.Errorf("g7.go import %s: bộ đếm độc lập không được dùng gói nào của EACL", p)
 		}
 	}
 }
@@ -538,7 +538,7 @@ func TestG7CountOverRuns(t *testing.T) {
 	}
 }
 
-// Đầu-cuối: một EAIS giả RÒ canary và BỊA số vẫn có thể qua kỳ vọng nhị phân của ca (RunWin chỉ kiểm
+// Đầu-cuối: một EACL giả RÒ canary và BỊA số vẫn có thể qua kỳ vọng nhị phân của ca (RunWin chỉ kiểm
 // điều ca đòi), nhưng bộ đếm độc lập bắt được và luật D5 đỏ — đó là lý do phải có bộ đếm.
 func TestG7CounterCatchesWhatRunWinMisses(t *testing.T) {
 	q1, q2 := "Hôm qua máy 03 được cấp bao nhiêu dầu?", "Hôm qua máy 07 được cấp bao nhiêu dầu?"
@@ -568,7 +568,7 @@ func TestG7CounterCatchesWhatRunWinMisses(t *testing.T) {
 	got := counter.Count(cases, leakyRuns)
 	// Mỗi lượt: 1 câu rò mã (7731 trong mã cũng là số lạ) + 1 câu bịa 3.560.
 	if got.Leaks != 3 || got.Unsupported != 6 {
-		t.Fatalf("EAIS giả: Count = %+v, muốn 3 câu rò rỉ + 6 số lạ", got)
+		t.Fatalf("EACL giả: Count = %+v, muốn 3 câu rò rỉ + 6 số lạ", got)
 	}
 	v, err := CompareG7(leakyRuns, runs(fixedAsker{}), got)
 	if err != nil {
@@ -576,15 +576,15 @@ func TestG7CounterCatchesWhatRunWinMisses(t *testing.T) {
 	}
 	for _, name := range []string{G7RuleNoLeak, G7RuleNoUnsupported} {
 		if r, _ := v.Rule(name); r.Pass {
-			t.Errorf("luật %s phải ĐỎ với EAIS giả rò rỉ / bịa số: %+v", name, r)
+			t.Errorf("luật %s phải ĐỎ với EACL giả rò rỉ / bịa số: %+v", name, r)
 		}
 	}
-	// Đối chứng: EAIS trung thực qua cả hai luật đếm.
+	// Đối chứng: EACL trung thực qua cả hai luật đếm.
 	honestRuns := runs(honest)
 	hv, _ := CompareG7(honestRuns, runs(fixedAsker{}), counter.Count(cases, honestRuns))
 	for _, name := range []string{G7RuleNoLeak, G7RuleNoUnsupported} {
 		if r, _ := hv.Rule(name); !r.Pass {
-			t.Errorf("luật %s phải XANH với EAIS trung thực: %+v", name, r)
+			t.Errorf("luật %s phải XANH với EACL trung thực: %+v", name, r)
 		}
 	}
 }
@@ -593,7 +593,7 @@ func TestG7CounterCatchesWhatRunWinMisses(t *testing.T) {
 // bằng số nguyên nên biên phải chính xác, không lệch theo sai số số thực.
 func TestCompareG7LeadBoundary(t *testing.T) {
 	for _, c := range []struct {
-		total, eais, base int
+		total, eacl, base int
 		leads             bool
 	}{
 		{15, 15, 12, true},  // +20,00 điểm: đúng biên, tính
@@ -601,16 +601,16 @@ func TestCompareG7LeadBoundary(t *testing.T) {
 		{21, 21, 16, true},  // +23,81 điểm
 		{11, 11, 8, false},  // +27,3 điểm nhưng lớp 11 ca < 12: không được tính (ADR-0005 §5)
 	} {
-		eais := g7Report(g7Classes(c.total, nil))
+		eacl := g7Report(g7Classes(c.total, nil))
 		base := g7Report(g7Classes(c.total, map[string]int{"entity": c.base, "semantic": c.base, "routing": c.base, "source_conflict": c.base}))
-		er, br := g7Repeat(3, eais), g7Repeat(3, base)
+		er, br := g7Repeat(3, eacl), g7Repeat(3, base)
 		v, err := CompareG7(er, br, g7Clean(er))
 		if err != nil {
 			t.Fatal(err)
 		}
 		r, _ := v.Rule(G7RuleLead)
 		if r.Pass != c.leads {
-			t.Errorf("tổng %d, EAIS %d, baseline %d: luật lead = %v, muốn %v (%s)", c.total, c.eais, c.base, r.Pass, c.leads, r.Reason)
+			t.Errorf("tổng %d, EACL %d, baseline %d: luật lead = %v, muốn %v (%s)", c.total, c.eacl, c.base, r.Pass, c.leads, r.Reason)
 		}
 	}
 }
@@ -632,8 +632,8 @@ func TestG7ContentReportSoAm(t *testing.T) {
 	}
 }
 
-// Lớp an ninh tính ANY-RUN: EAIS hỏng một ca permission ở MỘT lượt thì ca đó hỏng (trung vị không che),
-// và EAIS thua baseline đạt mọi lượt. Cùng mẫu ở lớp thường (semantic) thì trung vị che — đúng thiết kế.
+// Lớp an ninh tính ANY-RUN: EACL hỏng một ca permission ở MỘT lượt thì ca đó hỏng (trung vị không che),
+// và EACL thua baseline đạt mọi lượt. Cùng mẫu ở lớp thường (semantic) thì trung vị che — đúng thiết kế.
 func TestCompareG7AnyRunSecurityClasses(t *testing.T) {
 	baseLow := map[string]int{"representation": 6, "entity": 6, "ambiguity": 6, "semantic": 6}
 	for _, c := range []struct {
@@ -648,7 +648,7 @@ func TestCompareG7AnyRunSecurityClasses(t *testing.T) {
 				break
 			}
 		}
-		eais := []Report{good, flaky, good}
+		eacl := []Report{good, flaky, good}
 		bp := map[string]int{}
 		for k, v := range baseLow {
 			bp[k] = v
@@ -657,7 +657,7 @@ func TestCompareG7AnyRunSecurityClasses(t *testing.T) {
 			bp["semantic"] = 12
 		}
 		bas := g7Repeat(3, g7Report(g7Classes(12, bp)))
-		v, err := CompareG7(eais, bas, g7Clean(eais))
+		v, err := CompareG7(eacl, bas, g7Clean(eacl))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -696,14 +696,14 @@ func TestCompareG7McNemar(t *testing.T) {
 		evaluable, pass    bool
 		p                  float64
 	}{
-		{"10 cặp lệch đều nghiêng EAIS", 5, 10, 0, true, true, 1.0 / 1024},
+		{"10 cặp lệch đều nghiêng EACL", 5, 10, 0, true, true, 1.0 / 1024},
 		{"7 so với 3", 5, 7, 3, true, false, 176.0 / 1024},
 		{"9 cặp lệch: chưa đủ điều kiện", 5, 6, 3, false, true, -1},
 	} {
 		e, b := pattern(c.both, c.eOnly, c.bOnly, 2)
 		er, br := g7Repeat(3, mk(e)), g7Repeat(3, mk(b))
 		m := mcnemar(er, br)
-		if m.Evaluable != c.evaluable || m.EAISOnly != c.eOnly || m.BaselineOnly != c.bOnly || math.Abs(m.P-c.p) > 1e-9 {
+		if m.Evaluable != c.evaluable || m.EACLOnly != c.eOnly || m.BaselineOnly != c.bOnly || math.Abs(m.P-c.p) > 1e-9 {
 			t.Errorf("%s: %+v, muốn đánh giá được %v, b %d, c %d, p %.6f", c.name, m, c.evaluable, c.eOnly, c.bOnly, c.p)
 		}
 	}

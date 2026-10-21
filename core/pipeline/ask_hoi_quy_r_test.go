@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // Test đơn vị cho các hàm thuần của luồng hỏi sau các HỒI QUY R-01, R-02, R-10 (bản sửa 6f23ff3): đầu–cuối nằm ở tenants/construction/pipeline_hoi_quy_r_test.go.

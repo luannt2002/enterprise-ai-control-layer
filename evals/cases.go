@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"go.yaml.in/yaml/v3"
 )
 

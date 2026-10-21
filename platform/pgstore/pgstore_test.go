@@ -9,20 +9,24 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
-	"github.com/luannt2002/enterprise-ai-systems/platform/pgstore"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
 
 // open nối tới PG của deploy/docker-compose.yml. Thiếu biến môi trường thì bỏ qua (ĐỎ-MT, không
 // phải đạt): báo cáo WIN ghi rõ đường PG có chạy hay không.
 func open(t *testing.T) (*pgstore.Store, string, string) {
 	t.Helper()
-	admin, app := os.Getenv("EAIS_PG_ADMIN_DSN"), os.Getenv("EAIS_PG_DSN")
+	admin, app := os.Getenv("EACL_PG_ADMIN_DSN"), os.Getenv("EACL_PG_DSN")
 	if admin == "" || app == "" {
-		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
+		if os.Getenv("EAIS_PG_ADMIN_DSN")+os.Getenv("EAIS_PG_DSN") != "" {
+			// môi trường còn đặt DSN theo tiền tố trước 21/10/2026: báo lỗi thay vì bỏ qua lặng lẽ cả đường PG (RLS)
+			t.Fatal("DSN PG phải đặt ở EACL_PG_ADMIN_DSN / EACL_PG_DSN (biến EAIS_PG_* không còn được đọc)")
+		}
+		t.Skip("chưa có EACL_PG_ADMIN_DSN / EACL_PG_DSN — xem deploy/docker-compose.yml")
 	}
 	ctx := context.Background()
 	if err := pgstore.Migrate(ctx, admin); err != nil {
@@ -58,7 +62,7 @@ func uniq(p string) contracts.TenantID {
 	return contracts.TenantID(fmt.Sprintf("%s-%d", p, time.Now().UnixNano()))
 }
 
-// GUC eais.tenant_id của mọi lệnh lấy từ tenant gắn vào ngữ cảnh (S1 gắn từ Principal); ngữ cảnh
+// GUC eacl.tenant_id của mọi lệnh lấy từ tenant gắn vào ngữ cảnh (S1 gắn từ Principal); ngữ cảnh
 // không mang tenant thì lệnh bị từ chối trước khi chạm DB.
 func TestGUCLayTuNguCanh(t *testing.T) {
 	s, _, _ := open(t)
@@ -130,7 +134,7 @@ func TestRLSCanaryB(t *testing.T) {
 		var n int
 		err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
 			if guc != "" {
-				if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", guc); err != nil {
+				if _, err := tx.Exec(ctx, "SELECT set_config('eacl.tenant_id', $1, true)", guc); err != nil {
 					return err
 				}
 			}
@@ -160,7 +164,7 @@ func TestRLSCanaryB(t *testing.T) {
 	}
 	// từ chối ghi: GUC = A mà ghi dòng mang tenant B → RLS WITH CHECK chặn
 	err = pgx.BeginFunc(ctx, appConn, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", string(a)); err != nil {
+		if _, err := tx.Exec(ctx, "SELECT set_config('eacl.tenant_id', $1, true)", string(a)); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO facts (tenant_id, id, metric, entity_id, occurred_on, value, unit, source_type, ord)

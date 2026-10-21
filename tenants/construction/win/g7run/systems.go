@@ -18,14 +18,14 @@ import (
 	"github.com/xuri/excelize/v2"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
-	"github.com/luannt2002/enterprise-ai-systems/evals"
-	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals/baseline"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
 // Các hệ của G7 (ADR-0005 §2). Baseline cổng: B2+ và B1 — G7 PASS cần đạt với CẢ hai. Chỉ báo cáo:
@@ -472,7 +472,7 @@ func loadTruths(path string) (map[string]*caseTruth, error) {
 }
 
 // genRecord là một bản ghi trong manifest.json của BỘ SINH: giá trị chuẩn (lít) của bản ghi, độc lập
-// với bộ nạp của EAIS. Bản ghi bị cách ly không có value_l. Key trùng Observation.Key của bộ nạp.
+// với bộ nạp của EACL. Bản ghi bị cách ly không có value_l. Key trùng Observation.Key của bộ nạp.
 type genRecord struct {
 	Tenant  string `json:"tenant"`
 	Key     string `json:"key"`
@@ -501,7 +501,7 @@ func loadGenRecords(path string) ([]genRecord, error) {
 }
 
 // perCaseNumbers tính G7CounterConfig.PerCase: số được phép RIÊNG cho từng ca của bộ đếm claim không
-// căn cứ. Nguồn: truth của hồ sơ ca và manifest.json của BỘ SINH — không qua bộ nạp của EAIS, nên độc
+// căn cứ. Nguồn: truth của hồ sơ ca và manifest.json của BỘ SINH — không qua bộ nạp của EACL, nên độc
 // lập với hệ được chấm. Số riêng của một ca: truth.value, other_values[].value, và value_l của mọi bản
 // ghi thuộc tenant được chấm mà ca trỏ tới bằng truth.record_ids (khớp key hoặc world_id) hoặc có thực
 // thể thuộc truth.entities với ngày trong truth.period. Ca không có truth thì không có số riêng (chặt hơn).

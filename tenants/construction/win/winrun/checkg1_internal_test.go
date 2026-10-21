@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
 )
 
 // Bộ kiểm manifest của G1 (docs/04 §6: thiếu hoặc thừa id là KHÔNG ĐẠT, 0 bản ghi rơi im lặng) phải bắt được

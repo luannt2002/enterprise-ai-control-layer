@@ -4,11 +4,11 @@
 # Mã đổi sau ngày đó thì chuỗi gốc có thể không còn khớp (mutate.sh báo "xuất hiện 0 lần", rc=2):
 # sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
 cd "$(dirname "$0")/../.." || exit 1
-export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
-export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+export EACL_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable'
+export EACL_PG_DSN='postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable'
 export PKGS="./platform/... ./tenants/construction/win/winrun/ ./core/..."
 m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
-m platform/pgstore/pgstore.go '		if _, err := tx.Exec(ctx, "SELECT set_config('"'"'eais.tenant_id'"'"', $1, true)", string(tenant)); err != nil {' '		if _, err := tx.Exec(ctx, "SELECT 1 WHERE $1::text IS NOT NULL", string(tenant)); err != nil {' 'PA không đặt GUC'
+m platform/pgstore/pgstore.go '		if _, err := tx.Exec(ctx, "SELECT set_config('"'"'eacl.tenant_id'"'"', $1, true)", string(tenant)); err != nil {' '		if _, err := tx.Exec(ctx, "SELECT 1 WHERE $1::text IS NOT NULL", string(tenant)); err != nil {' 'PA không đặt GUC'
 m platform/pgstore/pgstore.go '	t, ok := contracts.TenantFrom(ctx)
 	if !ok {' '	t, ok := contracts.TenantFrom(ctx)
 	if false && !ok {' 'PD ngữ cảnh không tenant vẫn truy vấn'

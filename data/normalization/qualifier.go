@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Con số đứng cạnh một từ chỉ kỳ hay một danh từ nhãn mà bộ chuẩn hoá KHÔNG đọc thành giá trị: "tuần 43", "quý 3", "năm 2025", "ngày 12",

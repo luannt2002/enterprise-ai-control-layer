@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 )
 
 func askWithTemplates(t map[string]string) *Ask {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Test cho các lỗi của bản soát độc lập lượt 2 ở tầng ý định: A-04 (câu ghép số liệu + quy trình nêu nhiều thực thể / ngày hỏng bị

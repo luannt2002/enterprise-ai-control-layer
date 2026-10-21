@@ -18,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/intent"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/router"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
 	"go.yaml.in/yaml/v3"
 )
 

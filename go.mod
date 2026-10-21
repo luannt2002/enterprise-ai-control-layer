@@ -1,4 +1,4 @@
-module github.com/luannt2002/enterprise-ai-systems
+module github.com/luannt2002/enterprise-ai-control-layer
 
 go 1.26.0
 

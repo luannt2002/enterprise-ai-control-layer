@@ -3,8 +3,8 @@ package ingestion
 import (
 	"path/filepath"
 
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 )
 
 // LoadDirectory trả danh mục thực thể của tenant cho LUỒNG HỎI: bí danh chung + mọi mã theo nguồn

@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
+	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/gen"
 	"github.com/xuri/excelize/v2"
 )
 

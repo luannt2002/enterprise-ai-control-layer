@@ -17,7 +17,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
 // MetricDef là một chỉ số ngữ nghĩa.

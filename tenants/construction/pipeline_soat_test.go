@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/pipeline"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/pipeline"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
 // cannedModel là model trả MỘT bản nháp cố định, claim trỏ về bằng chứng đứng đầu — đủ để thử cổng S9

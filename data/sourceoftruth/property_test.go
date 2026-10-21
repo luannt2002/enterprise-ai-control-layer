@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
 // Thuộc tính G6 trên dữ liệu ngẫu nhiên có seed (tái lập được):

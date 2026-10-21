@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 )
 
 // xacNhan kiểm câu xác nhận ra đúng câu trả lời RESOLVED mở đầu bằng prefix ("Đúng." / "Không.") — không bị hỏi lại.

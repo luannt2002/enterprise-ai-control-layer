@@ -15,10 +15,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/evals"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/observability/traces"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 )
 
 // Bằng chứng thô của một lần chạy G7 (ADR-0005 §7, -out): không có bằng chứng thô thì không có kết

@@ -8,13 +8,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/evals"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
-// Baseline phải là Asker và ModelCounter để runner (evals.RunWin) chấm nó như chấm EAIS.
+// Baseline phải là Asker và ModelCounter để runner (evals.RunWin) chấm nó như chấm EACL.
 var (
 	_ evals.Asker        = (*RAG)(nil)
 	_ evals.ModelCounter = (*RAG)(nil)

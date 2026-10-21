@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // Test cho A-08 (lượng nghiệp vụ trong tài liệu còn lọt ở các dạng ngoài danh sách đã khai) và A-09 (luật "đơn vị đứng trước số"

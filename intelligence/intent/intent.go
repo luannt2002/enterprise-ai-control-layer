@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/data/normalization"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // Def là một ý định trong pack (intents.yaml). Chỉ là dữ liệu: danh sách từ khoá,

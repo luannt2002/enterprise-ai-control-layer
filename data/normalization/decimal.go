@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
 func parseDecimal(s string) (*big.Rat, bool) { return decimal.Parse(s) }

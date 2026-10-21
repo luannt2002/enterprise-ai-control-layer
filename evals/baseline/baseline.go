@@ -1,10 +1,10 @@
-// Package baseline là đối thủ của EAIS ở cổng G7 (docs/04-core-mvp.md §4, docs/adr/0001-win-mvp.md D6):
+// Package baseline là đối thủ của EACL ở cổng G7 (docs/04-core-mvp.md §4, docs/adr/0001-win-mvp.md D6):
 // một RAG đơn giản trên dữ liệu của MỘT tenant, dùng cùng chỉ mục (intelligence/rag) và cùng gateway
-// model với EAIS, và KHÔNG có tầng kiểm soát nào của EAIS — không lọc quyền theo người hỏi, không
+// model với EACL, và KHÔNG có tầng kiểm soát nào của EACL — không lọc quyền theo người hỏi, không
 // route, không ràng buộc claim vào bằng chứng, không hỏi lại, không từ chối.
 //
 // Một lượt hỏi = truy xuất top-k đoạn → MỘT lời gọi model → trả nguyên đầu ra của model. Nó có mặt để
-// G7 chứng minh tầng kiểm soát đáng giá: nếu RAG trần làm tốt ngang EAIS thì luận đề sai.
+// G7 chứng minh tầng kiểm soát đáng giá: nếu RAG trần làm tốt ngang EACL thì luận đề sai.
 package baseline
 
 import (
@@ -16,13 +16,13 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
-// DefaultTopK là số đoạn đưa cho model mỗi lượt. Không lấy 3 (knowledgeK của route tri thức EAIS):
-// EAIS trả số liệu bằng SQL nên model không phải chọn giữa nhiều dòng, còn baseline thì phải, và truy
+// DefaultTopK là số đoạn đưa cho model mỗi lượt. Không lấy 3 (knowledgeK của route tri thức EACL):
+// EACL trả số liệu bằng SQL nên model không phải chọn giữa nhiều dòng, còn baseline thì phải, và truy
 // xuất theo từ khoá trên hàng nghìn dòng na ná nhau hiếm khi đưa đoạn đúng vào top-3. Đo 20/10/2026
 // (hồ sơ functional, seed 42, 2702 đoạn, bộ ca độc lập): trong 70 ca có expect.value, 60 ca có chuỗi chữ
 // số của đáp án nằm trong ít nhất một đoạn; chuỗi đó có mặt trong top-3 ở 10 ca, top-5 ở 14, top-8 ở 22,

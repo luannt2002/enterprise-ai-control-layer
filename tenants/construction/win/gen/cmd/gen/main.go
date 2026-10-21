@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
+	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/gen"
 )
 
 func main() {

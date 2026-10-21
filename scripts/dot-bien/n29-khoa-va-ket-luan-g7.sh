@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Danh mục đột biến cho hai sửa theo soát độc lập lượt 2, chiều C: C-18 (khoá không theo chuyển hướng / http không
-# loopback; EAIS_MODEL_MAX_TOKENS hỏng là lỗi) và C-06 (G7 chỉ ĐẠT khi bộ chấm đóng băng, chấm nội dung, đúng hợp đồng).
+# loopback; EACL_MODEL_MAX_TOKENS hỏng là lỗi) và C-06 (G7 chỉ ĐẠT khi bộ chấm đóng băng, chấm nội dung, đúng hợp đồng).
 # Không có dòng cho chỗ nối verdict trong run(): mọi test của run() dùng model giả hoặc chạy khô (endpoint chính thức
 # cần mạng + khoá) nên nhánh đó không tới được trong test — đã ghi là giới hạn.
 cd "$(dirname "$0")/../.." || exit 1

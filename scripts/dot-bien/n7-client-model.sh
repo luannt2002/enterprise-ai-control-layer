@@ -14,7 +14,7 @@ m $F '		if err == nil || !retry || attempt > m.MaxRetries {' '		if err == nil ||
 m $F '		return raw, false, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("model: yêu cầu bị từ chối %d", resp.StatusCode))' '		return raw, true, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("model: yêu cầu bị từ chối %d", resp.StatusCode))' 'MS5 thử lại cả lỗi cấu hình 4xx'
 m $F '		if c.Effort != "" && !slices.Contains(EffortLevels, c.Effort) {' '		if false {' 'MS6 không kiểm effort'
 m $F '		if m.Trace != nil {' '		if m.Trace != nil && err == nil {' 'MS7 không ghi vết lần hỏng'
-m $F '		Effort: os.Getenv("EAIS_MODEL_EFFORT"), MaxRetries: 2,' '		Effort: os.Getenv("EAIS_MODEL_EFFORT"), MaxRetries: 0,' 'MS8 mặc định không thử lại'
+m $F '		Effort: os.Getenv("EACL_MODEL_EFFORT"), MaxRetries: 2,' '		Effort: os.Getenv("EACL_MODEL_EFFORT"), MaxRetries: 0,' 'MS8 mặc định không thử lại'
 m $F '			m.Temperature = &t' '			_ = t' 'MS9 bỏ temperature đã cấu hình'
 m $F '		if c.Thinking != "" && !slices.Contains(ThinkingTypes, c.Thinking) {' '		if false {' 'MS10 không kiểm thinking'
 # soát C2, F-11: URL có thông tin xác thực bị từ chối và không in lại trong lỗi; localhost không phân biệt hoa thường

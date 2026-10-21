@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/xuri/excelize/v2"
 )
 

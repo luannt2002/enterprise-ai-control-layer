@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Gateway Messages: gửi đúng giao thức (khoá, phiên bản, không gửi temperature — ADR-0005 §1, bằng chứng kèm id), đọc câu
@@ -106,10 +106,10 @@ func TestNewTheoCauHinh(t *testing.T) {
 	if m, ok := g.(*Messages); err != nil || !ok || m.BaseURL == "" || m.MaxTokens <= 0 {
 		t.Errorf("anthropic đủ cấu hình: được %+v (lỗi %v)", g, err)
 	}
-	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
-	t.Setenv("EAIS_MODEL", "m-env")
-	t.Setenv("EAIS_MODEL_API_KEY", "k-env")
-	t.Setenv("EAIS_MODEL_MAX_TOKENS", "300")
+	t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EACL_MODEL", "m-env")
+	t.Setenv("EACL_MODEL_API_KEY", "k-env")
+	t.Setenv("EACL_MODEL_MAX_TOKENS", "300")
 	if c := ConfigFromEnv(); c.Provider != "anthropic" || c.Model != "m-env" || c.APIKey != "k-env" || c.MaxTokens != 300 {
 		t.Errorf("ConfigFromEnv = %+v", Config{Provider: c.Provider, Model: c.Model, MaxTokens: c.MaxTokens})
 	}

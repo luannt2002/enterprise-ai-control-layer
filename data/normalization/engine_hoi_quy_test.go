@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Test cho các lỗi của bản soát độc lập lượt 2 ở tầng chuẩn hoá (A-05, A-06, A-07, A-13 và mục "ranh giới TRÁI" người phản bác

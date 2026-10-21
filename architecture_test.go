@@ -1,7 +1,7 @@
 // Cổng kiến trúc: mã DÙNG CHUNG không được rẽ nhánh theo tên tenant (CLAUDE.md §16).
 // Khác biệt tenant nằm ở pack (tenants/) hoặc domain module (domain/) — hai chỗ đó được
 // mang tên tenant, phần còn lại thì không.
-package eais_test
+package eacl_test
 
 import (
 	"fmt"

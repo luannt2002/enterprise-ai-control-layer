@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/intent"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 )
 
 // Đóng mặc định: capability rỗng không cấp quyền cho ai, kể cả vai có quyền khác.

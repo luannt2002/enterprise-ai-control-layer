@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
 	"github.com/xuri/excelize/v2"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Ý định chạm dữ liệu/model mà quên khai capability phải bị chặn lúc nạp pack — nếu không,

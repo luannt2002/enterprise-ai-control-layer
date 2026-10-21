@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // A-01 — cụm MƠ HỒ cũng phải mang vị trí (Start/End) như cụm không mơ hồ (contracts.AmbiguousMention): luồng hỏi cần biết "03" của

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // S2-4: cụm có DẠNG ngày nhưng không có trên lịch ("31/02", "32/10", "29/02/2026") không sinh span ngày — nên nếu bộ

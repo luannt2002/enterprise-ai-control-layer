@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Request là đầu vào một lượt sinh: câu hỏi + bằng chứng ĐÃ được hệ thống chọn và lọc quyền.

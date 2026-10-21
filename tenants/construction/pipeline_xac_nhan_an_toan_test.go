@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Câu xác nhận có HAI con số trở lên (lượng ngữ cảnh, dải, lựa chọn) không được phán quyết theo một con số do hệ tự chọn: hỏi lại,

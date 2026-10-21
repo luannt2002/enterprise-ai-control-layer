@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/platform/pgstore"
-	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/gen"
-	"github.com/luannt2002/enterprise-ai-systems/tenants/construction/win/winrun"
+	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
+	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/gen"
+	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/winrun"
 )
 
 // TestWinRatchet là cổng hồi quy của WIN trong `go test`: sinh bộ dữ liệu (seed cố định), nạp, đo
@@ -88,9 +88,9 @@ func TestWinRatchet(t *testing.T) {
 // theo tenant của Principal) và đòi từng ca ra ĐÚNG như đường bộ nhớ: cùng đạt / đỏ, cùng câu trả
 // lời. Thiếu biến môi trường PG thì bỏ qua — báo cáo WIN ghi rõ đường PG có chạy hay không.
 func TestWinTrenPG(t *testing.T) {
-	admin, app := os.Getenv("EAIS_PG_ADMIN_DSN"), os.Getenv("EAIS_PG_DSN")
+	admin, app := os.Getenv("EACL_PG_ADMIN_DSN"), os.Getenv("EACL_PG_DSN")
 	if admin == "" || app == "" {
-		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
+		t.Skip("chưa có EACL_PG_ADMIN_DSN / EACL_PG_DSN — xem deploy/docker-compose.yml")
 	}
 	if _, err := exec.LookPath("pdftotext"); err != nil {
 		t.Skip("thiếu pdftotext (poppler)")

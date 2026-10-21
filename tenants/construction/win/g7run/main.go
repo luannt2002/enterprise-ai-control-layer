@@ -11,9 +11,9 @@
 //
 // Không có model thật thì G7 là CHẶN (docs/04 §6): provider rỗng hoặc "extractive" vẫn chạy hết
 // ống nối bằng model giả tất định để thấy mọi mắt xích nối đúng, nhưng kết quả KHÔNG phải bằng chứng.
-// Model thật cấu hình bằng biến môi trường (models.ConfigFromEnv: EAIS_MODEL_PROVIDER, EAIS_MODEL,
-// EAIS_MODEL_API_KEY, EAIS_MODEL_BASE_URL, EAIS_MODEL_THINKING, EAIS_MODEL_EFFORT…); cờ -provider ghi
-// đè EAIS_MODEL_PROVIDER. Thiếu model hay khoá là lỗi cấu hình, thoát ngay. Mọi hệ dùng CHUNG một
+// Model thật cấu hình bằng biến môi trường (models.ConfigFromEnv: EACL_MODEL_PROVIDER, EACL_MODEL,
+// EACL_MODEL_API_KEY, EACL_MODEL_BASE_URL, EACL_MODEL_THINKING, EACL_MODEL_EFFORT…); cờ -provider ghi
+// đè EACL_MODEL_PROVIDER. Thiếu model hay khoá là lỗi cấu hình, thoát ngay. Mọi hệ dùng CHUNG một
 // gateway; không gửi temperature (ADR-0005 §1). -smoke N chạy N ca đầu một lượt mỗi hệ để kiểm
 // provider nhận tham số, trước khi chi tiền cho lượt chạy thật.
 //
@@ -45,16 +45,16 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/core/pipeline"
-	"github.com/luannt2002/enterprise-ai-systems/core/tenant"
-	"github.com/luannt2002/enterprise-ai-systems/data/entityresolution"
-	"github.com/luannt2002/enterprise-ai-systems/data/ingestion"
-	"github.com/luannt2002/enterprise-ai-systems/evals"
-	"github.com/luannt2002/enterprise-ai-systems/evals/baseline"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/rag"
-	"github.com/luannt2002/enterprise-ai-systems/observability/traces"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/pipeline"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals/baseline"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 	"go.yaml.in/yaml/v3"
 	"golang.org/x/text/unicode/norm"
 )
@@ -158,7 +158,7 @@ func main() {
 	flag.IntVar(&cfg.k, "k", evals.G7MinRuns, "số lượt mỗi hệ")
 	flag.IntVar(&cfg.topK, "topk", baseline.DefaultTopK, "số đoạn baseline RAG đưa cho model mỗi câu hỏi")
 	flag.StringVar(&cfg.grade, "grade", gradeContent, `cách chấm từng ca: "content" (theo nội dung câu trả lời, mặc định) hoặc "full" (nguyên kết quả RunWin)`)
-	flag.StringVar(&cfg.provider, "provider", "", `provider model, ghi đè EAIS_MODEL_PROVIDER; rỗng hoặc "extractive" = model giả tất định, G7 CHẶN`)
+	flag.StringVar(&cfg.provider, "provider", "", `provider model, ghi đè EACL_MODEL_PROVIDER; rỗng hoặc "extractive" = model giả tất định, G7 CHẶN`)
 	flag.StringVar(&cfg.systems, "systems", sysB2Plus+","+sysB1, `baseline so với EACL, phân cách dấu phẩy: "b2plus", "b1" (cổng); "b2", "b2pp", "b2oracle" (chỉ báo cáo)`)
 	flag.StringVar(&cfg.manifest, "manifest", "", "hồ sơ ca có b1_window của từng ca (bắt buộc cho B1)")
 	flag.StringVar(&cfg.out, "out", "", "thư mục ghi bằng chứng thô: manifest.json, raw-runs.jsonl, scored.jsonl, aggregate.json, failures.jsonl, cost.json, ket-qua.md")
@@ -335,7 +335,7 @@ func run(cfg config) int {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
 		return 2
 	}
-	if ea, ok := s.askers[sysEACL].(eaisAsker); ok { // bản ghi quyết định của EACL vào bằng chứng thô (C-11)
+	if ea, ok := s.askers[sysEACL].(eaclAsker); ok { // bản ghi quyết định của EACL vào bằng chứng thô (C-11)
 		ea.onDecision = sink.decision
 		s.askers[sysEACL] = ea
 	}
@@ -705,7 +705,7 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 	// EACL: gateway bọc một bộ đếm lời gọi (cổng G4 đo bằng gateway, không bằng trace của hệ).
 	counting := &countingGateway{inner: gw}
 	now := ref.Add(10 * time.Hour)
-	askers := map[string]evals.Asker{sysEACL: eaisAsker{a: &pipeline.Ask{RT: rt, Deps: pipeline.Deps{
+	askers := map[string]evals.Asker{sysEACL: eaclAsker{a: &pipeline.Ask{RT: rt, Deps: pipeline.Deps{
 		Directory: directory, Facts: res.Facts(), Knowledge: rag.NewMemoryIndex(cfg.tenant, docs), Model: counting,
 		// bản ghi quyết định gắn đúng bộ dữ liệu đã phục vụ, như winrun (soát C2, F-10)
 		DataVersion: fileSHA256(filepath.Join(cfg.data, "manifest.json")),
@@ -831,7 +831,7 @@ func build(cfg config, gw models.Gateway, systems []string) (*setup, error) {
 // mục thiết bị, ví dụ "Máy xúc EX-03"), tên chỉ số, nguyên văn lượng như nguồn ghi ("3850 L",
 // "máy 03 sáng 2k"), tên nguồn.
 //
-// Baseline nhận quan sát ĐÃ QUA bộ nạp của EAIS (thực thể và ngày đã chuẩn hoá, bản ghi bẩn đã bị cách
+// Baseline nhận quan sát ĐÃ QUA bộ nạp của EACL (thực thể và ngày đã chuẩn hoá, bản ghi bẩn đã bị cách
 // ly) — mạnh hơn một RAG đọc thẳng tệp nguồn, nên G7 khắt khe hơn thực tế. Đổi sang chữ thô là quyết
 // định của chủ dự án. Tên thực thể có mặt vì đo được ích lợi: xem baseline.DefaultTopK.
 func paragraph(rt *tenant.Runtime, names map[string]string, o ingestion.Observation) string {
@@ -857,18 +857,18 @@ func (g *countingGateway) Generate(ctx context.Context, req models.Request) (con
 	return g.inner.Generate(ctx, req)
 }
 
-// eaisAsker đưa luồng hỏi của EAIS vào runner; số lời gọi model đo ở gateway.
-type eaisAsker struct {
+// eaclAsker đưa luồng hỏi của EACL vào runner; số lời gọi model đo ở gateway.
+type eaclAsker struct {
 	a  *pipeline.Ask
 	gw *countingGateway
 	// onDecision nhận bản ghi quyết định của từng câu (run() nối vào evidenceSink.decision; C-11).
 	onDecision func(traces.Decision)
 }
 
-func (e eaisAsker) ModelCalls() int  { return int(e.gw.n.Load()) }
-func (e eaisAsker) ResetModelCalls() { e.gw.n.Store(0) }
+func (e eaclAsker) ModelCalls() int  { return int(e.gw.n.Load()) }
+func (e eaclAsker) ResetModelCalls() { e.gw.n.Store(0) }
 
-func (e eaisAsker) Ask(ctx context.Context, pr contracts.Principal, q string) (contracts.AskResponse, error) {
+func (e eaclAsker) Ask(ctx context.Context, pr contracts.Principal, q string) (contracts.AskResponse, error) {
 	out, err := e.a.Handle(ctx, pr, contracts.AskRequest{ConversationID: "g7", MessageID: "g7", Text: q})
 	if err == nil && e.onDecision != nil {
 		e.onDecision(out.Decision)

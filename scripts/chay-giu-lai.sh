@@ -17,7 +17,7 @@
 # - thư mục ra không nằm ngay trong thư mục bộ giữ lại, hoặc đã có (tạo bằng mkdir nguyên tử: hai lần chạy
 #   đồng thời không thể cùng qua);
 # - cây git có thay đổi hay tệp lạ; tệp ca chưa commit; HEAD chưa có trên origin/main;
-# - DSN PG thiếu, hoặc không trỏ vào database riêng eais_giu_lai (tiến trình khác nạp song song vào DB chung
+# - DSN PG thiếu, hoặc không trỏ vào database riêng eacl_giu_lai (tiến trình khác nạp song song vào DB chung
 #   từng gây lỗi khoá ngoại 23503 và có thể đốt lần chạy duy nhất).
 # Mã thoát: 0 lần chạy HOÀN TẤT (dù có ca trượt: đó là kết quả đo); 1 HỎNG HẠ TẦNG (winreport lỗi cấu hình /
 # nạp, hay bảng cổng không lập được); 2 bị từ chối trước khi chạy.
@@ -48,8 +48,8 @@ while IFS= read -r prev; do
   grep -q "^mã (cây git không tính docs/): $code\$" "$prev" || refuse "lần trước ($prev) HỎNG HẠ TẦNG với mã khác: chạy lại sau khi đổi mã là chỉnh theo bộ giữ lại"
 done < <(grep -rl --include=chay.txt "^sha256 tệp ca: $sha_cases" "$dir" 2>/dev/null)
 dbname() { python3 -I -c 'import sys,urllib.parse as u; print(u.urlparse(sys.argv[1].strip()).path.lstrip("/"))' "$1"; }
-[ -n "${EAIS_PG_ADMIN_DSN// /}" ] && [ -n "${EAIS_PG_DSN// /}" ] || refuse "thiếu EAIS_PG_ADMIN_DSN / EAIS_PG_DSN"
-[ "$(dbname "$EAIS_PG_ADMIN_DSN")" = eais_giu_lai ] && [ "$(dbname "$EAIS_PG_DSN")" = eais_giu_lai ] || refuse "đường PG phải dùng database riêng eais_giu_lai (DSN đang trỏ $(dbname "$EAIS_PG_DSN"))"
+[ -n "${EACL_PG_ADMIN_DSN// /}" ] && [ -n "${EACL_PG_DSN// /}" ] || refuse "thiếu EACL_PG_ADMIN_DSN / EACL_PG_DSN"
+[ "$(dbname "$EACL_PG_ADMIN_DSN")" = eacl_giu_lai ] && [ "$(dbname "$EACL_PG_DSN")" = eacl_giu_lai ] || refuse "đường PG phải dùng database riêng eacl_giu_lai (DSN đang trỏ $(dbname "$EACL_PG_DSN"))"
 [ "$(dirname "$out")" = "$dir" ] || refuse "thư mục ra phải nằm ngay trong $dir (để lần chạy sau thấy chay.txt của lần này)"
 mkdir "$out" 2>/dev/null || refuse "thư mục ra đã có hoặc không tạo được: $out"
 
@@ -65,7 +65,7 @@ log="$out/chay.txt"
   echo "sha256 tệp ca: $sha_cases  $cases"
   echo "sha256 holdout-manifest.json: $(sha256sum "$manifest" | cut -d' ' -f1)"
   echo "sha256 công cụ: bang-cong-h1.py $(sha256sum scripts/bang-cong-h1.py | cut -d' ' -f1); chay-giu-lai.sh $(sha256sum scripts/chay-giu-lai.sh | cut -d' ' -f1)"
-  echo "database PG: $(dbname "$EAIS_PG_DSN")"
+  echo "database PG: $(dbname "$EACL_PG_DSN")"
   echo "go: $(go version)"
   echo "bắt đầu: $(date -Iseconds)"
 } >"$log"

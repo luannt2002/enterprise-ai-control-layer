@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luannt2002/enterprise-ai-systems/core/contracts"
-	"github.com/luannt2002/enterprise-ai-systems/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 )
 
 // khongPhanQuyet kiểm câu trả lời KHÔNG mở đầu bằng "Đúng." / "Không." — hệ thống không xác nhận hay bác con số nào cho người hỏi.

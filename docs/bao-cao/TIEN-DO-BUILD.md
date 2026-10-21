@@ -6,23 +6,18 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 15:2x · **HEAD:** `87b07fa` (cộng commit chứa tệp này)
-- **Đang làm:**
-  - soát độc lập BYPASSRLS `cc84b83`: đang chạy;
-  - ghi ADR-0009 "Vòng 3";
-  - chốt ca 16:40.
+- **Cập nhật lúc:** 21/10/2026 15:4x · **HEAD:** `87b304d` (cộng commit chứa tệp này)
+- **Đang làm:** chốt ca 16:40; chờ hai lượt soát độc lập:
+  - T2.3 + cổng danh tính `87b07fa` (`wf_f22d73e7-bc2`);
+  - E3 `a853e96` (`wf_ca064c71-e66`).
 - **Xong từ lần trước:**
-  - **Soát lần ba T2.2 (§4 mục 5): KHÔNG ĐẠT.** Hai người soát độc lập cùng tìm ra một hồi quy S1 ở dòng vá (ii): câu hai vế bị phán quyết SAI chiều. Đã sửa ở `01d4348` (T2.3): kiểm chủ thể ở cả phạm vi câu lẫn mệnh đề hỏi; kèm sửa S3 của (iv) ("3,85k"). Test đỏ trước; n43 47/47 bị bắt. Bộ 117 / H1 hai đường / H3: 0 ca đổi nhãn, 0 câu trả lời đổi chữ.
-  - **Soát cổng danh tính `c366036`: KHÔNG ĐẠT** (S1: luật theo mục `.git` rộng hơn git). Đã sửa ở `87b07fa`: chỉ bỏ qua mục tên `.git` và đúng các đường git bỏ qua; n42 11/11 bị bắt.
-- **Còn mở, không phải hồi quy (có từ T2.1):**
-  - S1 dạng gương "3850 L (3850 L của dự án A) đúng không?" → "Đúng.";
-  - S2 các biến thể dấu câu của R2-2.
-
-  Cách sửa đề xuất (E3) có cái giá, nên làm ở ca sau với soát độc lập.
-- **Tiếp theo:**
-  1. thu kết quả soát BYPASSRLS;
-  2. chốt ca 16:40;
-  3. ca sau: phần còn lại của audit, E3 cho cổng phán quyết, vòng S4 theo ADR-0010.
+  - **E3** `a853e96`: sau con số xác nhận chỉ được nhắc lại chính chủ thể. Đóng S1 dạng gương và S2 dấu câu (ADR-0009 R3-3, R3-4). Test đỏ trước (8 câu ra "Đúng."); n43 49/49; bộ 117 / H1 / H3: 0 đổi;
+  - **soát BYPASSRLS: ĐẠT CÓ GHI CHÚ** ⇒ `87b304d`: vai tạm NOLOGIN qua `role=`, ca dương ghim nghĩa `current_user`; `w4-pg-rls` 10/10;
+  - ADR-0009 Vòng 3 — `8a506b8`.
+- **Tiếp theo (ca sau):**
+  1. kết quả hai lượt soát đang chạy; sửa tiếp nếu có lỗi;
+  2. phần còn lại của audit ROADMAP;
+  3. vòng sửa S4 theo ADR-0010, rồi chạy H4.
 - **Bị chặn:**
   - lượt W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi;
   - code R2: chờ D-V3-09;
@@ -30,7 +25,7 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
   - đổi hành vi tầng nạp trước W-G7: chưa được phép;
   - (c) của ADR-0010: chờ D-OP-11;
   - cột Trả lời của D-H1-3; `HOP-DONG-G7.md` §12.
-- **Test** (15:19): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 453/0/0. So theo tên: +1 test (`TestCongPhanQuyetSoatLan3`), 0 mất, 0 đổi.
+- **Test** (15:32): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 453/0/0; so theo tên không đổi.
 - **Handoff / prompt đang mở:**
   - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
   - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng;
@@ -52,4 +47,8 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 | 21/10 15:0x | `2f1b8c2` | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 452/0/0 | — |
 | 21/10 15:1x | `01d4348` | Cổng phán quyết T2.3: sửa hồi quy S1 của dòng vá (ii) và S3 của (iv) T2.2 (soát lần ba) | Test đỏ trước (`TestCongPhanQuyetSoatLan3`, 6 ca `TestVerdictGap`); n43 47/47 bị bắt (CG30 lần đầu không biên dịch ⇒ viết lại); 117: 117/117, H1 89/104 hai đường, H3 109/134 — 0 đổi nhãn / 0 đổi câu trả lời | Còn mở: S1 dạng gương, S2 dấu câu (có từ T2.1) |
 | 21/10 15:1x | `87b07fa` | Cổng danh tính: bỏ luật theo mục `.git` (soát độc lập: S1) | Ca âm đỏ trước (`stale/f.md`); n42 11/11 bị bắt | — |
-| 21/10 15:2x | commit chứa dòng này | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 453/0/0 | — |
+| 21/10 15:2x | `1973d2b` | Cập nhật tiến độ, push | `go test -count=1 ./...` có PG 453/0/0 | — |
+| 21/10 15:2x | `8a506b8` | ADR-0009 Vòng 3 | — | — |
+| 21/10 15:28 | `a853e96` | E3: đóng S1 dạng gương, S2 dấu câu | Test đỏ trước (8 câu "Đúng."); n43 49/49 (CG30 từng sống ⇒ ghim 2 câu mệnh đề hỏi đứng trước số); bộ 117 / H1 / H3 0 đổi; test có PG 453/0/0 | Đang soát độc lập |
+| 21/10 15:32 | `87b304d` | pgstore: vai tạm NOLOGIN qua `role=`; ca dương `current_user` (sau soát BYPASSRLS) | `w4-pg-rls` 10/10 (BR4 mới); vai sót 0; test có PG 453/0/0 | Soát: ĐẠT CÓ GHI CHÚ |
+| 21/10 15:4x | commit chứa dòng này | Tài liệu chốt ca (báo cáo, STATUS, CHANGELOG, ADR-0009, tiến độ) | Cổng danh tính ĐẠT | Bản trước khi có kết quả 2 lượt soát cuối |

@@ -1,12 +1,20 @@
 # STATUS — trạng thái EACL
 
-> Cập nhật: 21/10/2026 sáng, **chốt luồng chạy đêm 20→21/10** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
+> Cập nhật: 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 
+> **H4, 21/10 14:48** (`docs/g7/holdout-h4/`): đóng băng bằng cam kết băm (`15f04f9`), CHƯA chạy.
+> - 119 ca, 82 ca có số; lớp routing 11 (< 13, chấm và báo đúng số, không độn).
+> - Theo D-OP-13, H4 chấm vòng sửa tầng ý định S4 (ADR-0010, ĐỀ XUẤT) và chỉ chạy MỘT lần sau khi mã S4 đóng băng. Lượt chính W-G7 dùng H5.
+>
+> **Cổng phán quyết T2.3, 21/10** (`01d4348`): soát lần ba tìm ra dòng vá (ii) của T2.2 gây phán quyết SAI chiều ở câu hai vế; đã sửa.
+> - Bộ 117 ca, H1, H3: 0 ca đổi nhãn, 0 câu trả lời đổi chữ.
+> - E3 (`a853e96`) đóng S1 dạng gương "(3850 L của dự án A)" và S2 dấu câu (ADR-0009 R3-3, R3-4).
+>
 > **H3, 21/10 13:08** (`docs/g7/holdout-h3/`). Bộ giữ lại độc lập thứ ba: 134 ca, đóng băng bằng cam kết băm 11:04 (`259d38d`) TRƯỚC mọi bản sửa ngữ nghĩa của ca, chạy MỘT lần ở `9091c84` (mã T2.2 `a1595f0`).
 > - Kết quả: **109/134** ở cả hai đường; phát lại 134/134, 0 lệch; 0 canary. Theo lớp: representation 16/17, entity 14/14, ambiguity 12/18, semantic 14/16, source_conflict 12/18, permission 16/18, unsupported_answer 14/18, routing 11/15 ⇒ phần ca G1–G5 KHÔNG ĐẠT; G6' phần đo được ĐẠT.
 > - Đối chứng mốc `016422e` (chỉ chẩn đoán): **113/134**. Bản sửa của ca trượt ròng 4 ca (507, 564, 602, 650; 0 ca ngược lại) — cả 4 là câu xác nhận có lời khẳng định sai mà cổng phán quyết giữ lại một "Không." vốn đúng.
@@ -194,7 +202,12 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 ## Việc tiếp theo (20/10 — đã thay)
 
-> Việc hiện hành (ca 21/10): H3 đã đóng băng (`259d38d`, 134 ca); bản sửa câu xác nhận (ADR-0009) đã vào mã; tiếp: sửa kỳ mặc định lặng lẽ (cụm C2), rồi chạy H3 MỘT lần khi đủ 5 điều kiện ADR-0006 §10. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
+> **Việc hiện hành (sau ca 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EACL.md` §4 và D-OP-13:
+> 1. phản hồi audit ROADMAP cho trọn (bản giữa chừng đã có ở `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`);
+> 2. vòng sửa S4 theo ADR-0010, rồi chạy H4 MỘT lần;
+> 3. phép đo trước W-G7: harness canary (kiểm BYPASSRLS đã xong ở `cc84b83`);
+>
+> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới: D-OP-11, D-OP-12; đã quyết: D-OP-13).
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

@@ -6,6 +6,35 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### Ca ngày 21/10/2026 — chiều: H4 đóng băng, BYPASSRLS, cổng danh tính, phản hồi ROADMAP
+
+- **Quyết định của chủ dự án D-OP-13:**
+  - H4 chấm vòng sửa tầng ý định S4;
+  - lượt chính W-G7 dùng H5, soạn sau khi bộ chấm v2 và cấu hình baseline đã đóng băng; người soạn H5 không dùng cùng model với baseline.
+- **Câu chờ quyết mới:** D-OP-11 (tập ứng viên khi hỏi lại), D-OP-12 (luật chấm câu xác nhận chưa giải).
+- **H4 đóng băng bằng cam kết băm** (`15f04f9`, 14:48, trước mọi mã S4):
+  - 119 ca, 82 ca có kỳ vọng số;
+  - lớp routing còn 11 ca (< 13): chấm và báo đúng số, không soạn thêm (ADR-0006 §10);
+  - quy trình, kiểm toán nhiễm và các điểm lệch được công khai trong commit.
+- **`pgstore.Open` từ chối vai vượt RLS** (superuser hoặc BYPASSRLS), sửa K7 của audit ROADMAP:
+  - ca âm 3 vai;
+  - soát độc lập: ĐẠT CÓ GHI CHÚ ⇒ vai tạm của test là NOLOGIN qua `role=`, thêm ca dương ghim nghĩa `current_user` (`87b304d`);
+  - đột biến `w4-pg-rls` 10/10 bị bắt.
+- **Cổng danh tính bỏ qua checkout git lồng.** Worktree của agent dựng ngay trong repo từng làm cổng đỏ do môi trường. `.gitignore` thêm `.claude/worktrees/`; đột biến n42 11/11 bị bắt.
+- **ADR-0010 (ĐỀ XUẤT):** tầng ý định S4 theo bất biến; chưa áp mã.
+- **Cổng phán quyết T2.3** (`01d4348`), sau soát lần ba T2.2 (hai người soát độc lập, cả hai KHÔNG ĐẠT):
+  - sửa hồi quy S1 (câu hai vế bị phán quyết sai chiều) bằng cách kiểm chủ thể ở cả phạm vi câu lẫn mệnh đề hỏi;
+  - sửa S3 "3,85k";
+  - n43 47/47 bị bắt; bộ 117 / H1 / H3: 0 đổi nhãn, 0 câu trả lời đổi chữ;
+  - **E3** (`a853e96`): sau con số xác nhận chỉ được nhắc lại chính chủ thể. Đóng S1 dạng gương và S2 dấu câu (ADR-0009 R3-3, R3-4); n43 49/49; bộ 117 / H1 / H3 không đổi.
+- **Cổng danh tính sửa lại** (`87b07fa`) sau soát độc lập: bỏ luật theo mục `.git` (rộng hơn git); chỉ bỏ qua mục tên `.git` và đúng các đường git bỏ qua.
+- **Phối hợp hai phiên:**
+  - `docs/PROMPT-BUILD-EACL.md` (brief đứng cho phiên BUILD);
+  - `docs/debug-handoff/` (handoff 01 đã NHẬN);
+  - tệp tiến độ sống `docs/bao-cao/TIEN-DO-BUILD.md`;
+  - phản hồi audit ROADMAP, bản giữa chừng: K6–K15 có 6 xác nhận, 3 đúng một phần, 1 bác.
+- **Test có PG:** 453 ĐẠT / 0 đỏ / 0 SKIP (`1973d2b`).
+
 ### 21/10/2026 — danh tính EACL (Enterprise AI Control Layer)
 
 - Repo `github.com/luannt2002/enterprise-ai-control-layer`; module Go cùng đường dẫn, mọi import theo đó.
@@ -18,7 +47,7 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 ### Ca ngày 21/10/2026 — cổng phán quyết câu xác nhận (ADR-0009)
 
 - `core/pipeline/claim.go` `verdictGap`: chỉ mở đầu bằng "Đúng." / "Không." khi claim {chủ thể, chỉ số, kỳ, giá trị, đơn vị, chiều} đã giải bằng bằng chứng dương VÀ mọi ký tự của câu được giải thích (fail-closed, không danh sách chặn). Không qua cổng ⇒ trả số liệu có thẩm quyền + mẩu cố định `confirm_withheld`.
-- Pack: khoá mới `claim_neutral_words` (danh sách CHO PHÉP duy nhất), mẫu `confirm_withheld`. Hàm mới `intent.Set.Keywords`, `normalization.PeriodWordBefore`.
+- Pack: khoá mới `claim_neutral_words` (danh sách CHO PHÉP duy nhất), mẫu `confirm_withheld`. Hàm mới `intent.Set.Keywords` (T2.1 thay bằng `intent.Set.MetricKeywords`, chỉ gồm từ khoá của ý định số liệu), `normalization.PeriodWordBefore`.
 - Test: 8 test mới (15 câu thăm dò, 75 phép chen metamorphic, từ trung tính, nguồn và ngữ cảnh, mẫu, chiều chưa giải, `TestVerdictGap`, `PeriodWordBefore`); 55 dòng kỳ vọng phán quyết trong test cũ đổi thành "không phán quyết" (mã hoá luật danh sách đóng mà hợp đồng câu xác nhận thay thế), không dòng nào đổi chiều.
 - Đo (trước khi chạy H3): test có PG 448/0/0; bộ 117 ca 117/117; H1 89/104 hai đường, 0 ca đổi nhãn; số ca có phán quyết 117: 23 → 18, H1: 6 → 5, 0 thêm, 0 đổi chiều; 15 câu thăm dò: 0 phán quyết sai.
 - Đột biến: n43 20/20; toàn bộ 35 danh mục 618 bị bắt / 0 sống (chuỗi gốc BA của `w5-g4-acl.sh` đổi theo mã mới).

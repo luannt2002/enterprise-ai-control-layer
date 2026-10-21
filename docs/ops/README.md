@@ -42,6 +42,8 @@ Lệch mốc thì dừng lại tìm nguyên nhân trước khi làm gì khác. P
 
 Container PG dựng trước ngày 21/10/2026 mang tên database / vai / GUC khác migration hiện hành (`0001_win.sql` sửa tại chỗ ngày đó): dựng lại bằng `docker compose -f deploy/docker-compose.yml down` rồi `up -d --wait` (dữ liệu tmpfs).
 
+Bộ giữ lại (`scripts/chay-giu-lai.sh`) chỉ chạy trên database riêng `eacl_giu_lai`: tạo bằng `docker exec eacl-pg psql -U postgres -c "CREATE DATABASE eacl_giu_lai"`, rồi đặt `EACL_PG_ADMIN_DSN` / `EACL_PG_DSN` trỏ vào nó (migration tự áp khi chạy; đã thử 21/10: đường PG 117/117 trên database này).
+
 Lệnh WIN rời:
 
 ```bash

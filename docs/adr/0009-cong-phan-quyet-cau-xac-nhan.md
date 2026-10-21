@@ -121,8 +121,8 @@ Cả hai cùng KHÔNG ĐẠT.
 |---|---|---|---|
 | R3-1 | **S1, HỒI QUY** | Dòng vá R2-2 thu hẹp kiểm chủ thể từ CÂU về mệnh đề chứa cụm xác nhận. Câu hai vế bị phán quyết theo EX-03, sai chiều (dự án A thật 5.050 L; T2.1 không phán quyết):<br>- "EX-03 hôm nay được cấp 3850 L. Dự án A được cấp 5050 L, đúng không?" → "Không.";<br>- "… Dự án A được cấp 3850 L, đúng không?" → "Đúng.".<br>15 câu hai vế đổi từ không phán quyết sang có phán quyết; ≥ 12 câu sai chiều | **ĐÃ SỬA (T2.3):** kiểm chủ thể ở CẢ phạm vi câu [lo, len) lẫn mệnh đề hỏi [qs, len) |
 | R3-2 | S3, hồi quy | Dòng vá R2-3 giữ oan "dầu 3,85k", "1,2 nghìn dầu": chữ đã nói hàng của con số | **ĐÃ SỬA (T2.3):** chỉ coi là mơ hồ khi nguyên văn không có chữ |
-| R3-3 | **S1, có từ T2.1** | Dạng gương: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?" → "Đúng." (dự án A thật 5.050 L). Phép kiểm liền kề chỉ nhìn đoạn GIỮA hai lần nhắc, không nhìn tên đứng sau | **ĐÃ SỬA (E3, `a853e96`):** "sau con số xác nhận đầu tiên chỉ được nhắc lại CHÍNH chủ thể". Test đỏ trước (8 câu ra "Đúng."); n43 49/49; bộ 117 / H1 / H3 không đổi nhãn hay câu trả lời. Cái giá: định ngữ cấp cha đứng sau số mất phán quyết. Đang soát độc lập |
-| R3-4 | S2, có từ T2.1 | R2-2 chỉ đóng khi dấu ngăn là `, ; . ? !` + khoảng trắng. Với ":", "-", "(", "[", xuống dòng, dấu phẩy thừa ("…, dự án A, đúng không?"), hoặc cấp cha đặt sau cụm xác nhận, hệ vẫn trả "Đúng." | **ĐÃ SỬA** cùng E3 (`a853e96`). Phép kiểm ở mệnh đề hỏi vẫn cần cho câu mà mệnh đề hỏi đứng TRƯỚC con số ("EX-03, dự án A đúng không, hôm nay được cấp 3850 L?"); có test ghim |
+| R3-3 | **S1, có từ T2.1** | Dạng gương: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?" → "Đúng." (dự án A thật 5.050 L). Phép kiểm liền kề chỉ nhìn đoạn GIỮA hai lần nhắc, không nhìn tên đứng sau | **ĐÃ SỬA (E3, `a853e96`):** "sau con số xác nhận đầu tiên chỉ được nhắc lại CHÍNH chủ thể". Test đỏ trước (8 câu ra "Đúng."); bộ 117 / H1 / H3 không đổi nhãn hay câu trả lời. Cái giá: định ngữ cấp cha đứng sau số mất phán quyết. Soát độc lập: ĐẠT CÓ GHI CHÚ (Vòng 4) |
+| R3-4 | S2, có từ T2.1 | R2-2 chỉ đóng khi dấu ngăn là `, ; . ? !` + khoảng trắng. Với ":", "-", "(", "[", xuống dòng, dấu phẩy thừa ("…, dự án A, đúng không?"), hoặc cấp cha đặt sau cụm xác nhận, hệ vẫn trả "Đúng." | **ĐÓNG MỘT PHẦN:** E3 (`a853e96`) đóng phía SAU con số. Phía TRƯỚC con số (mệnh đề khác, dấu ngăn lạ) **còn mở**: Vòng 4 R4-2. Phép kiểm ở mệnh đề hỏi vẫn cần cho câu mà mệnh đề hỏi đứng trước con số ("EX-03, dự án A đúng không, hôm nay được cấp 3850 L?"); có test ghim |
 | R3-5 | S4 | Ba dòng vá chỉ được ghim bởi một test tích hợp; gói `core/pipeline` không tự bắt CG29–CG31; năm đột biến tinh còn sống | **ĐÃ SỬA:** 6 ca trong `TestVerdictGap`; 4 ca ghim trong `TestCongPhanQuyetSoatLan3`; n43 thêm CG35–CG40 |
 
 **Đo:**
@@ -131,3 +131,24 @@ Cả hai cùng KHÔNG ĐẠT.
 - Bộ 117 117/117, H1 89/104 hai đường, H3 109/134: 0 ca đổi nhãn, 0 câu trả lời đổi chữ so với T2.2.
 
 **Bài học:** bộ 20.000 câu "hai phát biểu một cụm" của vòng 2 chỉ phủ dạng có dấu phẩy, nên không thấy dạng hai câu. Một bản vá do người soát đề xuất vẫn phải qua một người soát khác: ở đây chính bản vá đó sinh phán quyết sai chiều.
+
+### Vòng 4 (21/10 chiều: soát độc lập T2.3 và E3)
+
+Hai người soát, mỗi người một worktree, chạy câu thật:
+- soát T2.3 (`01d4348`): KHÔNG ĐẠT;
+- soát E3 (`a853e96`): ĐẠT CÓ GHI CHÚ.
+
+| Mã | Mức | Phát hiện | Xử lý |
+|---|---|---|---|
+| R4-1 | S2, HỒI QUY của T2.3 | Ngoại lệ "có chữ" (R3-2) mở phán quyết cho số nhân hỏng có chữ số sau hậu tố: "dầu 1,2k5" bị đọc 1.700 rồi ra "Không."; "dầu 3,5k35" ra "Đúng." (24/40 câu thử) | **ĐÃ SỬA (`936d090`):** chỉ hết mơ hồ khi nguyên văn KẾT THÚC bằng chữ ("3,85k", "3,85K", "1,2 nghìn") |
+| R4-2 | **S1, có từ T2.1** | Tên cấp cha đứng TRƯỚC con số, ở mệnh đề khác hoặc sau dấu ngăn lạ, vẫn bị phán quyết theo máy:<br>- "EX-03 hôm nay được cấp 3850 L. Dự án A, 5050 L đúng không?" → "Không." (claim về dự án A là ĐÚNG);<br>- "EX-03: dự án A hôm nay được cấp 3850 L đúng không?" → "Đúng."; tương tự với " - ", "(", "[", xuống dòng, phẩy không khoảng trắng | **CÒN MỞ.** Luật thử của người soát: cấp cha chỉ được chấp nhận khi là định ngữ "của" đứng liền sau một lần nhắc chủ thể. Đã chạy thử: 5 gói test xanh, bộ 117 / H1 / H3 0 dòng khác |
+| R4-3 | **S1, có từ T2.1** | Danh từ chung "dự án", "công trình" ở mệnh đề ngữ cảnh được che như thuật ngữ, nên con số ở mệnh đề hỏi bị gán cho chủ thể đầu: "EX-03 … 3850 L. Dự án, 5050 L đúng không?" → "Không." | **CÒN MỞ.** Ở ngữ cảnh chỉ che thuật ngữ vật tư của ý định số liệu; hoặc coi "dự án" đứng một mình là tên chưa giải |
+| R4-4 | S2, có từ T2.1 | Bí danh mơ hồ "máy 03" có chủ thể trong ứng viên được coi là CHÍNH chủ thể kể cả khi tách câu: "EX-03 … 3850 L. Máy 03 được cấp 3000 L, đúng không?" → "Không." (3.000 L là số của DZ-03) | **CÒN MỞ.** Luật thử: bí danh mơ hồ chỉ là chủ thể khi không có ngắt mệnh đề / câu giữa nó và lần nhắc rõ gần nhất của chủ thể. Đã chạy thử: 5 gói xanh, 117 / H1 / H3 0 dòng khác |
+| R4-5 | INFO | Cái giá của E3 rộng hơn ví dụ đã ghi: mất cả "Hôm nay cấp 3850 L cho EX-03 của dự án A đúng không?" (số đứng trước chủ thể + định ngữ cấp cha); trên 20.000 câu fuzz: 1.084 câu mất phán quyết, 0 đổi chiều, 0 câu phán quyết thêm | Ghi nhận. Luật của R4-2 có thể trả lại phán quyết cho dạng "của" liền sau chủ thể |
+| R4-6 | S3 / S4 | Thiếu đối chứng dương và ca đơn vị cho E3; đột biến IsLetter → IsLower sống; khối không phán quyết của SoatLan3 không kiểm Outcome | **ĐÃ SỬA (`936d090`):** đối chứng "(máy xúc EX-03)", "máy 03" sau số ⇒ "Đúng."; 2 ca TestVerdictGap want "subject"; kiểm Outcome; n43 CG43–CG46 ⇒ 53 / 53 |
+
+**Đo của người soát:**
+- T2.3 trên 241.920 câu hai vế có đáp án độc lập: T2.2 có 4.608 phán quyết sai chiều + 10.240 phán quyết cho claim chưa giải; T2.3 còn 0 + 0, đóng thêm 22.528 câu, mở thêm 0;
+- 15.840 câu rõ nghĩa có cấp cha cạnh chủ thể không bị đóng oan câu nào.
+
+**Thứ tự kế tiếp:** đóng R4-2, R4-3, R4-4 bằng test đỏ trước, đo lại bộ 117 / H1 / H3, rồi soát độc lập, **trước khi chạy H4** (H4 có ca xác nhận).

@@ -13,7 +13,8 @@
 >
 > **Cổng phán quyết T2.3, 21/10** (`01d4348`): soát lần ba tìm ra dòng vá (ii) của T2.2 gây phán quyết SAI chiều ở câu hai vế; đã sửa.
 > - Bộ 117 ca, H1, H3: 0 ca đổi nhãn, 0 câu trả lời đổi chữ.
-> - E3 (`a853e96`) đóng S1 dạng gương "(3850 L của dự án A)" và S2 dấu câu (ADR-0009 R3-3, R3-4).
+> - E3 (`a853e96`) đóng S1 dạng gương "(3850 L của dự án A)"; sửa sau soát ở `936d090`.
+> - **Còn mở, có từ T2.1:** R4-2, R4-3 (S1, phán quyết sai chiều khi tên cấp cha đứng trước số ở mệnh đề khác / danh từ chung "dự án") và R4-4 (S2), ADR-0009 Vòng 4. Phải đóng trước khi chạy H4.
 >
 > **H3, 21/10 13:08** (`docs/g7/holdout-h3/`). Bộ giữ lại độc lập thứ ba: 134 ca, đóng băng bằng cam kết băm 11:04 (`259d38d`) TRƯỚC mọi bản sửa ngữ nghĩa của ca, chạy MỘT lần ở `9091c84` (mã T2.2 `a1595f0`).
 > - Kết quả: **109/134** ở cả hai đường; phát lại 134/134, 0 lệch; 0 canary. Theo lớp: representation 16/17, entity 14/14, ambiguity 12/18, semantic 14/16, source_conflict 12/18, permission 16/18, unsupported_answer 14/18, routing 11/15 ⇒ phần ca G1–G5 KHÔNG ĐẠT; G6' phần đo được ĐẠT.
@@ -205,7 +206,8 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 > **Việc hiện hành (sau ca 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EACL.md` §4 và D-OP-13:
 > 1. phản hồi audit ROADMAP cho trọn (bản giữa chừng đã có ở `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`);
 > 2. vòng sửa S4 theo ADR-0010, rồi chạy H4 MỘT lần;
-> 3. phép đo trước W-G7: harness canary (kiểm BYPASSRLS đã xong ở `cc84b83`);
+> 3. đóng R4-2…R4-4 của cổng phán quyết (trước H4);
+> 4. phép đo trước W-G7: harness canary (kiểm BYPASSRLS đã xong ở `cc84b83`);
 >
 > Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới: D-OP-11, D-OP-12; đã quyết: D-OP-13).
 

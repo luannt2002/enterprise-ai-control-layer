@@ -6,26 +6,26 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 15:4x · **HEAD:** `87b304d` (cộng commit chứa tệp này)
-- **Đang làm:** chốt ca 16:40; chờ hai lượt soát độc lập:
-  - T2.3 + cổng danh tính `87b07fa` (`wf_f22d73e7-bc2`);
-  - E3 `a853e96` (`wf_ca064c71-e66`).
+- **Cập nhật lúc:** 21/10/2026 16:0x, chốt ca · **HEAD:** `936d090` (cộng commit chứa tệp này)
+- **Đang làm:** không còn việc nào đang chạy. Ca 21/10 đã chốt; báo cáo ở `docs/bao-cao/2026-10-21-ca-ngay.md`.
 - **Xong từ lần trước:**
-  - **E3** `a853e96`: sau con số xác nhận chỉ được nhắc lại chính chủ thể. Đóng S1 dạng gương và S2 dấu câu (ADR-0009 R3-3, R3-4). Test đỏ trước (8 câu ra "Đúng."); n43 49/49; bộ 117 / H1 / H3: 0 đổi;
-  - **soát BYPASSRLS: ĐẠT CÓ GHI CHÚ** ⇒ `87b304d`: vai tạm NOLOGIN qua `role=`, ca dương ghim nghĩa `current_user`; `w4-pg-rls` 10/10;
-  - ADR-0009 Vòng 3 — `8a506b8`.
+  - **soát độc lập T2.3: KHÔNG ĐẠT** vì hồi quy S2 "1,2k5" (R4-1) ⇒ sửa ở `936d090` (hậu tố nhân chỉ hết mơ hồ khi ở CUỐI số);
+  - **soát độc lập E3: ĐẠT CÓ GHI CHÚ** ⇒ ghim đối chứng dương và ca đơn vị (`936d090`); n43 53/53;
+  - tài liệu chốt ca `9a1d8b0` và commit chứa tệp này;
+  - ADR-0009 Vòng 4.
 - **Tiếp theo (ca sau):**
-  1. kết quả hai lượt soát đang chạy; sửa tiếp nếu có lỗi;
-  2. phần còn lại của audit ROADMAP;
-  3. vòng sửa S4 theo ADR-0010, rồi chạy H4.
+  1. phản hồi audit ROADMAP cho trọn (brief §4 mục 1);
+  2. đóng R4-2, R4-3 (S1) và R4-4 (S2) của cổng phán quyết, TRƯỚC khi chạy H4;
+  3. vòng sửa S4 theo ADR-0010, rồi chạy H4 MỘT lần;
+  4. harness canary; handoff 01; cổng danh tính quét theo `git ls-files`.
 - **Bị chặn:**
   - lượt W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi;
   - code R2: chờ D-V3-09;
   - sửa `CLAUDE.md`: gộp vào đợt duyệt R0;
   - đổi hành vi tầng nạp trước W-G7: chưa được phép;
   - (c) của ADR-0010: chờ D-OP-11;
-  - cột Trả lời của D-H1-3; `HOP-DONG-G7.md` §12.
-- **Test** (15:32): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 453/0/0; so theo tên không đổi.
+  - D-OP-12; cột Trả lời của D-H1-3; `HOP-DONG-G7.md` §12.
+- **Test** (15:55): `go vet ./...` sạch; `gofmt` trên tệp đang theo dõi 0; `go test -count=1 ./...` có PG 453/0/0; so theo tên không đổi.
 - **Handoff / prompt đang mở:**
   - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
   - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng;
@@ -51,4 +51,6 @@ Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
 | 21/10 15:2x | `8a506b8` | ADR-0009 Vòng 3 | — | — |
 | 21/10 15:28 | `a853e96` | E3: đóng S1 dạng gương, S2 dấu câu | Test đỏ trước (8 câu "Đúng."); n43 49/49 (CG30 từng sống ⇒ ghim 2 câu mệnh đề hỏi đứng trước số); bộ 117 / H1 / H3 0 đổi; test có PG 453/0/0 | Đang soát độc lập |
 | 21/10 15:32 | `87b304d` | pgstore: vai tạm NOLOGIN qua `role=`; ca dương `current_user` (sau soát BYPASSRLS) | `w4-pg-rls` 10/10 (BR4 mới); vai sót 0; test có PG 453/0/0 | Soát: ĐẠT CÓ GHI CHÚ |
-| 21/10 15:4x | commit chứa dòng này | Tài liệu chốt ca (báo cáo, STATUS, CHANGELOG, ADR-0009, tiến độ) | Cổng danh tính ĐẠT | Bản trước khi có kết quả 2 lượt soát cuối |
+| 21/10 15:4x | `9a1d8b0` | Tài liệu chốt ca (báo cáo, STATUS, CHANGELOG, ADR-0009, tiến độ) | Cổng danh tính ĐẠT | Bản trước khi có kết quả 2 lượt soát cuối |
+| 21/10 15:55 | `936d090` | Sửa sau soát T2.3 (R4-1 "1,2k5"); ghim E3 (soát: ĐẠT CÓ GHI CHÚ) | Test đỏ trước; n43 53/53; bộ 117 / H1 hai đường / H3: 0 đổi; test có PG 453/0/0 | Còn mở R4-2…R4-4 (có từ T2.1) |
+| 21/10 16:0x | commit chứa dòng này | Chốt ca: ADR-0009 Vòng 4, báo cáo ca bản cuối, STATUS, CHANGELOG, tiến độ | Cổng danh tính ĐẠT | Ca 21/10 kết thúc |

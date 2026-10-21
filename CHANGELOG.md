@@ -26,14 +26,16 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
   - sửa hồi quy S1 (câu hai vế bị phán quyết sai chiều) bằng cách kiểm chủ thể ở cả phạm vi câu lẫn mệnh đề hỏi;
   - sửa S3 "3,85k";
   - n43 47/47 bị bắt; bộ 117 / H1 / H3: 0 đổi nhãn, 0 câu trả lời đổi chữ;
-  - **E3** (`a853e96`): sau con số xác nhận chỉ được nhắc lại chính chủ thể. Đóng S1 dạng gương và S2 dấu câu (ADR-0009 R3-3, R3-4); n43 49/49; bộ 117 / H1 / H3 không đổi.
+  - **E3** (`a853e96`): sau con số xác nhận chỉ được nhắc lại chính chủ thể. Đóng S1 dạng gương và S2 dấu câu phía sau số (ADR-0009 R3-3, R3-4). Soát độc lập: ĐẠT CÓ GHI CHÚ;
+  - **sửa sau soát T2.3** (`936d090`): hậu tố nhân chỉ hết mơ hồ khi ở CUỐI số ("1,2k5" từng bị phán quyết, R4-1); n43 53/53; bộ 117 / H1 / H3 không đổi;
+  - **còn mở, có từ T2.1** (ADR-0009 Vòng 4): R4-2, R4-3 (S1), R4-4 (S2) — phải đóng trước khi chạy H4.
 - **Cổng danh tính sửa lại** (`87b07fa`) sau soát độc lập: bỏ luật theo mục `.git` (rộng hơn git); chỉ bỏ qua mục tên `.git` và đúng các đường git bỏ qua.
 - **Phối hợp hai phiên:**
   - `docs/PROMPT-BUILD-EACL.md` (brief đứng cho phiên BUILD);
   - `docs/debug-handoff/` (handoff 01 đã NHẬN);
   - tệp tiến độ sống `docs/bao-cao/TIEN-DO-BUILD.md`;
   - phản hồi audit ROADMAP, bản giữa chừng: K6–K15 có 6 xác nhận, 3 đúng một phần, 1 bác.
-- **Test có PG:** 453 ĐẠT / 0 đỏ / 0 SKIP (`1973d2b`).
+- **Test có PG:** 453 ĐẠT / 0 đỏ / 0 SKIP (`936d090`).
 
 ### 21/10/2026 — danh tính EACL (Enterprise AI Control Layer)
 

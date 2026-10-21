@@ -1,5 +1,10 @@
 # EACL × QuânIT — Roadmap hợp nhất
 
+> **Từ tối 21/10/2026, tệp này KHÔNG còn là roadmap hiện hành.**
+> - Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, `docs/CHO-QUYET-DINH.md` §0).
+> - Tệp này giữ để tra cứu: §0.4 lỗi im lặng, §1 dòng dõi, §3 bản đồ luồng, các phụ lục.
+> - Không lập kế hoạch theo §4 và §5 của tệp này.
+
 > **Viết cho:** Luân (chủ dự án). Mục đích: hiểu trọn EACL, hiểu mindset QuânIT, và hiểu cái khó thật khi đưa AI vào phần mềm doanh nghiệp. Tệp cũng dùng làm bảng tra cho người đọc repo.
 >
 > **Mốc:** code và tài liệu tại `8280f40` (origin/main, 21/10/2026 13:12). Phần lớn số đo chạy tại `1c8005b` rồi được chạy lại tại `8280f40` (Phụ lục C, F); chỗ nào chỉ đo ở một mốc thì ghi rõ mốc đó.

@@ -6,7 +6,7 @@ Tệp này là bản bàn giao công khai: pull repo về là đủ để chạy
 
 **WIN MVP: CHƯA phải WIN.** Trên bộ giữ lại độc lập H1 (104 ca, chạy MỘT lần 01:42 ngày 21/10), phần ca của G1–G5 đều KHÔNG ĐẠT (89/104). Theo dữ liệu độc lập: 0/7 cổng đạt trọn (G6' còn PARTIAL); theo cách đọc chỉ G2 / G5 / G6 (ADR-0006 §8, không khuyến nghị): 3/7 — chủ dự án chốt ở D-H1-1.
 - Bộ 117 ca (bộ hồi quy) đạt 117/117; nạp dữ liệu 2.739/2.739; phát lại 104/104 lệch 0.
-- Câu xác nhận ("… đúng không?"): bản cuối phán quyết sai 15/15 câu thăm dò của người soát (đầu đêm 8/15; 7 câu là hồi quy của chính đêm nay), chưa sửa — báo cáo sáng mục 8, câu chờ quyết D-OP-10.
+- Câu xác nhận ("… đúng không?"): bản cuối phán quyết sai 15/15 câu thăm dò của người soát (đầu đêm 8/15; 7 câu là hồi quy của chính đêm nay), mã chính CHƯA sửa — báo cáo sáng mục 8. D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều; bản sửa vào sau khi đóng băng H3 (ADR-0006 §10).
 - **G7 CHẶN**: chưa có khoá model; bộ chấm v2 chưa đóng băng.
 
 Chi tiết: `docs/STATUS.md`. Báo cáo đêm: `docs/bao-cao/2026-10-21-overnight.md`. Báo cáo ngày 20/10: `docs/bao-cao/2026-10-20-win-mvp.md`.
@@ -33,12 +33,14 @@ go vet ./... && gofmt -l . && go test ./... -count=1
 scripts/scale-smoke.sh
 ```
 
-Mốc phải ra (đo 20/10/2026 10:35, Go 1.26.4):
+Mốc phải ra (đo 21/10/2026 tại `9dede54`, Go 1.26.4; đếm mọi sự kiện pass / fail / skip của `go test -json`, kể cả test con):
 - `go vet` sạch, `gofmt -l` rỗng;
-- `go test`: **224 PASS / 0 FAIL / 0 SKIP**. Không có biến PG thì 5 test PG SKIP;
+- `go test`: **440 PASS / 0 FAIL / 0 SKIP** (317 test cấp cao). Không có biến PG: 435 PASS + 5 SKIP (5 test PG);
 - `scale-smoke.sh`: **SCALE SMOKE: ĐẠT** — 117/117 ở cả functional và smoke; G1 smoke 359.945/359.945; phát lại 0 lệch.
 
 Lệch mốc thì dừng lại tìm nguyên nhân trước khi làm gì khác. Phân loại trước khi sửa: môi trường, đỏ sẵn, hay hồi quy thật (CLAUDE.md §32).
+
+Container PG dựng trước ngày 21/10/2026 mang tên database / vai / GUC khác migration hiện hành (`0001_win.sql` sửa tại chỗ ngày đó): dựng lại bằng `docker compose -f deploy/docker-compose.yml down` rồi `up -d --wait` (dữ liệu tmpfs).
 
 Lệnh WIN rời:
 
@@ -49,7 +51,7 @@ go run ./tenants/construction/win/winreport -data /tmp/win -v -pg    # đường
 go run ./tenants/construction/win/g7run -data /tmp/win               # G7: không có model thật thì in CHẶN, thoát 2
 ```
 
-Đột biến: `scripts/mutate.sh <tệp> <chuỗi gốc> <chuỗi đột biến> [nhãn]`. Danh mục 69 đột biến đã chạy ngày 20/10 nằm ở `scripts/dot-bien/` (mỗi tệp một nhóm cổng; kỳ vọng mọi dòng "BỊ BẮT").
+Đột biến: `scripts/mutate.sh <tệp> <chuỗi gốc> <chuỗi đột biến> [nhãn]`. Danh mục ở `scripts/dot-bien/` (34 tệp, mỗi tệp một nhóm cổng; kỳ vọng mọi dòng "BỊ BẮT"). Lần chạy đủ gần nhất (21/10): 598 đột biến bị bắt, 0 sống — `docs/bao-cao/2026-10-21-migration-eacl.md`. `mutate.sh` sửa tệp tại chỗ: chạy trên bản clone riêng, đừng đo gì khác trong clone đó cùng lúc.
 
 ## 4. Biến môi trường
 

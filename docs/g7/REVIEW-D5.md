@@ -1,5 +1,7 @@
 # Soát độc lập công thức G7 / D5
 
+> **Historical artifact** (bản soát 20/10/2026).
+
 > **Người soát:** agent riêng, chỉ đọc (loại Plan, không có công cụ sửa tệp), không viết công thức hay harness. Soát 20/10/2026 tối trên HEAD `b882172`, không gọi model, không đụng repo.
 > Chép nguyên văn báo cáo; chỉ đổi đường dẫn tuyệt đối thành tương đối khi công khai. `<scratch>` là thư mục nháp riêng của người soát, không có trong repo.
 > Các đề xuất ở bảng cuối **chưa được áp dụng**. Chúng là câu chờ chủ dự án quyết ở `docs/CHO-QUYET-DINH.md`: D-G7-9, D-G7-10, D-G7-11.

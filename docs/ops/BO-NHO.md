@@ -22,7 +22,7 @@
   - lời khai phải đo lại;
   - người soát không được là người viết.
 
-## Trạng thái 20/10/2026
+## Trạng thái 20/10/2026 (đã thay; hiện hành ở `docs/STATUS.md`)
 
 - WIN: 3/7 cổng đạt vô điều kiện (G1, G3, G4); G2, G5, G6 có điều kiện vì 3 kỳ vọng do phiên viết mã trọng tài sau khi đo (D-G7-11); G7 chặn ở khoá model + chi phí.
 - Scale smoke ~360 nghìn bản ghi đạt ở cả hai đường dữ liệu.

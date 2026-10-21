@@ -1,5 +1,7 @@
 # Báo cáo đêm 20→21/10/2026 — khôi phục bằng chứng, xác định trạng thái WIN thật
 
+> **Historical artifact** (báo cáo đêm 20→21/10/2026).
+
 > **Bản chốt** (sáng 21/10, END mã `15ed135`; tài liệu chốt ở commit kế tiếp, cùng lần push). Đã qua người phản bác cuối ba góc (phương pháp 03:2x; số liệu ↔ bằng chứng và nói quá / nói non 05:2x); mọi đính chính của họ đã đưa vào bản này.
 > Mục tiêu đêm, theo prompt cố vấn mà chủ dự án giao: khôi phục bằng chứng đáng tin, rồi mới xác định trạng thái WIN thật. Không tối ưu tỉ lệ đạt. FAIL sạch hơn PASS bẩn.
 > Mọi số ở đây lấy từ lệnh đã chạy; chưa đo thì ghi **CHƯA ĐO**; ước lượng thì ghi **ƯỚC**; số chỉ khai trong phiên mà không lưu bằng chứng thì ghi **khai trong phiên**.

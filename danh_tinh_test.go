@@ -24,23 +24,26 @@ type allowance struct {
 }
 
 // legacyAllowed: tiền tố đường dẫn (thư mục kết thúc bằng "/") hoặc tệp → số lần tối đa (0 = không giới hạn) + lý do.
+// Mọi mục là tệp với hạn mức đúng bằng số lần hiện có: tên cũ không lan thêm được, kể cả trong tài liệu lịch sử. Chỉ chính
+// tệp cổng (mẫu + ca âm) không giới hạn.
 var legacyAllowed = map[string]allowance{
-	"docs/bao-cao/":                               {0, "HISTORICAL_EVIDENCE: báo cáo theo ngày ghi đúng tên tại thời điểm đó"},
-	"docs/g7/holdout/":                            {0, "IMMUTABLE_HASHED_ARTIFACT: bộ giữ lại và kết quả chạy đã đóng băng có băm"},
-	"docs/g7/REVIEW-D5.md":                        {0, "HISTORICAL_EVIDENCE: bản soát độc lập 20/10"},
-	"docs/g7/CONTAMINATION-AUDIT.md":              {0, "HISTORICAL_EVIDENCE: kiểm toán nhiễm 20/10"},
-	"docs/ops/NHAT-KY-2026-10-20.md":              {0, "HISTORICAL_EVIDENCE: nhật ký vận hành 20/10"},
-	"docs/requirements/":                          {0, "HISTORICAL_EVIDENCE + EXTERNAL_REFERENCE: sổ yêu cầu V1/V2 đông cứng; tên tệp brief nguồn nằm ngoài repo"},
-	"docs/05-master-roadmap.md":                   {0, "HISTORICAL_EVIDENCE: roadmap V1/V2, ghi nhãn Historical artifact"},
-	"docs/v3/00-CONTEXT-AUDIT.md":                 {0, "HISTORICAL_EVIDENCE: kiểm toán nguồn 20/10, ghi nhãn Historical artifact"},
+	"docs/bao-cao/2026-10-20-win-mvp.md":          {1, "HISTORICAL_EVIDENCE: báo cáo ngày 20/10 ghi đúng tên tại thời điểm đó"},
+	"docs/bao-cao/2026-10-21-overnight.md":        {4, "HISTORICAL_EVIDENCE: báo cáo đêm 20→21/10 ghi đúng tên và tên biến tại thời điểm đó"},
+	"docs/g7/holdout/ket-qua-h1/chay.txt":         {1, "HISTORICAL_EVIDENCE: nhật ký lần chạy H1 duy nhất ghi tên database lúc chạy (không thuộc manifest băm, vẫn không sửa)"},
+	"docs/g7/REVIEW-D5.md":                        {4, "HISTORICAL_EVIDENCE: bản soát độc lập 20/10"},
+	"docs/ops/NHAT-KY-2026-10-20.md":              {19, "HISTORICAL_EVIDENCE: nhật ký vận hành 20/10"},
+	"docs/requirements/catalog.yaml":              {183, "HISTORICAL_EVIDENCE + EXTERNAL_REFERENCE: sổ yêu cầu V1/V2 đông cứng; tên tệp brief nguồn nằm ngoài repo"},
+	"docs/requirements/catalog.md":                {26, "HISTORICAL_EVIDENCE + EXTERNAL_REFERENCE: bản đọc của sổ yêu cầu V1/V2"},
+	"docs/05-master-roadmap.md":                   {5, "HISTORICAL_EVIDENCE: roadmap V1/V2, ghi nhãn Historical artifact"},
+	"docs/v3/00-CONTEXT-AUDIT.md":                 {7, "HISTORICAL_EVIDENCE: kiểm toán nguồn 20/10, ghi nhãn Historical artifact"},
 	"CHANGELOG.md":                                {3, "HISTORICAL_EVIDENCE: mục 19–20/10 ghi module, GUC và vai lúc đó"},
 	"docs/CHO-QUYET-DINH.md":                      {3, "HISTORICAL_EVIDENCE: văn bản quyết định D-V3-00, D-V3-10 của chủ dự án"},
 	"docs/v3/06-MVP-TASK-BACKLOG.md":              {2, "FALSE_POSITIVE: mẫu grep trong tiêu chí nghiệm thu TASK-R0-03 / R0-05"},
 	"intelligence/models/messages.go":             {2, "COMPATIBILITY_ALIAS: modelEnv đọc biến model cùng tên tiền tố cũ khi EACL_ không đặt"},
-	"intelligence/models/messages_params_test.go": {9, "COMPATIBILITY_ALIAS: test của modelEnv"},
-	"platform/pgstore/pgstore_test.go":            {3, "COMPATIBILITY_ALIAS: test PG báo lỗi thay vì bỏ qua khi chỉ còn DSN tiền tố cũ"},
+	"intelligence/models/messages_params_test.go": {8, "COMPATIBILITY_ALIAS: test của modelEnv"},
+	"platform/pgstore/pgstore_test.go":            {3, "COMPATIBILITY_ALIAS (chỉ chặn, không đọc): test PG báo lỗi thay vì bỏ qua lặng lẽ khi môi trường chỉ còn DSN tiền tố cũ"},
 	"scripts/dot-bien/n42-danh-tinh.sh":           {2, "FALSE_POSITIVE: chuỗi đột biến của chính mẫu cổng này"},
-	"danh_tinh_test.go":                           {0, "FALSE_POSITIVE: chính mẫu của cổng này"},
+	"danh_tinh_test.go":                           {0, "FALSE_POSITIVE: chính mẫu và ca âm của cổng này"},
 }
 
 // skipped: thư mục / tệp không thuộc repo (git bỏ qua) — nguồn riêng của chủ dự án, sổ ca ở máy.

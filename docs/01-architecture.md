@@ -4,6 +4,8 @@
 
 Tài liệu này mô tả kiến trúc **đích** và **luồng mới**. Quy ước tên gọi ở [CONVENTIONS.md](CONVENTIONS.md). Lý do của từng lựa chọn ở [adr/](adr/).
 
+> **Phạm vi hiện hành (V3):** EACL không có workflow engine riêng; ứng dụng doanh nghiệp giữ trạng thái, giao dịch và workflow (`docs/v3/05-R0-DEFINITION-FREEZE.md`: Phase 2 Workflow và Phase 3 Event không có trong V3). Các phần workflow / command / event / human task bên dưới là kiến trúc đích V2, đang hoãn.
+
 ---
 
 ## 1. Ý tưởng trung tâm

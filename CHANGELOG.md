@@ -12,6 +12,8 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 - Biến môi trường `EACL_MODEL_*`, `EACL_PG_ADMIN_DSN`, `EACL_PG_DSN`; PostgreSQL dev: database `eacl`, vai `eacl_app`, GUC `eacl.tenant_id`, database chạy bộ giữ lại `eacl_giu_lai`, container `eacl-pg`.
 - Tài liệu hiện hành (README, CLAUDE.md, kiến trúc, vận hành, G7, ADR, tenant) dùng định nghĩa EACL; tài liệu lịch sử ghi nhãn "Historical artifact"; bằng chứng đã đóng băng giữ nguyên.
 - Hành vi không đổi: test có PG 438/0/0, bộ 117 ca 117/117, H1 89/104 ở cả hai đường (0 ca đổi nhãn), scale smoke ĐẠT.
+- ADR-0006 (§10 đăng ký trước ở `5ee31c8`): tên database chạy bộ giữ lại đổi theo danh tính; chỉ đổi tên, luật không đổi.
+- Soát độc lập migration: 0 lỗi S1. Đã sửa: chuỗi gốc đột biến MS8 (`9dede54`); mốc vận hành đo lại tại `9dede54` (test có PG 440/0/0, gồm cổng danh tính); nhãn "Historical artifact" cho 4 tài liệu lịch sử còn thiếu; cổng danh tính đếm hạn mức theo từng tệp. Báo cáo: `docs/bao-cao/2026-10-21-migration-eacl.md`.
 
 ### Ca ngày 21/10/2026 — chuẩn bị H3
 

@@ -11,8 +11,9 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 ```
 
 **Trạng thái (21/10/2026):**
-- Fuel WIN: **0/7 cổng** trên bộ giữ lại độc lập H1 (104 ca, chạy một lần): 89/104 ca đạt; G1–G5 chưa đạt, G6' một phần, G7 bị chặn (chưa có khoá model, bộ chấm v2 chưa có).
-- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng; đang sửa theo hợp đồng câu xác nhận.
+- Bài chứng minh đầu tiên là **Fuel WIN**: đối soát nhiên liệu cho tenant xây dựng, đạt khi qua đủ 7 cổng G1–G7 ([`docs/04-core-mvp.md`](docs/04-core-mvp.md) §6). **H1** là bộ ca giữ lại độc lập: do người không đọc mã soạn, đóng băng trước, chỉ chạy một lần (ADR-0006).
+- Fuel WIN: **0/7 cổng** trên H1 (104 ca): 89/104 ca đạt; G1–G5 chưa đạt, G6' một phần, G7 bị chặn (chưa có khoá model, bộ chấm v2 chưa có).
+- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng. Hướng sửa đã chốt ngày 21/10: chỉ mở đầu bằng "Đúng." / "Không." khi claim đã giải đủ chiều. Mã chính CHƯA sửa; bản sửa vào sau khi đóng băng bộ giữ lại mới H3 (ADR-0006 §10).
 - Chi tiết: [`docs/STATUS.md`](docs/STATUS.md), báo cáo mới nhất ở [`docs/bao-cao/`](docs/bao-cao/).
 
 | Đọc gì | Ở đâu |
@@ -23,11 +24,13 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 | Chạy lại mốc / làm tiếp trên máy khác | [`docs/ops/README.md`](docs/ops/README.md) |
 | Hợp đồng vận hành (luật bắt buộc) | [`CLAUDE.md`](CLAUDE.md) |
 | WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |
-| Roadmap có điều kiện | [`docs/05-master-roadmap.md`](docs/05-master-roadmap.md) |
+| Roadmap V1/V2 (lịch sử) | [`docs/05-master-roadmap.md`](docs/05-master-roadmap.md) |
 | Kiến trúc | [`docs/01-architecture.md`](docs/01-architecture.md) |
 | Quyết định | [`docs/adr/`](docs/adr/) |
 | Báo cáo ngày | [`docs/bao-cao/`](docs/bao-cao/) |
 | Thay đổi | [`CHANGELOG.md`](CHANGELOG.md) |
+
+Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go).
 
 Chạy nhanh (Go 1.26, Docker, `pdftotext`):
 

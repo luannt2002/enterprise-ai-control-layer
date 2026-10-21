@@ -3,7 +3,7 @@
 > Cập nhật: 21/10/2026 sáng, **chốt luồng chạy đêm 20→21/10** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
-> Mọi số ở đây lấy từ lệnh chạy ngày 20/10/2026, trừ chỗ ghi **CHƯA ĐO**.
+> Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1, phần ca của G1–G5 KHÔNG ĐẠT (89/104) — CHƯA phải WIN
 
@@ -16,8 +16,8 @@
 >   - routing 7/13 (G4);
 >   - permission 13/13, unsupported_answer 12/13 (G5).
 > - Vậy phần ca của G1–G5 đều KHÔNG ĐẠT trên dữ liệu độc lập. 15 ca đỏ quyết định sai ở tầng ý định (S4; 13/15 sai đầu tiên ở đó, 2/15 ở S2); 4/15 trả lời sai không báo, 1/15 báo thiếu dữ liệu của chỉ số sai (`phan-tich.md`).
-> - G6' ĐẠT, nhưng tiêu chí sửa đổi chờ chủ dự án phê. G7 CHẶN.
-> - **Câu xác nhận ("… đúng không?")**: trên 15 câu thăm dò của người soát, đầu đêm `94bbaae` phán quyết sai 8/15, bản cuối sai **15/15** — 7 câu là HỒI QUY của chính các bản sửa đêm nay (`3d730ea`, `6f23ff3`, `a8b0858`). CHƯA sửa; câu chờ quyết D-OP-10 (báo cáo sáng mục 8).
+> - G6' PARTIAL (dòng tiến độ ngay dưới); tiêu chí sửa đổi chờ chủ dự án phê. G7 CHẶN.
+> - **Câu xác nhận ("… đúng không?")**: trên 15 câu thăm dò của người soát, đầu đêm `94bbaae` phán quyết sai 8/15, bản cuối sai **15/15** — 7 câu là HỒI QUY của chính các bản sửa đêm nay (`3d730ea`, `6f23ff3`, `a8b0858`). Mã chính CHƯA sửa (báo cáo sáng mục 8). D-OP-10 đã chốt ngày 21/10: chỉ phán quyết khi claim đã giải đủ chiều; bản sửa vào sau khi đóng băng H3 (ADR-0006 §10).
 > - **Tiến độ (cổng đạt trọn, vô điều kiện, theo dữ liệu độc lập): 0/7.**
 >   - G6' là PARTIAL (đột biến mỗi cổng, test thuộc tính chưa đủ; 15 ca lộ gợi ý trước đóng băng không bị loại): chỉ thành 1/7 khi chủ dự án phê tiêu chí VÀ làm đủ phần còn thiếu.
 >   - Nếu D-H1-1 chọn giữ bộ 117 cho G1 / G3 / G4: 3/7 (không khuyến nghị: bộ 117 không phải bằng chứng độc lập).
@@ -27,6 +27,8 @@
 > - Ba ca 083, 107, 108 có kỳ vọng do chính phiên viết mã "trọng tài" **sau** lần đo đầu (09:03), **trước** khi băm bộ ca (09:15).
 > - Vì vậy G2, G5, G6 chỉ đạt **có điều kiện**. Đạt vô điều kiện: **3/7** (G1, G3, G4).
 > - Chờ chủ dự án quyết D-G7-11 (`docs/CHO-QUYET-DINH.md`).
+
+### Bảng bộ 117 ca — 20/10/2026 (đã thay bằng kết quả H1 ở trên; giữ để đối chiếu)
 
 Đích hiện tại là **WIN MVP** (`docs/04-core-mvp.md`), không phải cả roadmap (`docs/05-master-roadmap.md`).
 
@@ -49,7 +51,7 @@
 
 Mốc "≈ 20%" của tối 19/10 bỏ, vì nó ước theo cảm nhận. Từ nay chỉ đếm cổng có lệnh chứng minh.
 
-## Đêm 20→21/10 — khôi phục bằng chứng (đang chạy)
+## Đêm 20→21/10 — khôi phục bằng chứng (đã chốt 06:04 ngày 21/10)
 
 Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác định trạng thái WIN thật; không tối ưu tỉ lệ đạt. Chưa gọi model thật, chi 0 USD (khoá model không có trong môi trường).
 
@@ -184,7 +186,9 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 | Bộ ca cầu đường cũ: số ca theo loại lối vào lệch mục tiêu | thiếu ca lệnh / workflow | bổ sung khi làm Phase 1–2 |
 | Pack khai `reported_vs_issued` (dẫn xuất) nhưng không ý định nào dùng | thừa; câu so sánh đã đi đường `Compare` chung | giữ hoặc bỏ khi soát pack |
 
-## Việc tiếp theo
+## Việc tiếp theo (20/10 — đã thay)
+
+> Việc hiện hành (ca 21/10): đóng băng bộ giữ lại H3 (ADR-0006 §10), rồi đưa bản sửa câu xác nhận vào mã chính và chạy H3 một lần. Câu chờ quyết: `docs/CHO-QUYET-DINH.md`.
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

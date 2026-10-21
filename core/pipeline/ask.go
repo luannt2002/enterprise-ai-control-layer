@@ -185,7 +185,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 			return Outcome{}, err
 		}
 	default:
-		// DIRECT_LLM, TOOL, WORKFLOW, AGENT cần capability chưa nối vào luồng này. Báo đúng là
+		// DIRECT_LLM, FULL_TEXT_SEARCH, TOOL, WORKFLOW, AGENT cần capability chưa nối vào luồng này. Báo đúng là
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}

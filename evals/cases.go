@@ -1,7 +1,7 @@
 // Package evals nạp và kiểm bộ ca kiểm thử của tenant (docs/CONVENTIONS.md §5).
 //
-// Đây mới là viên gạch đầu của runner eval: chưa chạy ca nào qua pipeline, chỉ bảo đảm bộ ca
-// là DỮ LIỆU máy đọc được và đúng hợp đồng. Bộ ca không ai kiểm thì chỉ là văn xuôi.
+// Bộ ca theo hợp đồng này (tenants/*/evals/cases.yaml) mới được kiểm hình dạng, chưa chạy qua pipeline: tệp này bảo đảm bộ ca
+// là DỮ LIỆU máy đọc được và đúng hợp đồng. Bộ ca không ai kiểm thì chỉ là văn xuôi. Ca WIN chạy qua pipeline ở runner.go (RunWin).
 package evals
 
 import (

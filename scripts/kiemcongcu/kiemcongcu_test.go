@@ -367,3 +367,106 @@ func TestDongBangTuChoiDauVao(t *testing.T) {
 		}
 	}
 }
+
+// --- cam-ket-giu-lai.py (ADR-0006 §10) ---
+
+// TestCamKet: ghi manifest có sha256 đúng của tệp ca + số đếm theo lớp + băm bộ đồ nghề, KHÔNG chép câu hỏi / kỳ vọng
+// vào manifest hay đầu ra, và không ghi đè cam kết đã có.
+func TestCamKet(t *testing.T) {
+	d, out, kit := t.TempDir(), t.TempDir(), t.TempDir()
+	kho(t, d)
+	cases := filepath.Join(d, "kho.yaml")
+	b, _ := os.ReadFile(cases)
+	write(t, cases, strings.Replace(string(b), "outcome: RESOLVED", "outcome: RESOLVED\n      value: {number: \"3850\", unit: L}", 1))
+	write(t, filepath.Join(kit, "DINH-DANG.md"), "định dạng\n")
+	stdout, rc := py(t, "cam-ket-giu-lai.py", cases, out, "--bo-do-nghe", kit)
+	if rc != 0 || !strings.Contains(stdout, "TỔNG 48 ca · có kỳ vọng số liệu 1") || !strings.Contains(stdout, "lớp entity             16 ca") {
+		t.Fatalf("cam kết: rc %d\n%s", rc, stdout)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "holdout-manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m struct {
+		Files  map[string]string `json:"files_sha256"`
+		Counts struct {
+			Total    int            `json:"total"`
+			PerClass map[string]int `json:"per_class"`
+		} `json:"counts"`
+		Kit struct {
+			Files map[string]string `json:"files_sha256"`
+		} `json:"author_kit"`
+	}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatal(err)
+	}
+	if m.Files["kho.yaml"] != fileSHA(t, cases) || m.Counts.Total != 48 || m.Counts.PerClass["routing"] != 16 {
+		t.Errorf("manifest sai: %s", raw)
+	}
+	if m.Kit.Files["DINH-DANG.md"] != fileSHA(t, filepath.Join(kit, "DINH-DANG.md")) {
+		t.Errorf("thiếu băm bộ đồ nghề: %s", raw)
+	}
+	for _, s := range []string{string(raw), stdout} {
+		if strings.Contains(s, "câu 6") || strings.Contains(s, "3850") {
+			t.Errorf("lộ nội dung ca: %s", s)
+		}
+	}
+	if stdout, rc := py(t, "cam-ket-giu-lai.py", cases, out); rc != 2 {
+		t.Errorf("cam kết lần hai phải bị từ chối (thoát 2): rc %d\n%s", rc, stdout)
+	}
+}
+
+func TestCamKetTuChoiDauVao(t *testing.T) {
+	for name, body := range map[string]string{
+		"không phải bộ WIN": "suite: khac\ncases:\n  - id: WIN-I-601\n",
+		"không có ca":       "suite: win\ncases: []\n",
+		"id trùng":          "suite: win\ncases:\n  - id: WIN-I-601\n    failure_class: entity\n  - id: WIN-I-601\n    failure_class: routing\n",
+		"YAML hỏng":         "suite: win\ncases: [\n",
+	} {
+		d, out := t.TempDir(), t.TempDir()
+		p := write(t, filepath.Join(d, "h.yaml"), body)
+		if stdout, rc := py(t, "cam-ket-giu-lai.py", p, out); rc != 2 {
+			t.Errorf("%s: phải từ chối (thoát 2), rc %d\n%s", name, rc, stdout)
+		}
+		if _, err := os.Stat(filepath.Join(out, "holdout-manifest.json")); err == nil {
+			t.Errorf("%s: bị từ chối mà vẫn ghi manifest", name)
+		}
+	}
+}
+
+// --- kiem-nhiem-soan.py (ADR-0006 §10) ---
+
+// TestKiemNhiem: nhật ký đọc trong thư mục được phép thì sạch; đọc mã, Grep không đường dẫn, grep đệ quy từ gốc repo
+// thì vi phạm — và đầu ra KHÔNG in nội dung lệnh (nhật ký chứa chính các ca của bộ giữ lại).
+func TestKiemNhiem(t *testing.T) {
+	root := t.TempDir()
+	kit := filepath.Join(root, "docs", "kit")
+	code := filepath.Join(root, "core", "ask.go")
+	for _, p := range []string{filepath.Join(kit, "DINH-DANG.md"), code} {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		write(t, p, "x\n")
+	}
+	tool := func(name string, input map[string]string) string {
+		b, _ := json.Marshal(map[string]any{"message": map[string]any{"content": []any{map[string]any{"type": "tool_use", "name": name, "input": input}}}})
+		return string(b) + "\n"
+	}
+	clean := write(t, filepath.Join(root, "sach.jsonl"), tool("Read", map[string]string{"file_path": filepath.Join(kit, "DINH-DANG.md")})+
+		tool("Bash", map[string]string{"command": "cat > docs/kit/nhap.yaml <<'EOF'\nquestion: \"CAU-HOI-BI-MAT 3850 L/ngày\"\nEOF"}))
+	dirty := write(t, filepath.Join(root, "ban.jsonl"), tool("Read", map[string]string{"file_path": code})+
+		tool("Grep", map[string]string{"pattern": "x"})+
+		tool("Bash", map[string]string{"command": "grep -rn CAU-HOI-BI-MAT " + root}))
+	args := func(log string) []string { return []string{"--cho-phep", kit, "--goc", root, log} }
+	if out, rc := py(t, "kiem-nhiem-soan.py", args(clean)...); rc != 0 || !strings.Contains(out, "TỔNG vi phạm 0") {
+		t.Errorf("nhật ký sạch: rc %d\n%s", rc, out)
+	}
+	out, rc := py(t, "kiem-nhiem-soan.py", args(dirty)...)
+	if rc != 1 || !strings.Contains(out, "TỔNG vi phạm 3") || !strings.Contains(out, code) || !strings.Contains(out, "[Grep] <thư mục làm việc>") ||
+		!strings.Contains(out, "đệ quy") {
+		t.Errorf("nhật ký bẩn phải có 3 vi phạm (đọc mã, Grep không đường dẫn, grep đệ quy từ gốc): rc %d\n%s", rc, out)
+	}
+	if strings.Contains(out, "CAU-HOI-BI-MAT") {
+		t.Errorf("in nội dung lệnh: %s", out)
+	}
+}

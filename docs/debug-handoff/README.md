@@ -1,6 +1,6 @@
 # DEBUG HANDOFF — lỗi do phiên điều phối + debug tìm ra, gửi phiên BUILD
 
-Phiên debug chạy và trace EACL ở một mốc cố định, **không sửa code**. Thấy lỗi thì dừng ở chẩn đoán và ghi một tệp ở đây. Phiên BUILD điều tra lại, quyết cách sửa theo `CLAUDE.md`, rồi điền mục "Trạng thái BUILD" ở cuối tệp (quy ước ở `docs/PROMPT-BUILD-EACL.md` §2).
+Phiên debug chạy và trace EAIS ở một mốc cố định, **không sửa code**. Thấy lỗi thì dừng ở chẩn đoán và ghi một tệp ở đây. Phiên BUILD điều tra lại, quyết cách sửa theo `CLAUDE.md`, rồi điền mục "Trạng thái BUILD" ở cuối tệp (quy ước ở `docs/PROMPT-BUILD-EAIS.md` §2).
 
 - Tên tệp: `YYYY-MM-DD-NN-<tóm-tắt>.md`.
 - Độ tin: CONFIRMED (đọc code + có vết đo) · STRONG HYPOTHESIS · HYPOTHESIS · UNKNOWN.

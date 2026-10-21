@@ -1,8 +1,11 @@
-# EACL — Enterprise AI Control Layer
+# EAIS — Enterprise AI Systems
 
-**Controlled AI Integration for Enterprise Software.**
+**Nền tảng multi-tenant biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát, kiểm thử được và quan sát được.**
+- **Dùng lại** hệ thống doanh nghiệp đã có khi hệ đó đang giữ sự thật (chế độ A, tích hợp).
+- **Tự lo** phần doanh nghiệp còn thiếu: thu dữ liệu, chuẩn hoá, đối soát (chế độ B).
+- Core **không gắn** vào một ngành.
 
-EACL is a reference architecture and executable control layer for integrating probabilistic AI capabilities into existing enterprise applications while those applications retain authority over business truth, permissions, state, transactions and workflows.
+EAIS is a multi-tenant Enterprise AI Systems Platform for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities without coupling the core platform to a single industry.
 
 Phần mềm tất định giữ quyền quyết định về danh tính, tenant, quyền hạn, sự thật nghiệp vụ, trạng thái, giao dịch, chính sách, kiểm và thực thi. AI chỉ làm phần bất định: diễn giải, phân loại, trích xuất, tổng hợp, đề xuất. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
 
@@ -21,7 +24,7 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 |---|---|
 | **Câu đang chờ chủ dự án quyết** | [`docs/CHO-QUYET-DINH.md`](docs/CHO-QUYET-DINH.md) |
 | G7: hợp đồng benchmark, chi phí, checkpoint | [`docs/g7/`](docs/g7/) |
-| Kế hoạch EACL V3 (bản nháp, chờ duyệt) | [`docs/v3/`](docs/v3/) |
+| Kế hoạch V3 (tra cứu; thay bởi roadmap đầy đủ, D-RM-01) | [`docs/v3/`](docs/v3/) |
 | Chạy lại mốc / làm tiếp trên máy khác | [`docs/ops/README.md`](docs/ops/README.md) |
 | Hợp đồng vận hành (luật bắt buộc) | [`CLAUDE.md`](CLAUDE.md) |
 | WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |
@@ -37,8 +40,8 @@ Chạy nhanh (Go 1.26, Docker, `pdftotext`):
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait
-export EACL_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable'
-export EACL_PG_DSN='postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable'
+export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
+export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
 go test ./... -count=1 && scripts/scale-smoke.sh
 ```
 

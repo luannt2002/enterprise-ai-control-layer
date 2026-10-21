@@ -4,6 +4,7 @@
 > - Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, `docs/CHO-QUYET-DINH.md` §0).
 > - Tệp này giữ để tra cứu: §0.4 lỗi im lặng, §1 dòng dõi, §3 bản đồ luồng, các phụ lục.
 > - Không lập kế hoạch theo §4 và §5 của tệp này.
+> - Tên sản phẩm, biến môi trường và tên PG trong thân tệp là tên lúc viết (mốc `8280f40`). Tên hiện hành là EAIS (D-RM-02); lệnh chạy hiện hành ở `docs/ops/README.md`.
 
 > **Viết cho:** Luân (chủ dự án). Mục đích: hiểu trọn EACL, hiểu mindset QuânIT, và hiểu cái khó thật khi đưa AI vào phần mềm doanh nghiệp. Tệp cũng dùng làm bảng tra cho người đọc repo.
 >

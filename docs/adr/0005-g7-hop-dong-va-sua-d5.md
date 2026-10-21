@@ -22,7 +22,7 @@
 
    - Client `models.Messages` đang gửi `temperature: 0`, nên với model hiện hành mọi lời gọi lỗi 400. Lần chạy khô ngày 20/10 qua được chỉ vì máy chủ giả không kiểm tham số.
 2. **Bản soát độc lập** (`docs/g7/REVIEW-D5.md`) chỉ ra bốn điểm:
-   - D5 thiên vị EACL, vì 117/117 là kết quả trong mẫu;
+   - D5 thiên vị EAIS, vì 117/117 là kết quả trong mẫu;
    - baseline B2 bị "què": đoạn thiếu bí danh, nên trần của nó chỉ 4/13 ở lớp `entity` và 5/13 ở `ambiguity`;
    - trung vị 3 lượt che được ca chập chờn;
    - bộ chấm có lỗ ở cả hai phía.
@@ -33,7 +33,7 @@
 ### 1. Model và tham số
 
 - **Một model cho mọi hệ: `claude-sonnet-5-5`.**
-  - Không dùng model khác nhau giữa baseline và EACL.
+  - Không dùng model khác nhau giữa baseline và EAIS.
   - Haiku 5.5 chỉ cho báo cáo độ nhạy riêng, nếu còn ngân sách; không trộn vào kết quả chính.
 - **Không gửi** `temperature`, `top_p`, `top_k`.
   - Lần chạy model là **NGẪU NHIÊN**; không tuyên bố là tất định.
@@ -53,7 +53,7 @@
 
 | Hệ | Vai | Là gì |
 |---|---|---|
-| EACL | hệ được chấm | luồng S0–S10 |
+| EAIS | hệ được chấm | luồng S0–S10 |
 | **B1** | baseline cổng | LLM trực tiếp, **một** lời gọi mỗi câu hỏi:<br>- bản ghi thô của tenant trong cửa sổ ngày của ca (`b1_window`, do người soạn ca gán, không phải phiên viết mã);<br>- `entities.json`.<br>Không truy xuất |
 | **B2+** | baseline cổng | RAG đơn giản **có năng lực**: như B2, cộng hai thứ:<br>- mỗi đoạn có tên hiển thị + bí danh + mã theo nguồn của thực thể (lấy từ `entities.json`);<br>- câu hỏi kèm ngày hiện tại |
 | B2 | chỉ báo cáo | baseline cũ: đoạn thiếu bí danh |
@@ -61,13 +61,13 @@
 | B2-oracle | chỉ báo cáo | B2+ nhưng nhận đúng đoạn bằng chứng của ca. Mục đích: tách lỗi truy xuất khỏi lỗi thiếu tầng kiểm soát. Chỉ chạy được khi hồ sơ ca có id bản ghi |
 
 **Chung cho mọi baseline:**
-- cùng model, cùng tham số, cùng system prompt với lời gọi model của EACL;
+- cùng model, cùng tham số, cùng system prompt với lời gọi model của EAIS;
 - một chỉ mục = một tenant: dữ liệu tenant khác không vào baseline;
 - câu trả lời rỗng của model ghi là **từ chối**.
 
 **Biên của B2+ (đóng băng cùng hợp đồng):**
 - **Được** những tiền xử lý tối thiểu mà một RAG hợp lý cần để đọc cùng dữ liệu: gắn bí danh / mã nguồn vào đoạn (dữ liệu gốc), biết ngày hiện tại.
-- **Không được** bất kỳ thứ gì thuộc tầng kiểm soát EACL:
+- **Không được** bất kỳ thứ gì thuộc tầng kiểm soát EAIS:
   - xếp nguồn theo thẩm quyền;
   - luật dung sai;
   - ràng buộc claim;
@@ -75,7 +75,7 @@
   - chọn nghĩa nghiệp vụ;
   - phép tính tất định.
 
-Câu hỏi mà G7 trả lời là: **EACL so với một RAG đơn giản nhưng có năng lực**, không phải so với một RAG cố tình bị làm hỏng.
+Câu hỏi mà G7 trả lời là: **EAIS so với một RAG đơn giản nhưng có năng lực**, không phải so với một RAG cố tình bị làm hỏng.
 
 ### 3. Bộ ca
 
@@ -92,7 +92,7 @@ Câu hỏi mà G7 trả lời là: **EACL so với một RAG đơn giản nhưng
   - giữ tiêu chí chữ là nội dung thật ("24 giờ", "2 ngày", "Không.");
   - câu rỗng = từ chối: đạt ở ca kỳ vọng từ chối / ngoài phạm vi, trượt ở ca khác;
   - bộ đếm "không bịa số" từng ca, áp cho mọi hệ.
-- **Vẫn bỏ qua nhãn kiến trúc của EACL:** route, outcome, `model_calls`, trích dẫn có cấu trúc.
+- **Vẫn bỏ qua nhãn kiến trúc của EAIS:** route, outcome, `model_calls`, trích dẫn có cấu trúc.
 - **Sau khi đóng băng: không đổi bộ chấm.**
 
 ### 5. Tổng hợp và luật D5 sửa đổi
@@ -100,7 +100,7 @@ Câu hỏi mà G7 trả lời là: **EACL so với một RAG đơn giản nhưng
 Mỗi hệ chạy k lượt trên cùng bộ ca.
 
 - **Lượt hợp lệ:**
-  - đường tất định của EACL (route, outcome, id bằng chứng) phải giống nhau giữa các lượt;
+  - đường tất định của EAIS (route, outcome, id bằng chứng) phải giống nhau giữa các lượt;
   - khác thì lượt đó vô hiệu, chạy lại một lần; vẫn khác thì G7 **FAIL** (tất định hỏng);
   - lỗi provider còn lại sau thử lại: ca đó ghi lỗi `PROVIDER`, không tính đạt.
 - **Điểm từng ca:** `pass_count / k`.
@@ -109,17 +109,17 @@ Mỗi hệ chạy k lượt trên cùng bộ ca.
 - **Điểm lớp:**
   - trung vị qua k lượt của số ca đạt (như D5 cũ);
   - riêng `permission` và `unsupported_answer`: ca chỉ tính đạt khi đạt ở **mọi** lượt (ANY-RUN), áp cho mọi hệ.
-- **R1 — Không thua:** ở mọi lớp, EACL ≥ từng baseline cổng (B1, B2+). Hoà được phép.
+- **R1 — Không thua:** ở mọi lớp, EAIS ≥ từng baseline cổng (B1, B2+). Hoà được phép.
 - **R2 — Hơn rõ:**
-  - với từng baseline cổng, ≥ 4 trong 7 lớp có EACL − baseline ≥ 20 điểm %;
+  - với từng baseline cổng, ≥ 4 trong 7 lớp có EAIS − baseline ≥ 20 điểm %;
   - 7 lớp là 8 lớp trừ `permission` (lớp thắng theo thiết kế);
   - lớp có n < 12 ca không được tính là "lớp hơn".
-- **R3 — Bất biến cứng của EACL:** mọi lượt, mọi ca; một vi phạm là **FAIL**.
+- **R3 — Bất biến cứng của EAIS:** mọi lượt, mọi ca; một vi phạm là **FAIL**.
   - Rò rỉ tenant = 0. Canary dạng số, mã và tên của tenant khác: `9999`, `B-CANARY-7731`, `Cầu Z`, `PRJ-Z`, `def-build`. Ngày tháng không đếm.
   - Số không căn cứ = 0 (bộ đếm độc lập).
   - Lộ số được bảo vệ ở ca kỳ vọng từ chối = 0.
 - **R4 — Thống kê, nếu đủ điều kiện:**
-  - McNemar chính xác một phía trên từng ca (đạt = đạt ở đa số lượt), EACL vs B2+ và EACL vs B1, p ≤ 0,01;
+  - McNemar chính xác một phía trên từng ca (đạt = đạt ở đa số lượt), EAIS vs B2+ và EAIS vs B1, p ≤ 0,01;
   - khoảng tin cậy Wilson 95% cho từng lớp;
   - số cặp lệch < 10 thì R4 "không đủ điều kiện": ghi giới hạn, không chặn, **không** tuyên bố có ý nghĩa thống kê.
 - **k:** 3 trước pilot. Luật chọn k từ pilot được đăng ký trước ở ADR-0006 §6. Không đổi k sau khi đã xem kết quả chạy chính.

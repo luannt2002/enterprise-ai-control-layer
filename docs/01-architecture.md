@@ -1,10 +1,10 @@
-# Kiến trúc EACL
+# Kiến trúc EAIS
 
-> **EACL is a reference architecture and executable control layer for integrating probabilistic AI capabilities into existing enterprise applications while those applications retain authority over business truth, permissions, state, transactions and workflows.**
+> **EAIS is a multi-tenant Enterprise AI Systems Platform for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities without coupling the core platform to a single industry.**
 
 Tài liệu này mô tả kiến trúc **đích** và **luồng mới**. Quy ước tên gọi ở [CONVENTIONS.md](CONVENTIONS.md). Lý do của từng lựa chọn ở [adr/](adr/).
 
-> **Phạm vi hiện hành (V3):** EACL không có workflow engine riêng; ứng dụng doanh nghiệp giữ trạng thái, giao dịch và workflow (`docs/v3/05-R0-DEFINITION-FREEZE.md`: Phase 2 Workflow và Phase 3 Event không có trong V3). Các phần workflow / command / event / human task bên dưới là kiến trúc đích V2, đang hoãn.
+> **Phạm vi hiện hành (V3):** EAIS không có workflow engine riêng; ứng dụng doanh nghiệp giữ trạng thái, giao dịch và workflow (`docs/v3/05-R0-DEFINITION-FREEZE.md`: Phase 2 Workflow và Phase 3 Event không có trong V3). Các phần workflow / command / event / human task bên dưới là kiến trúc đích V2, đang hoãn.
 
 ---
 
@@ -13,7 +13,7 @@ Tài liệu này mô tả kiến trúc **đích** và **luồng mới**. Quy ư�
 ```text
         SAI (model-centric)                    ĐÚNG (system-centric)
 
-           RAG / MODEL                                EACL
+           RAG / MODEL                                EAIS
                ▲                          ┌────────────┼────────────┐
                │                          │            │            │
          mọi thứ khác                    DATA      DECISION      ACTION
@@ -60,7 +60,7 @@ Mười nguyên tắc ràng buộc mọi thiết kế bên dưới:
 │                Trace · Cost · Audit · SLA                          │
 └────────────────────────────────────────────────────────────────────┘
 
-        EACL CORE  (mã dùng chung, không biết tenant nào)
+        EAIS CORE  (mã dùng chung, không biết tenant nào)
             │
         TENANT RUNTIME  (nạp pack, cô lập dữ liệu, ngân sách, quyền)
             │
@@ -77,7 +77,7 @@ Dấu ngoặc `( )` là capability **có cổng**: chỉ bật khi có ca hỏng
 Doanh nghiệp không chỉ **hỏi**. Phần lớn giá trị nằm ở **lệnh** làm đổi trạng thái và **sự kiện** kích hoạt quy trình — ở đó model có thể không xuất hiện.
 
 ```text
-                          EACL ENTRY
+                          EAIS ENTRY
                               │
            ┌──────────────────┼──────────────────┐
            ▼                  ▼                  ▼
@@ -116,7 +116,7 @@ Doanh nghiệp không chỉ **hỏi**. Phần lớn giá trị nằm ở **lện
 
 Hệ quả: **model không bao giờ thấy dữ liệu mà người hỏi không được xem.** Lọc quyền xảy ra trước khi bằng chứng vào `ContextPackage`, không phải dặn model "đừng tiết lộ".
 
-EACL gồm bốn loại thành phần, và phần không phải AI chiếm đa số là dấu hiệu kiến trúc trưởng thành:
+EAIS gồm bốn loại thành phần, và phần không phải AI chiếm đa số là dấu hiệu kiến trúc trưởng thành:
 
 | Loại | Thành phần |
 |---|---|
@@ -146,7 +146,7 @@ Phiếu đề nghị vật tư:  DRAFT → SUBMITTED → REVIEWING → APPROVED 
 Một module Go: `github.com/luannt2002/enterprise-ai-control-layer`. Go là ngôn ngữ của hệ thống và control plane; Python chỉ được tồn tại **sau ranh giới capability tường minh** khi hệ sinh thái ML/tài liệu/dữ liệu của Python mang lại giá trị đo được (§11). V1 có đúng một dịch vụ Python: `python/document-parser`.
 
 ```text
-cmd/eacl/                 một binary, nhiều lệnh con: serve · migrate · seed · simulate · eval
+cmd/eais/                 một binary, nhiều lệnh con: serve · migrate · seed · simulate · eval
 core/
   contracts/              kiểu dữ liệu dùng chung (Evidence, Span, RoutePlan, Verdict, Fault…)
   tenant/                 Tenant Runtime: nạp + kiểm pack, phiên bản pack
@@ -174,7 +174,7 @@ reliability/
 governance/
   auth/                   khoá API → principal (tenant lấy từ danh tính, KHÔNG từ body)
   permissions/            RBAC/ABAC: ai được xem dữ liệu nào, gọi tool nào
-  tenancy/                phiên DB có `eacl.tenant_id`, RLS
+  tenancy/                phiên DB có `eais.tenant_id`, RLS
   audit/                  nhật ký chỉ-ghi-thêm có chuỗi băm
 observability/
   traces/                 đo từng chặng, `unaccounted_ms`, request id, một dòng log mỗi lượt
@@ -344,7 +344,7 @@ Kiểu dữ liệu dùng chung nằm ở `core/contracts`. Interface do **bên d
 | `IntentClassifier` | `Classify(ctx, rt, in, res) (Intent, error)` | `intelligence/intent` |
 | `Router` | `Route(ctx, rt, intent, principal) (RoutePlan, error)` | `intelligence/router` |
 | `ContextSource` | `Fetch(ctx, rt, principal, step) ([]Evidence, error)` | facts, events, retrieval, calculation |
-| `KnowledgeRetriever` | `Retrieve(ctx, rt, query) ([]Evidence, error)` | `intelligence/rag` — EACL chỉ biết "tôi cần bằng chứng", không biết bên trong là BM25 hay vector |
+| `KnowledgeRetriever` | `Retrieve(ctx, rt, query) ([]Evidence, error)` | `intelligence/rag` — EAIS chỉ biết "tôi cần bằng chứng", không biết bên trong là BM25 hay vector |
 | `StructuredDataSource` | `QueryMetric(ctx, rt, principal, q) ([]Evidence, []Conflict, error)` | `data/sourceoftruth` |
 | `Tool` | `Spec() ToolSpec` · `Invoke(ctx, rt, principal, args) (ToolResult, error)` | `execution/tools` + pack |
 | `ContextBuilder` | `Build(ctx, rt, plan, evidence) (ContextPackage, error)` | `intelligence/context` |
@@ -375,7 +375,7 @@ type Evidence struct {
 
 ## 7. Mô hình dữ liệu (PostgreSQL 17 + pgvector)
 
-Mọi bảng nghiệp vụ có `tenant_id`, bật `ROW LEVEL SECURITY` + `FORCE`, chính sách đọc `current_setting('eacl.tenant_id')`. Ứng dụng chạy bằng vai không có `BYPASSRLS`; khởi động **từ chối** chạy nếu vai có quyền vượt RLS.
+Mọi bảng nghiệp vụ có `tenant_id`, bật `ROW LEVEL SECURITY` + `FORCE`, chính sách đọc `current_setting('eais.tenant_id')`. Ứng dụng chạy bằng vai không có `BYPASSRLS`; khởi động **từ chối** chạy nếu vai có quyền vượt RLS.
 
 | Nhóm | Bảng | Ghi chú |
 |---|---|---|

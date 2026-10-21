@@ -4,7 +4,7 @@
 >
 > **Viết cho:**
 > - chủ dự án;
-> - phiên BUILD (team agent). Đầu mỗi ca, BUILD đọc tệp này cùng `docs/PROMPT-BUILD-EACL.md`.
+> - phiên BUILD (team agent). Đầu mỗi ca, BUILD đọc tệp này cùng `docs/PROMPT-BUILD-EAIS.md`.
 >
 > **Tên:** theo **D-RM-02**.
 > - Toàn bộ code, luồng và tài liệu đổi lại về **tên gốc ngày 20/10** (`d70ebc8`).
@@ -291,7 +291,7 @@ HTTP API · **CI có Postgres** (hiện test PG bị SKIP khi thiếu DSN [ĐO])
 
 ```text
 chủ dự án quyết ở CHO-QUYET-DINH.md
-→ BUILD xây theo docs/PROMPT-BUILD-EACL.md, commit + push, tệp tiến độ sống
+→ BUILD xây theo docs/PROMPT-BUILD-EAIS.md, commit + push, tệp tiến độ sống
 → phiên điều phối / debug đọc qua git, gửi lỗi qua docs/debug-handoff/
 ```
 
@@ -387,7 +387,7 @@ Chưa có thì mọi phase vẫn chạy được trên dữ liệu giả lập, 
 
 ## 11. Ngay bây giờ
 
-Thứ tự chi tiết ở `docs/PROMPT-BUILD-EACL.md` §4:
+Thứ tự chi tiết ở `docs/PROMPT-BUILD-EAIS.md` §4:
 1. **Đổi tên lại** theo D-RM-02 (link git giữ nguyên).
 2. **Đóng Phase 0b:** R4-2…R4-4 của cổng phán quyết → vòng S4 theo ADR-0010 → chạy H4 một lần.
 3. Phép đo trước W-G7: canary hai tenant, cờ ước lượng.

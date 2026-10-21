@@ -1,4 +1,4 @@
-# EACL-MIGRATION-AUDIT — từ dịch vụ answer cũ sang EACL
+# EAIS-MIGRATION-AUDIT — từ dịch vụ answer cũ sang EAIS
 
 > Viết cho: chủ dự án và người thực thi chuyển đổi.
 > Nguồn chuyển: dịch vụ trả lời của hệ thống cũ (Go phục vụ + Python nạp). Đo ngày 19/10/2026.
@@ -11,14 +11,14 @@
 | Hành động | Nghĩa |
 |---|---|
 | `KEEP` | giữ logic, chỉ đổi chỗ và tên import |
-| `MOVE` | dời sang package mới, đổi kiểu cho khớp hợp đồng EACL |
+| `MOVE` | dời sang package mới, đổi kiểu cho khớp hợp đồng EAIS |
 | `GENERALIZE` | bỏ giả định "một bot, một loại dữ liệu"; nhận cấu hình từ pack |
 | `DECOUPLE` | tách một khối làm nhiều việc thành nhiều thành phần theo hợp đồng |
 | `REPLACE` | viết lại vì sai ranh giới (ví dụ phần Python ngoài việc đọc tài liệu chuyển sang Go) |
 | `DELETE` | bỏ, không chuyển |
-| `NEW` | EACL cần mà hệ cũ không có |
+| `NEW` | EAIS cần mà hệ cũ không có |
 
-Mỗi dòng bên dưới có: tệp nguồn · cỡ · việc hiện tại · hành động · đích EACL · khe phải sửa **ngay khi chuyển** (mã `F..` là phát hiện của lượt soát độc lập phần Go ngày 19/10/2026).
+Mỗi dòng bên dưới có: tệp nguồn · cỡ · việc hiện tại · hành động · đích EAIS · khe phải sửa **ngay khi chuyển** (mã `F..` là phát hiện của lượt soát độc lập phần Go ngày 19/10/2026).
 
 ---
 
@@ -37,7 +37,7 @@ Chưa chạy: 18 test Go cần DB, các test Python cần DB, ca `slow` (thư vi
 
 ## 2. Phần Go (6.450 dòng mã, 267 hàm test)
 
-| Tệp nguồn | Dòng | Việc hiện tại | Hành động | Đích EACL | Sửa khi chuyển |
+| Tệp nguồn | Dòng | Việc hiện tại | Hành động | Đích EAIS | Sửa khi chuyển |
 |---|---:|---|---|---|---|
 | `internal/flow/flow.go` | 748 | toàn bộ một lượt trả lời trong một hàm | `DECOUPLE` | `core/pipeline` (S0–S10) · `intelligence/context` (dựng prompt, lịch sử) · `reliability/validation` | F01 không kiểm số trong câu trả lời · F02 không ngưỡng liên quan · F03 cùng `message_id` khác câu · F04 ghi DB không hạn giờ · F06 lịch sử mở đầu bằng tin bot · F16 prompt không mang tên/phiên bản tài liệu · F17 không trần ngân sách prompt · F19 câu truy vấn nối không trần · F30 không chuẩn hoá đầu vào · F31 luôn ghép câu trước |
 | `internal/flow/strategy.go` | 164 | chọn fulltext/retrieval theo cỡ corpus | `GENERALIZE` | `intelligence/rag` — cách RAG lấy ngữ cảnh; **router** quyết có vào RAG hay không | router mới theo ý định (P13) |
@@ -58,9 +58,9 @@ Chưa chạy: 18 test Go cần DB, các test Python cần DB, ca `slow` (thư vi
 | `internal/domain/domain.go` | 94 | Bot, Corpus, Chunk | `REPLACE` | `core/contracts` | — |
 | `internal/httpapi/api.go` | 363 | handler `/v1/answer`, kiểm 4 khoá, dòng log kết thúc | `DECOUPLE` | `platform/httpapi` · `governance/auth` · `observability/traces` | tenant lấy từ **khoá API**, không từ body · F05 ký tự NUL/độ dài · F21 nhãn `input` · F22 request id khi panic · F36 404/405 trả JSON |
 | `internal/httpapi/requestid.go` | 76 | request id | `MOVE` | `observability/traces` | — |
-| `internal/app/app.go` | 362 | lắp ráp toàn bộ | `REPLACE` | `cmd/eacl` | F20 thiếu retrieval mà vẫn khởi động · F27 lộ DSN dạng key=value · F29 không chặn vai vượt RLS · F33 timeout server |
-| `cmd/server` | 57 | main | `REPLACE` | `cmd/eacl serve` | — |
-| `cmd/room-sweep` | 93 | dọn lịch sử | `GENERALIZE` | `cmd/eacl` job lưu giữ, chính sách theo pack | — |
+| `internal/app/app.go` | 362 | lắp ráp toàn bộ | `REPLACE` | `cmd/eais` | F20 thiếu retrieval mà vẫn khởi động · F27 lộ DSN dạng key=value · F29 không chặn vai vượt RLS · F33 timeout server |
+| `cmd/server` | 57 | main | `REPLACE` | `cmd/eais serve` | — |
+| `cmd/room-sweep` | 93 | dọn lịch sử | `GENERALIZE` | `cmd/eais` job lưu giữ, chính sách theo pack | — |
 | `cmd/golden` | 2.105 | runner: chấm theo sự kiện phải có/không được có, recall@k, cổng nguồn | `GENERALIZE` | `evals` — runner chung cho mọi tenant, ca theo [CONVENTIONS §5](CONVENTIONS.md) | giữ: chấm theo ranh giới token, exit 2 khi lỗi hạ tầng |
 
 ---
@@ -69,7 +69,7 @@ Chưa chạy: 18 test Go cần DB, các test Python cần DB, ca `slow` (thư vi
 
 Theo [01-architecture.md §11](01-architecture.md) ("Go first, Python by evidence"), ở V1 Python chỉ còn **đọc tài liệu**. Mọi thứ khác sang Go.
 
-| Tệp nguồn | Dòng | Việc hiện tại | Hành động | Đích EACL |
+| Tệp nguồn | Dòng | Việc hiện tại | Hành động | Đích EAIS |
 |---|---:|---|---|---|
 | `adapters/parser.py` | 789 | nhận dạng loại tệp + đọc xlsx/docx/html/csv | `KEEP` (Python) | `python/document-parser` — chỉ trả `DocumentStructure` theo `schemas/`: trang · heading · đoạn · bảng (header, hàng, ô) · độ tin cậy |
 | `adapters/fetcher.py` | 637 | tải URL, xuất Google, chặn SSRF, trần byte | `REPLACE` (Go) | `data/ingestion` — giữ nguyên luật chặn SSRF và trần |
@@ -89,10 +89,10 @@ Theo [01-architecture.md §11](01-architecture.md) ("Go first, Python by evidenc
 
 | Thứ | Vì sao |
 |---|---|
-| `golden/` (bộ ca, link nguồn, văn bản thô) | dữ liệu thật của tổ chức; repo EACL là public |
+| `golden/` (bộ ca, link nguồn, văn bản thô) | dữ liệu thật của tổ chức; repo EAIS là public |
 | link Google trong 8 tệp test Python | như trên |
 | `reports/`, `WORKFLOW.md`, `VERIFY_PLAN.md` | tài liệu của hệ cũ; bài học đã chưng cất thành ADR và `docs/requirements/` |
-| `.venv`, `.pytest_cache`, `.coverage`, `scripts/sao-luu-db.sh` | sản phẩm phụ của máy; EACL có script sao lưu riêng cho DB của nó |
+| `.venv`, `.pytest_cache`, `.coverage`, `scripts/sao-luu-db.sh` | sản phẩm phụ của máy; EAIS có script sao lưu riêng cho DB của nó |
 
 ---
 

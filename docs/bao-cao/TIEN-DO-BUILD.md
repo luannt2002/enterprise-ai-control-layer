@@ -1,6 +1,6 @@
 # Tiến độ BUILD — tệp sống, cập nhật mỗi lần push
 
-Khuôn theo `docs/PROMPT-BUILD-EACL.md` §7:
+Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 - phần "Bây giờ" ghi đè mỗi lần push;
 - phần "Nhật ký" chỉ thêm dòng, không xoá dòng cũ.
 

@@ -44,19 +44,19 @@ Thay `<NGÀY>`, `<THÁNG>` cho ngày chạy. Đường dẫn tính từ gốc re
 **Nhịp lặp** — `CronCreate(cron: "3,13,23,33,43,53 8-17 <NGÀY> <THÁNG> *", recurring: true)`:
 
 ```text
-[EACL AUTORUN — nhịp tự động; chủ dự án đã cho phép tự chạy KHÔNG HỎI tới 18:00 ngày <NGÀY>/<THÁNG>] Làm theo AUTORUN.local.md ở gốc repo EACL: (1) kiểm giờ bằng `date`; nếu ≥ 18:00 thì chốt sổ theo tệp đó rồi CronDelete mọi lịch EACL và dừng. (2) Thu hoạch agent nền đã xong (đo lại lời khai). (3) Nếu có việc ĐANG thì làm tiếp; không thì lấy việc CHỜ kế tiếp theo thứ tự. (4) Mỗi thay đổi mã: test đỏ trước → sửa → vet/gofmt/test → đột biến bằng scripts/mutate.sh. (5) Làm tối đa ~40 phút rồi cập nhật hàng đợi + docs/STATUS.md + nhật ký và kết thúc lượt. Không hỏi chủ dự án, không commit/push, không đụng repo khác.
+[EAIS AUTORUN — nhịp tự động; chủ dự án đã cho phép tự chạy KHÔNG HỎI tới 18:00 ngày <NGÀY>/<THÁNG>] Làm theo AUTORUN.local.md ở gốc repo EAIS: (1) kiểm giờ bằng `date`; nếu ≥ 18:00 thì chốt sổ theo tệp đó rồi CronDelete mọi lịch EAIS và dừng. (2) Thu hoạch agent nền đã xong (đo lại lời khai). (3) Nếu có việc ĐANG thì làm tiếp; không thì lấy việc CHỜ kế tiếp theo thứ tự. (4) Mỗi thay đổi mã: test đỏ trước → sửa → vet/gofmt/test → đột biến bằng scripts/mutate.sh. (5) Làm tối đa ~40 phút rồi cập nhật hàng đợi + docs/STATUS.md + nhật ký và kết thúc lượt. Không hỏi chủ dự án, không commit/push, không đụng repo khác.
 ```
 
 **Hạ nhịp** — `CronCreate(cron: "41 17 <NGÀY> <THÁNG> *", recurring: false)`. Bản gốc bị cắt khi liệt kê lịch; dưới đây là bản dựng lại:
 
 ```text
-[EACL AUTORUN — 17:40 BẮT ĐẦU HẠ NHỊP] Không mở việc lớn mới. Làm nốt việc đang dở tới một điểm dừng an toàn (test xanh, không để tệp dở); ghi trạng thái vào hàng đợi + nhật ký.
+[EAIS AUTORUN — 17:40 BẮT ĐẦU HẠ NHỊP] Không mở việc lớn mới. Làm nốt việc đang dở tới một điểm dừng an toàn (test xanh, không để tệp dở); ghi trạng thái vào hàng đợi + nhật ký.
 ```
 
 **Chốt sổ** — `CronCreate(cron: "2 18 <NGÀY> <THÁNG> *", recurring: false)`. Bản dựng lại:
 
 ```text
-[EACL AUTORUN — 18:00 CHỐT SỔ] Dừng mọi việc EACL. Chạy kiểm cuối (go vet ./..., gofmt -l ., go test ./... -count=1, scripts/scale-smoke.sh). Cập nhật docs/STATUS.md, CHANGELOG.md, HANDOFF.local.md (kèm prompt mở phiên sau), nhật ký trong AUTORUN.local.md và memory EACL. Dừng agent nền. CronDelete mọi lịch EACL. Báo kết quả theo mẫu Changed / Verified / Not verified kèm MỘT con số tiến độ %.
+[EAIS AUTORUN — 18:00 CHỐT SỔ] Dừng mọi việc EAIS. Chạy kiểm cuối (go vet ./..., gofmt -l ., go test ./... -count=1, scripts/scale-smoke.sh). Cập nhật docs/STATUS.md, CHANGELOG.md, HANDOFF.local.md (kèm prompt mở phiên sau), nhật ký trong AUTORUN.local.md và memory EAIS. Dừng agent nền. CronDelete mọi lịch EAIS. Báo kết quả theo mẫu Changed / Verified / Not verified kèm MỘT con số tiến độ %.
 ```
 
 ## 4. Dừng luồng
@@ -82,7 +82,7 @@ Chủ dự án nói dừng, hoặc tới giờ chốt sổ, thì làm theo thứ
 ## 6. Mẫu `AUTORUN.local.md`
 
 ```markdown
-# AUTORUN — EACL, tự chạy <ngày> tới <giờ dừng>
+# AUTORUN — EAIS, tự chạy <ngày> tới <giờ dừng>
 
 > CHỈ Ở MÁY (gitignore `*.local.md`). Lệnh của chủ dự án: "<nguyên văn>".
 

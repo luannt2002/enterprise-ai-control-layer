@@ -21,7 +21,7 @@
 | **BUILD** (phiên nhận tệp này) | server | Code, test, soát độc lập, commit, push `main`. Tự điều phối multi-agent / workflow của mình theo §4 | Tự quyết việc loại 2 / 3 (§3). Ghi cột "Trả lời" của `CHO` khi chủ dự án chưa nói câu trả lời |
 | **ĐIỀU PHỐI + DEBUG** (phiên học của chủ dự án) | máy chủ dự án | Ghim một mốc, chạy, trace, giải thích cho chủ dự án. Viết prompt và DEBUG HANDOFF. Ghi đề xuất vào `ROADMAP.md` | Sửa code; commit code. Chỉ commit tài liệu trong `docs/` khi chủ dự án bảo |
 
-Vì sao tách: chủ dự án đang học để **sở hữu** EACL. Phiên debug cần quan sát hành vi hiện có mà không bị sửa dưới chân; phiên BUILD cần xây mà không bị kéo vào giải thích. Git là kênh chung: có lịch sử, đọc lại được, không mất ngữ cảnh khi phiên đổi.
+Vì sao tách: chủ dự án đang học để **sở hữu** EAIS. Phiên debug cần quan sát hành vi hiện có mà không bị sửa dưới chân; phiên BUILD cần xây mà không bị kéo vào giải thích. Git là kênh chung: có lịch sử, đọc lại được, không mất ngữ cảnh khi phiên đổi.
 
 ## 2. Kênh giao việc qua git
 
@@ -177,7 +177,7 @@ Phiên điều phối + debug đọc tiến độ **qua git**, nên mọi tiến
 
 ## Bây giờ (ghi đè mỗi lần)
 - Cập nhật lúc: <ngày giờ> · HEAD: <commit>
-- Đang làm: <việc> (theo PROMPT-BUILD-EACL.md §4 mục <n>)
+- Đang làm: <việc> (theo PROMPT-BUILD-EAIS.md §4 mục <n>)
 - Xong từ lần trước: <việc — commit>
 - Tiếp theo: <1–3 việc>
 - Bị chặn: <việc — chờ ai / câu nào trong CHO>

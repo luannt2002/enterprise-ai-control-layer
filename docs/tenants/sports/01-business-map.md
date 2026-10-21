@@ -2,7 +2,7 @@
 
 > **XYZ Sports Data JSC** là công ty **hư cấu**; mọi giải, đội, cầu thủ, provider trong tài liệu cũng hư cấu. Mọi con số (khách hàng, thời gian, mục tiêu KPI) là **giả lập hoặc mục tiêu thiết kế**, chưa đo. Chỉ dữ liệu thông tin thể thao: **không có tính năng cá cược**; câu hỏi về kèo, tỉ lệ cược, dự đoán kết quả đi route `REJECT`.
 
-Tenant `xyz-sports` (mã `SPT`) là tenant tham chiếu thứ hai của EACL, dùng để **tấn công** kiến trúc: dữ liệu thời gian thực nhiều nguồn, thứ tự sự kiện, nhận dạng thực thể, sửa muộn, cache, độ trễ. Tài liệu này dựng nghiệp vụ **trước** khi nói tới AI.
+Tenant `xyz-sports` (mã `SPT`) là tenant tham chiếu thứ hai của EAIS, dùng để **tấn công** kiến trúc: dữ liệu thời gian thực nhiều nguồn, thứ tự sự kiện, nhận dạng thực thể, sửa muộn, cache, độ trễ. Tài liệu này dựng nghiệp vụ **trước** khi nói tới AI.
 
 ## 1. Mô hình kinh doanh
 
@@ -39,7 +39,7 @@ Hệ thống adapter provider chạy dưới principal hệ thống `provider_ad
 | Hỗ trợ khách hàng (Customer Support) | nhân viên hỗ trợ (`support_agent`) | tra cứu chỉ đọc, nâng yêu cầu sửa |
 | Kỹ thuật (Engineering/Platform) | kỹ sư nền tảng (`platform_admin`) | PostgreSQL, triển khai, quan sát, chi phí |
 
-Hệ thống ngoài: provider (Alpha, Beta, Gamma), cổng biên bản liên đoàn, dịch vụ thông báo đẩy. Hệ thống nội bộ: EACL (ask/command/event pipeline), event store `match_events`, `match_states`, kho tài liệu (điều lệ, bài viết).
+Hệ thống ngoài: provider (Alpha, Beta, Gamma), cổng biên bản liên đoàn, dịch vụ thông báo đẩy. Hệ thống nội bộ: EAIS (ask/command/event pipeline), event store `match_events`, `match_states`, kho tài liệu (điều lệ, bài viết).
 
 ## 4. Quy trình theo phòng ban
 

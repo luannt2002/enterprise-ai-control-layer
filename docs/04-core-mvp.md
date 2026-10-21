@@ -1,8 +1,8 @@
-# 04 — EACL Core MVP: Enterprise Truth & Routing Proof
+# 04 — EAIS Core MVP: Enterprise Truth & Routing Proof
 
 > **Hợp đồng của R1** (Fuel Truth Benchmark, cổng W-G1…W-G7; D-V3-10, chủ dự án duyệt 20/10/2026); luật D5 sửa đổi ở ADR-0005. Hướng tổng thể: `docs/v3/`.
 >
-> **Chứng minh phiên bản nhỏ nhất của EACL đáng được tồn tại.**
+> **Chứng minh phiên bản nhỏ nhất của EAIS đáng được tồn tại.**
 >
 > Trạng thái:
 > - **Hướng đã chốt** (user, 19/10/2026 21:01): làm WIN trước, không làm quá rộng; đạt WIN rồi mới mở rộng theo roadmap đầy đủ.
@@ -13,11 +13,11 @@
 
 | | Trả lời câu hỏi |
 |---|---|
-| CORE | EACL là gì: 5 bất biến (mục 2) |
+| CORE | EAIS là gì: 5 bất biến (mục 2) |
 | **WIN MVP** | thí nghiệm nhỏ nhất kiểm tra luận đề (mục 1) có đúng không |
 | ROADMAP | thắng rồi thì đi đâu (`05`) |
 
-**Luật khoá phạm vi.** Tính năng nào không cần để thắng bài thử "Fuel Discrepancy: EACL vs baseline RAG" thì **mặc định không thuộc MVP**.
+**Luật khoá phạm vi.** Tính năng nào không cần để thắng bài thử "Fuel Discrepancy: EAIS vs baseline RAG" thì **mặc định không thuộc MVP**.
 
 `phase: MVP` trong `docs/requirements/catalog.yaml` (294 REQ) **KHÔNG phải phạm vi WIN**. Phạm vi WIN là G1–G7 (mục 6). REQ nào không truy được về một cổng thì coi là Phase 1+ cho tới khi một ca WIN đỏ đòi nó.
 
@@ -29,7 +29,7 @@ Không chứng minh được thì **dừng và sửa kiến trúc**, không đi 
 
 ## 2. CORE: 5 bất biến
 
-Bài thử: bỏ Agent, MCP, reranker, thể thao, hay bỏ LLM khỏi một yêu cầu, thì EACL **vẫn là EACL**. Nhưng bỏ một trong 5 bất biến dưới đây thì **mất bản chất**.
+Bài thử: bỏ Agent, MCP, reranker, thể thao, hay bỏ LLM khỏi một yêu cầu, thì EAIS **vẫn là EAIS**. Nhưng bỏ một trong 5 bất biến dưới đây thì **mất bản chất**.
 
 | Mã | Bất biến | Nghĩa |
 |---|---|---|
@@ -41,7 +41,7 @@ Bài thử: bỏ Agent, MCP, reranker, thể thao, hay bỏ LLM khỏi một yê
 
 ## 3. Một bài toán duy nhất: Construction · Fuel Discrepancy Resolution
 
-> Khi nhiều nguồn trong doanh nghiệp báo lượng nhiên liệu khác nhau cho cùng một thiết bị và một khoảng thời gian, EACL phải hiểu chúng đang nói về **fact nghiệp vụ nào**, nguồn nào **có thẩm quyền cho đúng câu đang hỏi**, phát hiện xung đột hoặc mơ hồ, và trả kết quả **có bằng chứng** thay vì để model đoán.
+> Khi nhiều nguồn trong doanh nghiệp báo lượng nhiên liệu khác nhau cho cùng một thiết bị và một khoảng thời gian, EAIS phải hiểu chúng đang nói về **fact nghiệp vụ nào**, nguồn nào **có thẩm quyền cho đúng câu đang hỏi**, phát hiện xung đột hoặc mơ hồ, và trả kết quả **có bằng chứng** thay vì để model đoán.
 
 **Ca chuẩn**, đi xuyên qua cả core. Trong thế giới WIN, "máy 03" chỉ thuộc EX-03; ca mơ hồ dùng một cặp máy khác.
 
@@ -67,7 +67,7 @@ Hỏi: "Hôm qua máy 03 được cấp 4k dầu đúng không?"
 | câu hỏi đòi số chính xác | route | SQL / fact |
 | kết quả | kiểm + trace | có bằng chứng |
 
-**EACL phải trả lời theo kiểu:** "Không. Lượng xuất kho có thẩm quyền (phiếu xuất kho) là 3.850 L. ERP ghi 3.900 L, lệch quá dung sai. Khoảng 4.000 L là số đội báo, cảm biến đo tiêu thụ 3.782 L." Kèm trích dẫn và trace.
+**EAIS phải trả lời theo kiểu:** "Không. Lượng xuất kho có thẩm quyền (phiếu xuất kho) là 3.850 L. ERP ghi 3.900 L, lệch quá dung sai. Khoảng 4.000 L là số đội báo, cảm biến đo tiêu thụ 3.782 L." Kèm trích dẫn và trace.
 
 **Baseline RAG dễ trả lời:** "Khoảng 4.000 L, đúng."
 
@@ -80,7 +80,7 @@ Tenant/Identity → Normalize → Entity → Business semantics → Source autho
 
 | Hạng mục | Trong WIN |
 |---|---|
-| Lối vào | **chỉ QUERY**, gọi trong tiến trình qua CLI `eacl ask` / `eacl eval`. HTTP API để sau WIN |
+| Lối vào | **chỉ QUERY**, gọi trong tiến trình qua CLI `eais ask` / `eais eval`. HTTP API để sau WIN |
 | Route (7, tên theo hợp đồng mã) | `SQL_QUERY` · `CALCULATION` · `RAG` · `HYBRID_RETRIEVAL` · `CLARIFICATION` · `REJECT` · `HUMAN_ESCALATION`. Trong WIN, `HUMAN_ESCALATION` chỉ trả kết quả `HUMAN_REVIEW_REQUIRED`, **không tạo tác vụ** (tác vụ thuộc Phase 2) |
 | Kết quả có kiểu | trường `Outcome` trên phản hồi:<br>• `RESOLVED`: có câu trả lời từ nguồn có thẩm quyền; xung đột với nguồn thấp hơn vẫn là RESOLVED nhưng **phải lộ ra** (`conflict`)<br>• `CLARIFICATION_REQUIRED`: mơ hồ / thiếu thực thể, thiếu loại vật tư, nhiều ý định, chào hỏi<br>• `INSUFFICIENT_EVIDENCE`: không có dữ liệu cho (thực thể, nghĩa, kỳ)<br>• `HUMAN_REVIEW_REQUIRED`: ngang thẩm quyền, lệch quá dung sai<br>• `PERMISSION_DENIED`: thiếu capability hoặc ngoài phạm vi<br>• `OUT_OF_SCOPE`: ngoài phạm vi trợ lý<br>• `SYSTEM_FAILURE`<br>• `SOURCE_CONFLICT`: để dành cho policy khác, WIN không dùng |
 | Nguồn | ERP (JSON) · phiếu kho (CSV / XLSX) · báo cáo ngày (PDF **văn bản**) · tin nhắn hiện trường · cảm biến (CSV) · SOP (markdown, cho RAG) |
@@ -91,7 +91,7 @@ Tenant/Identity → Normalize → Entity → Business semantics → Source autho
 | Câu HYBRID chuẩn | cùng bộ dữ liệu đối soát: "EX-03 hôm qua kho xuất và cảm biến chênh bao nhiêu, và quy trình xử lý chênh lệch là gì?" → SQL + CALCULATION (hiệu) + RAG (đoạn quy trình) + model diễn đạt. Kiểm tuân thủ định mức là **Phase 1+**, không thuộc WIN |
 | Python | **không dùng trong WIN** (D4). Báo cáo ngày là PDF văn bản, đọc bằng thư viện Go, đo ở W1 bước 0. Bảng PDF và bộ đọc Python (torch) để sau WIN |
 | Dữ liệu | FUNCTIONAL (khoảng 1k–10k bản ghi) · REALISM (đủ bẩn / nhiều định dạng / xung đột cho từng lớp hỏng) · SCALE SMOKE (đủ lớn để lộ lỗi kiến trúc hiển nhiên; **không phải tuyên bố quy mô**) |
-| Đối thủ | **Baseline RAG** (D6). Chỉ nhận dữ liệu **tenant A** (mỗi bản ghi nguồn thành một đoạn văn bản), cùng retriever, cùng model, cùng ngân sách. **Không có** tầng tất định, bộ lọc vai / phạm vi, hay ràng buộc claim, vì đó là tầng kiểm soát của EACL. Rò rỉ tenant đo trên EACL (phải bằng 0); lớp quyền so ở mức vai / phạm vi |
+| Đối thủ | **Baseline RAG** (D6). Chỉ nhận dữ liệu **tenant A** (mỗi bản ghi nguồn thành một đoạn văn bản), cùng retriever, cùng model, cùng ngân sách. **Không có** tầng tất định, bộ lọc vai / phạm vi, hay ràng buộc claim, vì đó là tầng kiểm soát của EAIS. Rò rỉ tenant đo trên EAIS (phải bằng 0); lớp quyền so ở mức vai / phạm vi |
 
 **KHÔNG thuộc WIN** (đã có chỗ trong `05`):
 
@@ -102,11 +102,11 @@ Tenant/Identity → Normalize → Entity → Business semantics → Source autho
 - HTTP API đầy đủ; truy vấn "theo hiểu biết tại thời điểm T"; phân quyền mức trường; kiểm tuân thủ định mức; benchmark trăm triệu dòng.
 - Ontology đầy đủ (audit #2), tiến hoá schema (#10), đính chính muộn / dữ liệu song thời (#3), hiệu lực thực thể theo kỳ (#4): **DEFER, mở khi một ca WIN đỏ vì thiếu chúng** (`05` §4).
 
-## 5. Ma trận lớp hỏng: trận nào EACL phải thắng
+## 5. Ma trận lớp hỏng: trận nào EAIS phải thắng
 
 `failure_class` trong bộ ca WIN lấy đúng các mã dưới đây.
 
-| Mã | Lớp hỏng | Baseline dễ sai thế nào | EACL phải làm | Cổng |
+| Mã | Lớp hỏng | Baseline dễ sai thế nào | EAIS phải làm | Cổng |
 |---|---|---|---|---|
 | `representation` | Biểu diễn | `4k` / `4 m³` / `4.000L` hiểu lệch | chuẩn hoá về một lượng | G1 |
 | `entity` | Thực thể | EX003 / Machine-03 / asset-8392 thành ba máy | về đúng EX-03 | G2 |
@@ -125,9 +125,9 @@ Tenant/Identity → Normalize → Entity → Business semantics → Source autho
 | **G2 IDENTITY** | 100% ca `entity` (bí danh, mã theo nguồn) về đúng thực thể. 100% ca `ambiguity` ra `Outcome = CLARIFICATION_REQUIRED` kèm đúng tập ứng viên. 0 lần đoán im lặng |
 | **G3 TRUTH** | 100% ca `semantic` + `source_conflict` lấy đúng nguồn có thẩm quyền **trong đúng nghĩa câu hỏi**. Mỗi cặp nguồn có ca biên: lệch = dung sai thì không xung đột; lệch = dung sai + 1 thì xung đột được lộ (`Outcome = RESOLVED`, `conflict = true`). Ngang thẩm quyền: 0 lần trả một con số (`HUMAN_REVIEW_REQUIRED`). Câu xác nhận ("4k đúng không?") trả lời theo nghĩa đúng, kèm các giá trị khác được gắn nhãn |
 | **G4 DECISION** | Hai cột trong bảng ca: route router chọn và `Outcome` cuối, tên theo mã. 100% ca `routing` đúng cả hai. Đo bằng **gateway giả đếm lời gọi**, không dựa trace do hệ tự ghi: ca `RAG` / `HYBRID_RETRIEVAL` gọi gateway **đúng 1 lần** (đối chứng dương); ca route tất định gọi **0 lần**. Đột biến "SQL gọi gateway" và "RAG bỏ gateway" đều phải bị bắt |
-| **G5 CONTROL** | **Tenant:** `Principal` chỉ dựng từ khoá / registry, không kiểu request nào có trường tenant (test kiểu AST như `architecture_test.go`). Store và danh mục công bố tenant của chúng, S1 so với `Principal`. Từ W4: `SET LOCAL eacl.tenant_id` lấy từ `Principal` + test đọc lại GUC. Canary B: 0 dòng / đoạn / thực thể / bằng chứng của B tới được từ A (SQL, truy xuất, nhận dạng, bằng chứng), có test cho phép + test từ chối. **Quyền:** đóng mặc định; 100% ca `permission` đúng; truy xuất tôn trọng quyền tài liệu (cho phép + từ chối). **Model:** mọi số trong câu đã giao được đếm bằng **bộ đếm độc lập** (không dùng chính bộ chuẩn hoá); mỗi số phải ràng buộc đủ bộ (chủ thể / chỉ số / thời gian / giá trị / đơn vị / nguồn) với fact hay phép tính. Số trích từ SOP chỉ qua khi **không mang đơn vị của chỉ số đang được hỏi** (lượng nhiên liệu: L, m³…), ví dụ số bước, hạn "24 giờ", và được gắn nhãn "trích văn bản quy trình". Số lượng nhiên liệu nằm trong SOP **bị chặn**. Bảng "sai đúng một chiều": mỗi chiều trong 6 chiều có ≥ 3 ca, 100% bị chặn. ≥ 10 ca hợp lệ: 0 chặn oan. 100% ca prompt injection trong SOP **không đổi được** route / quyền / con số |
+| **G5 CONTROL** | **Tenant:** `Principal` chỉ dựng từ khoá / registry, không kiểu request nào có trường tenant (test kiểu AST như `architecture_test.go`). Store và danh mục công bố tenant của chúng, S1 so với `Principal`. Từ W4: `SET LOCAL eais.tenant_id` lấy từ `Principal` + test đọc lại GUC. Canary B: 0 dòng / đoạn / thực thể / bằng chứng của B tới được từ A (SQL, truy xuất, nhận dạng, bằng chứng), có test cho phép + test từ chối. **Quyền:** đóng mặc định; 100% ca `permission` đúng; truy xuất tôn trọng quyền tài liệu (cho phép + từ chối). **Model:** mọi số trong câu đã giao được đếm bằng **bộ đếm độc lập** (không dùng chính bộ chuẩn hoá); mỗi số phải ràng buộc đủ bộ (chủ thể / chỉ số / thời gian / giá trị / đơn vị / nguồn) với fact hay phép tính. Số trích từ SOP chỉ qua khi **không mang đơn vị của chỉ số đang được hỏi** (lượng nhiên liệu: L, m³…), ví dụ số bước, hạn "24 giờ", và được gắn nhãn "trích văn bản quy trình". Số lượng nhiên liệu nằm trong SOP **bị chặn**. Bảng "sai đúng một chiều": mỗi chiều trong 6 chiều có ≥ 3 ca, 100% bị chặn. ≥ 10 ca hợp lệ: 0 chặn oan. 100% ca prompt injection trong SOP **không đổi được** route / quyền / con số |
 | **G6 PROOF** | Bộ ca WIN **đóng băng trước W1** (băm sha256 ghi vào báo cáo); mỗi ca có `failure_class` + `authored_by`. ≥ 100 ca; mỗi lớp mục 5 ≥ 5 ca; ≥ 40% ca do **phiên không viết mã** soạn. Mọi câu đã giao có trace ghi **quyết định** (chuẩn hoá, thực thể, ý định, route, id bằng chứng, phán quyết) + phiên bản (pack / mã / bộ dữ liệu). **Kiểm phát lại:** chạy lại các chặng tất định từ trace phải ra đúng phản hồi; đột biến đổi route sau khi ghi trace phải bị bắt. Mỗi cổng kiểm có đột biến bị bắt. Thuộc tính: tổng của chỉ số có `min ≥ 0` thì ≥ 0; fact dẫn xuất được âm và \|giá trị\| = \|a − b\| với a, b lấy từ bằng chứng; A không bao giờ thấy B |
-| **G7 VALUE** | Cùng dữ liệu (tenant A), cùng bộ ca; model thật, temperature 0; mỗi hệ chạy **k = 3** lần, lấy trung vị. Chấm bằng **bộ đếm độc lập** với đáp án lấy từ manifest của bộ sinh, không lấy từ EACL. **Luật:** với **mọi** lớp mục 5, EACL ≥ baseline (hoà được phép); ở **≥ 4/8 lớp**, EACL hơn baseline **≥ 20 điểm %**; EACL: rò rỉ tenant = 0 và claim không căn cứ = 0. Độ trễ / chi phí **chỉ báo cáo** |
+| **G7 VALUE** | Cùng dữ liệu (tenant A), cùng bộ ca; model thật, temperature 0; mỗi hệ chạy **k = 3** lần, lấy trung vị. Chấm bằng **bộ đếm độc lập** với đáp án lấy từ manifest của bộ sinh, không lấy từ EAIS. **Luật:** với **mọi** lớp mục 5, EAIS ≥ baseline (hoà được phép); ở **≥ 4/8 lớp**, EAIS hơn baseline **≥ 20 điểm %**; EAIS: rò rỉ tenant = 0 và claim không căn cứ = 0. Độ trễ / chi phí **chỉ báo cáo** |
 
 **WIN = 7/7 cổng đạt VÀ scale smoke đạt.** Không cần thể thao, Agent, MCP, Kafka hay trăm triệu dòng.
 
@@ -186,5 +186,5 @@ Chi tiết và lý do: `docs/adr/0001-win-mvp.md`.
 | D3 | "Dùng bao nhiêu dầu" | CONSUMED (`measured_consumption`) |
 | D4 | Đọc PDF | PDF văn bản đọc bằng Go; Python / bảng PDF để sau WIN |
 | D5 | Công thức G7 | như G7 mục 6 |
-| D6 | Baseline | RAG đơn giản trong repo, chỉ dữ liệu tenant A, không có tầng kiểm soát EACL |
+| D6 | Baseline | RAG đơn giản trong repo, chỉ dữ liệu tenant A, không có tầng kiểm soát EAIS |
 | D7–D17 | Quyết định triển khai khi làm W2–W7 (vật tư mặc định, ghép HYBRID, truy xuất, PG, ràng buộc claim, so sánh, câu nhiều mệnh đề, số âm…) | `docs/adr/0002-win-quyet-dinh-trien-khai.md` |

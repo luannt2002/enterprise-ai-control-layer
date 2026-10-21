@@ -10,7 +10,7 @@
 - Bộ chấm nội dung v1 (`evals/g7.go`: `G7ContentReport` + `G7Counter`) bị một người tấn công độc lập phá: 170 đòn, 109 câu SAI mà ĐẠT, 24 câu ĐÚNG mà TRƯỢT. Gốc là "túi số": không phân cực, không ràng buộc thực thể / chỉ số / kỳ / nguồn, không kiểm đơn vị, không kiểm lịch.
 - Đêm 20→21/10 đã vá phần chắc chắn của v1: 170 đòn thành test ratchet, rỗng = từ chối, hệ lỗi khi hỏi luôn trượt, số được phép từng ca, canary tên. Nợ còn **118** đòn. v1 KHÔNG dùng làm bằng chứng G7.
 - Quy trình thiết kế v2:
-  - hai người thiết kế độc lập, không đọc mã hay pack EACL, không mở bộ giữ lại;
+  - hai người thiết kế độc lập, không đọc mã hay pack EAIS, không mở bộ giữ lại;
   - một giám khảo chấm hai bản, chạy lại số đo, tự soạn câu thử ngoài mẫu, rồi tổng hợp đặc tả.
 
 ## Quyết định
@@ -22,10 +22,10 @@
 2. **Bản 2 KHÔNG làm cổng.** Bản 2 là giao thức JSON có kiểu cho mọi hệ. Lý do:
    - nó buộc baseline khai thực thể / chỉ số / kỳ / nguồn, tức đổi đối tượng đo (ADR-0005 §2 cấm ở mức hệ);
    - nó đảo ADR-0005 §4;
-   - EACL phải đi qua adapter do người biết EACL viết, nên không độc lập;
+   - EAIS phải đi qua adapter do người biết EAIS viết, nên không độc lập;
    - đo trên văn xuôi tự nhiên, luật "mọi số phải khai" trượt oan 7/14.
 3. **Điều kiện đóng băng v2** (thiếu một điều kiện là không đóng băng):
-   - hiện thực trong `evals/` không import gói EACL;
+   - hiện thực trong `evals/` không import gói EAIS;
    - bảng 170 đòn đạt mức đặc tả §7.2;
    - có test hồi quy cho mọi ca thử ở đặc tả §12 (bản soát harness lượt 2, chiều C);
    - hiệu chỉnh trên đầu ra pilot THẬT, có người chấm mù (D-G7-16);

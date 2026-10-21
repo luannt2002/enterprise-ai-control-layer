@@ -11,7 +11,7 @@
 
 ## 1. Câu hỏi benchmark và luật kết luận
 
-**Câu hỏi:** tầng kiểm soát bao quanh model của EACL có tạo giá trị vượt một tích hợp AI đơn giản **nhưng có năng lực** không? Đo trên bài toán Fuel Discrepancy, cùng dữ liệu, cùng câu hỏi, cùng model.
+**Câu hỏi:** tầng kiểm soát bao quanh model của EAIS có tạo giá trị vượt một tích hợp AI đơn giản **nhưng có năng lực** không? Đo trên bài toán Fuel Discrepancy, cùng dữ liệu, cùng câu hỏi, cùng model.
 
 | Kết quả G7 | Điều kiện (ADR-0005 §6) | Kết luận dự án |
 |---|---|---|
@@ -38,14 +38,14 @@
 | Tenant được chấm | `abc-infra`; canary `def-build` |
 
 **Thiên lệch đã biết, bắt buộc ghi vào báo cáo kết quả:**
-- `docs/g7/CONTAMINATION-AUDIT.md`: bộ 117 có 3 ca nhiễm (083, 107, 108) và 12 ca không chắc. Bộ đó được băm sau lần chạy đầu. Mã EACL đã được lặp sửa tới 117/117 trên chính bộ đó.
+- `docs/g7/CONTAMINATION-AUDIT.md`: bộ 117 có 3 ca nhiễm (083, 107, 108) và 12 ca không chắc. Bộ đó được băm sau lần chạy đầu. Mã EAIS đã được lặp sửa tới 117/117 trên chính bộ đó.
 - Bộ giữ lại do người không đọc mã soạn, người khác soát, và đóng băng + push **trước** lần chạy đầu. Chỗ tài liệu mâu thuẫn được giải theo thứ tự ưu tiên `04` > ADR-0001 > ADR-0002 > pack `metrics` / `policy` (ADR-0006 §2). Ca rơi vào mâu thuẫn `04` / D7 được báo riêng (D-G7-12).
 
 ## 3. Các hệ được so (ADR-0005 §2)
 
 | Hệ | Vai | Dữ liệu được dùng | Lời gọi model |
 |---|---|---|---|
-| **EACL** | hệ được chấm | `pipeline.Ask` đường bộ nhớ: fact đã chuẩn hoá, danh mục chỉ số (thẩm quyền, dung sai) của pack, chỉ mục SOP (k = 3, lọc ACL theo vai) | chỉ ở route RAG / HYBRID |
+| **EAIS** | hệ được chấm | `pipeline.Ask` đường bộ nhớ: fact đã chuẩn hoá, danh mục chỉ số (thẩm quyền, dung sai) của pack, chỉ mục SOP (k = 3, lọc ACL theo vai) | chỉ ở route RAG / HYBRID |
 | **B1** | baseline cổng | LLM trực tiếp. Mỗi câu hỏi nhận:<br>- `entities.json` và mọi tài liệu;<br>- mọi **bản ghi thô** (đọc thẳng tệp, kể cả bản ghi bẩn và PDF) có ngày trong `b1_window` của ca, do người soạn ca gán. Bản ghi không đọc được ngày luôn có mặt.<br>Kèm ngày hiện tại | 1 / câu hỏi |
 | **B2+** | baseline cổng | RAG đơn giản **có năng lực**, top-10:<br>- mỗi quan sát một đoạn, có dự án + bí danh + mã theo nguồn của thực thể;<br>- kèm ngày hiện tại;<br>- **không** có tầng kiểm soát (biên ADR-0005 §2) | 1 / câu hỏi |
 | B2 | chỉ báo cáo | baseline cũ: đoạn thiếu bí danh | 1 / câu hỏi |
@@ -53,21 +53,21 @@
 | B2-oracle | chỉ báo cáo | B2+ nhưng thay truy xuất bằng **đúng** các đoạn của bản ghi ca trỏ tới (`truth.record_ids` của hồ sơ ca → khoá bản ghi của bộ sinh), cùng id và chữ như chỉ mục B2+; kèm ngày hiện tại. Ca không có `record_ids` (tài liệu, ngoài phạm vi, thiếu dữ liệu) hỏi B2+ y nguyên, nên chênh lệch với B2+ là phần do truy xuất. Cần `-manifest` có `truth` | 1 / câu hỏi |
 
 Khác biệt truy cập dữ liệu, cố ý:
-- **EACL dùng danh mục ngữ nghĩa + thẩm quyền nguồn của pack.** Đây chính là tầng kiểm soát đang được đo.
-- **B2 / B2+ nhận quan sát đã chuẩn hoá** bởi bộ nạp của EACL. Đây là lợi thế cho baseline, làm phép so khắt khe hơn với EACL.
-- **Không hệ nào thấy dữ liệu tenant B.** Chỉ EACL kiểm quyền người hỏi. Vì thế lớp `permission` bị loại khỏi phép đếm "lớp hơn".
+- **EAIS dùng danh mục ngữ nghĩa + thẩm quyền nguồn của pack.** Đây chính là tầng kiểm soát đang được đo.
+- **B2 / B2+ nhận quan sát đã chuẩn hoá** bởi bộ nạp của EAIS. Đây là lợi thế cho baseline, làm phép so khắt khe hơn với EAIS.
+- **Không hệ nào thấy dữ liệu tenant B.** Chỉ EAIS kiểm quyền người hỏi. Vì thế lớp `permission` bị loại khỏi phép đếm "lớp hơn".
 
 ## 4. Model và tham số (giống hệt cho mọi hệ)
 
 | Tham số | Giá trị | Biến môi trường |
 |---|---|---|
-| Nhà cung cấp | Anthropic Messages API, client `models.Messages` | `EACL_MODEL_PROVIDER=anthropic` |
-| Model | **`claude-sonnet-5-5`** (D-G7-2). Haiku 5.5 chỉ cho báo cáo độ nhạy riêng | `EACL_MODEL` |
-| Sampling | **không gửi** `temperature` / `top_p` / `top_k`. Lần chạy là NGẪU NHIÊN | (không đặt `EACL_MODEL_TEMPERATURE`) |
-| Thinking | `{"type": "between_tools"}`: mức thấp nhất của Sonnet 5.5, chạy ở effort low / medium / high (tài liệu Effort, tra 20/10/2026) | `EACL_MODEL_THINKING=between_tools` |
-| Effort | `medium`, đặt ở `output_config.effort` | `EACL_MODEL_EFFORT=medium` |
+| Nhà cung cấp | Anthropic Messages API, client `models.Messages` | `EAIS_MODEL_PROVIDER=anthropic` |
+| Model | **`claude-sonnet-5-5`** (D-G7-2). Haiku 5.5 chỉ cho báo cáo độ nhạy riêng | `EAIS_MODEL` |
+| Sampling | **không gửi** `temperature` / `top_p` / `top_k`. Lần chạy là NGẪU NHIÊN | (không đặt `EAIS_MODEL_TEMPERATURE`) |
+| Thinking | `{"type": "between_tools"}`: mức thấp nhất của Sonnet 5.5, chạy ở effort low / medium / high (tài liệu Effort, tra 20/10/2026) | `EAIS_MODEL_THINKING=between_tools` |
+| Effort | `medium`, đặt ở `output_config.effort` | `EAIS_MODEL_EFFORT=medium` |
 | `max_tokens` | 1024 | mặc định |
-| Thử lại | 2 lần cho lỗi tạm (không tới được, quá giờ, 429, 5xx), lùi 1 s rồi 2 s; mọi lần gửi được ghi vết | `EACL_MODEL_MAX_RETRIES=2` (mặc định) |
+| Thử lại | 2 lần cho lỗi tạm (không tới được, quá giờ, 429, 5xx), lùi 1 s rồi 2 s; mọi lần gửi được ghi vết | `EAIS_MODEL_MAX_RETRIES=2` (mặc định) |
 | System prompt | `messagesSystem`, sha256 `ce28446e…d781bf`. **Có thể đổi** theo bộ chấm v2, trước khi đóng băng | — |
 | User prompt | `Câu hỏi: …` + `Bằng chứng:` mỗi đoạn `[id] văn bản`; B2+ / B2″ / B1 thêm phần mở đầu (ngày hiện tại; B2″ thêm luật) trước câu hỏi | — |
 | Seed | API không có seed: không áp dụng | — |
@@ -75,17 +75,17 @@ Khác biệt truy cập dữ liệu, cố ý:
 **Thử khói bắt buộc trước lượt chạy:** `g7run -smoke 3`. Mọi câu hỏi phải không lỗi, mọi lời gọi kết thúc bằng HTTP 200. Tham số nào bị từ chối thì sửa **trước** khi đóng băng, kèm ghi chú ở ADR-0005.
 
 - Mã thoát (`1276b5f`, C-13; bảng đầy đủ ở chú thích đầu `g7run/main.go`): **0 chỉ khi endpoint là API chính thức** và đạt; trượt là 1; chạy khô (máy chủ giả, proxy) mà đạt là 2; model giả là 2. Hệ cổng bị chặn: chạy khô thì THỬ KHÓI: KHÔNG ĐẠT (mã 1); lượt thật thì dừng TRƯỚC lời gọi model, báo LỖI, mã 2 (soát C2, F-07).
-- Giới hạn: thử khói lấy N ca **đầu**, nên đường gọi model của EACL có thể chưa được thử (dòng EACL ghi "lời gọi model 0"). Mọi hệ dùng chung một gateway nên bộ tham số vẫn được thử qua baseline; B1 (prompt lớn nhất) chỉ được thử nếu có trong N ca đầu.
+- Giới hạn: thử khói lấy N ca **đầu**, nên đường gọi model của EAIS có thể chưa được thử (dòng EAIS ghi "lời gọi model 0"). Mọi hệ dùng chung một gateway nên bộ tham số vẫn được thử qua baseline; B1 (prompt lớn nhất) chỉ được thử nếu có trong N ca đầu.
 
 ## 5. Số lượt và tổng hợp (ADR-0005 §5, hiện thực ở `evals.CompareG7`, commit `a507e81`)
 
 - **k:** pilot chạy k = 5. Hệ cổng nào có ≥ 2 ca chập chờn thì chạy chính k = 5, không thì k = 3 (ADR-0006 §6; `g7run -pilot`).
 - **Điểm từng ca:** `pass_count / k`. Ca chập chờn (đạt ở 0 < n < k lượt) được liệt kê riêng cho từng hệ.
 - **Điểm lớp:** trung vị qua k lượt của số ca đạt. Riêng `permission` và `unsupported_answer` tính **ANY-RUN**: ca chỉ đạt khi đạt ở mọi lượt, áp cho mọi hệ.
-- **Lượt hợp lệ:** đường tất định của EACL giống nhau giữa các lượt:
+- **Lượt hợp lệ:** đường tất định của EAIS giống nhau giữa các lượt:
   - câu KHÔNG gọi model: so đủ route, outcome, ứng viên, xung đột, trích dẫn;
   - câu CÓ gọi model: **chỉ so route** (chọn trước lời gọi model). Trích dẫn là id do model chọn, outcome phụ thuộc việc kiểm bản nháp ngẫu nhiên (bản soát mã độc lập S2-5, `a94b5fb`; `askRecord.path` trong `g7run/evidence.go`).
-  - Khác thì lượt vô hiệu. `g7run` không tự chạy lại: nó ghi ca không ổn định vào `aggregate.json` (`eacl_unstable_cases`), in "LƯỢT VÔ HIỆU" và không bao giờ thoát 0 (`gatePass`). Người vận hành sửa nguyên nhân rồi chạy lại cả lượt (§10); lượt chạy lại vẫn khác thì G7 FAIL.
+  - Khác thì lượt vô hiệu. `g7run` không tự chạy lại: nó ghi ca không ổn định vào `aggregate.json` (`eais_unstable_cases`), in "LƯỢT VÔ HIỆU" và không bao giờ thoát 0 (`gatePass`). Người vận hành sửa nguyên nhân rồi chạy lại cả lượt (§10); lượt chạy lại vẫn khác thì G7 FAIL.
 
 ## 6. Cách chấm từng ca — ĐANG THIẾT KẾ LẠI
 
@@ -94,27 +94,27 @@ Khác biệt truy cập dữ liệu, cố ý:
   - một câu chỉ liệt kê mọi số của bản ghi ĐẠT 73/117 ca (theo người tấn công; chưa tái lập trong repo).
   - Gốc: "túi số", không có phân cực, không ràng buộc thực thể / chỉ số / kỳ / nguồn, không kiểm đơn vị, không kiểm lịch ngày.
   - **v1 không được dùng làm bằng chứng G7.**
-- **Bộ chấm v2:** do người không đọc mã EACL thiết kế (hai hướng + giám khảo), ghi vào ADR-0007 **trước** khi đóng băng. Sau đó hiện thực có test cho từng đòn, rồi chính người tấn công chạy lại đòn.
+- **Bộ chấm v2:** do người không đọc mã EAIS thiết kế (hai hướng + giám khảo), ghi vào ADR-0007 **trước** khi đóng băng. Sau đó hiện thực có test cho từng đòn, rồi chính người tấn công chạy lại đòn.
 - Bộ giữ lại có trường `truth` có cấu trúc (thực thể, chỉ số, kỳ, giá trị, đơn vị, nguồn, id bản ghi, giá trị nguồn khác), để ràng buộc con số đúng vào đúng thứ nó nói.
 - **Bất biến đã chốt:**
   - một tiêu chí cho mọi hệ;
-  - bỏ qua nhãn kiến trúc EACL (route, outcome, `model_calls`, trích dẫn có cấu trúc);
+  - bỏ qua nhãn kiến trúc EAIS (route, outcome, `model_calls`, trích dẫn có cấu trúc);
   - câu trả lời rỗng của model = từ chối cho mọi hệ (D-G7-9 mục 6);
   - chuẩn hoá số trước khi so chuỗi cấm (mục 7);
   - canary tên + dạng chữ (mục 12).
 
 ## 7. Luật D5 sửa đổi (tên luật trong `CompareG7`)
 
-Với **mỗi** baseline cổng (B1, B2+) so với EACL:
+Với **mỗi** baseline cổng (B1, B2+) so với EAIS:
 
 | Luật | Tên | Nội dung |
 |---|---|---|
 | R0 | `runs` | k ≥ 3 và lẻ |
-| R1 | `no_class_behind` | mọi lớp trong 8 lớp: điểm EACL ≥ điểm baseline (hoà được phép); lớp không có ca là không đo được |
-| R2 | `lead` | ≥ 4 trong 7 lớp (bỏ `permission`) có EACL − baseline ≥ 20 điểm %. Lớp dưới 12 ca không được tính |
-| R3a | `no_leak` | EACL: 0 câu rò rỉ canary, mọi lượt |
-| R3b | `no_unsupported_claim` | EACL: 0 số không căn cứ (bộ đếm độc lập), mọi lượt |
-| R3c | `no_permission_exposure` | EACL: 0 lần lộ số được bảo vệ ở ca kỳ vọng `PERMISSION_DENIED`, mọi lượt, không miễn số của câu hỏi |
+| R1 | `no_class_behind` | mọi lớp trong 8 lớp: điểm EAIS ≥ điểm baseline (hoà được phép); lớp không có ca là không đo được |
+| R2 | `lead` | ≥ 4 trong 7 lớp (bỏ `permission`) có EAIS − baseline ≥ 20 điểm %. Lớp dưới 12 ca không được tính |
+| R3a | `no_leak` | EAIS: 0 câu rò rỉ canary, mọi lượt |
+| R3b | `no_unsupported_claim` | EAIS: 0 số không căn cứ (bộ đếm độc lập), mọi lượt |
+| R3c | `no_permission_exposure` | EAIS: 0 lần lộ số được bảo vệ ở ca kỳ vọng `PERMISSION_DENIED`, mọi lượt, không miễn số của câu hỏi |
 | R4 | `mcnemar` | McNemar chính xác một phía trên từng ca (đạt = đạt ở đa số lượt), p ≤ 0,01. Dưới 10 cặp lệch thì "không đủ điều kiện": không chặn, không tuyên bố ý nghĩa thống kê |
 
 - Kèm theo: khoảng Wilson 95% từng lớp cho từng hệ.
@@ -125,7 +125,7 @@ Với **mỗi** baseline cổng (B1, B2+) so với EACL:
 DATA · NORMALIZATION · ENTITY · INTENT · SEMANTICS · SOURCE_AUTHORITY · PERMISSION · RETRIEVAL · CONTEXT · ROUTING · MODEL · CLAIM_BINDING · VALIDATION · SCORER · PROVIDER · UNKNOWN
 
 - **Cách gán:**
-  - EACL: theo bản ghi quyết định (chặng đầu tiên lệch so với kỳ vọng);
+  - EAIS: theo bản ghi quyết định (chặng đầu tiên lệch so với kỳ vọng);
   - baseline: theo luật so câu trả lời với `truth`.
 - **Quy trình:** máy gán trước (cột `first_wrong_layer` của `failures.jsonl`, mặc định "CHƯA PHÂN LOẠI"), người duyệt sau; ghi cả hai.
 - **Ghi rõ:** bất biến nào hỏng. Ca rơi vào mâu thuẫn `04` / D7 ghi SEMANTICS kèm chú thích "xung đột chính sách" (D-G7-12).
@@ -146,8 +146,8 @@ DATA · NORMALIZATION · ENTITY · INTENT · SEMANTICS · SOURCE_AUTHORITY · PE
 - 429 / 5xx / quá giờ / không tới được: thử lại 2 lần, lùi 1 s, 2 s. Hết lượt thì ca đó trượt với nhãn PROVIDER; không bỏ ca, không chạy riêng ca đó lại.
 - **Lượt VÔ HIỆU** khi:
   - > 2% lời gọi của một hệ trong lượt đó trượt vì PROVIDER; hoặc
-  - đường tất định của EACL khác giữa các lượt (mục 5).
-  Khi đó ghi "invalid run", sửa nguyên nhân, chạy lại cả lượt của mọi hệ. Chạy lại là việc THỦ CÔNG: `g7run` chỉ báo lượt vô hiệu (in ra; `aggregate.json` có `eacl_unstable_cases` / `invalid_runs`; mã thoát khác 0), không tự gọi lại model.
+  - đường tất định của EAIS khác giữa các lượt (mục 5).
+  Khi đó ghi "invalid run", sửa nguyên nhân, chạy lại cả lượt của mọi hệ. Chạy lại là việc THỦ CÔNG: `g7run` chỉ báo lượt vô hiệu (in ra; `aggregate.json` có `eais_unstable_cases` / `invalid_runs`; mã thoát khác 0), không tự gọi lại model.
 - **Lỗi harness / bộ chấm** phát hiện giữa chừng: dừng, ghi invalid run, sửa, chạy lại toàn bộ phần bị ảnh hưởng (ADR mới nếu sau đóng băng).
 - **Không sửa mã sản phẩm giữa benchmark** để cứu ca trượt.
 
@@ -157,8 +157,8 @@ Mỗi lần chạy ghi vào `docs/g7/runs/<ngày>-<revision>/`:
 
 | Tệp | Nội dung |
 |---|---|
-| `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EACL có đường tất định không ổn định; cách chấm (`grade`), bộ chấm đã đóng băng chưa (`scorer_frozen`), có phải pilot (`pilot`) |
-| `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token); với EACL thêm `decision` = bản ghi quyết định S2–S10 (`traces.Decision`) để gán tầng sai đầu tiên (§8) mà không gọi lại model (C-11). Không có khoá |
+| `manifest.json` | revision + cờ dirty; Go; OS; model + tham số hiệu lực; sha256 system prompt; k; top-k; hệ; hệ cổng bị chặn; sha256 bộ ca / world / pack / hồ sơ ca / hợp đồng; sha256 manifest dữ liệu; bảng giá; ngân sách; ca EAIS có đường tất định không ổn định; cách chấm (`grade`), bộ chấm đã đóng băng chưa (`scorer_frozen`), có phải pilot (`pilot`) |
+| `raw-runs.jsonl` | mỗi câu hỏi × lượt × hệ một dòng: câu hỏi, câu trả lời, route, outcome, ứng viên, xung đột, trích dẫn, số lời gọi model, độ trễ, lỗi; mọi lần gửi HTTP (lần thử, mã, độ trễ, thân yêu cầu / phản hồi, token); với EAIS thêm `decision` = bản ghi quyết định S2–S10 (`traces.Decision`) để gán tầng sai đầu tiên (§8) mà không gọi lại model (C-11). Không có khoá |
 | `scored.jsonl` | chấm nội dung + chấm đủ (RunWin) từng dòng |
 | `aggregate.json` | phán quyết D5 với từng baseline, `pass_count`, ca chập chờn, k (và k đề xuất nếu là pilot), số đếm độc lập. `gate_pass` = kết luận G7 thật (mã thoát 0); `rule_pass` = luật D5 thuần trên các hệ cổng, chưa xét điều kiện bằng chứng; `conclusion` = dòng kết luận; `exit_code` (soát C2, F-01) |
 | `failures.jsonl` | ca trượt + `first_wrong_layer` |
@@ -192,7 +192,7 @@ git status --porcelain                       # phải rỗng
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out /tmp/g7data -profile functional -seed 42
 sha256sum /tmp/g7data/manifest.json          # phải = 31172355…adb055
 # 2. cấu hình model (khoá do chủ môi trường đặt; KHÔNG in, KHÔNG commit, agent KHÔNG tự tìm)
-export EACL_MODEL_PROVIDER=anthropic EACL_MODEL=claude-sonnet-5-5 EACL_MODEL_THINKING=between_tools EACL_MODEL_EFFORT=medium
+export EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=claude-sonnet-5-5 EAIS_MODEL_THINKING=between_tools EAIS_MODEL_EFFORT=medium
 # 3. thử khói
 go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -smoke 3
 # 4. pilot (k = 5) → k của lượt chính theo luật ADR-0006 §6

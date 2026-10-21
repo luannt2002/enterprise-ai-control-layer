@@ -2,7 +2,7 @@
 
 - **Ngày đo:** 21/10/2026 rạng sáng, trên mã `9de63d2`. Pipeline, client model và `g7run` đã đổi sau đó (tới bản chốt sáng 21/10): số lời gọi / ký tự CHƯA đo lại. Dữ liệu functional seed 42, manifest `31172355…adb055`.
 - **Đã đo (chạy khô):**
-  - máy chủ giả `scripts/g7-chay-kho.py` ở cổng 25480, `g7run -k 1`, mọi hệ (EACL, B1, B2+, B2, B2″, B2-oracle);
+  - máy chủ giả `scripts/g7-chay-kho.py` ở cổng 25480, `g7run -k 1`, mọi hệ (EAIS, B1, B2+, B2, B2″, B2-oracle);
   - tham số đúng hợp đồng §4 (`claude-sonnet-5-5`, thinking `between_tools`, effort `medium`, không temperature);
   - tập: `pilot.yaml` (16 ca) và `h1.yaml` (104 ca).
   - Đo được số lời gọi model và số ký tự prompt (system + user) của từng lời gọi, lấy từ thân yêu cầu thật trong `raw-runs.jsonl`.
@@ -19,7 +19,7 @@
 
 | Hệ | Lời gọi pilot | Ký tự pilot | Lời gọi H1 | Ký tự H1 | Ký tự TB / lời gọi (H1) |
 |---|---|---|---|---|---|
-| EACL | 0 | 0 | 4 | 3392 | 848 |
+| EAIS | 0 | 0 | 4 | 3392 | 848 |
 | B1 | 16 | 430580 | 104 | 3749982 | 36058 |
 | B2+ | 16 | 39418 | 104 | 274414 | 2639 |
 | B2 | 16 | 19947 | 104 | 135269 | 1301 |
@@ -30,7 +30,7 @@ max_tokens = 1024
 
 ## Ước lượng: pilot k = 5 + lượt chính H1 k = 3 (USD)
 
-| Kịch bản | EACL | B1 | B2+ | B2 | B2″ | B2-oracle | Tổng cổng | Tổng cổng + dự phòng cổng | Tổng mọi hệ | Dự phòng | Tổng mọi hệ + dự phòng |
+| Kịch bản | EAIS | B1 | B2+ | B2 | B2″ | B2-oracle | Tổng cổng | Tổng cổng + dự phòng cổng | Tổng mọi hệ | Dự phòng | Tổng mọi hệ + dự phòng |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | tối thiểu | 0.01 | 9.13 | 0.88 | 0.53 | 1.14 | 0.62 | 10.02 | 18.46 ⚠ vượt trần | 12.32 | 10.29 | 22.61 ⚠ vượt trần |
 | kỳ vọng | 0.03 | 11.31 | 1.40 | 0.99 | 1.72 | 1.10 | 12.74 | 23.44 ⚠ vượt trần | 16.56 ⚠ vượt trần | 13.78 | 30.34 ⚠ vượt trần |
@@ -38,7 +38,7 @@ max_tokens = 1024
 
 ## Ước lượng: pilot k = 5 + lượt chính H1 k = 5 (USD)
 
-| Kịch bản | EACL | B1 | B2+ | B2 | B2″ | B2-oracle | Tổng cổng | Tổng cổng + dự phòng cổng | Tổng mọi hệ | Dự phòng | Tổng mọi hệ + dự phòng |
+| Kịch bản | EAIS | B1 | B2+ | B2 | B2″ | B2-oracle | Tổng cổng | Tổng cổng + dự phòng cổng | Tổng mọi hệ | Dự phòng | Tổng mọi hệ + dự phòng |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | tối thiểu | 0.02 | 14.24 | 1.35 | 0.82 | 1.75 | 0.96 | 15.60 ⚠ vượt trần | 29.62 ⚠ vượt trần | 19.13 ⚠ vượt trần | 17.10 | 36.23 ⚠ vượt trần |
 | kỳ vọng | 0.04 | 17.62 | 2.16 | 1.52 | 2.64 | 1.69 | 19.82 ⚠ vượt trần | 37.60 ⚠ vượt trần | 25.67 ⚠ vượt trần | 22.89 | 48.56 ⚠ vượt trần |
@@ -48,9 +48,9 @@ Trần: 15 USD cho toàn bộ G7 (pilot + chính). Kịch bản 'xấu nhất' l
 
 ## Đọc bảng
 
-1. **B1 là gần hết chi phí.** Trung bình 36.058 ký tự / lời gọi trên H1 (cửa sổ bản ghi thô từng ca). B2+ 2.639; EACL chỉ gọi model 4 lần trên 104 ca (các route còn lại tất định).
+1. **B1 là gần hết chi phí.** Trung bình 36.058 ký tự / lời gọi trên H1 (cửa sổ bản ghi thô từng ca). B2+ 2.639; EAIS chỉ gọi model 4 lần trên 104 ca (các route còn lại tất định).
 2. **Trong trần 15 USD (kỳ vọng) chỉ khi đủ cả ba:**
-   - chạy riêng hệ cổng (EACL, B1, B2+);
+   - chạy riêng hệ cổng (EAIS, B1, B2+);
    - lượt chính k = 3;
    - KHÔNG phải chạy lại.
    - Khi đó: 12,74 USD (tối thiểu 10,02). Thêm dự phòng một lần chạy lại trọn lượt ⇒ 23,44 USD, vượt trần.

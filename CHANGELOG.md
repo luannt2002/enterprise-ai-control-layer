@@ -1,10 +1,22 @@
 # Changelog
 
-Mọi thay đổi đáng kể của EACL được ghi ở đây, theo tinh thần [Keep a Changelog](https://keepachangelog.com/).
+Mọi thay đổi đáng kể của EAIS được ghi ở đây, theo tinh thần [Keep a Changelog](https://keepachangelog.com/).
 Dự án chưa phát hành phiên bản nào. Commit đầu tiên: 20/10/2026.
 Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
+
+### 21/10/2026 tối — đổi tên lại: EAIS (Enterprise AI Systems), D-RM-02
+
+- Tên sản phẩm trở về tên gốc ngày 20/10 (`d70ebc8`) trong mã, định danh chạy và tài liệu hiện hành. **Link git giữ nguyên:** tên repo, remote, đường dẫn module Go và mọi import.
+- Định danh chạy:
+  - biến môi trường `EAIS_MODEL_*`, `EAIS_PG_ADMIN_DSN`, `EAIS_PG_DSN`; biến cùng tên tiền tố `EACL_` vẫn được đọc khi biến `EAIS_` không đặt (`models.modelEnv`, `pgstore.EnvDSN` mới, `scripts/chay-giu-lai.sh`);
+  - migration mới `0002_dinh_danh_eais.sql` (không sửa `0001`): vai `eais_app`, GUC `eais.tenant_id`, vai `eacl_app` của 0001 mất mọi quyền trên bảng nghiệp vụ;
+  - PG dev: compose `eais`, container `eais-pg`, database `eais`, database bộ giữ lại `eais_giu_lai`;
+  - mã hệ G7 `eais` (khoá JSON `eais_unstable_cases`); `scripts/du-toan-g7.py` vẫn đọc mã hệ `eacl` trong bằng chứng thô đã lưu.
+- Brief BUILD đổi tên tệp: `docs/PROMPT-BUILD-EACL.md` → `docs/PROMPT-BUILD-EAIS.md`.
+- Cổng danh tính đảo chiều: bắt tên EACL, bỏ đúng chuỗi link git trước khi đếm; giữ nguyên bằng chứng lịch sử, tệp đã băm, migration đã áp và muối băm chia bộ giữ lại.
+- Hành vi không đổi: test có PG so theo tên 0 mất / 0 đổi kết quả; bộ 117, H1, H3 ở cả hai đường: 0 dòng khác ngoài thời gian chạy.
 
 ### Ca ngày 21/10/2026 — chiều: H4 đóng băng, BYPASSRLS, cổng danh tính, phản hồi ROADMAP
 

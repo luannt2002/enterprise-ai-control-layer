@@ -1,6 +1,6 @@
-# CLAUDE.md — EACL Engineering Operating Contract
+# CLAUDE.md — EAIS Engineering Operating Contract
 
-> Áp dụng cho toàn repository EACL.
+> Áp dụng cho toàn repository EAIS.
 > Hướng dẫn sâu hơn trong thư mục con được phép bổ sung nhưng không được âm thầm
 > phá các invariant của tài liệu này.
 >
@@ -308,11 +308,11 @@ Không viết tutorial từng phím cho agent nếu không cần.
 
 ---
 
-# 9. EACL — PRODUCT MISSION
+# 9. EAIS — PRODUCT MISSION
 
-EACL = Enterprise AI Control Layer.
+EAIS = Enterprise AI Systems.
 
-EACL là:
+EAIS là:
 
 > reference architecture và control layer chạy được để tích hợp AI capabilities
 > xác suất vào phần mềm doanh nghiệp đã có, trong khi chính phần mềm đó giữ quyền
@@ -331,7 +331,7 @@ Business Reality
 → Verified Outcome
 → Measured Value
 
-EACL KHÔNG phải:
+EAIS KHÔNG phải:
 
 - chatbot framework;
 - RAG wrapper;
@@ -352,7 +352,7 @@ Không encode domain-specific behavior vào shared core chỉ để một tenant
 
 ---
 
-# 10. EACL — FIRST PRINCIPLES
+# 10. EAIS — FIRST PRINCIPLES
 
 ## P1 — Model ≠ System
 
@@ -550,7 +550,7 @@ Không mặc định:
 
 ---
 
-# 11. EACL — RUNTIME BOUNDARY
+# 11. EAIS — RUNTIME BOUNDARY
 
 Luồng Ask mục tiêu:
 
@@ -590,7 +590,7 @@ khi business cases chứng minh cần.
 
 # 12. RAG BOUNDARY
 
-RAG là capability, không phải EACL.
+RAG là capability, không phải EAIS.
 
 RAG chịu trách nhiệm cho:
 
@@ -619,11 +619,11 @@ KnowledgeRetriever
     Retrieve(...)
     → []Evidence
 
-EACL chỉ cần biết:
+EAIS chỉ cần biết:
 
 > cần evidence.
 
-EACL core không được phụ thuộc việc retrieval bên trong dùng BM25, vector,
+EAIS core không được phụ thuộc việc retrieval bên trong dùng BM25, vector,
 hybrid hay implementation khác.
 
 ---
@@ -950,7 +950,7 @@ và lý do phải rõ.
 
 ---
 
-# 23. EACL EVALUATION
+# 23. EAIS EVALUATION
 
 Tùy component, dùng metric thích hợp:
 
@@ -978,7 +978,7 @@ Không dùng LLM-as-judge làm bằng chứng duy nhất nếu deterministic eva
 
 # 24. FAILURE-DRIVEN DEVELOPMENT
 
-Feature/capability EACL nên tiến hóa theo:
+Feature/capability EAIS nên tiến hóa theo:
 
 Business Case
 → Current Failure
@@ -1013,7 +1013,7 @@ Target/current architecture phải được phân biệt rõ.
 
 Các khu vực chính:
 
-    cmd/eacl/
+    cmd/eais/
     core/
     data/
     intelligence/
@@ -1241,7 +1241,7 @@ Nếu chưa trả lời được:
 
 Nguồn architecture chính:
 
-- kiến trúc EACL hiện hành trong `docs/`;
+- kiến trúc EAIS hiện hành trong `docs/`;
 - ADR trong `docs/adr/` hoặc vị trí thực tế của repository;
 - contracts trong code;
 - tenant packs;
@@ -1281,7 +1281,7 @@ Không tuyên bố "toàn bộ hệ thống đã verify" chỉ vì task cục b�
 
 Trước khi thêm code, abstraction, model, agent, RAG strategy, tool, service hoặc dependency:
 
-> Failure cụ thể nào đang buộc EACL phải có thứ này?
+> Failure cụ thể nào đang buộc EAIS phải có thứ này?
 
 Nếu không trả lời được bằng business case hoặc engineering evidence:
 

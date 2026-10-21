@@ -5,7 +5,7 @@
 
 ## 0. Vì sao tenant này được chọn
 
-ABC là **Reference Tenant #01**: dùng để *khám phá* kiến trúc EACL. Dữ liệu của nó đi từ **người nhập bẩn** (tin nhắn "dầu 4k", phiếu kho viết tay) → **tài liệu** (SOP, hợp đồng, bản vẽ) → **nguồn sự thật** (bốn chỉ số nhiên liệu khác nhau) → **workflow** (duyệt vật tư, nghiệm thu, sự cố) → **số liệu chính xác** (tổng dầu, giờ máy, khối lượng). Doanh nghiệp không chỉ *hỏi* mà còn *ra lệnh* và *nhận sự kiện* (cảm biến, ERP), nên nó ép đủ ba lối vào QUERY · COMMAND · EVENT của kiến trúc ([01-architecture §2.1](../../01-architecture.md)).
+ABC là **Reference Tenant #01**: dùng để *khám phá* kiến trúc EAIS. Dữ liệu của nó đi từ **người nhập bẩn** (tin nhắn "dầu 4k", phiếu kho viết tay) → **tài liệu** (SOP, hợp đồng, bản vẽ) → **nguồn sự thật** (bốn chỉ số nhiên liệu khác nhau) → **workflow** (duyệt vật tư, nghiệm thu, sự cố) → **số liệu chính xác** (tổng dầu, giờ máy, khối lượng). Doanh nghiệp không chỉ *hỏi* mà còn *ra lệnh* và *nhận sự kiện* (cảm biến, ERP), nên nó ép đủ ba lối vào QUERY · COMMAND · EVENT của kiến trúc ([01-architecture §2.1](../../01-architecture.md)).
 
 ---
 
@@ -32,7 +32,7 @@ ABC là **Reference Tenant #01**: dùng để *khám phá* kiến trúc EACL. D�
 
 ## 2. Khách hàng và bên liên quan ngoài tổ chức
 
-| Bên | Vai trò với ABC | Dữ liệu trao đổi | Điểm chạm vào EACL |
+| Bên | Vai trò với ABC | Dữ liệu trao đổi | Điểm chạm vào EAIS |
 |---|---|---|---|
 | Chủ đầu tư (CĐT) | ký hợp đồng, nghiệm thu, thanh toán, chấp thuận phát sinh | hợp đồng, biên bản nghiệm thu, hồ sơ thanh toán | tài liệu (I1); xác nhận do nhân viên hồ sơ nhập thay (human task) |
 | Tư vấn giám sát (TVGS) | giám sát chất lượng/khối lượng thay CĐT; trả lời RFI | biên bản kiểm tra, xác nhận khối lượng, phản hồi RFI | tài liệu (I1); xác nhận khối lượng (`accepted_quantity`) |
@@ -48,7 +48,7 @@ ABC là **Reference Tenant #01**: dùng để *khám phá* kiến trúc EACL. D�
 
 Brief gốc liệt kê 13 mục, trong đó **"Vật tư / Kho"** được tách thành hai phòng ban vì luồng dữ liệu khác nhau (mua sắm so với ghi sổ kho), nên có **14 phòng ban**. Mỗi phòng ban có một bảng theo chuỗi **Actor → Trigger → Input → Process → Decision → Output → Downstream → Data produced → System touched → Exceptions → Failure consequences**.
 
-| # | Phòng ban | Vai trò EACL chính (xem §4) | Domain liên quan (02) |
+| # | Phòng ban | Vai trò EAIS chính (xem §4) | Domain liên quan (02) |
 |---|---|---|---|
 | 1 | Ban giám đốc | `director`, `deputy_director` | `management_dashboard`, `budget`, `contract_management` |
 | 2 | Đấu thầu | `bidding_estimator` | `tender_bid`, `boq_quantity`, `budget` |
@@ -285,15 +285,15 @@ Brief gốc liệt kê 13 mục, trong đó **"Vật tư / Kho"** được tách
 | Output | hệ thống vận hành, nhật ký audit, báo cáo sự cố hạ tầng |
 | Downstream | mọi phòng ban |
 | Data produced | nhật ký truy cập, danh mục principal, `pack_version` |
-| System touched | ERP, hạ tầng, dịch vụ đọc tài liệu, EACL |
+| System touched | ERP, hạ tầng, dịch vụ đọc tài liệu, EAIS |
 | Exceptions | dịch vụ sập; lỗi tích hợp; yêu cầu uỷ quyền có thời hạn; yêu cầu xoá dữ liệu cá nhân |
 | Failure consequences | rò dữ liệu giữa phạm vi/tenant; mất dữ liệu; cấu hình sai chạy trên dữ liệu thật |
 
 ---
 
-## 4. Actor và vai trong EACL
+## 4. Actor và vai trong EAIS
 
-EACL tách **bốn loại vai** ([kiến trúc §2.2](../../01-architecture.md)): (1) vai nghiệp vụ, (2) phạm vi dữ liệu, (3) quyền capability, (4) vai của model. *Principal (chủ thể đã xác thực, người hoặc hệ thống) mang vai theo RBAC (kiểm soát truy cập theo vai) và thuộc tính theo ABAC (kiểm soát truy cập theo thuộc tính, ví dụ dự án được gán).* **Chỉ loại 4 nằm trong prompt, và nó không bao giờ dùng để phân quyền.** Bảng dưới là loại 1 và 2; quyền capability ở §4.2.
+EAIS tách **bốn loại vai** ([kiến trúc §2.2](../../01-architecture.md)): (1) vai nghiệp vụ, (2) phạm vi dữ liệu, (3) quyền capability, (4) vai của model. *Principal (chủ thể đã xác thực, người hoặc hệ thống) mang vai theo RBAC (kiểm soát truy cập theo vai) và thuộc tính theo ABAC (kiểm soát truy cập theo thuộc tính, ví dụ dự án được gán).* **Chỉ loại 4 nằm trong prompt, và nó không bao giờ dùng để phân quyền.** Bảng dưới là loại 1 và 2; quyền capability ở §4.2.
 
 ### 4.1 Vai nghiệp vụ (`principals.roles`) và phạm vi dữ liệu
 
@@ -341,7 +341,7 @@ Principal không phải người (cũng đi qua `governance/auth`): `system_erp`
 
 ## 5. Hệ thống và nguồn dữ liệu
 
-| Hệ thống | Dữ liệu | Loại | Chủ | Đường vào EACL |
+| Hệ thống | Dữ liệu | Loại | Chủ | Đường vào EAIS |
 |---|---|---|---|---|
 | ERP (mua hàng, kho, tài sản, kế toán, hợp đồng) | PO, PNK/PXK, tồn kho, tài sản, bút toán, hoá đơn | có cấu trúc | tài chính/kho | I2 (bản ghi có cấu trúc) → observation → fact theo chỉ số |
 | Bảng tính Excel | BOQ, tiến độ, báo cáo tổng hợp, bảng đối soát | bán cấu trúc | từng phòng ban | I2 (nếu có cột chuẩn) hoặc I1 (tài liệu); nguồn thẩm quyền thấp |
@@ -352,7 +352,7 @@ Principal không phải người (cũng đi qua `governance/auth`): `system_erp`
 | Phiếu giấy/ảnh chụp | phiếu kho, biên bản viết tay | đa phương thức | kho/công trường | hiện tại: hỏi lại người gửi (cổng thị giác đóng) |
 | Phòng thí nghiệm | kết quả thí nghiệm vật liệu | bán cấu trúc | QA/QC | I1 + bản ghi có kiểu |
 | Email | trao đổi với CĐT/TVGS/NCC | bán cấu trúc | các phòng | ngoài MVP; đính kèm đi qua I1 |
-| EACL | observation, measurement, fact, derived fact, workflow, audit | mới | IT/Data | chính nền tảng |
+| EAIS | observation, measurement, fact, derived fact, workflow, audit | mới | IT/Data | chính nền tảng |
 
 ---
 
@@ -450,9 +450,9 @@ Mỗi luật có mã `BR-<LĨNH VỰC>-NN` để ca kiểm thử trong [cases.ya
 
 ## 8. Tuân thủ (nêu khái quát)
 
-> Tài liệu này **không trích số hiệu văn bản pháp luật nào**. Dưới đây là các **nhóm nghĩa vụ** doanh nghiệp xây dựng thường phải đáp ứng theo pháp luật hiện hành và theo hợp đồng; khi triển khai thật, pháp chế của doanh nghiệp đối chiếu và cấu hình vào pack/chính sách. EACL hỗ trợ ghi nhận, đối chiếu và nhắc việc; **không thay con người ký, chịu trách nhiệm hay nộp hồ sơ**.
+> Tài liệu này **không trích số hiệu văn bản pháp luật nào**. Dưới đây là các **nhóm nghĩa vụ** doanh nghiệp xây dựng thường phải đáp ứng theo pháp luật hiện hành và theo hợp đồng; khi triển khai thật, pháp chế của doanh nghiệp đối chiếu và cấu hình vào pack/chính sách. EAIS hỗ trợ ghi nhận, đối chiếu và nhắc việc; **không thay con người ký, chịu trách nhiệm hay nộp hồ sơ**.
 
-| Nhóm | Yêu cầu khái quát | Phần của EACL liên quan | Điều EACL không được làm |
+| Nhóm | Yêu cầu khái quát | Phần của EAIS liên quan | Điều EAIS không được làm |
 |---|---|---|---|
 | Nhật ký thi công | ghi chép hằng ngày về công việc, vật tư, máy, nhân công, thời tiết, sự cố; có người chịu trách nhiệm ký | báo cáo ngày (`daily-site-report`), observation giữ nguyên văn | coi báo cáo tự động là nhật ký chính thức khi chưa có người ký |
 | Nghiệm thu | nghiệm thu từng giai đoạn về chất lượng và khối lượng, có xác nhận của các bên theo hợp đồng | workflow `quantity-acceptance`, `accepted_quantity` | chốt nghiệm thu khi thiếu một bên xác nhận |
@@ -467,7 +467,7 @@ Mỗi luật có mã `BR-<LĨNH VỰC>-NN` để ca kiểm thử trong [cases.ya
 
 ## 9. Rủi ro
 
-| Mã | Rủi ro | Nguồn | Hệ quả | Giảm thiểu trong EACL | Ca hỏng |
+| Mã | Rủi ro | Nguồn | Hệ quả | Giảm thiểu trong EAIS | Ca hỏng |
 |---|---|---|---|---|---|
 | R-01 | Dữ liệu hiện trường bẩn (viết tắt, lẫn đơn vị, thiếu đơn vị) | nhóm chat, phiếu viết tay | sai số liệu báo cáo | chuẩn hoá lúc nạp + cổng mơ hồ + hỏi lại | `CON-F-010` … `CON-F-014` |
 | R-02 | Nhiều nguồn nói khác nhau về cùng một việc | ERP, bảng tính, chat, phiếu kho | tin nhầm một số | chỉ số ngữ nghĩa tách biệt, thẩm quyền trong cùng chỉ số, derived fact | `CON-F-002`, `CON-F-063` |
@@ -518,4 +518,4 @@ Mọi **mục tiêu** dưới đây do doanh nghiệp đặt khi triển khai; h
 | Đầu–cuối | business task success rate, critical error rate, human escalation rate, false confidence rate | toàn bộ bộ ca | chưa đo |
 | Đầu–cuối | time saved, cost per successful task | so với quy trình thủ công hiện tại (cần khảo sát) | chưa đo |
 
-Lệnh chạy bộ ca (khi runner có): `eacl eval --tenant abc-infra` — **chưa có**; ghi nhận khi `evals/` được hiện thực.
+Lệnh chạy bộ ca (khi runner có): `eais eval --tenant abc-infra` — **chưa có**; ghi nhận khi `evals/` được hiện thực.

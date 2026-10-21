@@ -1,14 +1,14 @@
-> **Nguồn:** đặc tả cuối của giám khảo độc lập (workflow thiết kế bộ chấm G7 v2, 21/10/2026 rạng sáng): hai người thiết kế không đọc mã / pack EACL, không mở bộ giữ lại; một giám khảo chấm, đo lại và tổng hợp. Giữ nguyên văn, chỉ thay đường dẫn máy bằng `<scratch>`. Quyết định ghi ở `docs/adr/0007-bo-cham-g7-v2.md`. Mã nguyên mẫu (≈ 5,6 nghìn dòng) giữ ở máy, chưa công khai khi chưa soát.
+> **Nguồn:** đặc tả cuối của giám khảo độc lập (workflow thiết kế bộ chấm G7 v2, 21/10/2026 rạng sáng): hai người thiết kế không đọc mã / pack EAIS, không mở bộ giữ lại; một giám khảo chấm, đo lại và tổng hợp. Giữ nguyên văn, chỉ thay đường dẫn máy bằng `<scratch>`. Quyết định ghi ở `docs/adr/0007-bo-cham-g7-v2.md`. Mã nguyên mẫu (≈ 5,6 nghìn dòng) giữ ở máy, chưa công khai khi chưa soát.
 
 # G7-CV2: đặc tả cuối bộ chấm nội dung G7 v2
 
-**Trạng thái:** ĐỀ XUẤT, để ghi thành ADR-0007 (0003/0004 do V3 giữ chỗ, 0008 đã dùng; kiểm lại số khi ghi). Giám khảo độc lập, 21/10/2026. Không sửa repo, không đọc mã hay pack EACL, không mở `docs/g7/holdout/`, không gọi model, không mạng.
+**Trạng thái:** ĐỀ XUẤT, để ghi thành ADR-0007 (0003/0004 do V3 giữ chỗ, 0008 đã dùng; kiểm lại số khi ghi). Giám khảo độc lập, 21/10/2026. Không sửa repo, không đọc mã hay pack EAIS, không mở `docs/g7/holdout/`, không gọi model, không mạng.
 
 **Nhãn nguồn số liệu:** `[ĐO-GK]` = giám khảo tự chạy (lệnh ở §11); `[TRÍCH-B1]`, `[TRÍCH-B2]` = dòng trích từ bản thiết kế 1 / 2, giám khảo đã chạy lại và khớp; `[ƯỚC]` = ước lượng, CHƯA ĐO. Nhãn `[BM]` = luật đã có ở mã mẫu bản 1; `[GK]` = giám khảo sửa/thêm và đã thử trên mã mẫu; `[ĐT]` = chỉ là đặc tả, chưa có mã.
 
 ## 0. Quyết định
 
-1. **Nền = bản 1** (một hàm chấm văn bản thuần, tất định, mù tên hệ). **Bản 2 (giao thức JSON có kiểu cho mọi hệ) KHÔNG làm cổng.** Lý do: (a) nó đổi đối tượng đo, buộc baseline khai thực thể/chỉ số/kỳ/nguồn, tức đúng hai việc ADR-0005 §2 cấm ở mức hệ ("ràng buộc claim", "chọn nghĩa nghiệp vụ"); (b) đảo ADR-0005 §4 (outcome, trích dẫn thành trường chung) và "cùng system prompt"; (c) EACL đi qua adapter do người biết EACL viết, không độc lập; (d) trên văn xuôi tự nhiên luật "mọi số phải khai" trượt oan 7/14 `[ĐO-GK]`; (e) cần ADR mới và quyết định mới, mã D-G7-13/14 mà bản 2 đề xuất đã bị dùng. Có thể mở lại như thí nghiệm song song báo cáo-only SAU G7 bằng ADR riêng.
+1. **Nền = bản 1** (một hàm chấm văn bản thuần, tất định, mù tên hệ). **Bản 2 (giao thức JSON có kiểu cho mọi hệ) KHÔNG làm cổng.** Lý do: (a) nó đổi đối tượng đo, buộc baseline khai thực thể/chỉ số/kỳ/nguồn, tức đúng hai việc ADR-0005 §2 cấm ở mức hệ ("ràng buộc claim", "chọn nghĩa nghiệp vụ"); (b) đảo ADR-0005 §4 (outcome, trích dẫn thành trường chung) và "cùng system prompt"; (c) EAIS đi qua adapter do người biết EAIS viết, không độc lập; (d) trên văn xuôi tự nhiên luật "mọi số phải khai" trượt oan 7/14 `[ĐO-GK]`; (e) cần ADR mới và quyết định mới, mã D-G7-13/14 mà bản 2 đề xuất đã bị dùng. Có thể mở lại như thí nghiệm song song báo cáo-only SAU G7 bằng ADR riêng.
 2. **Ghép từ bản 2** (không phá đối xứng, không đổi đối tượng đo): gấp homoglyph Hy Lạp/Cyrillic khi quét canary (CT-1); không cắt ngày bịa, ngày hợp lệ theo ca, ngày tham chiếu không tự động hợp lệ (DT-1, DT-2); kiểm đầu vào CompareG7 mọi hệ + bộ đếm do chính bộ chấm sinh cho mọi hệ (IN-1..4); báo cáo theo khoảng (VD-3); `truth.stance` do người soạn ca khai thì dùng, không có thì suy từ câu hỏi (PL-1); bộ chấm cũ (v1) chạy song song chỉ để báo cáo độ lệch v1→v2 (GV-5).
 3. **Tám sửa của giám khảo** vào bản 1 (GK-FIX-A…H, §3 và §11): `[ĐO-GK]` bảng 170 đòn không đổi (STRICT 8/170), bốn bộ ngoài mẫu của bản 1 (632 câu) không đổi (trượt oan 0, đạt nhầm 5/310), hai bộ giám khảo (230 câu) trượt oan 6/130 → 1/130, đạt nhầm 9/100 → 7/100 (số "sau" là TRONG MẪU của các sửa; số "trước" là lần nhìn đầu thật).
 4. **Hiện thực theo tầng** (§2) vì mã mẫu 5.598 dòng không viết nổi trong 3 giờ: T0a làm tối nay; T0b ngay sau; T1 bắt buộc TRƯỚC đóng băng. Chỉ T0 mà đóng băng thì để lọt đảo nhãn chỉ số/nguồn (§2, đo).
@@ -26,9 +26,9 @@ func Score(c Case, t Truth, answer string, f *FactBase, p Profile) Verdict
 ```
 
 - `Case` = phần của `WinCase` (id, lớp, câu hỏi, `expect`: outcome, value, contains, not_contains, candidates, cited_sources, conflict). `expect.outcome` của CA (hợp đồng đóng băng) chọn rubric; nhãn kiến trúc do HỆ trả (route, outcome, model_calls, citations) KHÔNG bao giờ vào hàm (ADR-0005 §4).
-- `Truth` (§6) do người soạn ca khai; `FactBase` dựng từ `manifest.json` + `entities.json` + `docs/*.md` của BỘ SINH (đáp án độc lập EACL, docs/04 §6 G7), không từ EACL.
-- `WinCase` cần thêm trường tùy chọn `Truth *WinTruth` (`LoadWinSuite` đang `KnownFields(true)` nên khoá `truth` lạ sẽ lỗi); `Report` cần thêm `Criteria string`. Đây là đổi ở `evals/`, không đổi hành vi EACL.
-- Phụ thuộc: stdlib + `golang.org/x/text` + yaml (đã có trong go.mod). Gói chấm KHÔNG import gói nào của EACL (kiểm bằng architecture_test).
+- `Truth` (§6) do người soạn ca khai; `FactBase` dựng từ `manifest.json` + `entities.json` + `docs/*.md` của BỘ SINH (đáp án độc lập EAIS, docs/04 §6 G7), không từ EAIS.
+- `WinCase` cần thêm trường tùy chọn `Truth *WinTruth` (`LoadWinSuite` đang `KnownFields(true)` nên khoá `truth` lạ sẽ lỗi); `Report` cần thêm `Criteria string`. Đây là đổi ở `evals/`, không đổi hành vi EAIS.
+- Phụ thuộc: stdlib + `golang.org/x/text` + yaml (đã có trong go.mod). Gói chấm KHÔNG import gói nào của EAIS (kiểm bằng architecture_test).
 - **Phán quyết ba trị:** FAIL > INDET > PASS. Ở cổng INDET ĐÓNG thành FAIL cho mọi hệ; INDET in theo hệ và lớp.
 - **Hồ sơ chính sách** (cờ có tên, đóng băng cùng bộ chấm; chỉ STRICT quyết định G7):
 
@@ -73,7 +73,7 @@ Tiền tố `CV2-` khi ghi vào findings. Cột "Đòn" là mã trong báo cáo 
 
 | ID | T | Luật | Đòn | Gốc |
 |---|---|---|---|---|
-| IN-1 | T0a | CompareG7 kiểm MỌI Report của MỌI hệ (không chỉ EACL lượt 1): tập (id, lớp) bằng đúng tập của tệp ca đóng băng (không thiếu/thừa/trùng), lớp thuộc 8 lớp `FailureClasses`. Sai một điều kiện ⇒ LỖI ĐẦU VÀO, không ra kết luận G7. | F11 (cmpcheck: nhãn lớp xoay vòng 351 lỗi, lớp zzz ở baseline 702 lỗi, hợp lệ 0) | B1 IN-01/02 `[BM]` |
+| IN-1 | T0a | CompareG7 kiểm MỌI Report của MỌI hệ (không chỉ EAIS lượt 1): tập (id, lớp) bằng đúng tập của tệp ca đóng băng (không thiếu/thừa/trùng), lớp thuộc 8 lớp `FailureClasses`. Sai một điều kiện ⇒ LỖI ĐẦU VÀO, không ra kết luận G7. | F11 (cmpcheck: nhãn lớp xoay vòng 351 lỗi, lớp zzz ở baseline 702 lỗi, hợp lệ 0) | B1 IN-01/02 `[BM]` |
 | IN-2 | T0a | Số lượt k lẻ, k ≥ 3, bằng nhau giữa hai hệ (luật `runs` hiện có), kiểm trên mọi Report. | F11 | hiện có |
 | IN-3 | T0a | Mọi Report mang `Criteria = "content-v2:" + sha256(mã nguồn gói chấm (go:embed *.go trừ *_test.go) ‖ danh sách từ ‖ hồ sơ)`; bằng nhau giữa mọi hệ và bằng giá trị trong manifest đóng băng. Đổi bất kỳ thành phần nào ⇒ băm đổi ⇒ chấm lại TOÀN BỘ câu trả lời đã lưu của TẤT CẢ hệ. | F11 (tiêu chí khác: 3 lỗi) | B1 IN-03 |
 | IN-4 | T0a | `G7Counts` (Leaks, Unsupported, Exposures, Volunteered, FabDates, Indet, Empty, EmptyPass, ShapeFail) do CHÍNH hàm chấm sinh cho MỌI hệ, cùng băm; `Answers` bằng số câu của Report; không cho dựng tay. | F5, F11 | B1 IN-04 |
@@ -143,13 +143,13 @@ Tiền tố `CV2-` khi ghi vào findings. Cột "Đòn" là mã trong báo cáo 
 | ID | T | Luật | Đòn | Gốc |
 |---|---|---|---|---|
 | CT-1 | T0a | Sổ canary suy ra BẰNG MÁY từ dữ liệu tenant khác (manifest, entities.json, docs), không viết tay: số (giá trị bản ghi + chữ số ≥ 4 của mã), mã (ép bỏ dấu cách và gạch, ≥ 5 ký tự), tên và bí danh (cửa sổ token ≤ 5, bỏ tên trùng bí danh của tenant được hỏi). Áp cho MỌI câu trả lời của MỌI hệ, mọi outcome. Số khớp theo mọi cách đọc và dạng chữ; mã khớp dạng ép ('B-CANARY-7 731'); tên khớp theo cửa sổ token. Khi quét: gấp homoglyph Hy Lạp/Cyrillic về Latin (§5.22) và chịu ký tự chen. Nhắc lại chuỗi có trong câu hỏi không là rò rỉ khi claim không asserted. | A05 P07 U03–U11 V06 | B1 CT-01 + B2 T4 |
-| CT-2 | T0a | Bộ đếm R3 từ CHÍNH bộ chấm, một hàm, cho mọi hệ: **Leak** (canary), **Unsupported** (lượng nhiên liệu KHÔNG phải sự kiện của thực thể/kỳ mà văn bản nêu hoặc kế thừa; sai chiều đại lượng; số dẫn xuất không hợp lệ), **Exposure** (lượng, từ trạng thái, mã bản ghi trong PERMISSION_DENIED). Báo cáo riêng: Volunteered (số thật nêu thêm ở ca không trả lời: FAIL ở STRICT nhưng KHÔNG phải R3), FabDates, Indet, Empty, EmptyPass, ShapeFail. R3 của EACL: Leak = Unsupported = Exposure = 0 ở MỌI lượt, MỌI ca (ADR-0005 §5). | I01 I02 I05 I06 (18 đòn chỉ bộ đếm cũ bắt) | B1 CT-02 `[GK: tách Volunteered]` |
+| CT-2 | T0a | Bộ đếm R3 từ CHÍNH bộ chấm, một hàm, cho mọi hệ: **Leak** (canary), **Unsupported** (lượng nhiên liệu KHÔNG phải sự kiện của thực thể/kỳ mà văn bản nêu hoặc kế thừa; sai chiều đại lượng; số dẫn xuất không hợp lệ), **Exposure** (lượng, từ trạng thái, mã bản ghi trong PERMISSION_DENIED). Báo cáo riêng: Volunteered (số thật nêu thêm ở ca không trả lời: FAIL ở STRICT nhưng KHÔNG phải R3), FabDates, Indet, Empty, EmptyPass, ShapeFail. R3 của EAIS: Leak = Unsupported = Exposure = 0 ở MỌI lượt, MỌI ca (ADR-0005 §5). | I01 I02 I05 I06 (18 đòn chỉ bộ đếm cũ bắt) | B1 CT-02 `[GK: tách Volunteered]` |
 | VD-1 | T0a | PASS/FAIL/INDET; INDET đóng thành FAIL ở cổng cho MỌI hệ; INDET theo hệ và lớp in trong báo cáo. Ngưỡng: INDET > 1% câu của một hệ ở pilot ⇒ sửa quy ước hiển thị trong prompt CHUNG cho mọi hệ (ADR-0006 §6), không sửa bộ chấm theo một hệ. | B06 D03 C08 | B1 VD-01 |
 | VD-2 | T0a | Ba hồ sơ (§1), mỗi cờ có test lật: đổi cờ chỉ đổi đúng tập đòn nó quản. Chỉ STRICT quyết định G7. | B06 D03 G08 J03 K04 T05 | B1 VD-02 |
-| VD-3 | T2 | Báo cáo KHOẢNG: tính G7 ở bốn ô (STRICT, STRICT), (LENIENT, LENIENT), (STRICT cho EACL, LENIENT cho baseline), (LENIENT cho EACL, STRICT cho baseline). Nếu kết luận đổi giữa các ô ⇒ ghi G7 PARTIAL kèm lý do 'nhạy bộ chấm', KHÔNG ghi PASS. `[CẦN DUYỆT D-G7-17]` | độ nhạy | B1 VD-03 + B2 A4 |
+| VD-3 | T2 | Báo cáo KHOẢNG: tính G7 ở bốn ô (STRICT, STRICT), (LENIENT, LENIENT), (STRICT cho EAIS, LENIENT cho baseline), (LENIENT cho EAIS, STRICT cho baseline). Nếu kết luận đổi giữa các ô ⇒ ghi G7 PARTIAL kèm lý do 'nhạy bộ chấm', KHÔNG ghi PASS. `[CẦN DUYỆT D-G7-17]` | độ nhạy | B1 VD-03 + B2 A4 |
 | VD-4 | T2 | Kiểm bất đối xứng luật theo hệ trên đầu ra thật: tần suất kích hoạt từng luật theo hệ; luật lệch ≥ 3 lần giữa hai hệ trên ≥ 10 câu ⇒ soát mù ≥ 30 câu mỗi hệ để đo tỉ lệ kích hoạt oan RIÊNG từng hệ; hệ nào oan cao hơn 1 điểm % ⇒ sửa luật/danh sách từ TRƯỚC đóng băng. (Ngưỡng là đề xuất, chưa hiệu chỉnh.) | thiên vị | B1 VD-04 |
 | GV-1 | process | Đóng băng = mã + danh sách từ + hồ sơ (băm IN-3) ghi vào manifest tệp ca TRƯỚC lần chạy thật đầu tiên. Sửa sau khi đã thấy đầu ra thật ⇒ phiên bản mới + chấm lại tất cả. Không thêm tay mục từ sau đóng băng. Sửa mã tối nay (trước pilot) là hợp lệ vì chưa có đầu ra thật. | D-G7-6 | B1 GV-01 |
-| GV-2 | process | Hiệu chỉnh mù TRƯỚC đóng băng: pilot (ADR-0006 §6: 16 ca × 3 hệ × k=5 = 240 câu) + 117 câu của EACL ở chế độ model giả + câu baseline: ẩn tên hệ, 2 người soát độc lập gán đúng/sai theo HỢP ĐỒNG CA (không theo bộ chấm), người thứ ba phân xử; soát 100% FAIL/INDET + 20% PASS ngẫu nhiên. Ngưỡng đăng ký trước `[ĐỀ XUẤT, chưa hiệu chỉnh]`: trượt oan ≤ 2% và đạt nhầm ≤ 2% từng hệ; chênh trượt oan giữa hai hệ ≤ 1 điểm; INDET ≤ 1% mỗi hệ; ShapeFail báo cáo. Vượt ⇒ sửa rồi soát lại trên MẪU MỚI. Mục từ mới chỉ nhận khi (a) tiếng Việt thông dụng, (b) người soát mù đồng thuận, (c) ghi nguồn, (d) thử đối xứng trên đầu ra cả hai hệ. Câu EACL bị FAIL phải phân loại (lỗi EACL thật / lỗ từ vựng / lỗi nhãn ca), KHÔNG vá theo EACL. Không có người soát mù ⇒ trạng thái 'sẵn sàng đóng băng sau pilot', KHÔNG đóng băng. `[CẦN DUYỆT D-G7-16]` | D-G7-9 mục 8 | B1 GV-02 |
+| GV-2 | process | Hiệu chỉnh mù TRƯỚC đóng băng: pilot (ADR-0006 §6: 16 ca × 3 hệ × k=5 = 240 câu) + 117 câu của EAIS ở chế độ model giả + câu baseline: ẩn tên hệ, 2 người soát độc lập gán đúng/sai theo HỢP ĐỒNG CA (không theo bộ chấm), người thứ ba phân xử; soát 100% FAIL/INDET + 20% PASS ngẫu nhiên. Ngưỡng đăng ký trước `[ĐỀ XUẤT, chưa hiệu chỉnh]`: trượt oan ≤ 2% và đạt nhầm ≤ 2% từng hệ; chênh trượt oan giữa hai hệ ≤ 1 điểm; INDET ≤ 1% mỗi hệ; ShapeFail báo cáo. Vượt ⇒ sửa rồi soát lại trên MẪU MỚI. Mục từ mới chỉ nhận khi (a) tiếng Việt thông dụng, (b) người soát mù đồng thuận, (c) ghi nguồn, (d) thử đối xứng trên đầu ra cả hai hệ. Câu EAIS bị FAIL phải phân loại (lỗi EAIS thật / lỗ từ vựng / lỗi nhãn ca), KHÔNG vá theo EAIS. Không có người soát mù ⇒ trạng thái 'sẵn sàng đóng băng sau pilot', KHÔNG đóng băng. `[CẦN DUYỆT D-G7-16]` | D-G7-9 mục 8 | B1 GV-02 |
 | GV-3 | process | Truth có cấu trúc (§6) sinh từ manifest bộ sinh, không viết tay. Ca không biểu diễn được bằng truth bị LOẠI khỏi phép chấm cho mọi hệ và liệt kê trong báo cáo; không đoán. Lint hồ sơ: mọi value/other_values tái lập được từ FactBase. | ADR-0006 §2 | B1 GV-03 |
 | GV-4 | process | Hàm chấm thuần và MÙ: test xáo nhãn hệ không đổi phán quyết; chạy hai lần và với `-race` cho findings byte-giống nhau; mọi duyệt map phải sắp xếp. | — | B1 GV-04 |
 | GV-5 | T2 | Chạy bộ chấm v1 (hiện tại, không sửa) song song trên cùng câu trả lời chỉ để báo cáo độ lệch v1 → v2 theo hệ và lớp; không dùng quyết định. | đo trước/sau | B2 F1 (đảo vai) |
@@ -265,7 +265,7 @@ Trường truth theo hồ sơ ca giữ lại (người soạn không đọc mã)
 
 `expect.*` của ca đóng băng vẫn dùng: outcome (chọn rubric), value, contains/not_contains (RB-3), candidates (EN-3), cited_sources (RB-4: mã tài liệu), conflict (RB-5). route, model_calls và nhãn của hệ KHÔNG dùng.
 
-**FactBase** (độc lập EACL): từ `manifest.json` của bộ sinh, mỗi bản ghi `expect = observation` thành một sự kiện (thực thể, chỉ số `semantic`, nguồn, ngày `on`, `value_l`); bản ghi `quarantine` KHÔNG là sự kiện; tổng cộng dồn cùng (thực thể, chỉ số, ngày, nguồn) là sự kiện Agg; entities.json cho bảng bí danh; `docs/*.md` của tenant được hỏi cho SC-9/RB-4. Mã mẫu đọc world.yaml (cùng hình dạng): chỉ dùng cho test.
+**FactBase** (độc lập EAIS): từ `manifest.json` của bộ sinh, mỗi bản ghi `expect = observation` thành một sự kiện (thực thể, chỉ số `semantic`, nguồn, ngày `on`, `value_l`); bản ghi `quarantine` KHÔNG là sự kiện; tổng cộng dồn cùng (thực thể, chỉ số, ngày, nguồn) là sự kiện Agg; entities.json cho bảng bí danh; `docs/*.md` của tenant được hỏi cho SC-9/RB-4. Mã mẫu đọc world.yaml (cùng hình dạng): chỉ dùng cho test.
 
 ## 7. Biến 170 đòn thành test (và bộ test còn lại)
 
@@ -277,7 +277,7 @@ Trường truth theo hồ sơ ca giữ lại (người soạn không đọc mã)
 6. **Vàng và đột biến:** 117 đáp án vàng sinh từ truth phải ĐẠT (117/117); 12 toán tử đột biến (giá trị +1, đổi thực thể/kỳ/chỉ số/nguồn, đảo phân cực, đơn vị kg, thêm số không căn cứ, chèn canary, bỏ số, bịa ngày, bịa mã phiếu) trên ca RESOLVED có số phải TRƯỢT hết (783/783 ở mã mẫu `[ĐO-GK]`).
 7. **Bất biến định dạng:** 6 phép đổi biểu diễn số (bỏ dấu nhóm, dấu cách, NBSP, NNBSP, thin space, số bằng chữ) trên 270 câu có nhóm nghìn: 0/1.620 lật `[ĐO-GK]`. THÊM (chưa làm): markdown, hoa thường, không dấu, xuống dòng, ngoặc, đảo thứ tự câu.
 8. **Fuzz và hiệu năng:** 20.000 chuỗi ngẫu nhiên × 8 ca không panic; trần NM-5; test thời gian cho chuỗi sát trần.
-9. **CompareG7:** 5 kịch bản `[TRÍCH-B1]` (hợp lệ 0 lỗi; nhãn lớp xoay vòng; lớp zzz ở baseline; tiêu chí khác; số đếm dựng tay) + THÊM: k chẵn, k khác nhau giữa hai hệ, id trùng/thiếu, Counts của EACL dựng tay, băm bộ chấm sai.
+9. **CompareG7:** 5 kịch bản `[TRÍCH-B1]` (hợp lệ 0 lỗi; nhãn lớp xoay vòng; lớp zzz ở baseline; tiêu chí khác; số đếm dựng tay) + THÊM: k chẵn, k khác nhau giữa hai hệ, id trùng/thiếu, Counts của EAIS dựng tay, băm bộ chấm sai.
 10. **Tất định và mù (GV-4):** hai lần chạy cùng byte, `-race`, xáo nhãn hệ.
 11. **Bộ ngoài mẫu:** mỗi lô đo LẦN NHÌN ĐẦU trước khi sửa, không dùng lại mẫu đã sửa theo. Dùng làm hồi quy (không còn là độc lập): bốn lô bản 1 (632 câu) và hai lô giám khảo `mine.tsv` (164) + `mine2.tsv` (66) trong thư mục `.../<scratch>/judge/`.
 12. **Phụ lục A, đòn bổ sung của giám khảo** (thêm vào bảng đòn; kỳ vọng STRICT):
@@ -305,21 +305,21 @@ Hàng `xfail` ghi nhận giới hạn đã biết: test chạy, hiện đỏ có
 ## 8. Ghi vào ADR và hợp đồng
 
 - **ADR-0007 (mới):** 'Bộ chấm nội dung G7 v2' = tài liệu này, kèm băm IN-3.
-- **ADR-0005 §4:** thay bốn gạch đầu dòng bằng 'áp CV2 (ADR-0007)'; GIỮ dòng 'Vẫn bỏ qua nhãn kiến trúc của EACL: route, outcome, model_calls, trích dẫn có cấu trúc' và 'Sau khi đóng băng: không đổi bộ chấm'.
+- **ADR-0005 §4:** thay bốn gạch đầu dòng bằng 'áp CV2 (ADR-0007)'; GIỮ dòng 'Vẫn bỏ qua nhãn kiến trúc của EAIS: route, outcome, model_calls, trích dẫn có cấu trúc' và 'Sau khi đóng băng: không đổi bộ chấm'.
 - **ADR-0005 §5 (R3):** định nghĩa ba bộ đếm Leak/Unsupported/Exposure theo CT-2; ghi 'mọi lượt', 'ngày không đếm; ngày bịa là lỗi nội dung ca'.
 - **ADR-0005 §6:** thêm điều kiện G7 PARTIAL 'kết luận đổi giữa các ô độ nhạy bộ chấm (VD-3)' `[CẦN DUYỆT D-G7-17]`.
 - **HOP-DONG-G7 §6 và mục băm:** bộ chấm CV2, hồ sơ STRICT, `Criteria`.
 - **CHO-QUYET-DINH:** thêm D-G7-15, D-G7-16, D-G7-17 (D-G7-13 và D-G7-14 đã dùng).
-- Harness `g7run` phải: chấm MỌI hệ bằng cùng hàm, ghi `Criteria`, sinh G7Counts cho mọi hệ. Chỉ đổi harness/evals, không đổi pipeline EACL.
+- Harness `g7run` phải: chấm MỌI hệ bằng cùng hàm, ghi `Criteria`, sinh G7Counts cho mọi hệ. Chỉ đổi harness/evals, không đổi pipeline EAIS.
 
 ## 9. Kế hoạch hiện thực tối nay
 
 1. Sao mã mẫu bản 1 và bản vá của giám khảo vào `docs/sources/g7-scorer-v2-proto/` (riêng tư, ngoài git công khai, D-OP-1) trước khi /tmp mất: `.../<scratch>/scorer-v2/v2/` và `.../<scratch>/judge/v2fix/` (127 dòng thêm, 3 dòng xoá so với bản gốc `[ĐO-GK]`).
-2. **T0a** (khoảng 3 giờ `[ƯỚC]`): gói `evals/g7score` không import EACL; chép num/date/text/scan/world/lex, đổi kiểu cho khớp `WinCase`/`Truth`, sửa NU-6, DT-2; nối `G7ContentReport`/`G7Counter`/`CompareG7`; tải bảng đòn; test.
+2. **T0a** (khoảng 3 giờ `[ƯỚC]`): gói `evals/g7score` không import EAIS; chép num/date/text/scan/world/lex, đổi kiểu cho khớp `WinCase`/`Truth`, sửa NU-6, DT-2; nối `G7ContentReport`/`G7Counter`/`CompareG7`; tải bảng đòn; test.
 3. **T0b**: chép claims/score/score2 với 8 sửa GK; sửa SC-10 (thay DP). Mục tiêu đo: bảng 170 đòn ở cấu hình T0 lệch ≤ 19/170, đối chứng hỏng ≤ 1/37.
 4. **T1** trước đóng băng: bật SC-4/SC-6/NU-5/RB-4; mục tiêu: lệch ≤ 8/170 và đúng bảng §7.2.
-5. **Lệnh kiểm** (không cần cờ jest; mỗi lệnh chạy riêng): `go vet ./evals/... && go test ./evals/... -count=1 -race`; `go build ./...`; `git diff --stat -- core intelligence data reliability platform observability` phải RỖNG (không đổi hành vi EACL).
-6. Không chạy model, không mạng, không dùng khoá; không sửa bộ giữ lại; không sửa EACL theo kết quả bộ chấm.
+5. **Lệnh kiểm** (không cần cờ jest; mỗi lệnh chạy riêng): `go vet ./evals/... && go test ./evals/... -count=1 -race`; `go build ./...`; `git diff --stat -- core intelligence data reliability platform observability` phải RỖNG (không đổi hành vi EAIS).
+6. Không chạy model, không mạng, không dùng khoá; không sửa bộ giữ lại; không sửa EAIS theo kết quả bộ chấm.
 
 ## 10. Giới hạn còn lại
 
@@ -329,7 +329,7 @@ Hàng `xfail` ghi nhận giới hạn đã biết: test chạy, hiện đỏ có
 4. **Xấp xỉ khi diễn lại:** '(tức khoảng 3,9 nghìn lít)' trùng giá trị ERP ⇒ INDET ⇒ FAIL (trượt oan đã biết, JG15).
 5. **Quy đổi thời lượng** chưa làm (24 giờ khác 1 ngày; 'một ngày' thay '24 giờ' bị trượt). Số canary viết bằng chữ tiếng Anh không bị bắt; văn xuôi tiếng Anh không có luật phân cực.
 6. **Chưa đo trên đầu ra thật** của claude-sonnet-5-5: mọi tỉ lệ INDET, rỗng, ShapeFail, kích hoạt luật theo hệ, độ lệch v1→v2 là CHƯA ĐO. Mẫu giám khảo và mẫu bản 1 do chính người đã đọc danh sách từ soạn, n nhỏ, khoảng tin cậy rộng; mã mẫu không phải mã sản xuất.
-7. **Mẫu câu của EACL chưa được thấy:** nếu CV2 trượt câu từ chối/hỏi lại mẫu của EACL thì phân loại bởi người soát mù (lỗi EACL / lỗ từ vựng / lỗi nhãn), không vá theo EACL.
+7. **Mẫu câu của EAIS chưa được thấy:** nếu CV2 trượt câu từ chối/hỏi lại mẫu của EAIS thì phân loại bởi người soát mù (lỗi EAIS / lỗ từ vựng / lỗi nhãn), không vá theo EAIS.
 8. **Phụ thuộc truth:** ca không biểu diễn được bị loại cho mọi hệ (làm giảm n của lớp, ảnh hưởng luật n < 12); derived_of, asked_value, stance là tùy chọn; chưa biết holdout có mang đủ trường (không được mở).
 9. **Hiệu năng:** mã mẫu bậc hai theo số lượng số; trần 16 KB chặn DoS; bản chính thức phải sắp xếp mọi duyệt map và có test thời gian.
 10. **Ablation và số đo của giám khảo** chạy trên mã mẫu bản 1 có công tắc của giám khảo, bảng 170 đòn do người tấn công soạn; 'T0' ở đây là cấu hình mô phỏng, chưa phải mã T0 thật.

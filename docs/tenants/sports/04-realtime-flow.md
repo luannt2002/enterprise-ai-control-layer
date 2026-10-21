@@ -1,6 +1,6 @@
 # 04 — Luồng dữ liệu thời gian thực (tenant `xyz-sports`)
 
-> Mọi giải, đội, cầu thủ, provider là **hư cấu**. Mọi con số về thời gian (giây, phút, cửa sổ) là **mục tiêu thiết kế hoặc mặc định cấu hình giả lập**, **chưa đo**; lệnh đo sẽ có khi có `eacl simulate` và bộ chạy ca. Chỉ dữ liệu thông tin thể thao, không có tính năng cá cược.
+> Mọi giải, đội, cầu thủ, provider là **hư cấu**. Mọi con số về thời gian (giây, phút, cửa sổ) là **mục tiêu thiết kế hoặc mặc định cấu hình giả lập**, **chưa đo**; lệnh đo sẽ có khi có `eais simulate` và bộ chạy ca. Chỉ dữ liệu thông tin thể thao, không có tính năng cá cược.
 
 Tài liệu mô tả luồng pipeline sự kiện E0–E6 của kiến trúc áp vào thể thao (luồng nạp I4), tầng dữ liệu `OBSERVATION → MEASUREMENT → FACT → DERIVED FACT` (xem [03-data-map.md](03-data-map.md)), vòng đời trận như một máy trạng thái, và các ca hỏng realtime. Kịch bản ở [05-problem-catalog.md](05-problem-catalog.md), ca hỏng ở [07-failure-catalog.md](07-failure-catalog.md).
 
@@ -162,7 +162,7 @@ MVP chưa có Redis; "cache" gồm: bảng `match_states` làm bản đọc, ETa
 
 ## 10. Mục tiêu độ trễ (SLO) — chưa đo
 
-Mọi con số dưới đây là **mục tiêu thiết kế giả lập**, ghi để có thứ so khi đo. Lệnh tái lập: **chưa có** (cần `eacl simulate` + bộ chạy ca). Chưa đo thì không được viết là đạt.
+Mọi con số dưới đây là **mục tiêu thiết kế giả lập**, ghi để có thứ so khi đo. Lệnh tái lập: **chưa có** (cần `eais simulate` + bộ chạy ca). Chưa đo thì không được viết là đạt.
 
 | Chặng | Mục tiêu |
 |---|---|

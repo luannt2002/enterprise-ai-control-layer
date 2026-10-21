@@ -14,7 +14,7 @@
 
 - **Ba ca bị nhiễm.** Kỳ vọng của 083, 107, 108 do chính phiên viết mã "trọng tài" sau lần đo đầu (09:03), trước khi băm bộ ca (09:15). Vì vậy G2, G5, G6 chỉ đạt có điều kiện.
 - **Prompt soạn 117 ca do phiên viết mã viết.** Nó có mục "luật tính đáp án" và vài đáp án tính sẵn. Mức ảnh hưởng do kiểm toán nhiễm đánh giá.
-- **Mã EACL đã được lặp sửa tới 117/117 trên chính bộ đó.** Bộ 117 ca vì vậy là bằng chứng **hồi quy**, không phải bằng chứng độc lập.
+- **Mã EAIS đã được lặp sửa tới 117/117 trên chính bộ đó.** Bộ 117 ca vì vậy là bằng chứng **hồi quy**, không phải bằng chứng độc lập.
 - **Chủ dự án chốt D-G7-11 = c + bằng chứng thay thế:**
   - loại 3 ca **không** tự làm G2 / G5 / G6 đạt vô điều kiện;
   - phải có bằng chứng độc lập, đóng băng trước khi chạy.
@@ -45,7 +45,7 @@
   - pack `intents`, `lexicon`, `templates`, `sources`;
   - mọi bộ ca có sẵn, `passing.txt`;
   - tài liệu trạng thái / bản soát / kiểm toán;
-  - chạy EACL.
+  - chạy EAIS.
 - **Vì sao được đọc `metrics` và `policy`:** chủ dự án viết "không đọc implementation". Hai tệp này là **chính sách nghiệp vụ**, tương đương yêu cầu. Tệp từ vựng mới là thứ làm lệch câu hỏi (bản soát: 31/37 ca do người đã đọc pack soạn).
   - Đây là chỗ lệch có chủ đích khỏi câu chữ "không đọc mã **và pack**" ở bảng khuyến nghị cũ. **(chờ phê)**
 - **Tài liệu mâu thuẫn:** ưu tiên theo thứ tự `04` > ADR-0001 > ADR-0002 > pack `metrics` / `policy` > tài liệu tenant 01–07.
@@ -84,7 +84,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
 - **Commit + push TRƯỚC lần chạy đầu.** Giờ push trên GitHub là dấu thời gian của bên thứ ba. Giờ của mọi lần chạy sau ghi trong bằng chứng thô.
 - Vì sao đây là bằng chứng thay cho "đóng băng trước W1": điều kiện "trước W1" không còn làm được (mã đã có). Ý định của nó là "cổng không bị viết theo mã", và điều này giữ nguyên.
 - **Ca bị lộ trước khi đóng băng** (thêm 20/10 đêm, sau sự cố lộ 7 ca, trước khi đóng băng và trước mọi lần chạy):
-  - Ca mà nội dung (câu hỏi, kỳ vọng, ghi chú) đã hiện ra trước mắt **người viết mã EACL** thì không còn là bộ giữ lại.
+  - Ca mà nội dung (câu hỏi, kỳ vọng, ghi chú) đã hiện ra trước mắt **người viết mã EAIS** thì không còn là bộ giữ lại.
   - Ghi vào `docs/g7/holdout/loai-truoc-dong-bang.txt`, mỗi dòng `<id ca> <lý do>`.
   - Công cụ đóng băng loại các ca đó **trước khi chia** (§4 chạy trên phần còn lại) và ghi chúng vào `exposed.yaml`: chỉ báo cáo, không tính cổng. Manifest ghi `set: exposed` + `excluded_reason`, băm cả tệp danh sách.
   - Chỉ loại vì lộ, không bao giờ vì kết quả. Danh sách đóng băng cùng bộ, nên không sửa được sau khi đã thấy kết quả.
@@ -94,7 +94,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
 
 ### 6. Pilot và luật chọn k (đăng ký trước)
 
-- Pilot: 16 ca. Mỗi hệ cổng (B1, B2+, EACL) chạy **k = 5**, model thật, trong trần 15 USD.
+- Pilot: 16 ca. Mỗi hệ cổng (B1, B2+, EAIS) chạy **k = 5**, model thật, trong trần 15 USD.
 - Một ca là **chập chờn** với một hệ khi phán quyết của nó khác nhau giữa 5 lượt.
 - **Hệ cổng nào có ≥ 2 ca chập chờn (≥ 12,5%) thì chạy chính k = 5; không thì k = 3.**
 - Pilot còn ghi: tỉ lệ câu rỗng, lỗi provider, tham số bị từ chối.
@@ -108,7 +108,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - phát lại bản ghi quyết định.
 - **Thủ tục chạy** (thêm 20/10 đêm, trước lần chạy H1 đầu tiên): `scripts/chay-giu-lai.sh <tệp ca> <thư mục ra>`.
   - Chạy cả hai đường, rồi lập bảng cổng (`scripts/bang-cong-h1.py`). Ghi revision, giờ bắt đầu / kết thúc, băm tệp ca, băm dữ liệu.
-  - Từ chối chạy khi: tệp ca không khớp băm bản đóng băng (`holdout-manifest.json`); tệp là `h2.yaml` khi H1 còn là bộ giữ lại; tập đã có lần chạy HOÀN TẤT (tìm theo băm tệp ca); thư mục ra nằm ngoài thư mục bộ giữ lại hoặc đã có; cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`; đường PG không dùng database riêng `eacl_giu_lai`.
+  - Từ chối chạy khi: tệp ca không khớp băm bản đóng băng (`holdout-manifest.json`); tệp là `h2.yaml` khi H1 còn là bộ giữ lại; tập đã có lần chạy HOÀN TẤT (tìm theo băm tệp ca); thư mục ra nằm ngoài thư mục bộ giữ lại hoặc đã có; cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`; đường PG không dùng database riêng `eais_giu_lai`.
   - Lần chạy HỎNG HẠ TẦNG (lỗi cấu hình / nạp, mã thoát 1) không phải lần đo: được chạy lại khi mã (cây git không tính `docs/`) y nguyên.
   - Một ca chỉ ĐẠT khi đạt ở CẢ HAI đường; đầu vào thiếu (thiếu `-v`, thiếu ca, sai đường) thì BLOCKED. Sửa theo bản soát độc lập lượt 2, trước lần chạy H1 đầu tiên; công cụ có test (`scripts/kiemcongcu`) và đột biến (`scripts/dot-bien/n27-cong-cu-giu-lai.sh`).
 - **H2 không chạy** khi H1 còn là bộ giữ lại.
@@ -169,7 +169,7 @@ Mỗi cổng một bảng: yêu cầu · bằng chứng cũ (bị nhiễm) · b�
 - **Chạy, đúng một lần.**
   - Chép `h3.yaml` vào `docs/g7/holdout-h3/` (băm phải khớp cam kết), commit + push.
   - Ngay sau đó: `scripts/chay-giu-lai.sh docs/g7/holdout-h3/h3.yaml docs/g7/holdout-h3/ket-qua-h3`.
-  - Cùng thủ tục và luật từ chối của §7: hai đường, `eacl_giu_lai`, cây sạch, HEAD trên origin/main, không chạy lại khi đã HOÀN TẤT.
+  - Cùng thủ tục và luật từ chối của §7: hai đường, `eais_giu_lai`, cây sạch, HEAD trên origin/main, không chạy lại khi đã HOÀN TẤT.
 - **Điều kiện sẵn sàng chạy (đăng ký trước).**
   1. Bản sửa của ca đã commit + push. `go test ./...` có PG xanh, ratchet xanh, mọi danh mục đột biến bị bắt hết.
   2. H1 (bộ hồi quy, mốc `15ed135`: 89/104) không có ca ĐẠT → ĐỎ. Ngoại lệ: ca mà người soát độc lập xác nhận kỳ vọng trái hợp đồng câu xác nhận; ghi lý do.

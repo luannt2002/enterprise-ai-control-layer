@@ -68,7 +68,7 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	for _, m := range names {
 		cover(m.start, m.end)
 	}
-	value, lastEnd := false, -1 // lastEnd: hết lần nhắc gần nhất của con số xác nhận
+	value, lastEnd, firstEnd := false, -1, -1 // lastEnd / firstEnd: hết lần nhắc gần nhất / đầu tiên của con số xác nhận
 	for _, sp := range in.Spans {
 		switch sp.Kind {
 		case contracts.ValueDate, contracts.ValuePeriod:
@@ -109,11 +109,20 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 				return "value" // con số nhắc lại sau một mệnh đề khác ("EX-03 … 3850 L, dự án A 3850 L, đúng không?") là phát biểu thứ hai, không phải cùng một claim
 			}
 			cover(sp.Start, sp.End)
+			if !value {
+				firstEnd = sp.End
+			}
 			value, lastEnd = true, sp.End
 		}
 	}
 	if !value {
 		return "value"
+	}
+	// Sau con số xác nhận đầu tiên chỉ được nhắc lại CHÍNH chủ thể: một tên khác đứng sau con số, kể cả cấp cha, có thể gắn con số
+	// hay lần nhắc lại vào thực thể đó ("… 3850 L (3850 L của dự án A) đúng không?", "… 3850 L, dự án A, đúng không?") ⇒ chủ thể
+	// của claim chưa giải. Giá: định ngữ cấp cha đặt sau con số mất phán quyết.
+	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {
+		return "subject"
 	}
 	srcSpans, gap := sourceMentions(raw, def, used, lo)
 	if gap != "" {

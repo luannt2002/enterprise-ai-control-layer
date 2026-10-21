@@ -70,3 +70,5 @@ m $C '			value, lastEnd = true, sp.End' '			if !value {
 			}
 			value = true' 'CG39 khoảng liền kề đo từ lần nhắc ĐẦU thay vì lần gần nhất'
 m $C 'strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc' 'strings.ContainsAny(sp.Raw, ",") && !strings.ContainsFunc' 'CG40 lượng suy đơn vị có dấu chấm thành có đơn vị'
+m $C '	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {' '	if false && slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {' 'CG41 tắt E3: tên khác đứng sau con số xác nhận vẫn phán quyết'
+m $C 'return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) })' 'return m.start >= firstEnd && !slices.ContainsFunc(m.ids, func(id string) bool { return id == subj.id || subj.ancestors[id] }) })' 'CG42 E3 cho qua cấp cha đứng sau con số (dạng gương)'

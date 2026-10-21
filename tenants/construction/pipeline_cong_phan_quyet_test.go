@@ -294,6 +294,19 @@ func TestCongPhanQuyetSoatLan3(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L\nDự án A được cấp 3850 L, đúng không?"},
 		{q: "EX-03 hôm nay được cấp bao nhiêu dầu? Dự án A được cấp 3850 L, đúng không?"},
 		{q: "EX-03 hôm nay được cấp 3900 L. Công ty ABC 3900 L, đúng không?", tiers: true},
+		// E3 (ADR-0009 R3-3, R3-4): sau con số xác nhận chỉ được nhắc lại CHÍNH chủ thể — dạng gương (tên đứng SAU lần nhắc lại) và
+		// tên cấp cha sau con số với dấu ngăn bất kỳ
+		{q: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L (3850 L cho dự án A) đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L 3850 L của dự án A đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L: dự án A đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L, dự án A, đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L - dự án A đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L đúng không, dự án A?"},
+		{q: "EX-03 hôm nay được cấp 3900 L (3900 L của công ty ABC) đúng không?", tiers: true},
+		// mệnh đề hỏi đứng TRƯỚC con số, chỉ nêu cấp cha (chủ thể ở trước nó): E3 không thấy tên này — phép kiểm ở mệnh đề hỏi bắt
+		{q: "EX-03, dự án A đúng không, hôm nay được cấp 3850 L?"},
+		{q: "EX-03 hôm nay, dự án A đúng không, được cấp 3850 L?"},
 	} {
 		a := std
 		if c.tiers {

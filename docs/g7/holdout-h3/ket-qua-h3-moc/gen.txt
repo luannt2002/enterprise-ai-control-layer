@@ -1,0 +1,1 @@
+đã sinh <tạm> (hồ sơ functional, seed 42) trong 26ms

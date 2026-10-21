@@ -9,8 +9,7 @@
 > **Tên:** theo **D-RM-02**.
 > - Toàn bộ code, luồng và tài liệu đổi lại về **tên gốc ngày 20/10** (`d70ebc8`).
 > - **Link git giữ nguyên**: tên repo, remote, đường dẫn module Go.
-> - BUILD làm việc đổi tên (brief §4, mục 1).
-> - Tới lúc đó, tệp này gọi tắt là "dự án", để không làm đỏ cổng danh tính.
+> - BUILD làm việc đổi tên (brief §4, mục 1). Tên dùng trong tệp: **EAIS** (Enterprise AI Systems).
 >
 > **Mốc đo:** `d6afad7` (origin/main, 21/10 16:44).
 >
@@ -26,10 +25,10 @@
 
 ## 0. Năm câu
 
-1. Dự án là **nền tảng multi-tenant**: biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát. Dự án đi theo **phạm vi rộng nhất** của roadmap gốc 20/10 (`docs/05-master-roadmap.md`, Phase 0–10), không thu hẹp như V3.
+1. EAIS là **nền tảng multi-tenant**: biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát. EAIS đi theo **phạm vi rộng nhất** của roadmap gốc 20/10 (`docs/05-master-roadmap.md`, Phase 0–10), không thu hẹp như V3.
 2. Có **hai chế độ sở hữu**:
    - **A. Tích hợp:** app của khách giữ sự thật, quyền, giao dịch.
-   - **B. Tự lo:** dự án tự thu, chuẩn hoá và đối soát dữ liệu.
+   - **B. Tự lo:** EAIS tự thu, chuẩn hoá và đối soát dữ liệu.
 3. Mọi việc đi qua **hai cổng**:
    - **cổng QuânIT:** 9 câu hỏi phía doanh nghiệp;
    - **cổng gốc:** điều kiện tiên quyết, bằng chứng, câu hỏi "ai sở hữu?".
@@ -49,8 +48,8 @@ Câu gốc ngày 20/10 (`d70ebc8`: `CLAUDE.md` §9, `docs/01-architecture.md:3`)
 
 | Chế độ | Khi nào | Ai giữ sự thật, quyền, giao dịch | Ví dụ |
 |---|---|---|---|
-| **A. Tích hợp** | doanh nghiệp đã có CRM / ERP / app có API | **app của khách**; dự án đọc và ghi qua API, dùng token của người dùng | CRM: tóm tắt khách, tạo task |
-| **B. Tự lo** | doanh nghiệp chỉ có Zalo / Excel / giấy | **dự án**: thu, chuẩn hoá, đối soát, lưu trữ | báo cáo dầu qua Zalo (Fuel) |
+| **A. Tích hợp** | doanh nghiệp đã có CRM / ERP / app có API | **app của khách**; EAIS đọc và ghi qua API, dùng token của người dùng | CRM: tóm tắt khách, tạo task |
+| **B. Tự lo** | doanh nghiệp chỉ có Zalo / Excel / giấy | **EAIS**: thu, chuẩn hoá, đối soát, lưu trữ | báo cáo dầu qua Zalo (Fuel) |
 
 **Không làm:**
 - thay CRM / ERP của khách khi khách đã có;
@@ -311,7 +310,7 @@ Giữ **số phase của roadmap gốc 20/10**, cột cuối quy đổi sang V3.
 | | **2** Workflow | điều tra → duyệt → xác minh → đối soát → đóng, có người trong vòng | L4 | B | phục hồi sau khởi động lại; không chuyển trạng thái trái luật | ○ | bị V3 bỏ |
 | | **3** Event | sự kiện nạp / vượt ngưỡng / **đính chính / kế hoạch / muộn** | L5, L1 | B | sửa các lỗi im lặng của L1, có ca âm | ○ | bị V3 bỏ |
 | **III. Thực tế doanh nghiệp** | **4a** Tách tenant / ngành / tích hợp / kênh | cấu trúc lại pack và runtime | L1–L7 | A + B | 1 tenant chạy 2 ngành + 2 kênh | ○ | — |
-| | **4b** Ngành thứ hai, chế độ A | **CRM**: tóm tắt khách + tạo task qua API của app (Job A/B của V3) | L2, L3, L6 | A | số dòng phải sửa trong core ≈ 0 (`git diff --stat` các thư mục chung); dùng app **không** viết riêng cho dự án | ○ | R2–R6 |
+| | **4b** Ngành thứ hai, chế độ A | **CRM**: tóm tắt khách + tạo task qua API của app (Job A/B của V3) | L2, L3, L6 | A | số dòng phải sửa trong core ≈ 0 (`git diff --stat` các thư mục chung); dùng app **không** viết riêng cho EAIS | ○ | R2–R6 |
 | | **4c** Bốn kiểu doanh nghiệp | kiểu ①–④ mỗi kiểu một việc, hợp đồng tối thiểu theo việc | L0 | A + B | ma trận 4 kiểu đều có kết quả đo | ○ | — |
 | | **4d** Ngành thứ ba | khác hẳn (thể thao realtime hoặc tài chính) | tất cả | A / B | lõi vẫn ≈ 0 dòng phải sửa | ○ (thể thao mới có bộ ca) | R8–R9 |
 | **IV. Nền tảng** | **5** Cứng hoá | HTTP API · xác thực thật · vòng đời tenant / pack · phiên bản cấu hình · migration · bí mật · hạn mức · ngân sách chi phí · **CI có PG** · lưu bền bản ghi quyết định · quản trị | L7, L9 | — | mọi cổng "0 vi phạm" có đối chứng dương | ○ | R11 |

@@ -45,7 +45,7 @@
 
 ### Bảng bộ 117 ca — 20/10/2026 (đã thay bằng kết quả H1 ở trên; giữ để đối chiếu)
 
-Đích hiện tại là **WIN MVP** (`docs/04-core-mvp.md`), không phải cả roadmap (`docs/05-master-roadmap.md`).
+Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, Phase 0–10). Phase đang làm là **0b — WIN MVP Fuel** (`docs/04-core-mvp.md`); mọi phase khác là kế hoạch.
 
 **WIN = 7/7 cổng + scale smoke** (04 §6). Cách tính tiến độ: mỗi cổng 1/7, chỉ tính cổng đạt trọn và vô điều kiện ⇒ **3/7 ≈ 43%**. Nếu D-G7-11 chọn "c" (loại 3 ca trọng tài khỏi phép tính cổng) hoặc "a" (duyệt trọng tài) thì 6/7 ≈ 86%.
 
@@ -205,13 +205,14 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 ## Việc tiếp theo (20/10 — đã thay)
 
-> **Việc hiện hành (sau ca 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EAIS.md` §4 và D-OP-13:
-> 1. phản hồi audit ROADMAP cho trọn (bản giữa chừng đã có ở `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`);
-> 2. vòng sửa S4 theo ADR-0010, rồi chạy H4 MỘT lần;
-> 3. đóng R4-2…R4-4 của cổng phán quyết (trước H4);
-> 4. phép đo trước W-G7: harness canary (kiểm BYPASSRLS đã xong ở `cc84b83`);
+> **Việc hiện hành (tối 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EAIS.md` §4, `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md` và D-OP-13:
+> 1. đổi tên lại EAIS (D-RM-02): XONG — `945777c` … `cdf7d84`; soát độc lập 3 góc: 0 S1, 3 S2 đã sửa;
+> 2. viết lại luồng theo tên mới (`docs/ROADMAP-DAY-DU.md`, `docs/01-architecture.md` theo 7 mặt phẳng + L0–L10, `CLAUDE.md` §9): ĐANG LÀM;
+> 3. đóng Phase 0b: R4-2…R4-4 của cổng phán quyết → vòng sửa S4 theo ADR-0010 → chạy H4 MỘT lần;
+> 4. phép đo (harness canary, cờ ước lượng, CI có PG); giấy Phase 0a và Phase 1 (mã COMMAND / WORKFLOW / EVENT chờ D-RM-04); Phase 6 nếu S4 vẫn là sàn; tài liệu lệch, handoff;
+> 5. phản hồi audit ROADMAP cho trọn (bản giữa chừng: `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`).
 >
-> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới: D-OP-11, D-OP-12; đã quyết: D-OP-13).
+> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mở: D-RM-03, D-RM-04, D-OP-11, D-OP-12; đã quyết: D-RM-01, D-RM-02, D-OP-13).
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

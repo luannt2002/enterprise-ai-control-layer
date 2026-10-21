@@ -23,12 +23,13 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 | Đọc gì | Ở đâu |
 |---|---|
 | **Câu đang chờ chủ dự án quyết** | [`docs/CHO-QUYET-DINH.md`](docs/CHO-QUYET-DINH.md) |
+| **Roadmap hiện hành** (D-RM-01): Phase 0–10, 7 mặt phẳng, luồng L0–L10 | [`docs/ROADMAP-DAY-DU.md`](docs/ROADMAP-DAY-DU.md) |
 | G7: hợp đồng benchmark, chi phí, checkpoint | [`docs/g7/`](docs/g7/) |
 | Kế hoạch V3 (tra cứu; thay bởi roadmap đầy đủ, D-RM-01) | [`docs/v3/`](docs/v3/) |
 | Chạy lại mốc / làm tiếp trên máy khác | [`docs/ops/README.md`](docs/ops/README.md) |
 | Hợp đồng vận hành (luật bắt buộc) | [`CLAUDE.md`](CLAUDE.md) |
 | WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |
-| Roadmap V1/V2 (lịch sử) | [`docs/05-master-roadmap.md`](docs/05-master-roadmap.md) |
+| Roadmap gốc 20/10 (Phase 0–10 mà roadmap hiện hành dựa vào) | [`docs/05-master-roadmap.md`](docs/05-master-roadmap.md) |
 | Kiến trúc | [`docs/01-architecture.md`](docs/01-architecture.md) |
 | Quyết định | [`docs/adr/`](docs/adr/) |
 | Báo cáo ngày | [`docs/bao-cao/`](docs/bao-cao/) |

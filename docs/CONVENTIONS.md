@@ -2,6 +2,15 @@
 
 Tài liệu này là **một nguồn duy nhất** cho tên gọi, mã định danh, định dạng và luật viết. Mọi tài liệu và mã khác phải theo đây; chỗ nào lệch thì sửa chỗ đó, không sửa quy ước cho vừa.
 
+## 0. Tên sản phẩm
+
+| Thứ | Quy ước |
+|---|---|
+| Tên sản phẩm | **EAIS** — Enterprise AI Systems (D-RM-02) |
+| Link git | tên repo, remote, đường dẫn module Go `github.com/luannt2002/enterprise-ai-control-layer`: giữ nguyên (D-RM-02) |
+| Định danh chạy | biến môi trường tiền tố `EAIS_`; PostgreSQL: GUC `eais.tenant_id`, vai `eais_app`, database `eais`, `eais_giu_lai` |
+| Roadmap hiện hành | `docs/ROADMAP-DAY-DU.md` (D-RM-01) |
+
 ## 1. Ngôn ngữ
 
 | Thứ | Ngôn ngữ |

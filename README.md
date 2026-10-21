@@ -1,11 +1,19 @@
-# EAIS — Enterprise AI Systems
+# EACL — Enterprise AI Control Layer
 
-Nền tảng AI doanh nghiệp đa tenant. Nó biến dữ liệu, tri thức, quy trình và công cụ theo ngành thành năng lực AI có quản trị, kiểm thử được và quan sát được, mà lõi dùng chung không bị buộc vào một ngành nào. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
+**Controlled AI Integration for Enterprise Software.**
 
-**Trạng thái (20/10/2026):**
-- WIN MVP: 3/7 cổng đạt vô điều kiện (G1, G3, G4); G2, G5, G6 đạt có điều kiện, chờ quyết 3 kỳ vọng trọng tài (D-G7-11).
-- G7 (so với baseline RAG bằng model thật) đang chờ khoá model.
-- Chi tiết: [`docs/STATUS.md`](docs/STATUS.md).
+EACL is a reference architecture and executable control layer for integrating probabilistic AI capabilities into existing enterprise applications while those applications retain authority over business truth, permissions, state, transactions and workflows.
+
+Phần mềm tất định giữ quyền quyết định về danh tính, tenant, quyền hạn, sự thật nghiệp vụ, trạng thái, giao dịch, chính sách, kiểm và thực thi. AI chỉ làm phần bất định: diễn giải, phân loại, trích xuất, tổng hợp, đề xuất. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
+
+```text
+Business Reality → Trusted Context → Useful Intelligence → Controlled Action → Verified Outcome → Measured Value
+```
+
+**Trạng thái (21/10/2026):**
+- Fuel WIN: **0/7 cổng** trên bộ giữ lại độc lập H1 (104 ca, chạy một lần): 89/104 ca đạt; G1–G5 chưa đạt, G6' một phần, G7 bị chặn (chưa có khoá model, bộ chấm v2 chưa có).
+- Câu xác nhận ("… đúng không?") còn phán quyết sai trên 15/15 câu thăm dò đối kháng; đang sửa theo hợp đồng câu xác nhận.
+- Chi tiết: [`docs/STATUS.md`](docs/STATUS.md), báo cáo mới nhất ở [`docs/bao-cao/`](docs/bao-cao/).
 
 | Đọc gì | Ở đâu |
 |---|---|
@@ -25,8 +33,8 @@ Chạy nhanh (Go 1.26, Docker, `pdftotext`):
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait
-export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
-export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+export EACL_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable'
+export EACL_PG_DSN='postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable'
 go test ./... -count=1 && scripts/scale-smoke.sh
 ```
 

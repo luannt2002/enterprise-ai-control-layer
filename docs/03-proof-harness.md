@@ -1,13 +1,13 @@
-# 03 — EAIS Proof: chứng minh, không chỉ xây
+# 03 — EACL Proof: chứng minh, không chỉ xây
 
-> Trạng thái: quyết định hướng đi, chốt ngày 19/10/2026. Áp cho mọi tuyên bố về chất lượng của EAIS.
+> Trạng thái: quyết định hướng đi, chốt ngày 19/10/2026. Áp cho mọi tuyên bố về chất lượng của EACL.
 > Tài liệu này không mô tả code đã có, trừ mục 7 (đo ngày 19/10/2026).
 
 ## 1. Vì sao cần tài liệu này
 
 Test xanh trên dữ liệu do chính người viết mã soạn chỉ chứng minh **logic chạy trên ví dụ của chính mình**. Lúc này đề do người làm tự ra và cũng tự chấm, đúng kiểu hỏng mà CLAUDE.md §1 muốn chặn.
 
-EAIS không cần chứng minh "chatbot trả lời được". EAIS phải chứng minh **hệ thống biến dữ liệu doanh nghiệp lộn xộn thành câu trả lời hoặc hành động kiểm chứng được**. Chat chỉ là giao diện, không phải kiến trúc.
+EACL không cần chứng minh "chatbot trả lời được". EACL phải chứng minh **hệ thống biến dữ liệu doanh nghiệp lộn xộn thành câu trả lời hoặc hành động kiểm chứng được**. Chat chỉ là giao diện, không phải kiến trúc.
 
 Có bốn ảo giác cần tránh:
 
@@ -40,7 +40,7 @@ Thứ tự luôn là: bài toán → lỗi hiện tại → nguyên nhân gốc 
 
 ## 3. Luật tuyên bố
 
-**EAIS không tuyên bố "sẵn sàng cho doanh nghiệp" chỉ dựa trên fixture viết tay, DB giả và happy path.**
+**EACL không tuyên bố "sẵn sàng cho doanh nghiệp" chỉ dựa trên fixture viết tay, DB giả và happy path.**
 
 Mọi tuyên bố phải ghi rõ cấp bằng chứng. Ví dụ đúng:
 

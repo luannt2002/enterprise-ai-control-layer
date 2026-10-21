@@ -42,13 +42,13 @@
 - **PASS:** 0 blocker định nghĩa. **FAIL:** còn mâu thuẫn ở `05` §3 chưa có hướng xử lý.
 - **Model:** lead + chủ dự án.
 
-### TASK-R0-03 — Đổi tên trong tài liệu + đánh dấu tài liệu lịch sử · READY sau R0-02
+### TASK-R0-03 — Đổi tên trong tài liệu + đánh dấu tài liệu lịch sử · XONG 21/10/2026
 - **Parent:** R0. **Yêu cầu:** C1, C2, C8, D-V3-06, D-V3-10.
 - **Story:** là người đọc repo, tôi muốn thấy đúng một định nghĩa sản phẩm, để không làm theo bản cũ.
 - **Tiền điều kiện:** R0-02 chốt tên và câu chữ.
 - **Request / phạm vi:**
   - `README.md`: tên EACL, câu định nghĩa, trỏ `docs/v3/`;
-  - thêm đầu tệp "lịch sử EAIS; V3 xem `docs/v3/`" cho `docs/04-core-mvp.md`, `docs/05-master-roadmap.md`, `docs/requirements/catalog.md`;
+  - thêm đầu tệp "Historical artifact; V3 xem `docs/v3/`" cho `docs/04-core-mvp.md`, `docs/05-master-roadmap.md`, `docs/requirements/catalog.md`;
   - trong tài liệu **mới**, cổng cũ ghi W-G1…W-G7;
   - soạn **đề xuất** câu chữ cho `CLAUDE.md` §9/§24/§25 vào `docs/v3/de-xuat-claude-md.md`.
 - **Ngoài phạm vi:** sửa `CLAUDE.md` (tệp của chủ dự án); sửa nội dung `04`/`05` ngoài dòng đầu; sửa mã.
@@ -78,11 +78,11 @@
 - **PASS:** đủ 3 AC + script nằm trong báo cáo. **FAIL:** có câu bị sửa ngoài danh sách.
 - **Model:** Haiku. **Soát:** script + Sonnet chỉ đọc.
 
-### TASK-R0-05 — Đổi tên module, thư mục, repo · BLOCKED (D-V3-03)
+### TASK-R0-05 — Đổi tên module, thư mục, repo · XONG 21/10/2026
 - **Parent:** R0.
 - **Story:** là chủ dự án, tôi muốn tên mã nguồn khớp tên sản phẩm trước khi mã V3 vào, để không phải đổi hai lần.
 - **Đặc tả (nếu duyệt):**
-  - `go.mod` module `github.com/luannt2002/eacl`;
+  - `go.mod` module `github.com/luannt2002/enterprise-ai-control-layer` (khớp tên repo GitHub, để `go get` tìm được);
   - thay mọi đường import;
   - đổi thư mục máy;
   - repo GitHub đổi tên: chủ dự án tự làm, hoặc duyệt lệnh `gh` cụ thể;

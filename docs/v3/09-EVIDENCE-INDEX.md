@@ -29,7 +29,7 @@
 
 | Giờ | Task | Model | Lý do | Kết quả |
 |---|---|---|---|---|
-| 20/10 | đọc tóm tắt phần lịch sử EAIS V1→V2.1 (dòng 1–7.293; hỗ trợ lập kế hoạch, không phải task V3) | Sonnet | đọc khối lượng lớn, lead kiểm lại | xong: 7.293/7.293 dòng, 8 câu trả lời; lead kiểm 4 khẳng định (dòng 2.221, 3.290, 6.447, 7.177–7.231), khớp |
+| 20/10 | đọc tóm tắt phần lịch sử V1→V2.1 (dòng 1–7.293; hỗ trợ lập kế hoạch, không phải task V3) | Sonnet | đọc khối lượng lớn, lead kiểm lại | xong: 7.293/7.293 dòng, 8 câu trả lời; lead kiểm 4 khẳng định (dòng 2.221, 3.290, 6.447, 7.177–7.231), khớp |
 | 20/10 | đọc tóm tắt tài liệu học: study guide + workshop (dòng 9.373–14.280) | Sonnet | như trên | xong: 4.908/4.908 dòng, 5 câu trả lời; lead kiểm 3 khẳng định (dòng 10.798, 12.267, 14.079), khớp |
 | 20/10 | đọc tóm tắt phần RAG → Problem Map (dòng 14.281–19.797) | Sonnet | như trên | xong: 5.517/5.517 dòng, 6 câu trả lời; lead kiểm 2 khẳng định (dòng 16.769, 18.777), khớp |
 

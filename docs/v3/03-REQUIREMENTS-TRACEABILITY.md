@@ -1,7 +1,7 @@
 # 03 — Requirements Traceability: yêu cầu V3 → test → cổng → phase
 
 > Trạng thái: bản lập kế hoạch 20/10/2026. Mã yêu cầu `V3-…` là **mới**.
-> Sổ cũ `docs/requirements/catalog.yaml` (422 REQ) giữ làm lịch sử EAIS V1/V2 (`05` C8).
+> Sổ cũ `docs/requirements/catalog.yaml` (422 REQ) giữ làm lịch sử V1/V2 (`05` C8).
 >
 > Nguồn yêu cầu, xếp theo thẩm quyền:
 > 1. Playbook §7.5 (MVP-AC01…15), §8 (G1–G6), §9 (R0–R10), §10 (US-001/002);

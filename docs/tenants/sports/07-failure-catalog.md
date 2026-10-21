@@ -16,7 +16,7 @@ Tài liệu có **71 ca hỏng** `SPT-F-001` … `SPT-F-071`, đủ 18 nhóm l�
 | `S4` | thẩm mỹ, nhật ký thiếu |
 
 - **Capability giảm thiểu** là package trong [kiến trúc §3](../../01-architecture.md). Tên `in nghiêng` là *primitive còn thiếu* đã nêu ở [05 §5](05-problem-catalog.md#5-primitive-còn-thiếu-do-thể-thao-chỉ-ra); chúng chỉ vào core khi ca hỏng chạy đỏ và có test (ADR-0002).
-- **fault**: `code` = lỗi của chính EAIS; `data` = dữ liệu tenant thiếu/hỏng/xung đột không tự giải được; `policy` = bị chính sách chặn; `third_party:<provider>:<kind>` = nguồn ngoài; `infra:<component>` = hạ tầng. Ở ca "hệ thống làm sai", nhãn là nhãn của lỗi nếu nó được báo ra ngoài; nếu lỗi thầm lặng, nhãn là thứ **phải** gắn khi phát hiện.
+- **fault**: `code` = lỗi của chính EACL; `data` = dữ liệu tenant thiếu/hỏng/xung đột không tự giải được; `policy` = bị chính sách chặn; `third_party:<provider>:<kind>` = nguồn ngoài; `infra:<component>` = hạ tầng. Ở ca "hệ thống làm sai", nhãn là nhãn của lỗi nếu nó được báo ra ngoài; nếu lỗi thầm lặng, nhãn là thứ **phải** gắn khi phát hiện.
 - Bốn tầng dữ liệu: `OBSERVATION` (sự kiện thô của provider) → `MEASUREMENT`/`FACT` (sự kiện chuẩn) → `DERIVED FACT` (tỉ số, bảng xếp hạng). Nhiều ca hỏng dưới đây là **lẫn tầng**.
 
 ## 2. Bảng ca hỏng

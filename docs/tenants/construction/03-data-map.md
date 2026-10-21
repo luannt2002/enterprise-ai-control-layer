@@ -182,34 +182,34 @@ Ba mươi tập dữ liệu `DS-01` … `DS-30`, đủ các loại: có cấu tr
 | DS | Tập dữ liệu | Loại | Owner | Producer | Consumer | Schema | Authority | Update mechanism |
 |---|---|---|---|---|---|---|---|---|
 | DS-01 | Danh mục dự án | master, có cấu trúc | quản lý dự án | IT/Data | mọi phòng | `project(code,name,type,client,status)` | cao: nguồn gốc | lệnh có duyệt, audit |
-| DS-02 | Danh mục thiết bị | master, có cấu trúc | máy móc | máy móc | công trường, kế toán, EAIS | `equipment(code,type,project,tank_capacity_L)` | cao | lệnh có duyệt; gộp/tách cần duyệt |
-| DS-03 | Danh mục vật tư | master/tham chiếu | vật tư | vật tư | kho, kế toán, EAIS | `material(code,name,unit,density?)` | cao | lệnh có duyệt |
-| DS-04 | Danh mục nhà cung cấp và nhà thầu phụ | master | vật tư/pháp chế | vật tư | kế toán, EAIS | `party(code,name,type)` | cao | lệnh có duyệt |
-| DS-05 | Danh mục nhân sự và đội | master, nhạy cảm | nhân sự | nhân sự | công trường, EAIS (hạn chế) | `person(code,name,team,project)` | cao | hệ thống nhân sự |
-| DS-06 | Bảng định mức (trích từ SOP) | tham chiếu, có kiểu | kỹ thuật | `data/parsing` + EAIS | EAIS tính định mức | `norm(equipment_class,L_per_hour,tolerance,doc_version)` | theo SOP hiệu lực | trích lúc nạp tài liệu (I1), công bố nguyên tử |
-| DS-07 | ERP: tồn kho và giao dịch kho | giao dịch, có cấu trúc | kho/kế toán | ERP | kế toán, EAIS | `inventory_txn(txn_id,warehouse,material,qty,unit,ts_utc)` | hạng 1 cho `issued_*` | kết nối ERP (I2) theo lô/thời gian thực |
-| DS-08 | Phiếu nhập/xuất kho (PNK/PXK) | giao dịch, giấy + bản số hoá | kho | thủ kho | kế toán, EAIS | `slip(slip_no,type,qty,unit,signed_by,version)` | hạng 1 khi có chữ ký | nhập tay/số hoá; bản sửa là phiên bản mới |
-| DS-09 | Nhật ký cấp dầu cho máy | giao dịch | máy móc | thợ máy/thủ kho | thiết bị, EAIS | `fuel_log(equipment,qty_L,ts,confirmed_by)` | hạng 2 cho `measured_consumption` | ghi tay/biểu mẫu |
-| DS-10 | Đồng hồ giờ máy và cảm biến | luồng (streaming) | máy móc | thiết bị/telematics | EAIS (sự kiện) | `reading(reading_id,equipment,metric,value,ts)` | hạng 1 cho `logged_engine_hours` | đẩy liên tục; trùng/đến trễ là bình thường |
-| DS-11 | Báo cáo ngày chính thức | bán cấu trúc | quản lý dự án | giám sát | trưởng dự án, EAIS | `daily_report(project,date,fields…)` | hạng 1 cho `reported_*` | workflow `daily-site-report` |
-| DS-12 | Tin nhắn hiện trường (nhóm chat) | không cấu trúc, luồng | công trường | giám sát/đội trưởng | EAIS | văn bản tự do + ảnh | hạng 2–3 cho `reported_*` | liên tục (I3), cổng mơ hồ |
+| DS-02 | Danh mục thiết bị | master, có cấu trúc | máy móc | máy móc | công trường, kế toán, EACL | `equipment(code,type,project,tank_capacity_L)` | cao | lệnh có duyệt; gộp/tách cần duyệt |
+| DS-03 | Danh mục vật tư | master/tham chiếu | vật tư | vật tư | kho, kế toán, EACL | `material(code,name,unit,density?)` | cao | lệnh có duyệt |
+| DS-04 | Danh mục nhà cung cấp và nhà thầu phụ | master | vật tư/pháp chế | vật tư | kế toán, EACL | `party(code,name,type)` | cao | lệnh có duyệt |
+| DS-05 | Danh mục nhân sự và đội | master, nhạy cảm | nhân sự | nhân sự | công trường, EACL (hạn chế) | `person(code,name,team,project)` | cao | hệ thống nhân sự |
+| DS-06 | Bảng định mức (trích từ SOP) | tham chiếu, có kiểu | kỹ thuật | `data/parsing` + EACL | EACL tính định mức | `norm(equipment_class,L_per_hour,tolerance,doc_version)` | theo SOP hiệu lực | trích lúc nạp tài liệu (I1), công bố nguyên tử |
+| DS-07 | ERP: tồn kho và giao dịch kho | giao dịch, có cấu trúc | kho/kế toán | ERP | kế toán, EACL | `inventory_txn(txn_id,warehouse,material,qty,unit,ts_utc)` | hạng 1 cho `issued_*` | kết nối ERP (I2) theo lô/thời gian thực |
+| DS-08 | Phiếu nhập/xuất kho (PNK/PXK) | giao dịch, giấy + bản số hoá | kho | thủ kho | kế toán, EACL | `slip(slip_no,type,qty,unit,signed_by,version)` | hạng 1 khi có chữ ký | nhập tay/số hoá; bản sửa là phiên bản mới |
+| DS-09 | Nhật ký cấp dầu cho máy | giao dịch | máy móc | thợ máy/thủ kho | thiết bị, EACL | `fuel_log(equipment,qty_L,ts,confirmed_by)` | hạng 2 cho `measured_consumption` | ghi tay/biểu mẫu |
+| DS-10 | Đồng hồ giờ máy và cảm biến | luồng (streaming) | máy móc | thiết bị/telematics | EACL (sự kiện) | `reading(reading_id,equipment,metric,value,ts)` | hạng 1 cho `logged_engine_hours` | đẩy liên tục; trùng/đến trễ là bình thường |
+| DS-11 | Báo cáo ngày chính thức | bán cấu trúc | quản lý dự án | giám sát | trưởng dự án, EACL | `daily_report(project,date,fields…)` | hạng 1 cho `reported_*` | workflow `daily-site-report` |
+| DS-12 | Tin nhắn hiện trường (nhóm chat) | không cấu trúc, luồng | công trường | giám sát/đội trưởng | EACL | văn bản tự do + ảnh | hạng 2–3 cho `reported_*` | liên tục (I3), cổng mơ hồ |
 | DS-13 | Bảng tính Excel tổng hợp | bán cấu trúc, dẫn xuất | từng phòng | nhân viên | quản lý | cột tuỳ người, nhiều phiên bản | thấp (bản chép) | thủ công; nạp I2 nếu cột chuẩn |
 | DS-14 | Chấm công và bảng lương | giao dịch, nhạy cảm | nhân sự | nhân sự | kế toán | `attendance(person,date,hours)`, `payroll(...)` | hạng 1 cho `attendance_*`, `paid_*` | chốt theo kỳ |
 | DS-15 | BOQ (bảng khối lượng) | bán cấu trúc | đấu thầu/kỹ thuật | dự toán | kỹ thuật, kế toán | `boq_item(code,desc,unit,qty,price,version)` | tài liệu hợp đồng | phiên bản; trích bảng lúc nạp |
 | DS-16 | Hợp đồng và phụ lục | không cấu trúc | pháp chế | pháp chế | quản lý dự án, kế toán | PDF/DOCX + metadata phiên bản/hiệu lực | hạng 1 theo phiên bản hiệu lực | nạp I1, phụ lục là phiên bản mới |
 | DS-17 | Bản vẽ và metadata | không cấu trúc/đa phương thức | kỹ thuật | tư vấn thiết kế | công trường, kỹ thuật | PDF/CAD + `revision` | hạng 1 theo revision hiệu lực | workflow `document-revision` |
-| DS-18 | SOP và quy định nội bộ | không cấu trúc | các phòng | phòng chủ quản | mọi phòng, EAIS (RAG) | văn bản có heading/bảng | hạng 1 cho quy định nội bộ hiệu lực | workflow `document-revision`, I1 |
-| DS-19 | Sổ tay thiết bị | không cấu trúc | máy móc | nhà sản xuất | thiết bị, EAIS | PDF kỹ thuật | tham khảo, thấp hơn SOP nội bộ | nạp I1 |
-| DS-20 | Biên bản nghiệm thu và kiểm tra | bán cấu trúc | kỹ thuật/QA | kỹ thuật/TVGS | kế toán, EAIS | biểu mẫu + chữ ký | hạng 1 khi đủ xác nhận | workflow `quantity-acceptance` |
-| DS-21 | Kết quả thí nghiệm vật liệu | bán cấu trúc | QA/QC | phòng thí nghiệm | QA/QC, EAIS | `lab_result(sample,test,value,unit)` | hạng 1 | nạp I1/I2 khi có kết quả |
-| DS-22 | Hồ sơ an toàn và sự cố | bán cấu trúc, nhạy cảm | an toàn | giám sát/an toàn | BGĐ, EAIS | `incident(id,severity,desc,persons)` | hạng 1 | workflow `safety-incident` |
-| DS-23 | Hoá đơn và hồ sơ thanh toán | giao dịch | kế toán | nhà cung cấp/kế toán | tài chính, EAIS | `invoice(no,party,qty,amount_before_tax,total)` | hạng 1 cho `billed_*` | ERP, workflow `payment-certification` |
+| DS-18 | SOP và quy định nội bộ | không cấu trúc | các phòng | phòng chủ quản | mọi phòng, EACL (RAG) | văn bản có heading/bảng | hạng 1 cho quy định nội bộ hiệu lực | workflow `document-revision`, I1 |
+| DS-19 | Sổ tay thiết bị | không cấu trúc | máy móc | nhà sản xuất | thiết bị, EACL | PDF kỹ thuật | tham khảo, thấp hơn SOP nội bộ | nạp I1 |
+| DS-20 | Biên bản nghiệm thu và kiểm tra | bán cấu trúc | kỹ thuật/QA | kỹ thuật/TVGS | kế toán, EACL | biểu mẫu + chữ ký | hạng 1 khi đủ xác nhận | workflow `quantity-acceptance` |
+| DS-21 | Kết quả thí nghiệm vật liệu | bán cấu trúc | QA/QC | phòng thí nghiệm | QA/QC, EACL | `lab_result(sample,test,value,unit)` | hạng 1 | nạp I1/I2 khi có kết quả |
+| DS-22 | Hồ sơ an toàn và sự cố | bán cấu trúc, nhạy cảm | an toàn | giám sát/an toàn | BGĐ, EACL | `incident(id,severity,desc,persons)` | hạng 1 | workflow `safety-incident` |
+| DS-23 | Hoá đơn và hồ sơ thanh toán | giao dịch | kế toán | nhà cung cấp/kế toán | tài chính, EACL | `invoice(no,party,qty,amount_before_tax,total)` | hạng 1 cho `billed_*` | ERP, workflow `payment-certification` |
 | DS-24 | Ngân sách và chi phí | giao dịch/dẫn xuất | tài chính | ERP | BGĐ, quản lý dự án | `cost(project,item,committed,invoiced,paid)` | hạng 1 theo từng chỉ số chi phí | ERP theo kỳ |
-| DS-25 | Kế hoạch tiến độ | bán cấu trúc | quản lý dự án | quản lý dự án | EAIS tính `schedule_variance` | `plan(item,start,end,qty_cumulative)` | kế hoạch chuẩn hiện hành | phiên bản kế hoạch |
+| DS-25 | Kế hoạch tiến độ | bán cấu trúc | quản lý dự án | quản lý dự án | EACL tính `schedule_variance` | `plan(item,start,end,qty_cumulative)` | kế hoạch chuẩn hiện hành | phiên bản kế hoạch |
 | DS-26 | Ảnh/video công trường | đa phương thức | công trường | giám sát | an toàn, quản lý | tệp ảnh/video + thời điểm | không dùng làm số liệu (cổng thị giác đóng) | tải lên qua chat |
 | DS-27 | RFI và phát sinh | bán cấu trúc | kỹ thuật | kỹ thuật | quản lý, pháp chế | `rfi(...)`, `change_order(...)` | hạng 1 | workflow `rfi-handling`, `change-order` |
-| DS-28 | Số liệu lịch sử (kỳ đã khoá) | lịch sử | quản lý dự án | EAIS/ERP | phân tích, báo cáo | fact và báo cáo của kỳ đã `LOCKED` | cao (đã khoá) | chỉ ghi thêm |
-| DS-29 | Kho sự thật (fact, derived fact) | dẫn xuất | IT/Data | EAIS | mọi truy vấn | `facts`, `derived_facts`, `fact_conflicts` | theo ma trận §2 | I2/I3/E; tính lại khi đầu vào đổi |
+| DS-28 | Số liệu lịch sử (kỳ đã khoá) | lịch sử | quản lý dự án | EACL/ERP | phân tích, báo cáo | fact và báo cáo của kỳ đã `LOCKED` | cao (đã khoá) | chỉ ghi thêm |
+| DS-29 | Kho sự thật (fact, derived fact) | dẫn xuất | IT/Data | EACL | mọi truy vấn | `facts`, `derived_facts`, `fact_conflicts` | theo ma trận §2 | I2/I3/E; tính lại khi đầu vào đổi |
 | DS-30 | Cảnh báo thời tiết | tham chiếu, ngoài | an toàn | nguồn cảnh báo ngoài | công trường, an toàn | `weather_alert(area,level,valid_from,valid_to)` | tham khảo | sự kiện đến |
 
 ### 5.2 Bảng B — chất lượng và vòng đời

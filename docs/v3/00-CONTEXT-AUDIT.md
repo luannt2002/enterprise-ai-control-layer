@@ -1,5 +1,7 @@
 # 00 — Context Audit: EACL V3 bắt đầu từ đâu
 
+> **Historical artifact** (kiểm toán nguồn 20/10/2026).
+
 > Trạng thái: **bản lập kế hoạch 20/10/2026, chưa được chủ dự án duyệt.** Chưa sửa dòng mã nào.
 > Đọc kèm: `05-R0-DEFINITION-FREEZE.md` (các câu cần chốt), `01-CURRENT-STATE-MATRIX.md` (đã có gì).
 > Luật đọc tài liệu này: mỗi khẳng định ghi rõ nó đang ở mức nào (mục 3). "Đã học" không phải "đã làm".

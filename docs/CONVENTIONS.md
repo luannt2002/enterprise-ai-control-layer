@@ -1,4 +1,4 @@
-# Quy ước dự án EAIS
+# Quy ước dự án EACL
 
 Tài liệu này là **một nguồn duy nhất** cho tên gọi, mã định danh, định dạng và luật viết. Mọi tài liệu và mã khác phải theo đây; chỗ nào lệch thì sửa chỗ đó, không sửa quy ước cho vừa.
 
@@ -96,7 +96,7 @@ Mọi lỗi ra khỏi hệ thống mang đúng một nhãn `fault`:
 | `input` | bên gọi gửi sai | 400/422 |
 | `policy` | bị chính sách chặn (quyền, phạm vi) | 403 |
 | `data` | dữ liệu tenant thiếu/hỏng/xung đột không tự giải được | 409/422 |
-| `code` | lỗi của chính EAIS | 500 |
+| `code` | lỗi của chính EACL | 500 |
 | `third_party:<provider>:<kind>` | nhà cung cấp ngoài (model, embedding, nguồn dữ liệu) | 502/503/504 |
 | `infra:<component>` | hạ tầng (postgres, parser service) | 503 |
 

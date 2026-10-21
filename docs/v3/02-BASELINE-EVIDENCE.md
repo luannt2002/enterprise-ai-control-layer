@@ -9,7 +9,7 @@
 |---|---|
 | Revision | `85108c41d90eed795539fed65635435cb4e270c3` (cây sạch, 0 tệp đổi) |
 | Go | `go1.26.4 linux/amd64` |
-| PostgreSQL | 17.11 (container `eais-pg`, ảnh ghim digest, `127.0.0.1:25432`, tmpfs, `trust`) |
+| PostgreSQL | 17.11 (container `eacl-pg`, ảnh ghim digest, `127.0.0.1:25432`, tmpfs, `trust`) |
 | Máy | 16 vCPU, RAM khả dụng ≈ 37,9 GB lúc đo (box dùng chung) |
 | Công cụ ngoài | `pdftotext` (poppler), GNU `time` |
 
@@ -17,8 +17,8 @@
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait
-export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
-export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+export EACL_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable'
+export EACL_PG_DSN='postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable'
 go vet ./...
 gofmt -l .
 go test ./... -count=1 -json

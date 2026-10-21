@@ -1,10 +1,10 @@
-# Bộ nhớ dự án EAIS (bản công khai)
+# Bộ nhớ dự án EACL (bản công khai)
 
-Đây là phần EAIS của memory Claude Code ở máy gốc, đã bỏ tên tài khoản, đường dẫn máy và mọi thứ của dự án khác. Máy mới không cần chép tệp này vào memory: `CLAUDE.md` tự nạp, và `docs/ops/README.md` mục 5 có prompt mở phiên. Muốn có memory thì tạo một tệp memory trỏ về đây.
+Đây là phần EACL của memory Claude Code ở máy gốc, đã bỏ tên tài khoản, đường dẫn máy và mọi thứ của dự án khác. Máy mới không cần chép tệp này vào memory: `CLAUDE.md` tự nạp, và `docs/ops/README.md` mục 5 có prompt mở phiên. Muốn có memory thì tạo một tệp memory trỏ về đây.
 
 ## Dự án
 
-- **EAIS — Multi-Tenant Enterprise AI Systems Platform.** Mục tiêu: chuyển từ hệ lấy model làm trung tâm (RAG ở giữa) sang hệ lấy hệ thống làm trung tâm. Chứng minh bằng cổng có lệnh chạy, không bằng tài liệu.
+- **EACL — Enterprise AI Control Layer.** Controlled AI Integration for Enterprise Software. Mục tiêu: chuyển từ hệ lấy model làm trung tâm (RAG ở giữa) sang hệ lấy hệ thống làm trung tâm. Chứng minh bằng cổng có lệnh chạy, không bằng tài liệu.
 - **Stack:** Go 1.26 + PostgreSQL 17. Python chỉ khi có bằng chứng ("Go first, Python by evidence"). Không Redis / Kafka khi chưa có số đo đòi.
 - **Cách làm:** strangler từ dịch vụ trả lời của hệ cũ. Không viết lại từ trắng; mỗi tệp dời đúng lúc lát cần nó (`docs/02-migration-audit.md`).
 - **Hướng đã chốt (19/10/2026):** WIN MVP trước (`docs/04-core-mvp.md`: chỉ QUERY, Fuel Discrepancy Resolution, tenant A + canary B, baseline RAG, 7 cổng), roadmap sau (`docs/05-master-roadmap.md`). Thứ gì không cần để thắng 7 cổng thì không làm.

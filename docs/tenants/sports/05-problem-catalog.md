@@ -2,7 +2,7 @@
 
 > Tenant **XYZ Sports Data JSC** (hư cấu), nền tảng dữ liệu thể thao nhận dữ liệu từ nhiều provider. Mọi giải, đội, cầu thủ, provider trong tài liệu này đều **hư cấu**. Mọi con số (số sự kiện, phút, số người theo dõi…) là **giả lập** để minh hoạ; chưa có phép đo nào. Chỉ dữ liệu thông tin thể thao: **không có tính năng cá cược**, câu hỏi về kèo/tỉ lệ cược đi route `REJECT`.
 
-Tài liệu này là danh mục **đúng 60 kịch bản** `SPT-S-001` … `SPT-S-060`. Mỗi kịch bản là một tình huống nghiệp vụ buộc kiến trúc EAIS phải chứng minh một năng lực; kịch bản nào kiến trúc hiện tại **không biểu diễn được** thì ghi rõ thiếu primitive nào (xem [§5](#5-primitive-còn-thiếu-do-thể-thao-chỉ-ra)).
+Tài liệu này là danh mục **đúng 60 kịch bản** `SPT-S-001` … `SPT-S-060`. Mỗi kịch bản là một tình huống nghiệp vụ buộc kiến trúc EACL phải chứng minh một năng lực; kịch bản nào kiến trúc hiện tại **không biểu diễn được** thì ghi rõ thiếu primitive nào (xem [§5](#5-primitive-còn-thiếu-do-thể-thao-chỉ-ra)).
 
 Liên kết: kịch bản gốc của mọi ca kiểm thử (`scenario:` trong [cases.yaml](../../../tenants/sports/evals/cases.yaml), tóm tắt ở [08-test-cases.md](08-test-cases.md)); ca hỏng tương ứng ở [07-failure-catalog.md](07-failure-catalog.md).
 

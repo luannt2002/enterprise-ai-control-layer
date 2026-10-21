@@ -1,4 +1,4 @@
-# STATUS — trạng thái EAIS
+# STATUS — trạng thái EACL
 
 > Cập nhật: 21/10/2026 sáng, **chốt luồng chạy đêm 20→21/10** (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Phiên tự chạy ban ngày dừng 10:33 theo lệnh chủ dự án. Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
@@ -44,7 +44,7 @@
 | G4 DECISION | ĐẠT | - `routing` 17/17.<br>- Runner chấm `model_calls` bằng gateway giả đếm lời gọi.<br>- Đột biến bắt buộc "SQL gọi gateway" (BA) và "RAG bỏ gateway" (BB) đều bị bắt. |
 | G5 CONTROL | ĐẠT **có điều kiện** (083 là kỳ vọng trọng tài) | - `permission` 18/18.<br>- Cổng AST: không kiểu `*Request` nào mang tenant.<br>- PG: RLS FORCE + GUC đọc lại; canary B có test cho phép / từ chối, đối chứng dương, ghi chéo tenant bị WITH CHECK chặn.<br>- Ràng buộc claim 6 chiều. Bảng "sai đúng một chiều" 6 × 3 bị chặn 100%; 0 chặn oan trên 13 ca mẫu + 117 ca thật.<br>- Lượng dầu trong tài liệu bị chặn bởi hai lớp, một lớp độc lập với bộ chuẩn hoá.<br>- Chèn lệnh trong SOP không đổi được route / quyền / số. |
 | G6 PROOF | ĐẠT **có điều kiện**: vi phạm "đóng băng trước W1" ở 3 ca | - 117 ca do phiên không viết mã soạn (08:47–08:58); mọi lớp ≥ 12 ca.<br>- `cases-independent.yaml` sha256 `ffdd704b535d2195…`, băm ghi 09:15, **sau** lần đo đầu 09:03 và sau khi phiên viết mã trọng tài 3 kỳ vọng (083, 107, 108).<br>- Bản ghi quyết định + phát lại: 117/117 không lệch.<br>- Thuộc tính: tổng ≥ 0; dẫn xuất = a − b lấy từ bằng chứng; A không thấy B.<br>- Mỗi cổng có đột biến bị bắt. |
-| G7 VALUE | **CHẶN** | - Bộ khung xong: baseline RAG (`evals/baseline`), luật D5 + bộ đếm độc lập (`evals/g7.go`), lệnh `g7run`, client model thật `models.Messages` cấu hình qua biến môi trường.<br>- Chạy ống nối bằng model giả: D5 ĐẠT, nhưng KHÔNG phải bằng chứng (04 §6).<br>- Thiếu: khoá model + đồng ý chi phí. Có rồi thì chạy `EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=<model> EAIS_MODEL_API_KEY=<khoá> go run ./tenants/construction/win/g7run -data <dir>`. |
+| G7 VALUE | **CHẶN** | - Bộ khung xong: baseline RAG (`evals/baseline`), luật D5 + bộ đếm độc lập (`evals/g7.go`), lệnh `g7run`, client model thật `models.Messages` cấu hình qua biến môi trường.<br>- Chạy ống nối bằng model giả: D5 ĐẠT, nhưng KHÔNG phải bằng chứng (04 §6).<br>- Thiếu: khoá model + đồng ý chi phí. Có rồi thì chạy `EACL_MODEL_PROVIDER=anthropic EACL_MODEL=<model> EACL_MODEL_API_KEY=<khoá> go run ./tenants/construction/win/g7run -data <dir>`. |
 | Scale smoke | ĐẠT | - `scripts/scale-smoke.sh`: 117/117 ở cả functional và smoke, câu trả lời giống từng byte; smoke 3,67 s, peak RSS 562,8 MiB (đo 10:35).<br>- Đường PG (`winreport -pg`): 117/117, từng ca và từng câu trả lời giống đường bộ nhớ; smoke 6,08 s, 653,7 MiB, kể cả nạp ~355 nghìn fact vào PG. |
 
 Mốc "≈ 20%" của tối 19/10 bỏ, vì nó ước theo cảm nhận. Từ nay chỉ đếm cổng có lệnh chứng minh.
@@ -78,8 +78,8 @@ Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác đị
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait          # PG 17.11, ghim digest, chỉ 127.0.0.1:25432
-export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'
-export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+export EACL_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eacl?sslmode=disable'
+export EACL_PG_DSN='postgres://eacl_app@127.0.0.1:25432/eacl?sslmode=disable'
 go vet ./...                       # sạch
 gofmt -l .                         # rỗng
 go test ./... -count=1             # 224 PASS / 0 FAIL / 0 SKIP (có PG, đo 10:35). Không có biến PG: 5 test PG SKIP
@@ -108,7 +108,7 @@ go run ./tenants/construction/win/winreport -data /tmp/win -v -pg   # đường 
 | `intelligence/intent`, `router` | ý định theo luật, khớp dài nhất, ý định yếu, D7, mệnh đề trọng tâm, so sánh hai nghĩa, ghép RAG / HYBRID; quyền đóng mặc định | test + đầu–cuối |
 | `intelligence/rag`, `models` | chỉ mục tri thức trong bộ nhớ (tenant + ACL theo vai); gateway model theo cấu hình; model giả tất định có đếm lời gọi | `rag_test.go`, `models_test.go` |
 | `reliability/validation` | `Fidelity` (lớp lọc đầu), `BindClaims` + `CountNumbers` (6 chiều, bộ đếm độc lập), `Bound`, `ForbidDimensions` + `ForbidUnitWords` | bảng sai đúng một chiều |
-| `platform/pgstore`, `db/migrations` | PG17: RLS FORCE theo GUC `eais.tenant_id`, vai `eais_app`, Load thay trọn dữ liệu tenant, ACL tài liệu lọc trong SQL | test PG + `TestWinTrenPG` |
+| `platform/pgstore`, `db/migrations` | PG17: RLS FORCE theo GUC `eacl.tenant_id`, vai `eacl_app`, Load thay trọn dữ liệu tenant, ACL tài liệu lọc trong SQL | test PG + `TestWinTrenPG` |
 | `observability/traces` | đo thời gian chặng; `Decision` + `Diff` | `decision_test.go` |
 | `evals` | hợp đồng ca WIN, runner (chấm `model_calls`), đếm cổng G6 | `runner_test.go`, `win_test.go` |
 | `tenants/construction` | pack thật; `win/`: world đóng băng, bộ sinh có seed (functional ~2,7 nghìn / smoke ~360 nghìn bản ghi), 117 ca độc lập, `winrun`, `winreport` | ratchet |
@@ -165,7 +165,7 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 | Hạng mục | Tình trạng |
 |---|---|
 | G7 với model thật | CHẶN: cần khoá + đồng ý chi phí. Client đã có (`models.Messages`, test bằng máy chủ giả), chưa từng gọi API thật. Tiêu chí chấm theo nội dung (`G7ContentReport`), top-k baseline = 10 và cách viết đoạn của baseline: chờ user duyệt |
-| HTTP API, xác thực, `cmd/eais` | chưa có. Bản ghi quyết định mới nằm trong bộ nhớ / test, chưa lưu bền |
+| HTTP API, xác thực, `cmd/eacl` | chưa có. Bản ghi quyết định mới nằm trong bộ nhớ / test, chưa lưu bền |
 | Chỉ mục toàn văn PG | chưa có. Tài liệu lưu nguyên văn, cắt đoạn và chấm điểm trong Go lúc truy vấn; đủ cho WIN, chưa đo ở quy mô tài liệu lớn |
 | Soát độc lập mã W4–W7 | CHƯA: mã hôm nay mới qua tự soát + đột biến |
 | `go mod tidy` | chạy offline lỗi (cache thiếu dependency test của yaml). pgx v5.11.0 thêm từ cache; chạy lại khi có mạng |

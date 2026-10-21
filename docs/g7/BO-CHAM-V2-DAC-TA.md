@@ -28,7 +28,7 @@ func Score(c Case, t Truth, answer string, f *FactBase, p Profile) Verdict
 - `Case` = phần của `WinCase` (id, lớp, câu hỏi, `expect`: outcome, value, contains, not_contains, candidates, cited_sources, conflict). `expect.outcome` của CA (hợp đồng đóng băng) chọn rubric; nhãn kiến trúc do HỆ trả (route, outcome, model_calls, citations) KHÔNG bao giờ vào hàm (ADR-0005 §4).
 - `Truth` (§6) do người soạn ca khai; `FactBase` dựng từ `manifest.json` + `entities.json` + `docs/*.md` của BỘ SINH (đáp án độc lập EACL, docs/04 §6 G7), không từ EACL.
 - `WinCase` cần thêm trường tùy chọn `Truth *WinTruth` (`LoadWinSuite` đang `KnownFields(true)` nên khoá `truth` lạ sẽ lỗi); `Report` cần thêm `Criteria string`. Đây là đổi ở `evals/`, không đổi hành vi EACL.
-- Phụ thuộc: stdlib + `golang.org/x/text` + yaml (đã có trong go.mod). Gói chấm KHÔNG import gói nào của EAIS (kiểm bằng architecture_test).
+- Phụ thuộc: stdlib + `golang.org/x/text` + yaml (đã có trong go.mod). Gói chấm KHÔNG import gói nào của EACL (kiểm bằng architecture_test).
 - **Phán quyết ba trị:** FAIL > INDET > PASS. Ở cổng INDET ĐÓNG thành FAIL cho mọi hệ; INDET in theo hệ và lớp.
 - **Hồ sơ chính sách** (cờ có tên, đóng băng cùng bộ chấm; chỉ STRICT quyết định G7):
 
@@ -315,7 +315,7 @@ Hàng `xfail` ghi nhận giới hạn đã biết: test chạy, hiện đỏ có
 ## 9. Kế hoạch hiện thực tối nay
 
 1. Sao mã mẫu bản 1 và bản vá của giám khảo vào `docs/sources/g7-scorer-v2-proto/` (riêng tư, ngoài git công khai, D-OP-1) trước khi /tmp mất: `.../<scratch>/scorer-v2/v2/` và `.../<scratch>/judge/v2fix/` (127 dòng thêm, 3 dòng xoá so với bản gốc `[ĐO-GK]`).
-2. **T0a** (khoảng 3 giờ `[ƯỚC]`): gói `evals/g7score` không import EAIS; chép num/date/text/scan/world/lex, đổi kiểu cho khớp `WinCase`/`Truth`, sửa NU-6, DT-2; nối `G7ContentReport`/`G7Counter`/`CompareG7`; tải bảng đòn; test.
+2. **T0a** (khoảng 3 giờ `[ƯỚC]`): gói `evals/g7score` không import EACL; chép num/date/text/scan/world/lex, đổi kiểu cho khớp `WinCase`/`Truth`, sửa NU-6, DT-2; nối `G7ContentReport`/`G7Counter`/`CompareG7`; tải bảng đòn; test.
 3. **T0b**: chép claims/score/score2 với 8 sửa GK; sửa SC-10 (thay DP). Mục tiêu đo: bảng 170 đòn ở cấu hình T0 lệch ≤ 19/170, đối chứng hỏng ≤ 1/37.
 4. **T1** trước đóng băng: bật SC-4/SC-6/NU-5/RB-4; mục tiêu: lệch ≤ 8/170 và đúng bảng §7.2.
 5. **Lệnh kiểm** (không cần cờ jest; mỗi lệnh chạy riêng): `go vet ./evals/... && go test ./evals/... -count=1 -race`; `go build ./...`; `git diff --stat -- core intelligence data reliability platform observability` phải RỖNG (không đổi hành vi EACL).

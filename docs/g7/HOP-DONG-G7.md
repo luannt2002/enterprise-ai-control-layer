@@ -61,13 +61,13 @@ Khác biệt truy cập dữ liệu, cố ý:
 
 | Tham số | Giá trị | Biến môi trường |
 |---|---|---|
-| Nhà cung cấp | Anthropic Messages API, client `models.Messages` | `EAIS_MODEL_PROVIDER=anthropic` |
-| Model | **`claude-sonnet-5-5`** (D-G7-2). Haiku 5.5 chỉ cho báo cáo độ nhạy riêng | `EAIS_MODEL` |
-| Sampling | **không gửi** `temperature` / `top_p` / `top_k`. Lần chạy là NGẪU NHIÊN | (không đặt `EAIS_MODEL_TEMPERATURE`) |
-| Thinking | `{"type": "between_tools"}`: mức thấp nhất của Sonnet 5.5, chạy ở effort low / medium / high (tài liệu Effort, tra 20/10/2026) | `EAIS_MODEL_THINKING=between_tools` |
-| Effort | `medium`, đặt ở `output_config.effort` | `EAIS_MODEL_EFFORT=medium` |
+| Nhà cung cấp | Anthropic Messages API, client `models.Messages` | `EACL_MODEL_PROVIDER=anthropic` |
+| Model | **`claude-sonnet-5-5`** (D-G7-2). Haiku 5.5 chỉ cho báo cáo độ nhạy riêng | `EACL_MODEL` |
+| Sampling | **không gửi** `temperature` / `top_p` / `top_k`. Lần chạy là NGẪU NHIÊN | (không đặt `EACL_MODEL_TEMPERATURE`) |
+| Thinking | `{"type": "between_tools"}`: mức thấp nhất của Sonnet 5.5, chạy ở effort low / medium / high (tài liệu Effort, tra 20/10/2026) | `EACL_MODEL_THINKING=between_tools` |
+| Effort | `medium`, đặt ở `output_config.effort` | `EACL_MODEL_EFFORT=medium` |
 | `max_tokens` | 1024 | mặc định |
-| Thử lại | 2 lần cho lỗi tạm (không tới được, quá giờ, 429, 5xx), lùi 1 s rồi 2 s; mọi lần gửi được ghi vết | `EAIS_MODEL_MAX_RETRIES=2` (mặc định) |
+| Thử lại | 2 lần cho lỗi tạm (không tới được, quá giờ, 429, 5xx), lùi 1 s rồi 2 s; mọi lần gửi được ghi vết | `EACL_MODEL_MAX_RETRIES=2` (mặc định) |
 | System prompt | `messagesSystem`, sha256 `ce28446e…d781bf`. **Có thể đổi** theo bộ chấm v2, trước khi đóng băng | — |
 | User prompt | `Câu hỏi: …` + `Bằng chứng:` mỗi đoạn `[id] văn bản`; B2+ / B2″ / B1 thêm phần mở đầu (ngày hiện tại; B2″ thêm luật) trước câu hỏi | — |
 | Seed | API không có seed: không áp dụng | — |
@@ -192,7 +192,7 @@ git status --porcelain                       # phải rỗng
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out /tmp/g7data -profile functional -seed 42
 sha256sum /tmp/g7data/manifest.json          # phải = 31172355…adb055
 # 2. cấu hình model (khoá do chủ môi trường đặt; KHÔNG in, KHÔNG commit, agent KHÔNG tự tìm)
-export EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=claude-sonnet-5-5 EAIS_MODEL_THINKING=between_tools EAIS_MODEL_EFFORT=medium
+export EACL_MODEL_PROVIDER=anthropic EACL_MODEL=claude-sonnet-5-5 EACL_MODEL_THINKING=between_tools EACL_MODEL_EFFORT=medium
 # 3. thử khói
 go run ./tenants/construction/win/g7run -data /tmp/g7data -cases docs/g7/holdout/pilot.yaml -manifest docs/g7/holdout/holdout-manifest.json -smoke 3
 # 4. pilot (k = 5) → k của lượt chính theo luật ADR-0006 §6

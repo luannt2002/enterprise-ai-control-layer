@@ -1,4 +1,4 @@
-# Lịch sử EAIS V1/V2 (D-V3-10, chủ dự án duyệt 20/10/2026). Truy vết V3 dùng mã V3-… ở docs/v3/03-REQUIREMENTS-TRACEABILITY.md.
+# Historical artifact (V1/V2; D-V3-10, chủ dự án duyệt 20/10/2026). Truy vết V3 dùng mã V3-… ở docs/v3/03-REQUIREMENTS-TRACEABILITY.md.
 # Sổ yêu cầu có truy vết của EAIS — nguồn thật là tệp này; catalog.md là bản đọc cho người.
 # Khoá: id · area (khớp tiền tố id) · statement · rationale · sources[{file, section, lines}] ·
 #       applies_to (package theo docs/01-architecture.md §3, hoặc tenants/<domain>, docs, evals) ·

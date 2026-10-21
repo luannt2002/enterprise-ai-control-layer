@@ -108,7 +108,7 @@ Lớp không đủ ca thì PILOT lấy trước, rồi tới H1. Số ca thật 
   - phát lại bản ghi quyết định.
 - **Thủ tục chạy** (thêm 20/10 đêm, trước lần chạy H1 đầu tiên): `scripts/chay-giu-lai.sh <tệp ca> <thư mục ra>`.
   - Chạy cả hai đường, rồi lập bảng cổng (`scripts/bang-cong-h1.py`). Ghi revision, giờ bắt đầu / kết thúc, băm tệp ca, băm dữ liệu.
-  - Từ chối chạy khi: tệp ca không khớp băm bản đóng băng (`holdout-manifest.json`); tệp là `h2.yaml` khi H1 còn là bộ giữ lại; tập đã có lần chạy HOÀN TẤT (tìm theo băm tệp ca); thư mục ra nằm ngoài thư mục bộ giữ lại hoặc đã có; cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`; đường PG không dùng database riêng `eais_giu_lai`.
+  - Từ chối chạy khi: tệp ca không khớp băm bản đóng băng (`holdout-manifest.json`); tệp là `h2.yaml` khi H1 còn là bộ giữ lại; tập đã có lần chạy HOÀN TẤT (tìm theo băm tệp ca); thư mục ra nằm ngoài thư mục bộ giữ lại hoặc đã có; cây git có thay đổi; tệp ca chưa commit; HEAD chưa có trên `origin/main`; đường PG không dùng database riêng `eacl_giu_lai`.
   - Lần chạy HỎNG HẠ TẦNG (lỗi cấu hình / nạp, mã thoát 1) không phải lần đo: được chạy lại khi mã (cây git không tính `docs/`) y nguyên.
   - Một ca chỉ ĐẠT khi đạt ở CẢ HAI đường; đầu vào thiếu (thiếu `-v`, thiếu ca, sai đường) thì BLOCKED. Sửa theo bản soát độc lập lượt 2, trước lần chạy H1 đầu tiên; công cụ có test (`scripts/kiemcongcu`) và đột biến (`scripts/dot-bien/n27-cong-cu-giu-lai.sh`).
 - **H2 không chạy** khi H1 còn là bộ giữ lại.
@@ -169,7 +169,7 @@ Mỗi cổng một bảng: yêu cầu · bằng chứng cũ (bị nhiễm) · b�
 - **Chạy, đúng một lần.**
   - Chép `h3.yaml` vào `docs/g7/holdout-h3/` (băm phải khớp cam kết), commit + push.
   - Ngay sau đó: `scripts/chay-giu-lai.sh docs/g7/holdout-h3/h3.yaml docs/g7/holdout-h3/ket-qua-h3`.
-  - Cùng thủ tục và luật từ chối của §7: hai đường, `eais_giu_lai`, cây sạch, HEAD trên origin/main, không chạy lại khi đã HOÀN TẤT.
+  - Cùng thủ tục và luật từ chối của §7: hai đường, `eacl_giu_lai`, cây sạch, HEAD trên origin/main, không chạy lại khi đã HOÀN TẤT.
 - **Điều kiện sẵn sàng chạy (đăng ký trước).**
   1. Bản sửa của ca đã commit + push. `go test ./...` có PG xanh, ratchet xanh, mọi danh mục đột biến bị bắt hết.
   2. H1 (bộ hồi quy, mốc `15ed135`: 89/104) không có ca ĐẠT → ĐỎ. Ngoại lệ: ca mà người soát độc lập xác nhận kỳ vọng trái hợp đồng câu xác nhận; ghi lý do.

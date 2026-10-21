@@ -1,5 +1,7 @@
 # Sổ yêu cầu có truy vết của EAIS
 
+> **Historical artifact** (V1/V2; D-V3-10, chủ dự án duyệt 20/10/2026). Truy vết hiện hành: [`docs/v3/03-REQUIREMENTS-TRACEABILITY.md`](../v3/03-REQUIREMENTS-TRACEABILITY.md).
+
 > Tệp đọc cho người. **Nguồn thật là [catalog.yaml](catalog.yaml)** (một danh sách, mỗi mục một yêu cầu `REQ-<AREA>-NNN`). Mục đích duy nhất: không để mất logic của hai tệp ghi chú học và mười một brief — mỗi ý có giá trị trong nguồn là một yêu cầu có mã, gắn vào thành phần kiến trúc và cách kiểm.
 >
 > **Nguồn đã quét đủ (13/13)**: `z-luannt-learn-ai-with-quan-ai.v0.md` · `z-luannt-learn-ai-with-quan-ai.v1.md` · `brief-01-case-study-construction.md` · `brief-02-v2-two-tenants.md` · `brief-03-eais-naming.md` · `brief-04-rag-to-eais-expansion.md` · `brief-05-architecture-review.md` · `brief-06-model-vs-enterprise-system.md` · `brief-07-data-realism-proof.md` · `brief-08-rag-vs-eais-v0-v4.md` · `brief-09-blind-spot-audit-29.md` · `brief-10-working-hypothesis-first-principles.md` · `brief-11-claude-md-rationale.md`. **Chưa quét: không còn** (nguồn nào xuất hiện sau thời điểm này phải được thêm bằng REQ mới kèm cập nhật BẢNG PHỦ NGUỒN).

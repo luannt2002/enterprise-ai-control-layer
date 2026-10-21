@@ -1,10 +1,22 @@
 # Changelog
 
-Mọi thay đổi đáng kể của EAIS được ghi ở đây, theo tinh thần [Keep a Changelog](https://keepachangelog.com/).
+Mọi thay đổi đáng kể của EACL được ghi ở đây, theo tinh thần [Keep a Changelog](https://keepachangelog.com/).
 Dự án chưa phát hành phiên bản nào. Commit đầu tiên: 20/10/2026.
 Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
+
+### 21/10/2026 — danh tính EACL (Enterprise AI Control Layer)
+
+- Repo `github.com/luannt2002/enterprise-ai-control-layer`; module Go cùng đường dẫn, mọi import theo đó.
+- Biến môi trường `EACL_MODEL_*`, `EACL_PG_ADMIN_DSN`, `EACL_PG_DSN`; PostgreSQL dev: database `eacl`, vai `eacl_app`, GUC `eacl.tenant_id`, database chạy bộ giữ lại `eacl_giu_lai`, container `eacl-pg`.
+- Tài liệu hiện hành (README, CLAUDE.md, kiến trúc, vận hành, G7, ADR, tenant) dùng định nghĩa EACL; tài liệu lịch sử ghi nhãn "Historical artifact"; bằng chứng đã đóng băng giữ nguyên.
+- Hành vi không đổi: test có PG 438/0/0, bộ 117 ca 117/117, H1 89/104 ở cả hai đường (0 ca đổi nhãn), scale smoke ĐẠT.
+
+### Ca ngày 21/10/2026 — chuẩn bị H3
+
+- ADR-0006 §10: luật soạn / đóng băng bằng cam kết băm / chạy một lần / chấm H3, đăng ký trước khi có tệp H3.
+- `kiemca` (kiểm định dạng bộ giữ lại không in nội dung), `scripts/cam-ket-giu-lai.py`, `scripts/kiem-nhiem-soan.py`; đột biến n40 7/7, n41 12/12.
 
 ### Đêm 20→21/10/2026 — khôi phục bằng chứng (chưa gọi model thật, chi 0 USD)
 

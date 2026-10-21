@@ -21,8 +21,8 @@ Ngày 19/10, chủ dự án chốt: làm WIN trước, không làm quá rộng; 
 | D2 | ERP mang nghĩa gì | **nguồn hạng 2 của ISSUED** (khớp `tenants/construction/pack/metrics.yaml`); không tạo nghĩa "ghi nhận" riêng | ERP nhập lại cùng giao dịch xuất kho; tách nghĩa khi chưa có ca nào đòi là phình phạm vi | chủ nghiệp vụ xác nhận ERP ghi một sự kiện khác với xuất kho |
 | D3 | "Dùng bao nhiêu dầu" | **CONSUMED** (`measured_consumption`) | nghĩa thông thường của "dùng"; khớp luật BR-FUEL-02 trong tài liệu tenant | chủ nghiệp vụ chốt khác |
 | D4 | Đọc PDF | báo cáo ngày là PDF **văn bản**. Sinh bằng `go-pdf/fpdf` v0.9.0 + font DejaVuSans. **Đọc bằng `pdftotext` (poppler)** gọi từ Go sau interface `TextExtractor`. **Không Python.** Bảng PDF để sau WIN; G1 metamorphic dùng CSV / XLSX / JSON / tin nhắn | **Đo 20/10 08:44** (`scratchpad/pdf-spike`): thư viện Go thuần `ledongthuc/pdf` đọc **sai dấu tiếng Việt** ("Dự án Cầu A" → "Dñ án C§u A", "≈" → "H"); `pdftotext -layout` đúng 3/3 dòng. Python / torch nặng hơn mà không cần | máy chạy thiếu poppler; hoặc có thư viện Go đọc đúng ToUnicode |
-| D5 | Công thức G7 | temperature 0; k = 3 lần, trung vị; mọi lớp EAIS ≥ baseline; ≥ 4/8 lớp hơn ≥ 20 điểm %; EAIS rò rỉ tenant = 0, claim không căn cứ = 0 | biên rõ, cho phép hoà, chống thắng do nhiễu | số đo cho thấy biên vô lý (ví dụ baseline đã đạt 100% một lớp) |
-| D6 | Baseline | RAG đơn giản trong repo, chỉ dữ liệu tenant A, cùng retriever + model; **không có** tầng kiểm soát EAIS | so công bằng; không cần DB / khoá của hệ cũ; lớp quyền so ở mức vai / phạm vi | chủ dự án muốn dùng hệ cũ làm baseline thứ hai |
+| D5 | Công thức G7 | temperature 0; k = 3 lần, trung vị; mọi lớp EACL ≥ baseline; ≥ 4/8 lớp hơn ≥ 20 điểm %; EACL rò rỉ tenant = 0, claim không căn cứ = 0 | biên rõ, cho phép hoà, chống thắng do nhiễu | số đo cho thấy biên vô lý (ví dụ baseline đã đạt 100% một lớp) |
+| D6 | Baseline | RAG đơn giản trong repo, chỉ dữ liệu tenant A, cùng retriever + model; **không có** tầng kiểm soát EACL | so công bằng; không cần DB / khoá của hệ cũ; lớp quyền so ở mức vai / phạm vi | chủ dự án muốn dùng hệ cũ làm baseline thứ hai |
 
 ## Hệ quả
 
@@ -34,4 +34,4 @@ Ngày 19/10, chủ dự án chốt: làm WIN trước, không làm quá rộng; 
 ## Phương án đã cân nhắc
 
 - **Bản 04 đề xuất 19/10 lúc 20:5x** (MVP gồm cả tác vụ duyệt, lệnh, đầu dò thể thao): bị thay vì rộng hơn mức cần để chứng minh luận đề.
-- **Không có baseline:** bị loại vì chỉ chứng minh được "EAIS chạy", không chứng minh được "EAIS hơn".
+- **Không có baseline:** bị loại vì chỉ chứng minh được "EACL chạy", không chứng minh được "EACL hơn".

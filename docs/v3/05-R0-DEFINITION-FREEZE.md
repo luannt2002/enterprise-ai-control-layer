@@ -16,7 +16,7 @@ R0 không làm AI. Nó trả lời: **giải vấn đề gì, cho ai, thắng ng
 
 ### 2.1 Tên và định nghĩa — NGUYÊN VĂN
 
-- Tên: **EACL — Enterprise AI Control Layer**. Tên cũ: EAIS.
+- Tên: **EACL — Enterprise AI Control Layer**.
 - Định nghĩa: *"EACL is a reference architecture and executable control layer for integrating probabilistic AI capabilities into existing enterprise applications while the applications retain ownership of business truth, permissions, state, transactions and workflows."*
 - Câu hỏi sống còn: *"Can a small reusable control layer add useful AI to existing enterprise software while the business application keeps ownership of truth, permissions, state, transactions, and workflows?"*
 - Năm luật:
@@ -142,7 +142,7 @@ Playbook đòi ngưỡng số phải đông cứng **trước** benchmark cuối
 
 Playbook là nguồn số 2 về thẩm quyền và dùng R0…R10, khớp Blueprint. Hai cách đánh số khác (bài giảng R0–R9, hội thoại cũ P0–P7) chỉ để tra ngược.
 
-| V3 (chuẩn) | Bài giảng | Hội thoại cũ | Roadmap EAIS cũ (`05`) |
+| V3 (chuẩn) | Bài giảng | Hội thoại cũ | Roadmap V1/V2 (`05`) |
 |---|---|---|---|
 | R0 Definition Freeze | R0 | P0 | — |
 | R1 Fuel Truth Benchmark | R1 | P1 | Phase 0 (WIN, W-G7) |
@@ -186,14 +186,14 @@ Sau R0, tính năng mới vào MVP cần đủ 8 mục:
 
 | # | Mâu thuẫn | Nguồn | Đề xuất |
 |---|---|---|---|
-| C1 | `CLAUDE.md` §9 và `README.md` gọi sản phẩm là "Multi-tenant Enterprise AI Systems Platform" | repo ↔ Blueprint §3 | Chủ dự án sửa `CLAUDE.md` (tệp của chủ dự án; agent chỉ đề xuất câu chữ, D-V3-06). README sửa ở TASK-R0-03 |
+| C1 | Định nghĩa sản phẩm ở `CLAUDE.md` §9 và `README.md` khác Blueprint §3 | repo ↔ Blueprint §3 | **Đã giải 21/10/2026:** `README.md`, `CLAUDE.md` §9, `docs/01-architecture.md` dùng định nghĩa EACL của Blueprint §3 (D-V3-06) |
 | C2 | Cổng cũ G1–G7 trùng tên, khác nghĩa với G1–G6 V3 | `04` ↔ Playbook | đổi tên cũ thành W-G1…W-G7 (mục 2.3) |
-| C3 | Bốn cách đánh số phase. Lịch sử còn **≥ 6 bộ roadmap EAIS** khác số: M0–M9, M0–M8, Phase 0–10, 8 từ khoá, P0–P8, [0]–[6]. Bộ [0]–[6] mới nhất trước V3 khớp khung R0–R10 | Blueprint, bài giảng, hội thoại, `05` cũ | dùng số Blueprint/Playbook (mục 2.8); các bộ cũ chỉ để tra ngược |
+| C3 | Bốn cách đánh số phase. Lịch sử còn **≥ 6 bộ roadmap V1/V2** khác số: M0–M9, M0–M8, Phase 0–10, 8 từ khoá, P0–P8, [0]–[6]. Bộ [0]–[6] mới nhất trước V3 khớp khung R0–R10 | Blueprint, bài giảng, hội thoại, `05` cũ | dùng số Blueprint/Playbook (mục 2.8); các bộ cũ chỉ để tra ngược |
 | C4 | `CLAUDE.md` §9/§24: tenant tham chiếu là Construction + Sports. V3: Fuel + Customer Ops | repo ↔ V3 | Sports thành ứng viên cho R8 (khác hẳn: sự kiện thời gian thực). Chọn domain R8 khi tới R7 |
 | C5 | "V3 WIN" (Blueprint §0.6, có portability) khác "MVP WIN" (G1–G6) | Blueprint ↔ Playbook | ba thuật ngữ ở mục 2.9 |
 | C6 | Không tài liệu nào có ngưỡng số (G1 "ngưỡng đã thống nhất", G6 "lợi thế có nghĩa", R8/R9 "ngưỡng chấp nhận"). Lịch sử có 3 bộ tiêu chí WIN cho Product MVP (A1–A10, P1–P10, baseline A–D); chỉ hai bộ đầu có "10/10", **không bộ nào có ngưỡng so với baseline** | Playbook + lịch sử | mục 2.5, chờ D-V3-02 |
 | C7 | Catalog Blueprint §42–46 là khuôn nhân bản; §43 gán cổng xoay vòng | Blueprint | không dùng làm ca/truy vết/backlog; giữ 10 lớp + 12 quyết định (`00` §4.1) |
-| C8 | `docs/requirements/catalog.yaml` dán 294 REQ là "MVP" | repo ↔ V3 | đông cứng sổ cũ thành **lịch sử EAIS V1/V2**. Truy vết V3 dùng mã `V3-…` ở `03`. Chỉ đổi `phase` một REQ cũ khi task V3 cần nó |
+| C8 | `docs/requirements/catalog.yaml` dán 294 REQ là "MVP" | repo ↔ V3 | đông cứng sổ cũ thành **lịch sử V1/V2**. Truy vết V3 dùng mã `V3-…` ở `03`. Chỉ đổi `phase` một REQ cũ khi task V3 cần nó |
 | C9 | Contact: Blueprint §4.1 có; Playbook R2 PASS và hội thoại V3 §28 không có | Blueprint ↔ Playbook | Playbook thắng: Contact **DEFER**, chỉ thêm khi một ca đông cứng cần |
 | C10 | Prompt điều phối cho dùng Opus làm agent con. Luật đang hiệu lực của chủ dự án: agent con chỉ sonnet/haiku, tối đa 3 | prompt ↔ luật vận hành | việc tầm Opus do **phiên lead** làm. Muốn agent con Opus thì chủ dự án nói rõ (D-V3-05) |
 | C11 | Blueprint nêu tên hai hệ thống của công ty cũ | Blueprint ↔ repo PUBLIC | bản công khai ẩn danh ("hệ A", "hệ B"); bản gốc ở `docs/sources/` (ignore) |
@@ -212,14 +212,14 @@ Sau R0, tính năng mới vào MVP cần đủ 8 mục:
 |---|---|---|---|---|
 | D-V3-01 | Model thật + trần chi phí cho R1/R3/R6 | Claude Haiku 5.5 qua client `anthropic` đã có. **Trước khi chi đồng nào**, chạy TASK-R1-04 ra con số token ước lượng, rồi chốt trần | client có sẵn; mọi đường dùng chung một model nên so công bằng; dữ liệu là giả lập, không có dữ liệu thật đi ra ngoài | R1-05, smoke model thật của R3, R6 CHẶN. R0, R2, phần tất định của R3/R4/R5 vẫn chạy |
 | D-V3-02 | Ngưỡng mục 2.5 | duyệt như đề xuất hoặc sửa số | cùng khuôn D5 đã dùng; có số 0 cứng cho an toàn | không chạy được benchmark có kết luận |
-| D-V3-03 | Đổi tên mã nguồn và repo | (a) đổi tên trong tài liệu và README ngay ở R0. (b) Đổi module `github.com/luannt2002/eacl` + thư mục + repo GitHub trong **một commit riêng, trước khi mã R2 vào** | hôm nay 26 gói phải đổi import; càng để lâu càng nhiều. GitHub tự chuyển hướng URL cũ. (b) đụng remote công khai nên phải hỏi | giữ tên cũ trong mã, tài liệu gọi EACL |
+| D-V3-03 | Đổi tên mã nguồn và repo | (a) đổi tên trong tài liệu và README ngay ở R0. (b) Đổi module `github.com/luannt2002/eacl` + thư mục + repo GitHub trong **một commit riêng, trước khi mã R2 vào** | hôm nay 26 gói phải đổi import; càng để lâu càng nhiều. GitHub tự chuyển hướng URL cũ. (b) đụng remote công khai nên phải hỏi | **Đã làm 21/10/2026:** chủ dự án đổi tên repo `enterprise-ai-control-layer`; module, import, cấu hình, tài liệu theo danh tính EACL |
 | D-V3-04 | Đo B0 | quyết lúc chuẩn bị R6. Khuyến nghị: thêm vài trang HTML chỉ đọc + form tạo task cho app (~vài trăm dòng), chủ dự án tự làm 10 ca, bấm giờ | B0 qua `curl` không giống thật, làm EACL trông có lợi giả | G6 không có số "tiết kiệm thời gian"; ghi CHƯA ĐO |
 | D-V3-05 | Agent con Opus? | Không. Lead (Opus) làm kiến trúc, an ninh, soát pha. Agent con sonnet/haiku, tối đa 3 | đúng luật đang hiệu lực; đỡ tốn | — |
 | D-V3-06 | Sửa `CLAUDE.md` §9/§24/§25 | chủ dự án sửa theo câu chữ đề xuất ở TASK-R0-03 | tệp của chủ dự án | agent đọc thấy hai định nghĩa sản phẩm khác nhau |
 | D-V3-07 | Việc treo C13 | duyệt ADR-0002; thay 2 đường dẫn nội bộ bằng "hệ thống cũ"; chốt một danh sách P10 | dọn trước khi thêm tài liệu V3 | nợ tài liệu |
 | D-V3-08 | Commit/push `docs/v3/` | chỉ khi chủ dự án nói. Bộ tài liệu đã ẩn danh, không có đường dẫn máy | repo PUBLIC | tài liệu nằm ở máy |
 | D-V3-09 | Kiến trúc app tham chiếu (ADR-0003, TASK-R2-01) | tiến trình riêng, DB riêng (`customerops`, vai riêng, cùng container PG), REST JSON bằng `net/http` thư viện chuẩn, token bearer cho người dùng seed; **cấm import hai chiều** giữa app và EACL (test kiến trúc) | đo "integration tax" phải trung thực. App là "hệ có sẵn" thật, EACL chỉ nói chuyện qua API như với hệ của khách | rủi ro "sân nhà" (R-08 ở `08`) |
-| D-V3-10 | Vị trí tài liệu cũ | `04`, `05`, `catalog.yaml` ghi đầu tệp "lịch sử EAIS; V3 xem `docs/v3/`". `04` vẫn là hợp đồng của R1 | tránh hai nguồn sự thật | agent đọc nhầm `05` cũ |
+| D-V3-10 | Vị trí tài liệu cũ | `04`, `05`, `catalog.yaml` ghi đầu tệp "Historical artifact; V3 xem `docs/v3/`". `04` vẫn là hợp đồng của R1 | tránh hai nguồn sự thật | agent đọc nhầm `05` cũ |
 
 ## 5. Điều kiện R0 đạt (Playbook §9) — trạng thái lúc viết
 
@@ -233,6 +233,6 @@ Sau R0, tính năng mới vào MVP cần đủ 8 mục:
 | Baseline đông cứng | cách hiện thực ở mục 2.4, chờ duyệt |
 | Mẫu task/story được dùng | có (Playbook §3, §23; `06` theo mẫu) |
 | Có luật kiểm soát thay đổi | mục 2.10 |
-| DoD: một gói định nghĩa có revision + 0 blocker | **CHƯA**: blocker còn mở là D-V3-01 (chỉ chặn phần cần model), D-V3-02, D-V3-03 |
+| DoD: một gói định nghĩa có revision + 0 blocker | **CHƯA**: blocker còn mở là D-V3-01 (chỉ chặn phần cần model), D-V3-02 (D-V3-03 đã làm 21/10/2026) |
 
 Duyệt xong thì ghi revision (commit hoặc tag `v3.0.0-r0`) vào `09-EVIDENCE-INDEX.md`. Từ đó, đổi mục 2 phải đi đường mục 2.10.

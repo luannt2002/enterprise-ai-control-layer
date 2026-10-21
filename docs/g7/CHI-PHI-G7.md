@@ -5,7 +5,7 @@
 
 ## 1. Cách đo
 
-Chạy khô đúng đường mã thật: `g7run` + client `models.Messages`, `EAIS_MODEL_BASE_URL` trỏ vào một máy chủ giả trên máy. Máy chủ giả ghi từng yêu cầu và trả nguyên văn đoạn bằng chứng đầu. Không có lời gọi nào ra ngoài.
+Chạy khô đúng đường mã thật: `g7run` + client `models.Messages`, `EACL_MODEL_BASE_URL` trỏ vào một máy chủ giả trên máy. Máy chủ giả ghi từng yêu cầu và trả nguyên văn đoạn bằng chứng đầu. Không có lời gọi nào ra ngoài.
 
 Chạy lại được:
 - script máy chủ giả: `scripts/g7-chay-kho.py`;
@@ -91,8 +91,8 @@ Giá chính thức, tra 20/10/2026 ở `platform.claude.com/docs/en/about-claude
 D=$(mktemp -d)
 python3 -I scripts/g7-chay-kho.py 25480 $D/requests.jsonl &   # cổng bất kỳ còn trống; đừng dùng cổng của dịch vụ đang chạy
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out $D/data -profile functional -seed 42
-EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=chay-kho EAIS_MODEL_API_KEY=khong-phai-khoa-that \
-EAIS_MODEL_BASE_URL=http://127.0.0.1:25480 go run ./tenants/construction/win/g7run -data $D/data -k 3
+EACL_MODEL_PROVIDER=anthropic EACL_MODEL=chay-kho EACL_MODEL_API_KEY=khong-phai-khoa-that \
+EACL_MODEL_BASE_URL=http://127.0.0.1:25480 go run ./tenants/construction/win/g7run -data $D/data -k 3
 wc -l $D/requests.jsonl      # 372
 kill %1
 ```

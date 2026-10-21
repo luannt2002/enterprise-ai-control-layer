@@ -56,12 +56,15 @@ type fixture struct {
 	noVerb   bool              // đầu ra không có dòng câu trả lời (thiếu -v)
 	missing  string            // bỏ ca này khỏi đầu ra
 	question map[string]string
+	reasons  map[string]string // lý do đỏ in sau [lớp] (cả hai đường)
+	outcome  map[string]string // outcome kỳ vọng trong tệp ca, mặc định RESOLVED
 }
 
 // newFixture dựng per ca mỗi lớp, mọi ca đạt cả hai đường, phát lại đủ.
 func newFixture(per int) *fixture {
 	f := &fixture{class: map[string]string{}, indep: map[string]bool{}, memOK: map[string]bool{}, pgOK: map[string]bool{},
-		answer: map[string]string{}, replay: map[string][2]int{}, question: map[string]string{}}
+		answer: map[string]string{}, replay: map[string][2]int{}, question: map[string]string{}, reasons: map[string]string{},
+		outcome: map[string]string{}}
 	n := 500
 	for _, c := range classes {
 		for i := 0; i < per; i++ {
@@ -89,7 +92,7 @@ func (f *fixture) report(path string) string {
 		if ok[id] {
 			mark = "ĐẠT"
 		}
-		fmt.Fprintf(&b, "  %s %s [%s] \n", mark, id, f.class[id])
+		fmt.Fprintf(&b, "  %s %s [%s] %s\n", mark, id, f.class[id], f.reasons[id])
 		if !f.noVerb {
 			fmt.Fprintf(&b, "      → %q\n", f.answer[id])
 		}
@@ -109,7 +112,11 @@ func (f *fixture) cases() string {
 			by = "author"
 		}
 		q, _ := json.Marshal(f.question[id])
-		fmt.Fprintf(&b, "  - id: %s\n    failure_class: %s\n    authored_by: %s\n    principal: u-director\n    question: %s\n    expect:\n      outcome: RESOLVED\n", id, f.class[id], by, q)
+		out := f.outcome[id]
+		if out == "" {
+			out = "RESOLVED"
+		}
+		fmt.Fprintf(&b, "  - id: %s\n    failure_class: %s\n    authored_by: %s\n    principal: u-director\n    question: %s\n    expect:\n      outcome: %s\n", id, f.class[id], by, q, out)
 	}
 	return b.String()
 }
@@ -468,5 +475,46 @@ func TestKiemNhiem(t *testing.T) {
 	}
 	if strings.Contains(out, "CAU-HOI-BI-MAT") {
 		t.Errorf("in nội dung lệnh: %s", out)
+	}
+}
+
+// Độ nhạy 3 (ADR-0006 §10, đăng ký trước H3): ca xác nhận có kỳ vọng hỏi lại / thiếu bằng chứng mà ĐỎ chỉ vì hệ trả số không
+// phán quyết. Chặt: lý do đỏ chỉ có outcome; nới: thêm route kéo theo về CLARIFICATION. Không tính: lý do khác, câu trả lời vẫn có
+// phán quyết, câu không phải xác nhận, ca xanh. Câu xác nhận không dấu vẫn được nhận.
+func TestBangCongDoNhay3(t *testing.T) {
+	f := newFixture(13)
+	set := func(i int, q, outcome, reasons, answer string, memRed, pgRed bool) string {
+		id := f.ids[i]
+		f.question[id], f.outcome[id], f.reasons[id], f.answer[id] = q, outcome, reasons, answer
+		f.memOK[id], f.pgOK[id] = !memRed, !pgRed
+		return id
+	}
+	const route = "route = SQL_QUERY, muốn CLARIFICATION; "
+	loose := set(0, "EX-03 hôm nay được cấp 3850 L đúng không?", "CLARIFICATION_REQUIRED",
+		route+"outcome = RESOLVED, muốn CLARIFICATION_REQUIRED", "Dầu kho xuất 3.850 L. Chưa kết luận", true, true)
+	strictUnacc := set(1, "ex-03 hom nay duoc cap 3850 L dung khong?", "INSUFFICIENT_EVIDENCE",
+		"outcome = RESOLVED, muốn INSUFFICIENT_EVIDENCE", "Dầu kho xuất 3.850 L.", true, true)
+	set(2, "EX-03 hôm nay được cấp 3850 L đúng không?", "CLARIFICATION_REQUIRED",
+		"outcome = RESOLVED, muốn CLARIFICATION_REQUIRED; thiếu \"Không.\"", "Dầu kho xuất 3.850 L.", true, true)
+	set(3, "EX-03 hôm nay được cấp 3850 L phải không?", "CLARIFICATION_REQUIRED",
+		"outcome = RESOLVED, muốn CLARIFICATION_REQUIRED", "Không. Dầu kho xuất 3.850 L.", true, true)
+	set(4, "EX-03 hôm nay được cấp bao nhiêu?", "CLARIFICATION_REQUIRED",
+		"outcome = RESOLVED, muốn CLARIFICATION_REQUIRED", "Dầu kho xuất 3.850 L.", true, true)
+	strictOnePath := set(5, "EX-03 hôm nay được cấp 3850 L đúng chưa?", "CLARIFICATION_REQUIRED",
+		"outcome = RESOLVED, muốn CLARIFICATION_REQUIRED", "Dầu kho xuất 3.850 L.", true, false)
+	set(6, "EX-03 hôm nay được cấp 3850 L đúng không?", "CLARIFICATION_REQUIRED", "", "Bạn cho biết thêm kỳ.", false, false)
+	set(7, "EX-03 hôm nay được cấp 3850 L đúng không?", "RESOLVED", "", "Đúng. Dầu kho xuất 3.850 L.", false, false) // ca xác nhận kỳ vọng phán quyết
+	out, rc := f.run(t, "")
+	if rc != 0 {
+		t.Fatalf("rc = %d\n%s", rc, out)
+	}
+	strict := []string{strictUnacc, strictOnePath}
+	if strictUnacc > strictOnePath {
+		strict[0], strict[1] = strictOnePath, strictUnacc
+	}
+	want := fmt.Sprintf("ca xác nhận 7, kỳ vọng hỏi lại / thiếu bằng chứng 6; ĐỎ chỉ vì trả số không phán quyết — chặt 2: %s %s; nới (kèm route kéo theo) 3: %s %s %s",
+		strict[0], strict[1], loose, strict[0], strict[1])
+	if !strings.Contains(out, want) {
+		t.Errorf("độ nhạy 3 sai, muốn chứa %q\n%s", want, out)
 	}
 }

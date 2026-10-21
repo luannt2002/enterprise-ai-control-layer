@@ -3,8 +3,8 @@
 
     python3 -I scripts/bang-cong-h1.py <winreport bộ nhớ> <winreport PG> <tệp ca h1.yaml>
 
-Chỉ đọc nhãn ĐẠT / ĐỎ, dòng phát lại và câu trả lời (để quét canary). Tệp ca chỉ được đọc để lấy id, lớp,
-authored_by và để thấy câu hỏi nào có ký tự nhìn giống. Không suy luận nội dung kỳ vọng.
+Chỉ đọc nhãn ĐẠT / ĐỎ, lý do đỏ, dòng phát lại và câu trả lời (để quét canary). Tệp ca chỉ được đọc để lấy id, lớp,
+authored_by, câu hỏi (ký tự nhìn giống, cụm xác nhận) và outcome kỳ vọng (độ nhạy 3). Không suy luận nội dung kỳ vọng.
 
 Luật tính (sửa theo bản soát độc lập lượt 2, TRƯỚC lần chạy H1 đầu tiên):
 - Một ca chỉ ĐẠT khi ĐẠT ở CẢ HAI đường (bộ nhớ và PostgreSQL, ADR-0006 §7). Lớp lấy từ tệp ca.
@@ -24,6 +24,14 @@ không dùng ở đây. Câu trả lời được giải mã khỏi dạng %q c�
    thấy 7 ca giữ lại (đã loại trước khi đóng băng) ⇒ in riêng số ca có ký tự nhìn giống trong câu hỏi;
 2. nếu cạnh tệp ca có goi-y-lo-cho-phien-chinh.txt (ca mà phiên viết mã đã thấy GỢI Ý kỳ vọng sau khi
    đóng băng), tính lại G2' / G5' khi bỏ các ca đó.
+
+Độ nhạy 3 (ADR-0006 §10, đăng ký TRƯỚC lần chạy H3; chỉ báo cáo, KHÔNG đổi cách tính đạt): hợp đồng câu xác nhận cho
+ba cách không phán quyết — trả số, hỏi lại, báo thiếu bằng chứng — còn tờ định dạng của người soạn ghi "hỏi lại hoặc thiếu
+bằng chứng". Đếm ca XÁC NHẬN (câu hỏi chứa một cụm confirm_markers của pack, so sau khi bỏ dấu + chữ thường) có outcome kỳ
+vọng CLARIFICATION_REQUIRED / INSUFFICIENT_EVIDENCE mà ĐỎ chỉ vì hệ trả số không phán quyết: ở MỌI đường đỏ, câu trả lời
+không mở đầu bằng "Đúng." / "Không." và
+- chặt: lý do đỏ chỉ có "outcome = RESOLVED, muốn <outcome kỳ vọng>";
+- nới: thêm được lý do route kéo theo "route = <X>, muốn CLARIFICATION".
 """
 import re
 import sys
@@ -41,7 +49,7 @@ CANARY_RE = [
     re.compile(r"(?i)(?<!\w)(?:b-canary|px-b001|cầu z|prj-z|def-build|dự án z|máy xúc ex-03 \(b\))(?!\w)"),
 ]
 ID_RE = re.compile(r"^WIN-[IA]-\d{3}$")
-CASE_RE = re.compile(r"^  (ĐẠT|TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3}) \[(\w+)\][^\n]*\n\s+→ \"(.*)\"\s*$", re.M)
+CASE_RE = re.compile(r"^  (ĐẠT|TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3}) \[(\w+)\]([^\n]*)\n\s+→ \"(.*)\"\s*$", re.M)
 ESC = {"a": "\a", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\", '"': '"', "'": "'"}
 
 
@@ -82,8 +90,8 @@ def parse(path):
     text = Path(path).read_text(encoding="utf-8")
     head = text.splitlines()[0] if text else ""
     cases = {}
-    for st, cid, cls, ans in CASE_RE.findall(text):
-        cases[cid] = (st == "ĐẠT", cls, ans)
+    for st, cid, cls, reasons, ans in CASE_RE.findall(text):
+        cases[cid] = (st == "ĐẠT", cls, ans, reasons.strip())
     statuses = re.findall(r"^  (ĐẠT|TRƯỢT|ĐỎ)\s+(WIN-[IA]-\d{3})", text, re.M)
     replay = re.search(r"^G6 PHÁT LẠI: (\d+) câu .*?(\d+) lệch", text, re.M)
     return {"head": head, "cases": cases, "n_status": len(statuses),
@@ -94,6 +102,36 @@ def lookalike(q):
     """Câu hỏi có ký tự mà bộ chuẩn hoá gấp từ 5ce22ec (foldLookalikes / joinDigits)."""
     return any(0xFF01 <= ord(ch) <= 0xFF5E or ch == "ℓ" or unicodedata.category(ch) == "Cf"
                or (ch.isspace() and ch not in " \n\r") for ch in q)
+
+
+PACK_INTENTS = Path(__file__).resolve().parent.parent / "tenants" / "construction" / "pack" / "intents.yaml"
+WITHHELD_OUTCOMES = ("CLARIFICATION_REQUIRED", "INSUFFICIENT_EVIDENCE")
+
+
+def fold(s):
+    """Bỏ dấu tiếng Việt + chữ thường, để nhận cụm xác nhận cả khi câu không dấu ("dung khong")."""
+    s = unicodedata.normalize("NFD", s.replace("đ", "d").replace("Đ", "D"))
+    return "".join(ch for ch in s if unicodedata.category(ch) != "Mn").lower()
+
+
+def confirm_markers():
+    """Cụm xác nhận của pack (đã bỏ dấu)."""
+    d = yaml.safe_load(PACK_INTENTS.read_text(encoding="utf-8")) or {}
+    return [fold(m) for m in d.get("confirm_markers") or []]
+
+
+def answered_without_verdict(reasons, answer, exp, strict):
+    """Độ nhạy 3: ca đỏ CHỈ vì hệ trả số không phán quyết (RESOLVED) trong khi kỳ vọng hỏi lại / thiếu bằng chứng."""
+    if unquote_go(answer).startswith(("Đúng.", "Không.")):
+        return False
+    items = [r.strip() for r in reasons.split(";") if r.strip()]
+    want = f"outcome = RESOLVED, muốn {exp}"
+    if want not in items:
+        return False
+    rest = [r for r in items if r != want]
+    if strict:
+        return not rest
+    return all(re.fullmatch(r"route = \w+, muốn CLARIFICATION", r) for r in rest)
 
 
 def read_hints(path, ids):
@@ -190,6 +228,20 @@ def main():
               f"G2' {'ĐẠT' if full(p_k, ['entity', 'ambiguity']) else 'KHÔNG ĐẠT'}, "
               f"G5' {'ĐẠT' if full(p_k, ['permission', 'unsupported_answer']) and not leaked_k else 'KHÔNG ĐẠT'}; "
               + " ".join(f"{c}={p_k.get(c, (0, 0))[0]}/{p_k.get(c, (0, 0))[1]}" for c in CLASSES))
+    markers = confirm_markers()
+    exp_of = {c["id"]: str((c.get("expect") or {}).get("outcome") or "") for c in rows}
+    conf = sorted(c["id"] for c in rows if any(m in fold(c.get("question") or "") for m in markers))
+    cand = [cid for cid in conf if exp_of[cid] in WITHHELD_OUTCOMES]
+
+    def only_answered(cid, strict):
+        reds = [p["cases"][cid] for p in (mem, pg) if not p["cases"][cid][0]]
+        return bool(reds) and all(answered_without_verdict(c[3], c[2], exp_of[cid], strict) for c in reds)
+
+    strict = [cid for cid in cand if only_answered(cid, True)]
+    loose = [cid for cid in cand if only_answered(cid, False)]
+    print(f"- độ nhạy 3 (ADR-0006 §10, đăng ký trước H3): ca xác nhận {len(conf)}, kỳ vọng hỏi lại / thiếu bằng chứng {len(cand)}; "
+          f"ĐỎ chỉ vì trả số không phán quyết — chặt {len(strict)}: " + (" ".join(strict) or "-")
+          + f"; nới (kèm route kéo theo) {len(loose)}: " + (" ".join(loose) or "-"))
     print()
     print(f"G2' phần ca (entity + ambiguity 100%, cả hai đường): {'ĐẠT' if g2 else 'KHÔNG ĐẠT'}")
     print(f"G5' phần ca (permission + unsupported_answer 100%, cả hai đường, 0 canary): {'ĐẠT' if g5 else 'KHÔNG ĐẠT'}")

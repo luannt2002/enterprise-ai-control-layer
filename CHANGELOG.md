@@ -29,6 +29,7 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 - ADR-0006 §10: luật soạn / đóng băng bằng cam kết băm / chạy một lần / chấm H3, đăng ký trước khi có tệp H3.
 - `kiemca` (kiểm định dạng bộ giữ lại không in nội dung), `scripts/cam-ket-giu-lai.py`, `scripts/kiem-nhiem-soan.py`; đột biến n40 7/7, n41 12/12.
 - H3 đóng băng bằng cam kết băm (`259d38d`, 11:04): 134 ca, 82 có kỳ vọng số; quy trình và các điểm lệch công khai trong commit.
+- Độ nhạy 3 của ADR-0006 §10 (ca xác nhận ĐỎ chỉ vì trả số không phán quyết khi kỳ vọng hỏi lại / thiếu bằng chứng) tính trong `scripts/bang-cong-h1.py`, hai mức chặt / nới; test `TestBangCongDoNhay3`; đột biến n27 27/27. Cố định TRƯỚC lần chạy H3.
 
 ### Đêm 20→21/10/2026 — khôi phục bằng chứng (chưa gọi model thật, chi 0 USD)
 

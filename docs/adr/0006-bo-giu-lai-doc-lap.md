@@ -182,6 +182,7 @@ Mỗi cổng một bảng: yêu cầu · bằng chứng cũ (bị nhiễm) · b�
   - G1 / G3 / G4 chỉ xét phần ca của `04` §6 (100% ca lớp tương ứng). Phần cơ chế của các cổng không đo ở đây.
   - Lớp < 13 ca vẫn chấm, báo đúng số, không độn.
   - **Độ nhạy đăng ký trước (thêm 21/10 ca ngày, trước khi có tệp H3, chỉ báo cáo, KHÔNG đổi cách tính đạt):** hợp đồng câu xác nhận (§8 hợp đồng vận hành; ADR-0009) cho ba cách không phán quyết — trả số, hỏi lại, báo thiếu bằng chứng — còn tờ định dạng của người soạn ghi "hỏi lại hoặc thiếu bằng chứng". Vì vậy báo riêng số ca xác nhận trượt CHỈ vì outcome RESOLVED (trả số, không phán quyết) trong khi kỳ vọng là `CLARIFICATION_REQUIRED` / `INSUFFICIENT_EVIDENCE`. Các ca đó vẫn tính là TRƯỢT.
+    - Cách đếm (cố định trong `scripts/bang-cong-h1.py` "độ nhạy 3" + test `TestBangCongDoNhay3` + đột biến BN1–BN7 của `n27`, commit TRƯỚC lần chạy H3): ca xác nhận = câu hỏi chứa một cụm `confirm_markers` của pack (so sau khi bỏ dấu + chữ thường); chỉ xét ca có outcome kỳ vọng `CLARIFICATION_REQUIRED` / `INSUFFICIENT_EVIDENCE`; ca được đếm khi ở MỌI đường đỏ, câu trả lời không mở đầu bằng "Đúng." / "Không." và lý do đỏ — mức CHẶT: chỉ "outcome = RESOLVED, muốn <outcome kỳ vọng>"; mức NỚI: thêm được lý do route kéo theo "route = <X>, muốn CLARIFICATION". Báo cả hai mức.
 - **Đối chứng mốc (chỉ chẩn đoán, không tính cổng).**
   - SAU lần chạy chính thức: chạy cùng `h3.yaml` trên revision mốc `016422e` (mã = `15ed135`).
   - Chạy ở worktree riêng: `winreport` hai đường, cùng dữ liệu. Ghi vào `docs/g7/holdout-h3/ket-qua-h3-moc/`.

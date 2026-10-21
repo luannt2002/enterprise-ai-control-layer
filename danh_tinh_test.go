@@ -46,15 +46,15 @@ var legacyAllowed = map[string]allowance{
 	"danh_tinh_test.go":                           {0, "FALSE_POSITIVE: chính mẫu và ca âm của cổng này"},
 }
 
-// skipped: thư mục / tệp không thuộc repo — nguồn riêng của chủ dự án và sổ ca ở máy (git bỏ qua), và checkout git lồng
-// (thư mục con có mục .git riêng, vd worktree của agent dựng trong repo): đó là bản chép của một cây khác.
-func skipped(p, rel string, d fs.DirEntry) bool {
+// skipped: thư mục / tệp không thuộc nội dung repo. Git không bao giờ theo dõi mục tên .git (thư mục hay tệp); nguồn riêng của chủ
+// dự án, sổ ca ở máy và worktree mà harness dựng trong repo (.claude/worktrees/) đều bị git bỏ qua (.gitignore). Chỉ đúng các đường
+// này: thư mục có mục .git hỏng / rỗng vẫn bị quét, vì git vẫn commit nội dung của nó.
+func skipped(rel string, d fs.DirEntry) bool {
+	if d.Name() == ".git" {
+		return true
+	}
 	if d.IsDir() {
-		if rel == ".git" || rel == "docs/sources" {
-			return true
-		}
-		_, err := os.Lstat(filepath.Join(p, ".git"))
-		return rel != "." && err == nil
+		return rel == "docs/sources" || rel == ".claude/worktrees"
 	}
 	return strings.HasSuffix(rel, ".local.md")
 }
@@ -70,7 +70,7 @@ func legacyHits(t *testing.T, root string, allowed map[string]allowance) []strin
 		}
 		rel, _ := filepath.Rel(root, p)
 		rel = filepath.ToSlash(rel)
-		if skipped(p, rel, d) {
+		if skipped(rel, d) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -130,11 +130,15 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 		"bin/cong-cu":                        "\x00EAIS nhị phân",
 		// gốc là một repo thật (có .git): luật bỏ qua checkout lồng không được bỏ qua chính gốc
 		".git/HEAD": "ref: refs/heads/main\n",
-		// worktree của agent nằm trong repo: checkout lồng (có mục .git riêng) của cây khác — bỏ qua cả cây con
+		// worktree mà harness dựng trong repo (git bỏ qua .claude/worktrees/): bản chép của cây khác — bỏ qua cả cây con
 		".claude/worktrees/wf-x/.git":      "gitdir: /noi-khac/.git/worktrees/wf-x\n",
 		".claude/worktrees/wf-x/README.md": "# EAIS — bản chép cây khác\n",
-		// thư mục bắt đầu bằng dấu chấm KHÔNG phải checkout lồng: vẫn là nội dung repo, vẫn bị quét
+		// thư mục bắt đầu bằng dấu chấm KHÔNG phải nơi git bỏ qua: vẫn là nội dung repo, vẫn bị quét
 		".claude/ghi-chu.md": "ghi chú nhắc EAIS\n",
+		// mục .git hỏng (gitdir trỏ nơi không tồn tại): git vẫn commit nội dung thư mục — vẫn bị quét; chính mục .git thì git không
+		// bao giờ theo dõi — bỏ qua (kể cả khi đường dẫn bên trong mang tên cũ)
+		"stale/.git": "gitdir: /noi-khac/enterprise-ai-systems/.git/worktrees/x\n",
+		"stale/f.md": "EAIS trong thư mục có .git hỏng\n",
 	} {
 		full := filepath.Join(root, p)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
@@ -145,12 +149,12 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 		}
 	}
 	got := strings.Join(legacyHits(t, root, map[string]allowance{"CHANGELOG.md": {2, "thử"}, "docs/bao-cao/": {0, "thử"}}), "\n")
-	for _, want := range []string{"README.md: 2 lần", "CHANGELOG.md: 3 lần, cho phép 2", "cmd/x/main.go: 1 lần", ".claude/ghi-chu.md: 1 lần"} {
+	for _, want := range []string{"README.md: 2 lần", "CHANGELOG.md: 3 lần, cho phép 2", "cmd/x/main.go: 1 lần", ".claude/ghi-chu.md: 1 lần", "stale/f.md: 1 lần"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("thiếu vi phạm %q trong:\n%s", want, got)
 		}
 	}
-	for _, not := range []string{"docs/sources", "docs/bao-cao", "pack/x.yaml", ".local.md", "bin/cong-cu", ".claude/worktrees"} {
+	for _, not := range []string{"docs/sources", "docs/bao-cao", "pack/x.yaml", ".local.md", "bin/cong-cu", ".claude/worktrees", "stale/.git"} {
 		if strings.Contains(got, not) {
 			t.Errorf("báo oan %q:\n%s", not, got)
 		}

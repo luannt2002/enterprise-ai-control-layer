@@ -140,6 +140,57 @@ Chỉ PASS độc lập mới phục hồi cổng về "vô điều kiện".
 
 Mỗi cổng một bảng: yêu cầu · bằng chứng cũ (bị nhiễm) · bằng chứng mới · kết quả · ca hỏng (tầng sai đầu tiên) · trạng thái.
 
+### 10. H3: bộ giữ lại thứ ba, đóng băng bằng cam kết băm (thêm sáng 21/10, TRƯỚC khi có tệp H3 và trước mọi lần chạy)
+
+- **Vì sao cần.**
+  - H1 đã chạy một lần (01:42 ngày 21/10), mã đã sửa sau đó ⇒ theo §7, toàn bộ H1 là REGRESSION.
+  - H2 không sạch (§5: công khai + 5 ca lộ gợi ý).
+  - Hợp đồng vận hành ca 21/10 §5 đòi bộ mới, đóng băng trước mọi bản sửa ngữ nghĩa.
+- **Người soạn, người soát.**
+  - Quy trình: 2 người soạn chia lớp (A1: `representation`, `entity`, `ambiguity`, `semantic`; A2: `source_conflict`, `permission`, `unsupported_answer`, `routing`) → 2 người soát (R1 tính lại mọi con số từ dữ liệu; R2 soát hợp đồng, mơ hồ, trùng) → 1 người sửa (F) sửa hoặc bỏ ca bị cờ, rồi ghép `h3.yaml`.
+  - Cả 5 là agent kiểu Plan: không nhận CLAUDE.md / memory của máy, vì memory có ghi điểm yếu của mã.
+  - Chỉ đọc bộ đồ nghề `docs/sources/holdout-h3/kit/`:
+    - `04` (HEAD `016422e`), ADR-0001;
+    - ADR-0002 và `03` ở `94bbaae` (bản đầu đêm 20/10, trước các ghi chú hiện thực trong đêm);
+    - `01`, `05`, `07`, `world.yaml`, `CONTRACT.md`, pack `metrics.yaml`, `policy.yaml`;
+    - dữ liệu bộ sinh (functional, hạt giống 42);
+    - `DINH-DANG.md` (định dạng + luật chấm) và lệnh `kiemca`.
+    - Băm từng tệp ghi trong manifest.
+  - Khác §2: không đọc `evals/win.go` (định dạng tả trong `DINH-DANG.md`).
+  - **Giới hạn:** lệnh cấm đọc là luật giao cho agent, không phải rào kỹ thuật. Bù bằng kiểm toán sau: một script quét nhật ký công cụ của 5 agent, chỉ in ĐƯỜNG DẪN nằm ngoài bộ đồ nghề và thư mục ra, không in nội dung.
+- **Phiên viết mã:**
+  - không mở tệp nào dưới `docs/sources/holdout-h3/` ngoài `kit/`;
+  - kết quả agent trả về chỉ là số đếm / enum (schema không có chữ tự do);
+  - kiểm định dạng bằng `kiemca` (chỉ in số).
+- **Đóng băng = cam kết băm.**
+  - Commit + push `docs/g7/holdout-h3/holdout-manifest.json` gồm: sha256 của `h3.yaml`, số ca theo lớp, số ca có kỳ vọng số liệu, revision, giờ, băm bộ đồ nghề và dữ liệu.
+  - Nội dung `h3.yaml` ở máy (`docs/sources/` bị git bỏ qua) tới lúc chạy.
+  - Giờ push trên GitHub là dấu thời gian của bên thứ ba; sha256 buộc nội dung.
+- **Chạy, đúng một lần.**
+  - Chép `h3.yaml` vào `docs/g7/holdout-h3/` (băm phải khớp cam kết), commit + push.
+  - Ngay sau đó: `scripts/chay-giu-lai.sh docs/g7/holdout-h3/h3.yaml docs/g7/holdout-h3/ket-qua-h3`.
+  - Cùng thủ tục và luật từ chối của §7: hai đường, `eais_giu_lai`, cây sạch, HEAD trên origin/main, không chạy lại khi đã HOÀN TẤT.
+- **Điều kiện sẵn sàng chạy (đăng ký trước).**
+  1. Bản sửa của ca đã commit + push. `go test ./...` có PG xanh, ratchet xanh, mọi danh mục đột biến bị bắt hết.
+  2. H1 (bộ hồi quy, mốc `15ed135`: 89/104) không có ca ĐẠT → ĐỎ. Ngoại lệ: ca mà người soát độc lập xác nhận kỳ vọng trái hợp đồng câu xác nhận; ghi lý do.
+  3. 15 câu thăm dò câu xác nhận: 0 phán quyết ("Đúng." / "Không.") sai.
+  4. Soát đối kháng độc lập đã xong; mọi phát hiện đã sửa hoặc ghi lại.
+  5. Phiên viết mã chưa thấy nội dung H3.
+  - Không đủ ⇒ không chạy trong ca; ghi lại, để ca sau.
+- **Chấm.**
+  - `scripts/bang-cong-h1.py` giữ nguyên: G2' / G5' / G6' như §8; số ĐẠT từng lớp trên cả hai đường.
+  - G1 / G3 / G4 chỉ xét phần ca của `04` §6 (100% ca lớp tương ứng). Phần cơ chế của các cổng không đo ở đây.
+  - Lớp < 13 ca vẫn chấm, báo đúng số, không độn.
+- **Đối chứng mốc (chỉ chẩn đoán, không tính cổng).**
+  - SAU lần chạy chính thức: chạy cùng `h3.yaml` trên revision mốc `016422e` (mã = `15ed135`).
+  - Chạy ở worktree riêng: `winreport` hai đường, cùng dữ liệu. Ghi vào `docs/g7/holdout-h3/ket-qua-h3-moc/`.
+  - Cả hai lần đều chạy sau khi mã đã chốt, nên không lần nào chỉnh theo H3 được. So hai lần cho biết bản sửa có tổng quát hoá không.
+- **Sau khi chạy.**
+  - H3 thành REGRESSION.
+  - Ca trượt: ghi tầng sai đầu tiên + bất biến bị hỏng.
+  - Không sửa kỳ vọng. Ca mà người soát độc lập xác minh sai kỳ vọng chỉ được loại khỏi phép tính, kèm lý do.
+  - Cần chứng minh độc lập tiếp ⇒ soạn H4 TRƯỚC vòng sửa kế.
+
 ## Hệ quả
 
 - **H1 có thể lộ lỗi thật,** khi đó G2 / G5 / G6 FAIL trên bằng chứng độc lập. Đó là kết quả đúng. "FAIL sạch hơn PASS bẩn."

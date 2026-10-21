@@ -93,6 +93,8 @@ Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác đị
 
 ## Bằng chứng đã chạy (20/10/2026)
 
+> Số đo của mục này là ngày 20/10. Mốc hiện hành (lệnh + số phải ra): `docs/ops/README.md` §3.
+
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait          # PG 17.11, ghim digest, chỉ 127.0.0.1:25432
 export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable'

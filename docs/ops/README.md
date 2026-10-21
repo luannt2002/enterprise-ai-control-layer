@@ -38,9 +38,9 @@ Test PG (`platform/pgstore`) tạo tạm các vai `eais_test_*` trong chính c�
 - nếu tiến trình bị kill giữa chừng, vai có thể sót nhưng không đăng nhập được;
 - kiểm vai sót: `SELECT rolname FROM pg_roles WHERE rolname LIKE 'eais_test_%'`.
 
-Mốc phải ra (đo 21/10/2026 tại `9dede54`, Go 1.26.4; đếm mọi sự kiện pass / fail / skip của `go test -json`, kể cả test con):
+Mốc phải ra (đo 21/10/2026 tối tại `7738a3d`, Go 1.26.4; đếm mọi sự kiện pass / fail / skip của `go test -json`, kể cả test con):
 - `go vet` sạch, `gofmt -l` rỗng;
-- `go test`: **440 PASS / 0 FAIL / 0 SKIP** (317 test cấp cao). Không có biến PG: 435 PASS + 5 SKIP (5 test PG);
+- `go test`: **455 PASS / 0 FAIL / 0 SKIP** (332 test cấp cao). Không có biến PG: 448 PASS + 7 SKIP (7 test PG);
 - `scale-smoke.sh`: **SCALE SMOKE: ĐẠT** — 117/117 ở cả functional và smoke; G1 smoke 359.945/359.945; phát lại 0 lệch.
 
 Lệch mốc thì dừng lại tìm nguyên nhân trước khi làm gì khác. Phân loại trước khi sửa: môi trường, đỏ sẵn, hay hồi quy thật (CLAUDE.md §32).

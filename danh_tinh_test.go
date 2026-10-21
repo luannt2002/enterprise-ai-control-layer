@@ -46,10 +46,15 @@ var legacyAllowed = map[string]allowance{
 	"danh_tinh_test.go":                           {0, "FALSE_POSITIVE: chính mẫu và ca âm của cổng này"},
 }
 
-// skipped: thư mục / tệp không thuộc repo (git bỏ qua) — nguồn riêng của chủ dự án, sổ ca ở máy.
-func skipped(rel string, d fs.DirEntry) bool {
+// skipped: thư mục / tệp không thuộc repo — nguồn riêng của chủ dự án và sổ ca ở máy (git bỏ qua), và checkout git lồng
+// (thư mục con có mục .git riêng, vd worktree của agent dựng trong repo): đó là bản chép của một cây khác.
+func skipped(p, rel string, d fs.DirEntry) bool {
 	if d.IsDir() {
-		return rel == ".git" || rel == "docs/sources"
+		if rel == ".git" || rel == "docs/sources" {
+			return true
+		}
+		_, err := os.Lstat(filepath.Join(p, ".git"))
+		return rel != "." && err == nil
 	}
 	return strings.HasSuffix(rel, ".local.md")
 }
@@ -65,7 +70,7 @@ func legacyHits(t *testing.T, root string, allowed map[string]allowance) []strin
 		}
 		rel, _ := filepath.Rel(root, p)
 		rel = filepath.ToSlash(rel)
-		if skipped(rel, d) {
+		if skipped(p, rel, d) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -123,6 +128,13 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 		"docs/sources/holdout-h3/kit/kiemca": "\x00EAIS",
 		"CA-2026-10-21.local.md":             "sổ ca ở máy nhắc EAIS\n",
 		"bin/cong-cu":                        "\x00EAIS nhị phân",
+		// gốc là một repo thật (có .git): luật bỏ qua checkout lồng không được bỏ qua chính gốc
+		".git/HEAD": "ref: refs/heads/main\n",
+		// worktree của agent nằm trong repo: checkout lồng (có mục .git riêng) của cây khác — bỏ qua cả cây con
+		".claude/worktrees/wf-x/.git":      "gitdir: /noi-khac/.git/worktrees/wf-x\n",
+		".claude/worktrees/wf-x/README.md": "# EAIS — bản chép cây khác\n",
+		// thư mục bắt đầu bằng dấu chấm KHÔNG phải checkout lồng: vẫn là nội dung repo, vẫn bị quét
+		".claude/ghi-chu.md": "ghi chú nhắc EAIS\n",
 	} {
 		full := filepath.Join(root, p)
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
@@ -133,12 +145,12 @@ func TestDanhTinhBatDuocTenCu(t *testing.T) {
 		}
 	}
 	got := strings.Join(legacyHits(t, root, map[string]allowance{"CHANGELOG.md": {2, "thử"}, "docs/bao-cao/": {0, "thử"}}), "\n")
-	for _, want := range []string{"README.md: 2 lần", "CHANGELOG.md: 3 lần, cho phép 2", "cmd/x/main.go: 1 lần"} {
+	for _, want := range []string{"README.md: 2 lần", "CHANGELOG.md: 3 lần, cho phép 2", "cmd/x/main.go: 1 lần", ".claude/ghi-chu.md: 1 lần"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("thiếu vi phạm %q trong:\n%s", want, got)
 		}
 	}
-	for _, not := range []string{"docs/sources", "docs/bao-cao", "pack/x.yaml", ".local.md", "bin/cong-cu"} {
+	for _, not := range []string{"docs/sources", "docs/bao-cao", "pack/x.yaml", ".local.md", "bin/cong-cu", ".claude/worktrees"} {
 		if strings.Contains(got, not) {
 			t.Errorf("báo oan %q:\n%s", not, got)
 		}

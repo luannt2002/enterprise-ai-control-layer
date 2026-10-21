@@ -13,6 +13,9 @@ tenants/*/real/
 # Ghi chú bàn giao phiên làm việc (đường dẫn máy, tài khoản) — chỉ ở máy.
 *.local.md
 
+# Worktree mà harness / agent dựng ngay trong repo (bản chép của một cây khác, nhánh tạm) — không bao giờ commit.
+.claude/worktrees/
+
 # Bí mật và cấu hình máy
 .env
 .env.*

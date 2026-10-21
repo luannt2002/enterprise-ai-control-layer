@@ -1,6 +1,6 @@
-# CLAUDE.md — EAIS Engineering Operating Contract
+# CLAUDE.md — EACL Engineering Operating Contract
 
-> Áp dụng cho toàn repository EAIS.
+> Áp dụng cho toàn repository EACL.
 > Hướng dẫn sâu hơn trong thư mục con được phép bổ sung nhưng không được âm thầm
 > phá các invariant của tài liệu này.
 >
@@ -308,17 +308,30 @@ Không viết tutorial từng phím cho agent nếu không cần.
 
 ---
 
-# 9. EAIS — PRODUCT MISSION
+# 9. EACL — PRODUCT MISSION
 
-EAIS = Enterprise AI Systems.
+EACL = Enterprise AI Control Layer.
 
-EAIS là:
+EACL là:
 
-> Multi-tenant Enterprise AI Systems Platform biến dữ liệu, tri thức,
-> workflow và tools theo domain thành AI capabilities có governance,
-> testability và observability mà không coupling shared core vào một ngành.
+> reference architecture và control layer chạy được để tích hợp AI capabilities
+> xác suất vào phần mềm doanh nghiệp đã có, trong khi chính phần mềm đó giữ quyền
+> quyết định với business truth, permissions, state, transactions và workflows.
 
-EAIS KHÔNG phải:
+Mô tả ngắn:
+
+> Controlled AI Integration for Enterprise Software.
+
+North Star:
+
+Business Reality
+→ Trusted Context
+→ Useful Intelligence
+→ Controlled Action
+→ Verified Outcome
+→ Measured Value
+
+EACL KHÔNG phải:
 
 - chatbot framework;
 - RAG wrapper;
@@ -339,7 +352,7 @@ Không encode domain-specific behavior vào shared core chỉ để một tenant
 
 ---
 
-# 10. EAIS — FIRST PRINCIPLES
+# 10. EACL — FIRST PRINCIPLES
 
 ## P1 — Model ≠ System
 
@@ -537,7 +550,7 @@ Không mặc định:
 
 ---
 
-# 11. EAIS — RUNTIME BOUNDARY
+# 11. EACL — RUNTIME BOUNDARY
 
 Luồng Ask mục tiêu:
 
@@ -577,7 +590,7 @@ khi business cases chứng minh cần.
 
 # 12. RAG BOUNDARY
 
-RAG là capability, không phải EAIS.
+RAG là capability, không phải EACL.
 
 RAG chịu trách nhiệm cho:
 
@@ -606,11 +619,11 @@ KnowledgeRetriever
     Retrieve(...)
     → []Evidence
 
-EAIS chỉ cần biết:
+EACL chỉ cần biết:
 
 > cần evidence.
 
-EAIS core không được phụ thuộc việc retrieval bên trong dùng BM25, vector,
+EACL core không được phụ thuộc việc retrieval bên trong dùng BM25, vector,
 hybrid hay implementation khác.
 
 ---
@@ -937,7 +950,7 @@ và lý do phải rõ.
 
 ---
 
-# 23. EAIS EVALUATION
+# 23. EACL EVALUATION
 
 Tùy component, dùng metric thích hợp:
 
@@ -965,7 +978,7 @@ Không dùng LLM-as-judge làm bằng chứng duy nhất nếu deterministic eva
 
 # 24. FAILURE-DRIVEN DEVELOPMENT
 
-Feature/capability EAIS nên tiến hóa theo:
+Feature/capability EACL nên tiến hóa theo:
 
 Business Case
 → Current Failure
@@ -1000,7 +1013,7 @@ Target/current architecture phải được phân biệt rõ.
 
 Các khu vực chính:
 
-    cmd/eais/
+    cmd/eacl/
     core/
     data/
     intelligence/
@@ -1228,7 +1241,7 @@ Nếu chưa trả lời được:
 
 Nguồn architecture chính:
 
-- kiến trúc EAIS hiện hành trong `docs/`;
+- kiến trúc EACL hiện hành trong `docs/`;
 - ADR trong `docs/adr/` hoặc vị trí thực tế của repository;
 - contracts trong code;
 - tenant packs;
@@ -1268,7 +1281,7 @@ Không tuyên bố "toàn bộ hệ thống đã verify" chỉ vì task cục b�
 
 Trước khi thêm code, abstraction, model, agent, RAG strategy, tool, service hoặc dependency:
 
-> Failure cụ thể nào đang buộc EAIS phải có thứ này?
+> Failure cụ thể nào đang buộc EACL phải có thứ này?
 
 Nếu không trả lời được bằng business case hoặc engineering evidence:
 

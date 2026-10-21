@@ -6,24 +6,27 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 18:1x · **HEAD:** `32c8cfe` (cộng commit chứa tệp này)
-- **NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI** (18:0x, HEAD `32c8cfe`). Đã đọc trọn: `CHO` §0 (D-RM-01, D-RM-02) và §4; `ROADMAP-DAY-DU.md`; brief BUILD §4.
-- **Đang làm:** Việc 1, đổi tên lại (D-RM-02): kiểm kê theo 6 nhóm A–F TRƯỚC khi sửa.
+- **Cập nhật lúc:** 21/10/2026 19:5x · **HEAD:** `903623d` (cộng commit chứa tệp này)
+- **Xong từ lần trước** (PROMPT-DOI-TEN-VA-LUONG-MOI):
+  - Việc 1, đổi tên lại EAIS (D-RM-02): `945777c` (cổng danh tính đảo chiều), `423e4d3` (mã + định danh chạy + migration 0002), `730926f` (tài liệu + `docs/PROMPT-BUILD-EAIS.md`);
+  - soát độc lập 2 lượt (workflow, sonnet, chỉ đọc): lượt 1 — 0 S1, 3 S2; lượt 2 — 0 S1, 1 S2 (Việc 2); soát riêng 01-architecture — 0 S1, 5 S2. Đã sửa hết S2 và các S3 rẻ: `dbdf7ca`, `7738a3d`, `cdf7d84`, `efc2cad`, `2b8fb94`, `903623d`;
+  - Việc 2: `52c9399` (ROADMAP-DAY-DU dùng tên EAIS; README / STATUS / CONVENTIONS), `34240a9` (CLAUDE.md §9, commit riêng), `bff56c4` (§25), `9da639c` (01-architecture theo 7 mặt phẳng + L0–L10);
+  - câu mở mới D-RM-05 (`93649ba`).
+- **Đang làm:** tệp phản hồi `docs/bao-cao/2026-10-21-phan-hoi-doi-ten.md` (khuôn §6).
 - **Tiếp theo:**
-  1. đổi mã, định danh chạy (bí danh tương thích, migration mới) và cổng danh tính;
-  2. đổi tài liệu và tên tệp;
-  3. soát độc lập trước khi push;
-  4. Việc 2: viết lại các luồng;
-  5. Việc 3: brief §4 mục 2–7.
+  1. Việc 3 mục 2: đóng R4-2…R4-4 của cổng phán quyết (đo lại thiết kế V4 / V5 trước khi tin) → vòng S4 (ADR-0010) → H4 MỘT lần;
+  2. Việc 3 mục 3–7: phép đo, giấy Phase 0a / 1, tài liệu lệch (danh sách trong tệp phản hồi mục 7).
 - **Bị chặn:**
   - mã COMMAND / WORKFLOW / EVENT: chờ D-RM-04;
   - dữ liệu / người nghiệp vụ thật: chờ D-RM-03;
+  - khung "tên lúc viết" cho `docs/study`, `docs/v3`: chờ D-RM-05;
   - W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi.
-- **Test** (cuối ca 21/10, `2e4897b`): test có PG 453/0/0.
+- **Test** (`903623d`, container `eais-pg`): `go test -count=1 ./...` có PG 455 / 0 / 0; không PG 448 + 7 SKIP (7 test PG). So theo tên với trước đổi tên (`ca62760`, 453): 0 đổi kết quả, 4 cặp đổi tên, 2 test mới. winreport bộ 117 / H1 / H3, hai đường: 0 dòng khác ngoài số đo thời gian (đo ở trạng thái `423e4d3`; mã lõi không đổi tới HEAD). Đột biến: toàn bộ 35 danh mục 676/676 (trạng thái `423e4d3`); n42 25/25 và w4-pg-rls 26/26 ở HEAD.
 - **Handoff / prompt đang mở:**
-  - `PROMPT-DOI-TEN-VA-LUONG-MOI.md`: ĐANG LÀM;
+  - `PROMPT-DOI-TEN-VA-LUONG-MOI.md`: Việc 1 + Việc 2 XONG, tệp phản hồi đang viết; Việc 3 chưa bắt đầu;
   - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
   - `PROMPT-AUDIT-ROADMAP.md`: bản giữa chừng.
+- **Ca tối 21/10** tới khoảng 22:00 theo lời chủ dự án; ca ngày 22/10 bắt đầu 09:00 (cron của phiên).
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -49,4 +52,5 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 21/10 15:55 | `936d090` | Sửa sau soát T2.3 (R4-1 "1,2k5"); ghim E3 (soát: ĐẠT CÓ GHI CHÚ) | Test đỏ trước; n43 53/53; bộ 117 / H1 hai đường / H3: 0 đổi; test có PG 453/0/0 | Còn mở R4-2…R4-4 (có từ T2.1) |
 | 21/10 16:0x | `2e4897b` | Chốt ca: ADR-0009 Vòng 4, báo cáo ca bản cuối, STATUS, CHANGELOG, tiến độ | Cổng danh tính ĐẠT | Ca 21/10 kết thúc |
 | 21/10 16:4x | `d6afad7` | Chốt ca lần cuối: mục sự cố 09:14 trong báo cáo, đo cuối, ghi nhận phân tích thiết kế R4 bị DỪNG giữa chừng | `go test -count=1 ./...` có PG 453/0/0; 117 / H1 / H3 không đổi | Lịch ca xoá sau commit này |
-| 21/10 18:1x | commit chứa dòng này | NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI (HEAD `32c8cfe`) | — | Bắt đầu Việc 1 (kiểm kê trước khi sửa) |
+| 21/10 18:1x | `ca62760` | NHẬN PROMPT-DOI-TEN-VA-LUONG-MOI (HEAD `32c8cfe`) | — | Bắt đầu Việc 1 (kiểm kê trước khi sửa) |
+| 21/10 19:5x | `945777c` … `903623d` (14 commit) + commit chứa dòng này | Việc 1 đổi tên lại EAIS (D-RM-02) + sửa sau 3 lượt soát độc lập; Việc 2 (ROADMAP-DAY-DU, 01-architecture, CLAUDE.md §9 / §25, README / STATUS / CONVENTIONS); D-RM-05 | vet sạch; gofmt 0; test có PG 455/0/0 (theo tên: 0 đổi, 4 cặp đổi tên, 2 mới); winreport 5 đường 0 dòng khác; đột biến 676/676, n42 25/25, w4 26/26; cổng danh tính xanh ở cây của TỪNG commit; quét riêng tư 0 dòng nghi | Tệp phản hồi theo khuôn §6: commit kế tiếp |

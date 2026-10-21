@@ -1,6 +1,6 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
+> Cập nhật: 21/10/2026 22:0x, **chốt ca tối 21/10** (tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "Việc hiện hành" ở mục Việc tiếp theo.
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
@@ -16,6 +16,10 @@
 > - Bộ 117 ca, H1, H3: 0 ca đổi nhãn, 0 câu trả lời đổi chữ.
 > - E3 (`a853e96`) đóng S1 dạng gương "(3850 L của dự án A)"; sửa sau soát ở `936d090`.
 > - **Còn mở, có từ T2.1:** R4-2, R4-3 (S1, phán quyết sai chiều khi tên cấp cha đứng trước số ở mệnh đề khác / danh từ chung "dự án") và R4-4 (S2), ADR-0009 Vòng 4. Phải đóng trước khi chạy H4.
+> - **Thêm hai lỗ S1, tìm ra tối 21/10, chưa sửa** (đóng trước H4 cùng R4):
+>   - R-1: tên nguồn đứng trước số ở mệnh đề khác. "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?" → "Không." dù ERP ghi 3.900 L;
+>   - K5 trong miền giá trị: "một nghìn hai" đọc thành 1.002, nên "Hôm qua đội báo lu 02 một nghìn hai lít dầu đúng không?" → "Không." dù đội báo đúng 1.200 L (`docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md`).
+> - Bản thử V5 cho R4-2…R4-4 đã đo lại và soát mã độc lập (đóng hết lỗ trên bộ câu tổng hợp, 0 đổi chiều, 117 / H1 / H3 0 dòng khác), CHƯA áp: thiếu test bảo vệ nhánh mới, lỗ ngày dạng số.
 >
 > **H3, 21/10 13:08** (`docs/g7/holdout-h3/`). Bộ giữ lại độc lập thứ ba: 134 ca, đóng băng bằng cam kết băm 11:04 (`259d38d`) TRƯỚC mọi bản sửa ngữ nghĩa của ca, chạy MỘT lần ở `9091c84` (mã T2.2 `a1595f0`).
 > - Kết quả: **109/134** ở cả hai đường; phát lại 134/134, 0 lệch; 0 canary. Theo lớp: representation 16/17, entity 14/14, ambiguity 12/18, semantic 14/16, source_conflict 12/18, permission 16/18, unsupported_answer 14/18, routing 11/15 ⇒ phần ca G1–G5 KHÔNG ĐẠT; G6' phần đo được ĐẠT.
@@ -208,12 +212,12 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 > **Việc hiện hành (tối 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EAIS.md` §4, `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md` và D-OP-13:
 > 1. đổi tên lại EAIS (D-RM-02): XONG — `945777c` … `cdf7d84`; soát độc lập 3 góc: 0 S1, 3 S2 đã sửa;
-> 2. viết lại luồng theo tên mới (`docs/ROADMAP-DAY-DU.md`, `docs/01-architecture.md` theo 7 mặt phẳng + L0–L10, `CLAUDE.md` §9): ĐANG LÀM;
-> 3. đóng Phase 0b: R4-2…R4-4 của cổng phán quyết → vòng sửa S4 theo ADR-0010 → chạy H4 MỘT lần;
+> 2. viết lại luồng theo tên mới (`docs/ROADMAP-DAY-DU.md`, `docs/01-architecture.md` theo 7 mặt phẳng + L0–L10, `CLAUDE.md` §9): XONG — `52c9399`, `34240a9`, `bff56c4`, `9da639c`, `903623d`; tệp phản hồi đổi tên `1ccac76`;
+> 3. đóng Phase 0b: R4-2…R4-4, R-1 và câu đổi chiều K5 của cổng phán quyết (test đỏ trước) → vòng sửa S4 theo ADR-0010 → chạy H4 MỘT lần;
 > 4. phép đo (harness canary, cờ ước lượng, CI có PG); giấy Phase 0a và Phase 1 (mã COMMAND / WORKFLOW / EVENT chờ D-RM-04); Phase 6 nếu S4 vẫn là sàn; tài liệu lệch, handoff;
-> 5. phản hồi audit ROADMAP cho trọn (bản giữa chừng: `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`).
+> 5. phản hồi audit ROADMAP: K1–K15 XONG (K6–K15 ở bản giữa chừng `docs/bao-cao/2026-10-21-phan-hoi-roadmap.md`, K1–K5 ở `docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md`); còn Q2–Q7, Q9–Q13, Phụ lục C.
 >
-> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới từ 21/10: D-RM-03, D-RM-04, D-RM-05, D-OP-11, D-OP-12; đã quyết: D-RM-01, D-RM-02, D-OP-13; danh sách đủ ở §0 của tệp đó).
+> Câu chờ quyết: `docs/CHO-QUYET-DINH.md` (mới từ 21/10: D-RM-03, D-RM-04, D-RM-05, D-OP-11, D-OP-12, D-OP-14; đã quyết: D-RM-01, D-RM-02, D-OP-13; danh sách đủ ở §0 của tệp đó).
 
 > Thứ tự của đêm 20→21/10 (bảng ngay trên):
 > 1. đóng băng bộ giữ lại;

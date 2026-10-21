@@ -6,6 +6,14 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 21/10/2026 tối, muộn — đo lại R4, K1–K5 của audit ROADMAP, câu mở D-OP-14
+
+- Không đổi mã.
+- Cổng phán quyết: bản thử V5 cho R4-2…R4-4 được đo lại (bộ câu tổng hợp dựng lại khớp md5: đóng 25.669 / 25.669 phán quyết ở câu chưa giải, 0 đổi chiều; bộ 117 / H1 / H3: 0 dòng khác) và soát mã độc lập. Chưa áp: thiếu test bảo vệ nhánh mới, lỗ ngày dạng số.
+- Tìm thêm hai lỗ S1 (phán quyết sai chiều), phải đóng trước H4: R-1 (tên nguồn đứng trước số ở mệnh đề khác) và K5 trong miền giá trị ("một nghìn hai" đọc thành 1.002).
+- Phản hồi audit ROADMAP, phần K1–K5 (`docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md`): K1, K2, K3, K5 xác nhận; K4 một phần (tin gửi lại bị cộng gấp đôi im lặng khi chỉ số không có nguồn khác). Thêm: đọc số bằng chữ không dấu không tất định ("muoi").
+- Câu mở D-OP-14: có sửa bộ đọc số bằng chữ ở tầng chuẩn hoá trước W-G7 không.
+
 ### 21/10/2026 tối — đổi tên lại: EAIS (Enterprise AI Systems), D-RM-02
 
 - Tên sản phẩm trở về tên gốc ngày 20/10 (`d70ebc8`) trong mã, định danh chạy và tài liệu hiện hành. **Link git giữ nguyên:** tên repo, remote, đường dẫn module Go và mọi import.

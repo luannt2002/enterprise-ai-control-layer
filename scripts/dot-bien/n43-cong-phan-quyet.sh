@@ -57,18 +57,24 @@ m $A '		out = append(out, mention{start: e.Start, end: e.End, ids: []string{e.ID
 m $A '		out = append(out, mention{start: m.Start, end: m.End, ids: ids})' '		out = append(out, mention{start: m.Start, end: m.End, ids: ids[:0]})' 'AI4 bí danh mơ hồ không mang ứng viên'
 m $C '			if value && (sp.Start < lastEnd || strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' '			if false && value && (sp.Start < lastEnd || strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'CG29 con số nhắc lại sau phát biểu khác vẫn là cùng claim'
 m $C '	for _, from := range []int{lo, qs} {' '	for _, from := range []int{lo, lo+0*qs} {' 'CG30 kiểm chủ thể chỉ theo phạm vi đã lùi về đầu câu (bỏ mệnh đề hỏi)'
-m $C '		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))' '		return true' 'CG31 lượng có dấu chấm / phẩy, đơn vị suy từ thuật ngữ, thành có đơn vị'
+m $C '		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw)' '		return true' 'CG31 lượng có dấu chấm / phẩy, đơn vị suy từ thuật ngữ, thành có đơn vị'
 m $C '	for p := parent[id]; p != "" && !s.ancestors[p]; p = parent[p] {' '	for p := parent[id]; p != "" && !s.ancestors[p]; p = "" {' 'CG32 chỉ tính MỘT cấp cha'
 m $C '		coverPhrases(slices.Concat(a.RT.Intents.MetricKeywords(), labels, a.RT.QuantityMarkers), 0, lo)' '		coverPhrases(slices.Concat(a.RT.Intents.MetricKeywords(), labels), 0, lo)' 'CG33 từ chỉ lượng ở ngữ cảnh không được giải thích'
 m $C '	if len(readPeriods(in)) != 1 {' '	if len(readPeriods(in)) < 1 {' 'CG34 hai kỳ đọc được vẫn phán quyết'
 m $C '	for _, from := range []int{lo, qs} {' '	for _, from := range []int{qs, qs} {' 'CG35 kiểm chủ thể chỉ ở mệnh đề hỏi (bỏ phạm vi câu — hồi quy T2.2, soát lần ba)'
-m $C 'strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))' 'strings.ContainsAny(sp.Raw, ".,"))' 'CG36 lượng có chữ ("3,85k") vẫn bị coi là mơ hồ'
+m $C 'strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw)' 'strings.ContainsAny(sp.Raw, ".,"))' 'CG36 lượng có chữ ("3,85k") vẫn bị coi là mơ hồ'
 m $C 'strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'strings.Trim(raw[lastEnd:sp.Start], " (") != "") {' 'CG37 ngoặc đóng giữa hai lần nhắc thành phát biểu khác'
 m $C 'strings.Trim(raw[lastEnd:sp.Start], " ()") != "") {' 'strings.Trim(raw[lastEnd:sp.Start], " ()\n") != "") {' 'CG38 xuống dòng giữa hai lần nhắc thành liền kề'
 m $C '			value, lastEnd = true, sp.End' '			if !value {
 				lastEnd = sp.End
 			}
 			value = true' 'CG39 khoảng liền kề đo từ lần nhắc ĐẦU thay vì lần gần nhất'
-m $C 'strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc' 'strings.ContainsAny(sp.Raw, ",") && !strings.ContainsFunc' 'CG40 lượng suy đơn vị có dấu chấm thành có đơn vị'
+m $C 'strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc' 'strings.ContainsAny(sp.Raw, ",") && strings.TrimRightFunc' 'CG40 lượng suy đơn vị có dấu chấm thành có đơn vị'
 m $C '	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {' '	if false && slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {' 'CG41 tắt E3: tên khác đứng sau con số xác nhận vẫn phán quyết'
 m $C 'return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) })' 'return m.start >= firstEnd && !slices.ContainsFunc(m.ids, func(id string) bool { return id == subj.id || subj.ancestors[id] }) })' 'CG42 E3 cho qua cấp cha đứng sau con số (dạng gương)'
+m $C 'strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw' '!strings.ContainsFunc(sp.Raw, unicode.IsLetter)' 'CG43 chữ ở bất kỳ đâu (không chỉ cuối) xoá mơ hồ — "1,2k5" phán quyết (hồi quy T2.3)'
+m $C 'strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw' 'strings.TrimRightFunc(sp.Raw, unicode.IsLower) == sp.Raw' 'CG44 hậu tố viết hoa ("3,85K") không xoá mơ hồ'
+m $C '	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {
+		return "subject"' '	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {
+		return "value"' 'CG45 E3 trả nhãn sai (value thay vì subject)'
+m $C 'return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) })' 'return m.start >= firstEnd && !(len(m.ids) == 1 && m.ids[0] == subj.id) })' 'CG46 E3 coi bí danh mơ hồ có chủ thể là tên khác'

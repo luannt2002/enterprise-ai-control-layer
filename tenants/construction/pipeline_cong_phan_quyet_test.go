@@ -307,14 +307,17 @@ func TestCongPhanQuyetSoatLan3(t *testing.T) {
 		// mệnh đề hỏi đứng TRƯỚC con số, chỉ nêu cấp cha (chủ thể ở trước nó): E3 không thấy tên này — phép kiểm ở mệnh đề hỏi bắt
 		{q: "EX-03, dự án A đúng không, hôm nay được cấp 3850 L?"},
 		{q: "EX-03 hôm nay, dự án A đúng không, được cấp 3850 L?"},
+		// cấp cha đứng SAU con số trong cùng mệnh đề (5050 L là tổng của dự án A): không được phán quyết theo máy
+		{q: "EX-03 hôm nay được cấp 5050 L của dự án A đúng không?"},
+		{q: "EX-03 hôm nay được cấp 5050 L (dự án A) đúng không?"},
 	} {
 		a := std
 		if c.tiers {
 			a = tiers
 		}
 		r := ask(t, a, user("director", ""), c.q).Response
-		if v := verdictOf(r.Answer); v != "" {
-			t.Errorf("%q: chủ thể của câu hỏi chưa giải, muốn KHÔNG phán quyết — được [%s] %q", c.q, r.Outcome, r.Answer)
+		if v := verdictOf(r.Answer); v != "" || r.Outcome != contracts.OutcomeResolved {
+			t.Errorf("%q: chủ thể của câu hỏi chưa giải, muốn trả số, KHÔNG phán quyết — được [%s] %q", c.q, r.Outcome, r.Answer)
 		}
 	}
 	for _, c := range []struct{ q, want string }{
@@ -326,6 +329,13 @@ func TestCongPhanQuyetSoatLan3(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L (3850 lít) (3850 L) đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp 3850 L\n3850 L đúng không?", want: ""},
 		{q: "EX-03 hôm nay được cấp dầu 3.850 đúng không?", want: ""},
+		// hậu tố nhân chỉ xoá mơ hồ khi đứng CUỐI con số: "3,85K" rõ; "1,2k5", "3,5k35" (chữ số sau hậu tố) vẫn mơ hồ (soát T2.3)
+		{q: "EX-03 hôm nay được cấp dầu 3,85K đúng không?", want: "Đúng."},
+		{q: "Lu 02 hôm nay được cấp dầu 1,2k5 đúng không?", want: ""},
+		{q: "EX-03 hôm nay được cấp dầu 3,5k35 đúng không?", want: ""},
+		// đối chứng dương của E3: nhắc lại CHÍNH chủ thể sau con số (tên đầy đủ, bí danh có chủ thể trong ứng viên) vẫn phán quyết
+		{q: "EX-03 hôm nay được cấp 3850 L (máy xúc EX-03) đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L máy 03 đúng không?", want: "Đúng."},
 	} {
 		r := ask(t, std, user("director", ""), c.q).Response
 		if v := verdictOf(r.Answer); v != c.want {

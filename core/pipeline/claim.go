@@ -255,9 +255,9 @@ func sourceMentions(raw string, def sourceoftruth.MetricDef, used []string, lo i
 // dấu chấm / phẩy còn mơ hồ giữa phần nghìn và phần thập phân.
 func unitShown(sp contracts.Span) bool {
 	if sp.Kind == contracts.ValueQuantity {
-		// đơn vị suy từ thuật ngữ + dấu chấm / phẩy là mơ hồ phần nghìn / thập phân ("dầu 1,2") — trừ khi nguyên văn có chữ ("3,85k",
-		// "1,2 nghìn"): chữ đã nói hàng của con số
-		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter))
+		// đơn vị suy từ thuật ngữ + dấu chấm / phẩy là mơ hồ phần nghìn / thập phân ("dầu 1,2") — trừ khi nguyên văn KẾT THÚC bằng chữ
+		// ("3,85k", "3,85K", "1,2 nghìn"): hậu tố nhân ở cuối đã nói hàng của con số; chữ số sau hậu tố ("1,2k5") vẫn mơ hồ
+		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw)
 	}
 	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
 }

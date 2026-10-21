@@ -69,6 +69,11 @@ func TestVerdictGap(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A 5050 L, đúng không?", claimed: "5050", want: "subject"},
 		{q: "Lu 02 hôm nay được cấp dầu 1,2 đúng không?", claimed: "1.2", want: "value"},
 		{q: "EX-03 hôm nay được cấp dầu 3,85k đúng không?", claimed: "3850"},
+		{q: "EX-03 hôm nay được cấp dầu 3,85K đúng không?", claimed: "3850"},
+		{q: "EX-03 hôm nay được cấp dầu 3,5k35 đúng không?", claimed: "3850", want: "value"},
+		// E3: sau con số xác nhận chỉ được nhắc lại chính chủ thể
+		{q: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?", claimed: "3850", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L: dự án A đúng không?", claimed: "3850", want: "subject"},
 	} {
 		in := rt.Normalizer.Normalize(c.q, normalization.Options{Now: now})
 		res, err := entityresolution.Resolve(ctx, dir, in)

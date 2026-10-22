@@ -5,7 +5,7 @@
 > Trong lúc chờ, BUILD chạy theo **mặc định an toàn, đảo lại được** ghi ở cột "Đang chạy".
 > Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt** (D-RM-03).
 
-Cập nhật: 22/10/2026 17:3x.
+Cập nhật: 22/10/2026 20:4x. Câu mở Q-P1-1…9 và Q-S9-1…8 đã gom vào `docs/CHO-QUYET-DINH.md` mục 5 (trả lời ở đó).
 
 ## 1. Đang chặn một khối MVP
 

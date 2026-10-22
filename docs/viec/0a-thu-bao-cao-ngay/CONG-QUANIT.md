@@ -3,10 +3,11 @@
 > **Trạng thái: GIẤY, chưa có mã.**
 > - Mã Phase 0a (khối M2 của MVP) chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong").
 > - H4 đã khoá (`15f04f9`); tại mốc đọc mã `2b80a38` thì CHƯA chạy, và đã chạy MỘT lần ngày 22/10 sau đó (`docs/STATUS.md`, dòng "H4, 22/10 14:59") [REPO]: điều kiện này đã đạt.
-> - Soát (mã ghi chú F01–F03 và R2-01…R2-09 định nghĩa ở `docs/adr/0012-phase0a-thu-bao-cao-ngay.md`, mục "Ghi chú soát đã xử lý"):
+> - Soát (mã ghi chú F01–F03, R2-01…R2-09 và R3-01…R3-05 định nghĩa ở `docs/adr/0012-phase0a-thu-bao-cao-ngay.md`, mục "Ghi chú soát đã xử lý"):
 >   - vòng 1 (người soát ≠ người viết): **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO];
 >   - vòng 2 (soát lại bản sửa F01–F03): **KHÔNG ĐẠT**, một ghi chú S2 (R2-01), sáu S3 (R2-02…R2-07), hai S4 (R2-08, R2-09) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
->   - **bản này là vòng 3, vòng sửa cuối theo luật dừng (`docs/PROMPT-BUILD-EAIS.md` §9.6), chưa soát lại.** Ở tệp này vòng 3 chỉ đổi số đột biến ở mục 5, điều kiện 4, và số dòng của D-OP-17 ở câu 8; phần nội dung chính do `HOP-DONG.md` và ADR-0012 sửa. Mục 5, điều kiện 4 vẫn do vòng 1 (F03) hạ chữ và khớp M1 đã lên main.
+>   - vòng 3 (soát lại bản sửa R2-01…R2-09; ở tệp này tác giả vòng 3 chỉ đổi số đột biến ở mục 5, điều kiện 4, và số dòng của D-OP-17 ở câu 8): **KHÔNG ĐẠT**, một ghi chú S2 (R3-01), ba S3 (R3-02, R3-03, R3-04), một S4 (R3-05) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
+>   - **bản này là vòng 4: chỉ sửa lỗi thuộc ngoại lệ của luật dừng (`docs/PROMPT-BUILD-EAIS.md` §9.6: an ninh, sai chiều, mất dữ liệu), chưa soát lại.** Ở tệp này vòng 4 chỉ đổi số đột biến và số lớp ca ở mục 5, điều kiện 4; phần nội dung chính do `HOP-DONG.md` và ADR-0012 sửa. Mục 5, điều kiện 4 vẫn do vòng 1 (F03) hạ chữ và khớp M1 đã lên main.
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc bác từng câu chấm;
@@ -249,7 +250,7 @@
 | 1 | Phase tiên quyết đã đạt | **Đạt.** Mã 0a mở sau H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4); H4 đã chạy MỘT lần ngày 22/10 (`docs/STATUS.md`). Điều kiện kỹ thuật thêm: M1 (làn 0) đã lên main ở `41bc3cf` với `POST /v1/ingest` (principal từ token, nạp lại thư mục đã cấu hình); đường nạp từng đơn vị là việc của M2 (`HOP-DONG.md` §1.4, §14.1). D-OP-14 (bộ đọc số, làn 1) đã vào main (`7e1d8ca`, `017495c`) | `docs/STATUS.md`; `docs/CHO-QUYET-DINH.md` mục 0 (D-OP-14, D-RM-04) |
 | 2 | Có lỗi đo được hoặc ca nghiệp vụ đòi năng lực mới | **Có.** K1–K5 và `docs/ROADMAP.md` §0.4 mục 1, 3, 12, 15, 16, 17; CON-F-014 (S1); thêm các lỗi người viết đo ở `2b80a38` (`HOP-DONG.md` §1.3) | mục 3 câu 2, câu 3 |
 | 3 | Trả lời được "ai sở hữu?" | Trả lời đủ 10 mặt ở `HOP-DONG.md` §8 (giấy) | `docs/05-master-roadmap.md:30` |
-| 4 | Cổng ra nhị phân, có ca âm chứng minh cổng đỏ được | **Chưa chứng minh.** Trên giấy: `HOP-DONG.md` §11.1 có 11 dòng GA, mỗi dòng có ít nhất một đột biến bắt buộc đỏ (33 đột biến ở §11.3, mỗi cặp đột biến và dòng ghi lớp ca của chính dòng đó làm nó đỏ), hai bảng §11.1 và §11.3 đối xứng, mọi lớp ca âm ở §10 (82 lớp) thuộc một dòng GA. Chưa bộ ca độc lập nào được soạn và chưa đột biến nào chạy, nên "cổng đỏ được" mới là điều phải chứng minh ở bước đột biến (`HOP-DONG.md` §14.2), chưa phải điều đã chứng minh | `docs/ROADMAP-DAY-DU.md` §6 |
+| 4 | Cổng ra nhị phân, có ca âm chứng minh cổng đỏ được | **Chưa chứng minh.** Trên giấy: `HOP-DONG.md` §11.1 có 11 dòng GA, mỗi dòng có ít nhất một đột biến bắt buộc đỏ (35 đột biến ở §11.3, mỗi cặp đột biến và dòng ghi lớp ca của chính dòng đó làm nó đỏ), hai bảng §11.1 và §11.3 đối xứng, mọi lớp ca âm ở §10 (83 lớp) thuộc một dòng GA. Chưa bộ ca độc lập nào được soạn và chưa đột biến nào chạy, nên "cổng đỏ được" mới là điều phải chứng minh ở bước đột biến (`HOP-DONG.md` §14.2), chưa phải điều đã chứng minh | `docs/ROADMAP-DAY-DU.md` §6 |
 
 ---
 

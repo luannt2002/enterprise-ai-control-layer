@@ -101,6 +101,15 @@ func TestVerdictGap(t *testing.T) {
 		{q: "Hôm 19/10, ERP, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "“ERP”, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "Phiếu xuất kho, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip", "erp"}},
+		// R5-4: đề mục vẫn "thuần" khi có thêm chữ mà phép kiểm chính tự giải thích — thuật ngữ của chính ý định ("dầu"), từ khoá của chính
+		// ý định ("kho xuất"), tên đúng nguồn đã dùng ("phiếu xuất kho"); đề mục chỉ gồm những chữ đó thì không phải nguồn / chỉ số khác
+		{q: "Dầu ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Kho xuất, ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Phiếu xuất kho, ERP, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
+		{q: "Dầu, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850"},
+		{q: "Kho xuất, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850"},
+		// R5-5: bí danh "phiếu kho" (trùng từ khoá của chính ý định) là nguồn KHÁC khi số trả lời lấy từ ERP
+		{q: "Phiếu kho, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source", used: []string{"erp"}},
 		// đề mục chỉ có mốc / từ trung tính vẫn phán quyết; từ khoá ý định yếu ở ngữ cảnh không được giải thích ("Tổng,")
 		{q: "Hôm nay, EX-03 được cấp 3850 L đúng không?", claimed: "3850"},
 		{q: "Cho hỏi, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850"},

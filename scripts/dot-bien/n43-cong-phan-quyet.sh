@@ -85,10 +85,10 @@ m $C '!subj.numberOwned(raw, os, firstStart, firstEnd, lo)' 'false && !subj.numb
 m $C 'extra := contextOwners(raw, in.Spans, inName, slices.Concat(sources, metrics), lo)' 'extra := contextOwners(raw, in.Spans, inName, slices.Concat(sources, metrics), len(raw))' 'CG51 V5 contextOwners coi cả phạm vi hỏi là ngữ cảnh (lo = len)'
 m $C 'owners(names, in.Spans, idef.Terms, extra)' 'owners(names, in.Spans, nil, extra)' 'CG52 V5 owners không loại thuật ngữ của chính ý định'
 m $C '				return "value" // "một nghìn hai"' '				return "subject" // "một nghìn hai"' 'CG55 V5 K5 trả nhãn sai (subject thay vì value)'
-m $C 'skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())' 'skip := slices.Concat(a.RT.Intents.WeakKeywords())' 'CG56 V5 R-1 từ khoá của chính ý định thành chủ của con số'
-m $C 'skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())' 'skip := slices.Concat(idef.Keywords)' 'CG57 V5 R-1 từ khoá ý định yếu ("bao nhiêu") thành chủ của con số'
-m $C '!slices.Contains(skip, p) }' '!slices.Contains(skip[:0], p) }' 'CG58 V5 qualifierPhrases không loại trừ từ khoá nào (skip vô hiệu)'
-m $C 'if len(used) == 1 && used[0] == src.Type {' 'if len(used) == 1 && used[0] != src.Type {' 'CG61 V5 qualifierPhrases đảo điều kiện: chỉ tên nguồn đã dùng là nguồn khác'
+m $C '	keep := func(p string) bool { return keepSrc(p) && !slices.Contains(idef.Keywords, p) }' '	keep := func(p string) bool { return keepSrc(p) }' 'CG56 V5 R-1 từ khoá của chính ý định thành chủ của con số'
+m $C '	keepSrc := func(p string) bool { return p != "" && !slices.Contains(weak, p) }' '	keepSrc := func(p string) bool { return p != "" && !slices.Contains(weak[:0], p) }' 'CG57 V5 R-1 từ khoá ý định yếu ("bao nhiêu") thành chủ của con số'
+m $C '	keep := func(p string) bool { return keepSrc(p) && !slices.Contains(idef.Keywords, p) }' '	keep := func(p string) bool { return p != "" }' 'CG58 V5 qualifierPhrases không loại trừ từ khoá nào (skip vô hiệu)'
+m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) == 1 && used[0] != src.Type {' 'CG61 V5 qualifierPhrases đảo điều kiện: chỉ tên nguồn đã dùng là nguồn khác'
 m $C 'for _, p := range append([]string{src.Label}, src.Aliases...) {' 'for _, p := range src.Aliases {' 'CG63 V5 qualifierPhrases: nhãn của nguồn không là nguồn khác'
 m $C 'for _, p := range slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers) {' 'for _, p := range slices.Concat(a.RT.Intents.MetricKeywords()) {' 'CG65 V5 qualifierPhrases: từ chỉ lượng không là chỉ số khác'
 m $C 'if sp[1] <= lo && !numberIn(sp[1], lo) {' 'if sp[1] <= lo && (!numberIn(sp[1], lo) || true) {' 'CG66 V5 R-1 cụm đã có số của riêng nó vẫn là chủ của con số sau (bỏ numberIn)'
@@ -198,7 +198,7 @@ m $W 'prev2, prev, last = prev, last, w.kind' 'prev2, prev, last = prev2, prev, 
 m $C '!subj.numberOwned(raw, os, firstStart, firstEnd, lo)' '!subj.numberOwned(raw, os, firstStart, firstEnd, 0)' 'CG50 V5 numberOwned xét bí danh cả ở ngữ cảnh (lo = 0)'
 m $C 'sources, metrics := a.qualifierPhrases(idef, used)' 'sources, metrics := a.qualifierPhrases(idef, nil)' 'CG53 V5 qualifierPhrases không biết nguồn đã dùng (used = nil)'
 m $C 'if normalization.AmbiguousNumberWords(sp.Raw) {' 'if normalization.AmbiguousNumberWords(raw) {' 'CG54 V5 K5 kiểm số bằng chữ mơ hồ trên CẢ câu thay vì trên con số xác nhận'
-m $C 'if len(used) == 1 && used[0] == src.Type {' 'if false {' 'CG60 V5 qualifierPhrases: tên đúng nguồn đã dùng cũng là nguồn khác'
+m $C '				continue // tên đúng nguồn đã dùng' '				_ = src // tên đúng nguồn đã dùng' 'CG60 V5 qualifierPhrases: tên đúng nguồn đã dùng cũng là nguồn khác'
 m $C 'for _, p := range slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers) {' 'for _, p := range slices.Concat(a.RT.QuantityMarkers) {' 'CG64 V5 qualifierPhrases: từ khoá ý định số liệu khác không là chỉ số khác'
 m $C 'strings.ContainsRune(".,/-:", r)' 'strings.ContainsRune(".,/-:;", r)' 'CG87 V5 plainBetween: thêm dấu chấm phẩy giữa hai chữ số'
 m $C '&& i > 0 && i+1 < len(rs) && unicode.IsDigit(rs[i-1])' '&& i > 0 && i+1 <= len(rs) && unicode.IsDigit(rs[i-1])' 'CG92 V5 plainBetween: dấu cuối chuỗi đọc rs[len]'
@@ -250,8 +250,8 @@ m $C 'src, met := markPhrases(sources), markPhrases(metrics)' 'src, met := markP
 m $C 'src, met := markPhrases(sources), markPhrases(metrics)' 'src, met := markPhrases(nil), markPhrases(metrics)' 'CG162 V5 topicQualifier: tên nguồn khác không được đánh dấu'
 m $C 'src, met := markPhrases(sources), markPhrases(metrics)' 'src, met := markPhrases(metrics), markPhrases(sources)' 'CG163 V5 topicQualifier: hai danh sách đổi chỗ (nhãn source / metric đảo)'
 m $C 'if !src && !met {' 'if !src || !met {' 'CG164 V5 topicQualifier: cần CẢ nguồn lẫn chỉ số mới là đề mục'
-m $C '&& sp.Start >= from && sp.End <= lo {' '&& sp.End <= lo {' 'CG170 V5 topicQualifier: mốc ở câu trước cũng được đánh dấu (bỏ cận dưới)'
-m $C '&& sp.Start >= from && sp.End <= lo {' '&& sp.Start >= from {' 'CG171 V5 topicQualifier: mốc ở phạm vi hỏi cũng được đánh dấu (bỏ cận trên)'
+m $C 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {' 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.End <= lo {' 'CG170 V5 topicQualifier: mốc ở câu trước cũng được đánh dấu (bỏ cận dưới)'
+m $C 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {' 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from {' 'CG171 V5 topicQualifier: mốc ở phạm vi hỏi cũng được đánh dấu (bỏ cận trên)'
 m $C 'if !covered[i-from] && !unicode.IsSpace(r) && !strings.ContainsRune(claimSeparators, r) {' 'if false && !covered[i-from] && !unicode.IsSpace(r) && !strings.ContainsRune(claimSeparators, r) {' 'CG173 V5 topicQualifier: bỏ kiểm thuần (chữ lạ trong đoạn đề mục vẫn là đề mục)'
 m $C '!covered[i-from] && !unicode.IsSpace(r) && !strings.ContainsRune(claimSeparators, r)' '!covered[i-from] && !strings.ContainsRune(claimSeparators, r)' 'CG174 V5 topicQualifier: khoảng trắng không được tha'
 m $C '!covered[i-from] && !unicode.IsSpace(r) && !strings.ContainsRune(claimSeparators, r)' '!covered[i-from] && !unicode.IsSpace(r)' 'CG175 V5 topicQualifier: dấu ngăn không được tha'
@@ -285,14 +285,14 @@ m $C '; gap != "" {
 		return gap
 	}
 	extra :=' 'CG185 V5 verdictGap: tắt lời gọi topicQualifier'
-m $C 'a.topicQualifier(raw, in.Spans, sources, metrics, lo)' 'a.topicQualifier(raw, in.Spans, metrics, sources, lo)' 'CG186 V5 verdictGap: truyền nguồn / chỉ số đổi chỗ cho topicQualifier'
+m $C 'a.topicQualifier(raw, in.Spans, sources, metrics, own, idef.Terms, lo)' 'a.topicQualifier(raw, in.Spans, metrics, sources, own, idef.Terms, lo)' 'CG186 V5 verdictGap: truyền nguồn / chỉ số đổi chỗ cho topicQualifier'
 m $C 'slices.Concat(sources, metrics), lo)' 'slices.Concat(sources), lo)' 'CG189 V5 verdictGap: contextOwners không nhận từ khoá chỉ số khác'
 m $C 'slices.Concat(sources, metrics), lo)' 'nil, lo)' 'CG191 V5 verdictGap: contextOwners không nhận cụm nào'
 m $C 'var out [][2]int
 	for _, p := range phrases {' 'var out [][2]int
 	for _, p := range phrases[:0] {' 'CG192 V5 contextOwners: không trả cụm nào'
 m $C 'continue // tên đúng nguồn đã dùng' 'break // tên đúng nguồn đã dùng' 'CG194 V5 qualifierPhrases: gặp nguồn đã dùng thì bỏ cả các nguồn sau nó'
-m $C 'len(used) == 1 && used[0] == src.Type' 'len(used) == 1 || used[0] == src.Type' 'CG196 V5 qualifierPhrases: một nguồn đã dùng thì mọi nguồn đều được bỏ'
+m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) == 1 || used[0] == src.Type {' 'CG196 V5 qualifierPhrases: một nguồn đã dùng thì mọi nguồn đều được bỏ'
 m $C 'MetricIDs() {
 		m, _ := a.RT.Metrics.Metric(id)
 		for _, src := range m.Sources {' 'MetricIDs()[:1] {
@@ -322,6 +322,12 @@ m $C 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) &&
 m $C 'if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {' 'if false && (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {' 'CG169 V5 topicQualifier: mốc nào cũng không được tha trong đề mục'
 m $C '			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok && ws >= from {' '			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); false && ok && ws >= from {' 'CG203 V5 topicQualifier: chữ "ngày" / "hôm" trước mốc số không được tha trong đề mục'
 # CG204 (tương đương) — bỏ cận ws >= from: từ chỉ kỳ dính liền mốc số nên không thể nằm sau dấu ngắt câu mở đầu đoạn [from, lo)
+m $C '	markPhrases(own)' '	markPhrases(nil)' 'CG205 V5 topicQualifier: chữ của chính claim (từ khoá chính ý định, đúng nguồn đã dùng) phá đề mục thuần'
+m $C '		if sp.Kind == contracts.ValueTerm && slices.Contains(ownTerms, sp.Value.Text) && sp.Start >= from && sp.End <= lo {' '		if false && sp.Kind == contracts.ValueTerm && slices.Contains(ownTerms, sp.Value.Text) && sp.Start >= from && sp.End <= lo {' 'CG206 V5 topicQualifier: thuật ngữ của chính ý định ("dầu") phá đề mục thuần'
+m $C '			own = append(append(own, src.Label), src.Aliases...)' '			own = append(own)' 'CG208 V5 verdictGap: tên đúng nguồn đã dùng không được tha trong đề mục'
+m $C '				if keepSrc(p) {' '				if keep(p) {' 'CG209 V5 qualifierPhrases: tên nguồn trùng từ khoá chính ý định ("phiếu kho") bị bỏ khỏi nguồn khác (R5-5)'
+m $C '	own := slices.Clone(idef.Keywords)' '	own := []string{}' 'CG210 V5 verdictGap: từ khoá của chính ý định không được tha trong đề mục'
+m $C 'extra := contextOwners(raw, in.Spans, inName, slices.Concat(sources, metrics), lo)' 'extra := contextOwners(raw, in.Spans, inName, slices.DeleteFunc(slices.Concat(sources, metrics), func(p string) bool { return slices.Contains(idef.Keywords, p) }), lo)' 'CG211 V5 R5-5 chủ ở ngữ cảnh bỏ cụm trùng từ khoá ý định ("phiếu kho" ở ngữ cảnh sau tên chủ thể, soát vòng 4 M13)'
 m $C '		i += n
 	}
 	if src {' '		i += 1 + 0*n
@@ -332,9 +338,9 @@ m $C 'return "source"
 	return "metric"' 'return "source"
 	}
 	return "source"' 'CG180 V5 topicQualifier: đề mục chỉ có chỉ số cũng mang nhãn source'
-m $C 'a.topicQualifier(raw, in.Spans, sources, metrics, lo)' 'a.topicQualifier(raw, nil, sources, metrics, lo)' 'CG188 V5 verdictGap: topicQualifier không biết mốc nào'
+m $C 'a.topicQualifier(raw, in.Spans, sources, metrics, own, idef.Terms, lo)' 'a.topicQualifier(raw, nil, sources, metrics, own, idef.Terms, lo)' 'CG188 V5 verdictGap: topicQualifier không biết mốc nào'
 m $C 'slices.Concat(sources, metrics), lo)' 'slices.Concat(metrics), lo)' 'CG190 V5 verdictGap: contextOwners không nhận tên nguồn khác'
-m $C 'len(used) == 1 && used[0] == src.Type' 'len(used) >= 1 && used[0] == src.Type' 'CG195 V5 qualifierPhrases: nhiều nguồn đã dùng thì nguồn đầu vẫn được bỏ'
+m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) >= 1 && used[0] == src.Type {' 'CG195 V5 qualifierPhrases: nhiều nguồn đã dùng thì nguồn đầu vẫn được bỏ'
 m $C 'metrics = append(metrics, p)' 'sources = append(sources, p)' 'CG198 V5 qualifierPhrases: từ khoá chỉ số khác xếp vào danh sách nguồn'
 m $W 'last == vwHalf && prev == vwDigit && scaled(prev2)' 'last == vwHalf && scaled(prev2)' 'NW13 V5 số bằng chữ mơ hồ: "rưỡi" sau "<hàng> <từ khác chữ số> " cũng mơ hồ'
 # ---- Vòng 5, nhóm CHỜ QUYẾT (đã đo lại ở 95dea0f; chạy trên corpus 110.208 câu tổ hợp đề mục × chủ thể × số × đuôi × ý định × nguồn, không đổi phán quyết ở các dòng dưới trừ ghi chú). Chủ dự án quyết thì ghim test / sửa mã rồi bỏ dấu # (đột biến phải đỏ). ----

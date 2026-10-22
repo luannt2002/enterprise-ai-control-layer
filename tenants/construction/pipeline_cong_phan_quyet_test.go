@@ -390,6 +390,16 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "Hôm nay, ERP, EX-03 được cấp 3900 L đúng không?"},
 		{q: "ERP ghi, EX-03 hôm nay được cấp 3900 L đúng không?"},
 		{q: "Cho hỏi, ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		// R5-4: đề mục có thêm thuật ngữ / từ khoá của chính ý định / tên đúng nguồn đã dùng vẫn là đề mục (ERP ghi 3.900 L, đội báo 4.000 L)
+		{q: "Dầu ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Ngày 19/10, dầu ERP, EX-03 được cấp 3900 L đúng không?"},
+		{q: "Dầu đội báo, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "Kho xuất, ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Phiếu xuất kho, ERP, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		// R5-5: "phiếu kho" là nguồn khác khi số trả lời lấy từ ERP (bộ nguồn thấp: phiếu kho không có bản ghi)
+		{q: "Phiếu kho, EX-03 hôm nay được cấp 3900 L đúng không?", tiers: true},
+		// ... kể cả khi "phiếu kho" đứng ở ngữ cảnh sau tên chủ thể: nó vẫn là chủ gần nhất của con số (soát vòng 4, V5S4-01)
+		{q: "EX-03 hôm nay phiếu kho, được cấp 3900 L đúng không?", tiers: true},
 		// số bằng chữ kết thúc bằng "<hàng> <một chữ số>": nói thường là hàng kế dưới (1.200, 3.800), bộ đọc cho 1.002, 3.008
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám lít dầu đúng không?"},
@@ -447,6 +457,10 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L. Phiếu xuất kho, 3900 L đúng không?", want: "Không."},
 		{q: "Phiếu xuất kho, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "Phiếu xuất kho ngày 19/10, EX-03 được cấp 3850 L đúng không?", want: "Đúng."},
+		// đề mục chỉ gồm chữ của chính claim (thuật ngữ, từ khoá chính ý định, đúng nguồn đã dùng): không phải nguồn / chỉ số khác
+		{q: "Dầu, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Kho xuất, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Phiếu xuất kho, dầu, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		// đề mục chỉ có mốc / từ trung tính không phải nguồn / chỉ số khác
 		{q: "Hôm nay, EX-03 được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "Cho hỏi, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},

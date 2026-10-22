@@ -128,7 +128,13 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 		return "subject"
 	}
 	sources, metrics := a.qualifierPhrases(idef, used)
-	if gap := a.topicQualifier(raw, in.Spans, sources, metrics, lo); gap != "" {
+	own := slices.Clone(idef.Keywords) // chữ của chính claim: từ khoá của chính ý định và tên đúng nguồn đã dùng
+	for _, src := range def.Sources {
+		if len(used) == 1 && used[0] == src.Type {
+			own = append(append(own, src.Label), src.Aliases...)
+		}
+	}
+	if gap := a.topicQualifier(raw, in.Spans, sources, metrics, own, idef.Terms, lo); gap != "" {
 		return gap
 	}
 	extra := contextOwners(raw, in.Spans, inName, slices.Concat(sources, metrics), lo)
@@ -306,11 +312,13 @@ func owners(names []mention, spans []contracts.Span, ownTerms []string, extra []
 }
 
 // qualifierPhrases trả các cụm có thể là nguồn / chỉ số của một con số khác chỉ số đang hỏi (ADR-0009 Vòng 5, R5-1): tên nguồn khác nguồn đã
-// tạo con số trả lời, và từ khoá của ý định số liệu khác cùng từ chỉ lượng. Bỏ từ khoá của chính ý định ("được cấp", "phiếu kho") và của ý
-// định yếu ("bao nhiêu" chỉ chính chỉ số đang hỏi).
+// tạo con số trả lời, và từ khoá của ý định số liệu khác cùng từ chỉ lượng. Bỏ từ khoá của ý định yếu ("bao nhiêu" chỉ chính chỉ số đang
+// hỏi); với chỉ số, bỏ cả từ khoá của chính ý định ("được cấp"). Tên nguồn trùng từ khoá của chính ý định vẫn là nguồn khác khi số trả lời
+// không lấy từ nó ("phiếu kho" khi số là của ERP, R5-5).
 func (a *Ask) qualifierPhrases(idef intent.Def, used []string) (sources, metrics []string) {
-	skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())
-	keep := func(p string) bool { return p != "" && !slices.Contains(skip, p) }
+	weak := a.RT.Intents.WeakKeywords()
+	keepSrc := func(p string) bool { return p != "" && !slices.Contains(weak, p) }
+	keep := func(p string) bool { return keepSrc(p) && !slices.Contains(idef.Keywords, p) }
 	for _, id := range a.RT.Metrics.MetricIDs() {
 		m, _ := a.RT.Metrics.Metric(id)
 		for _, src := range m.Sources {
@@ -318,7 +326,7 @@ func (a *Ask) qualifierPhrases(idef intent.Def, used []string) (sources, metrics
 				continue // tên đúng nguồn đã dùng ("Phiếu xuất kho, 3850 L đúng không?")
 			}
 			for _, p := range append([]string{src.Label}, src.Aliases...) {
-				if keep(p) {
+				if keepSrc(p) {
 					sources = append(sources, p)
 				}
 			}
@@ -352,11 +360,12 @@ func contextOwners(raw string, spans []contracts.Span, inName func(s, e int) boo
 	return out
 }
 
-// topicQualifier trả "source" / "metric" khi đoạn từ đầu câu chứa phạm vi hỏi tới lo CHỈ gồm tên nguồn khác nguồn đã dùng / từ khoá của ý
-// định số liệu khác / từ chỉ lượng (cùng từ trung tính, mốc và dấu ngăn): "ERP, EX-03 hôm nay được cấp 3900 L đúng không?", "… 3850 L. ERP,
-// 3900 L đúng không?", "Đội báo, EX-03 …" — đề mục đó là nguồn / chỉ số của chính claim (R5-1, gồm R2-4). Đoạn có chữ khác ("Bao nhiêu định
-// mức, vậy EX-03 …", "Theo ERP, …") không phải đề mục của claim.
-func (a *Ask) topicQualifier(raw string, spans []contracts.Span, sources, metrics []string, lo int) string {
+// topicQualifier trả "source" / "metric" khi đoạn từ đầu câu chứa phạm vi hỏi tới lo có tên nguồn khác nguồn đã dùng / từ khoá của ý định
+// số liệu khác / từ chỉ lượng, và ngoài chúng CHỈ có chữ mà phép kiểm chính tự giải thích — từ trung tính, mốc, dấu ngăn, chữ của chính
+// claim (own: từ khoá chính ý định, tên đúng nguồn đã dùng; ownTerms: thuật ngữ vật tư của chính ý định, R5-4): "ERP, EX-03 hôm nay được
+// cấp 3900 L đúng không?", "… 3850 L. ERP, 3900 L đúng không?", "Đội báo, EX-03 …", "Dầu ERP, EX-03 …" — đề mục đó là nguồn / chỉ số
+// của chính claim (R5-1, gồm R2-4). Đoạn có chữ khác ("Bao nhiêu định mức, vậy EX-03 …", "Theo ERP, …") không phải đề mục của claim.
+func (a *Ask) topicQualifier(raw string, spans []contracts.Span, sources, metrics, own, ownTerms []string, lo int) string {
 	from := sentenceStart(raw, lo)
 	if from >= lo {
 		return ""
@@ -384,7 +393,11 @@ func (a *Ask) topicQualifier(raw string, spans []contracts.Span, sources, metric
 		return ""
 	}
 	markPhrases(a.RT.ClaimNeutral)
+	markPhrases(own)
 	for _, sp := range spans {
+		if sp.Kind == contracts.ValueTerm && slices.Contains(ownTerms, sp.Value.Text) && sp.Start >= from && sp.End <= lo {
+			mark(sp.Start, sp.End)
+		}
 		if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {
 			mark(sp.Start, sp.End)
 			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok && ws >= from {

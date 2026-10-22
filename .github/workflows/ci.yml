@@ -1,0 +1,83 @@
+# CI của EAIS: vet, gofmt, test CÓ PostgreSQL (và FAIL nếu có bất kỳ test nào bị SKIP), cổng danh tính, smoke E2E một lệnh.
+#
+# CHƯA CHẠY TRÊN GITHUB: tệp này được kiểm cú pháp YAML và MỌI lệnh trong nó đã được chạy tại máy với một PostgreSQL riêng, nhưng
+# bản thân GitHub Actions chưa từng chạy nó. Lần chạy đầu tiên trên GitHub là phép thử thật của nó.
+#
+# Giới hạn đã biết (ghi thẳng, không giấu):
+# - Action được ghim theo TAG đầy đủ (vN.M.P), chưa ghim theo SHA: máy dựng tệp này không tra được SHA của tag. Tag có thể bị di dời;
+#   khi có mạng, thay bằng SHA đầy đủ của đúng các tag này.
+# - PostgreSQL dùng đúng ảnh ghim theo digest của deploy/docker-compose.yml, xác thực "trust", không có bí mật nào trong tệp.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kiem:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
+        env:
+          POSTGRES_DB: eais
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d eais"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      EAIS_PG_ADMIN_DSN: postgres://postgres@127.0.0.1:5432/eais?sslmode=disable
+      EAIS_PG_DSN: postgres://eais_app@127.0.0.1:5432/eais?sslmode=disable
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-go@v5.2.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Cài poppler-utils (pdftotext, bộ nạp đọc PDF)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          pdftotext -v
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: gofmt (tệp git theo dõi)
+        run: |
+          bad=$(git ls-files '*.go' | xargs gofmt -l)
+          if [ -n "$bad" ]; then
+            echo "gofmt chưa chạy trên:" >&2
+            echo "$bad" >&2
+            exit 1
+          fi
+
+      - name: go test -count=1 -json ./... (có PG)
+        run: go test -count=1 -json ./... | tee test.json
+
+      - name: Không test nào bị SKIP
+        run: python3 -I scripts/kiem-skip-test.py test.json
+
+      - name: Cổng danh tính và cổng kiến trúc
+        run: go test -count=1 -run 'TestDanhTinh|TestSharedCodeHasNoTenantLiterals|TestRequestTypesHaveNoTenantField' .
+
+      - name: Smoke E2E một lệnh (migrate, nạp seed 42, serve, curl)
+        run: scripts/chay-thu.sh

@@ -5,16 +5,19 @@
 # Dùng: docker compose -f deploy/docker-compose.yml up -d --wait
 #       EAIS_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:25432/eais?sslmode=disable \
 #       EAIS_PG_DSN=postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable go test ./platform/...
+# Đổi tên container / cổng bằng biến môi trường (mặc định như cũ: eais-pg, 25432) để chạy NHIỀU bản cạnh nhau mà không đụng PG
+# của việc khác, kèm cờ -p để đổi tên dự án compose:
+#       EAIS_PG_CONTAINER=my-pg EAIS_PG_PORT=25441 docker compose -p my-eais -f deploy/docker-compose.yml up -d --wait
 name: eais
 services:
   pg:
     image: postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232
-    container_name: eais-pg
+    container_name: ${EAIS_PG_CONTAINER:-eais-pg}
     environment:
       POSTGRES_DB: eais
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "127.0.0.1:25432:5432"
+      - "127.0.0.1:${EAIS_PG_PORT:-25432}:5432"
     tmpfs:
       - /var/lib/postgresql/data
     mem_limit: 1g

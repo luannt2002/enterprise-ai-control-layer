@@ -531,34 +531,49 @@ func TestVetBiMatKhongNamTrongDB(t *testing.T) {
 }
 
 // Ràng buộc của chính DB (vai quản trị bỏ qua RLS nhưng không bỏ qua CHECK): không có lý do thì không thành bản ghi cách ly, vết
-// phải là object / mảng, băm phải là 64 hex.
+// phải là object / mảng, băm phải là 64 hex, usage không âm. Có sẵn một lượt hợp lệ để khoá ngoại của usage đạt — nhờ vậy chỉ CHECK
+// mới có thể là thứ từ chối usage số âm.
 func TestVetRangBuocDB(t *testing.T) {
 	_, admin, _ := open(t)
 	ctx := context.Background()
 	conn := connect(t, admin)
 	tenant := string(uniq("ta"))
+	if _, err := conn.Exec(ctx, `INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, content_sha256)
+		VALUES ($1, 'seed-ok', now(), 'p', 'q', '{}', repeat('0', 64))`, tenant); err != nil {
+		t.Fatalf("lượt hợp lệ làm nền: %v", err)
+	}
+	cols := "INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, steps, content_sha256) VALUES ($1, "
 	for name, q := range map[string]string{
 		"cách ly không lý do":        "INSERT INTO quarantine_records (tenant_id, load_id, record_key, reason) VALUES ($1, 'l', 'k', '')",
 		"cách ly không khoá":         "INSERT INTO quarantine_records (tenant_id, load_id, record_key, reason) VALUES ($1, 'l', '', 'r')",
-		"vết rỗng trace_id":          "INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, content_sha256) VALUES ($1, '', now(), 'p', 'q', '{}', repeat('0', 64))",
-		"decision không phải object": "INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, content_sha256) VALUES ($1, 't', now(), 'p', 'q', '[]', repeat('0', 64))",
-		"steps không phải mảng":      "INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, steps, content_sha256) VALUES ($1, 't', now(), 'p', 'q', '{}', '{}', repeat('0', 64))",
-		"băm không phải 64 hex":      "INSERT INTO decision_records (tenant_id, trace_id, asked_at, principal_id, question, decision, content_sha256) VALUES ($1, 't', now(), 'p', 'q', '{}', 'xyz')",
-		"usage số âm":                "INSERT INTO usage_records (tenant_id, trace_id, model, calls, input_tokens, output_tokens, cache_read, cache_write) VALUES ($1, 't', 'm', -1, 0, 0, 0, 0)",
+		"vết rỗng trace_id":          cols + "'', now(), 'p', 'q', '{}', '[]', repeat('0', 64))",
+		"decision không phải object": cols + "'t1', now(), 'p', 'q', '[]', '[]', repeat('0', 64))",
+		"steps không phải mảng":      cols + "'t2', now(), 'p', 'q', '{}', '{}', repeat('0', 64))",
+		"băm không phải 64 hex":      cols + "'t3', now(), 'p', 'q', '{}', '[]', 'xyz')",
+		"băm hex nhưng chỉ 63 ký tự": cols + "'t4', now(), 'p', 'q', '{}', '[]', repeat('0', 63))",
+		"băm hex dài 65 ký tự":       cols + "'t5', now(), 'p', 'q', '{}', '[]', repeat('0', 65))",
+		"usage số âm":                "INSERT INTO usage_records (tenant_id, trace_id, model, calls, input_tokens, output_tokens, cache_read, cache_write) VALUES ($1, 'seed-ok', 'm', -1, 0, 0, 0, 0)",
+		"usage model rỗng":           "INSERT INTO usage_records (tenant_id, trace_id, model, calls, input_tokens, output_tokens, cache_read, cache_write) VALUES ($1, 'seed-ok', '', 0, 0, 0, 0, 0)",
 	} {
 		_, err := conn.Exec(ctx, q, tenant)
-		if err == nil || !(strings.Contains(err.Error(), "violates check constraint") || strings.Contains(err.Error(), "violates foreign key")) {
-			t.Errorf("%s: muốn bị CHECK / khoá ngoại chặn, được %v", name, err)
+		if err == nil || !strings.Contains(err.Error(), "violates check constraint") {
+			t.Errorf("%s: muốn bị CHECK chặn, được %v", name, err)
 		}
+	}
+	// và dòng hợp lệ đi qua được: CHECK không chặn oan
+	if _, err := conn.Exec(ctx, "INSERT INTO usage_records (tenant_id, trace_id, model, calls, input_tokens, output_tokens, cache_read, cache_write) VALUES ($1, 'seed-ok', 'm', 0, 0, 0, 0, 0)", tenant); err != nil {
+		t.Errorf("usage hợp lệ bị chặn oan: %v", err)
 	}
 }
 
-// checkVetSchema đòi trạng thái ĐÍCH của migration 0003 trên một DB: bảng có đủ, RLS ENABLE + FORCE, đúng MỘT chính sách
+// vetSchemaProblems đòi trạng thái ĐÍCH của migration 0003 trên một DB và trả các chỗ lệch (rỗng = đúng): bảng có đủ, RLS ENABLE + FORCE, đúng MỘT chính sách
 // tenant_isolation đọc GUC eais.tenant_id, vai ứng dụng có đúng SELECT + INSERT (không UPDATE / DELETE / TRUNCATE / REFERENCES /
 // TRIGGER / MAINTAIN, không GRANT OPTION, không cả ở mức cột), PUBLIC không có quyền nào, vai ứng dụng không làm chủ bảng.
-func checkVetSchema(t *testing.T, conn *pgx.Conn) {
+func vetSchemaProblems(t *testing.T, conn *pgx.Conn) []string {
 	t.Helper()
 	ctx := context.Background()
+	var problems []string
+	add := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	var version int
 	if err := conn.QueryRow(ctx, "SELECT current_setting('server_version_num')::int").Scan(&version); err != nil {
 		t.Fatal(err)
@@ -570,7 +585,7 @@ func checkVetSchema(t *testing.T, conn *pgx.Conn) {
 	for _, table := range vetTables {
 		var oid *string
 		if err := conn.QueryRow(ctx, "SELECT to_regclass($1)::text", table).Scan(&oid); err != nil || oid == nil {
-			t.Errorf("%s: bảng không tồn tại (%v)", table, err)
+			add("%s: bảng không tồn tại (%v)", table, err)
 			continue
 		}
 		for _, priv := range privs {
@@ -580,7 +595,7 @@ func checkVetSchema(t *testing.T, conn *pgx.Conn) {
 				t.Fatal(err)
 			}
 			if got != want || grant {
-				t.Errorf("eais_app %s trên %s: được %v (grant option %v), muốn %v / false", priv, table, got, grant, want)
+				add("eais_app %s trên %s: được %v (grant option %v), muốn %v / false", priv, table, got, grant, want)
 			}
 		}
 		for _, priv := range []string{"SELECT", "INSERT", "UPDATE", "REFERENCES"} { // quyền mức cột
@@ -590,7 +605,7 @@ func checkVetSchema(t *testing.T, conn *pgx.Conn) {
 				t.Fatal(err)
 			}
 			if got != want {
-				t.Errorf("eais_app %s ở mức cột trên %s: được %v, muốn %v", priv, table, got, want)
+				add("eais_app %s ở mức cột trên %s: được %v, muốn %v", priv, table, got, want)
 			}
 		}
 		var enabled, forced bool
@@ -602,23 +617,35 @@ func checkVetSchema(t *testing.T, conn *pgx.Conn) {
 			t.Fatal(err)
 		}
 		if !enabled || !forced {
-			t.Errorf("%s: RLS ENABLE = %v, FORCE = %v, muốn cả hai bật", table, enabled, forced)
+			add("%s: RLS ENABLE = %v, FORCE = %v, muốn cả hai bật", table, enabled, forced)
 		}
 		if owner == "eais_app" {
-			t.Errorf("%s: vai ứng dụng là chủ bảng (chủ bảng đổi được chính sách)", table)
+			add("%s: vai ứng dụng là chủ bảng (chủ bảng đổi được chính sách)", table)
 		}
 		if public != 0 {
-			t.Errorf("%s: PUBLIC có %d quyền, muốn 0", table, public)
+			add("%s: PUBLIC có %d quyền, muốn 0", table, public)
 		}
 		var n int
 		var name, cmd, qual, check string
 		if err := conn.QueryRow(ctx, `SELECT count(*) OVER (), policyname, cmd, coalesce(qual, ''), coalesce(with_check, '') FROM pg_policies
-			WHERE schemaname = current_schema() AND tablename = $1`, table).Scan(&n, &name, &cmd, &qual, &check); err != nil {
+			WHERE schemaname = current_schema() AND tablename = $1`, table).Scan(&n, &name, &cmd, &qual, &check); errors.Is(err, pgx.ErrNoRows) {
+			add("%s: không có chính sách nào", table)
+			continue
+		} else if err != nil {
 			t.Fatalf("%s: chính sách: %v", table, err)
 		}
 		if n != 1 || name != "tenant_isolation" || cmd != "ALL" || !strings.Contains(qual, "eais.tenant_id") || !strings.Contains(check, "eais.tenant_id") {
-			t.Errorf("%s: chính sách: %d cái, %q cmd %s, qual %q, check %q", table, n, name, cmd, qual, check)
+			add("%s: chính sách: %d cái, %q cmd %s, qual %q, check %q", table, n, name, cmd, qual, check)
 		}
+	}
+	return problems
+}
+
+// checkVetSchema báo mọi chỗ lệch của vetSchemaProblems thành lỗi test.
+func checkVetSchema(t *testing.T, conn *pgx.Conn) {
+	t.Helper()
+	for _, p := range vetSchemaProblems(t, conn) {
+		t.Error(p)
 	}
 }
 
@@ -701,5 +728,94 @@ func TestVetMigration0003TrenDBTrong(t *testing.T) {
 	trace, _ := vetSeed(t, s, a)
 	if _, err := s.Decision(contracts.WithTenant(ctx, a), trace); err != nil {
 		t.Errorf("đọc lại trên DB vừa dựng: %v", err)
+	}
+}
+
+// Khoá chính có tenant_id: hai tenant dùng CÙNG trace id (hoặc mã lần nạp, hoặc model) là hai bản ghi riêng, không đụng nhau, không
+// bên nào thấy bên kia. Nếu khoá chỉ là trace_id thì tenant ghi sau bị chặn (hoặc tệ hơn: bị bỏ qua im lặng) vì một dòng mà nó không
+// được thấy.
+func TestVetCungKhoaHaiTenantLaHaiBanGhi(t *testing.T) {
+	s, admin, _ := open(t)
+	a, b := uniq("ta"), uniq("tb")
+	ctxA, ctxB := contracts.WithTenant(context.Background(), a), contracts.WithTenant(context.Background(), b)
+	trace, load := uniqTrace(), "load-chung-"+string(uniq("l"))
+	for _, tn := range []struct {
+		ctx    context.Context
+		tenant contracts.TenantID
+		calls  int
+	}{{ctxA, a, 1}, {ctxB, b, 9}} {
+		if ok, err := s.SaveDecision(tn.ctx, vetRecord(tn.tenant, trace)); err != nil || !ok {
+			t.Fatalf("%s ghi trace id dùng chung: inserted=%v lỗi=%v", tn.tenant, ok, err)
+		}
+		if ok, err := s.SaveUsage(tn.ctx, pgstore.UsageRecord{TraceID: trace, Model: "m1", Calls: tn.calls}); err != nil || !ok {
+			t.Fatalf("%s ghi usage dùng chung: inserted=%v lỗi=%v", tn.tenant, ok, err)
+		}
+		if n, err := s.SaveQuarantine(tn.ctx, load, []pgstore.QuarantineRecord{{Key: "f#1", Reason: "missing_value", Detail: string(tn.tenant)}}); err != nil || n != 1 {
+			t.Fatalf("%s ghi cách ly dùng chung mã lần nạp: %d %v", tn.tenant, n, err)
+		}
+	}
+	for _, tn := range []struct {
+		ctx    context.Context
+		tenant contracts.TenantID
+		calls  int
+	}{{ctxA, a, 1}, {ctxB, b, 9}} {
+		got, err := s.Decision(tn.ctx, trace)
+		if err != nil || got.Decision.Tenant != string(tn.tenant) {
+			t.Errorf("%s đọc trace id dùng chung: tenant của bản ghi %q (lỗi %v)", tn.tenant, got.Decision.Tenant, err)
+		}
+		if us, err := s.Usage(tn.ctx, trace); err != nil || len(us) != 1 || us[0].Calls != tn.calls {
+			t.Errorf("%s đọc usage dùng chung: %+v (lỗi %v), muốn đúng số lời gọi %d của mình", tn.tenant, us, err, tn.calls)
+		}
+		if qs, err := s.Quarantine(tn.ctx, load); err != nil || len(qs) != 1 || qs[0].Detail != string(tn.tenant) {
+			t.Errorf("%s đọc cách ly dùng chung: %+v (lỗi %v)", tn.tenant, qs, err)
+		}
+	}
+	adminConn := connect(t, admin)
+	if n := visible(t, adminConn, "", "decision_records", "trace_id = $1", trace); n != 2 {
+		t.Errorf("DB phải có 2 bản ghi cho trace id dùng chung (mỗi tenant một), được %d", n)
+	}
+}
+
+// Migration 0003 chạy lại ĐƯA VỀ trạng thái đích dù DB đã trôi khỏi nó (quyền cấp thêm tay, chính sách bị sửa hoặc xoá, FORCE bị tắt).
+// Mỗi kiểu trôi kiểm hai điều: bộ kiểm trạng thái (vetSchemaProblems) THẤY nó — ca âm của chính bộ kiểm — và chạy lại tệp 0003
+// xoá được nó.
+func TestVetMigration0003HoiTuVeTrangThaiDich(t *testing.T) {
+	_, admin, app := open(t)
+	fa, _ := freshDB(t, admin, app)
+	ctx := context.Background()
+	if err := pgstore.Migrate(ctx, fa); err != nil {
+		t.Fatal(err)
+	}
+	conn := connect(t, fa)
+	if p := vetSchemaProblems(t, conn); len(p) != 0 {
+		t.Fatalf("DB mới dựng phải đúng trạng thái đích: %v", p)
+	}
+	sql, err := db.Migrations.ReadFile("migrations/0003_kho_vet_ben.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, drift := range []string{
+		"GRANT UPDATE ON decision_records TO eais_app",
+		"GRANT DELETE ON usage_records TO eais_app",
+		"GRANT TRUNCATE ON quarantine_records TO eais_app",
+		"GRANT SELECT ON usage_records TO PUBLIC",
+		"ALTER POLICY tenant_isolation ON usage_records USING (true)",
+		"ALTER POLICY tenant_isolation ON decision_records WITH CHECK (true)",
+		"ALTER TABLE decision_records NO FORCE ROW LEVEL SECURITY",
+		"ALTER TABLE quarantine_records DISABLE ROW LEVEL SECURITY",
+		"DROP POLICY tenant_isolation ON quarantine_records",
+	} {
+		if _, err := conn.Exec(ctx, drift); err != nil {
+			t.Fatalf("%s: %v", drift, err)
+		}
+		if p := vetSchemaProblems(t, conn); len(p) == 0 {
+			t.Errorf("bộ kiểm trạng thái không thấy chỗ trôi %q", drift)
+		}
+		if _, err := conn.Exec(ctx, string(sql)); err != nil {
+			t.Fatalf("chạy lại 0003 sau %q: %v", drift, err)
+		}
+		if p := vetSchemaProblems(t, conn); len(p) != 0 {
+			t.Errorf("chạy lại 0003 không đưa về trạng thái đích sau %q: %v", drift, p)
+		}
 	}
 }

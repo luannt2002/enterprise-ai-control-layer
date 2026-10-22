@@ -34,6 +34,12 @@ func TestFirstDifferentStep(t *testing.T) {
 		{"verdict và câu cùng khác thì lỗi bắt đầu từ S9", with(func(d *traces.Decision) { d.Verdict, d.Answer = "false|fallback|X", "mẫu thay thế" }), "S9", "verdict", true},
 		{"chặng sớm thắng chặng muộn", with(func(d *traces.Decision) { d.Route, d.Answer, d.Verdict = "REJECT", "x", "y" }), "S5", "route", true},
 		{"chuẩn hoá thắng verdict", with(func(d *traces.Decision) { d.Normalized, d.Verdict = []string{"khác"}, "y" }), "S2", "normalize", true},
+		{"nhiều chặng sớm cùng khác thì chặng sớm nhất thắng", with(func(d *traces.Decision) {
+			d.Normalized, d.Entities, d.Intent, d.Route = []string{"khác"}, []string{"DZ-03"}, "fuel_reported", "REJECT"
+		}), "S2", "normalize", true},
+		{"thực thể thắng ý định và route", with(func(d *traces.Decision) { d.Entities, d.Intent, d.Route = []string{"DZ-03"}, "fuel_reported", "REJECT" }), "S3", "resolve", true},
+		{"ý định thắng route", with(func(d *traces.Decision) { d.Intent, d.Route = "fuel_reported", "REJECT" }), "S4", "intent", true},
+		{"outcome thắng bằng chứng", with(func(d *traces.Decision) { d.Outcome, d.Evidence = "INSUFFICIENT_EVIDENCE", nil }), "S6", "outcome", true},
 		// phiên bản mã khác nhau là LÝ DO hai mốc được so, không phải kết quả của một bước
 		{"chỉ phiên bản mã khác", with(func(d *traces.Decision) { d.CodeVersion = "rev-khac" }), "", "", false},
 	} {

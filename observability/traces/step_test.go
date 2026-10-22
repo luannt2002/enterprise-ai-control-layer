@@ -86,8 +86,11 @@ func TestBuildStepsThoiGian(t *testing.T) {
 		}
 	}
 	// route HYBRID chạy validate hai lần (số liệu, rồi tri thức): bước S9 lấy TỔNG
-	turn.Spans = append(turn.Spans, traces.Span{Name: "validate", Ms: 7}, traces.Span{Name: "generate", Ms: 8})
+	turn.Spans = append(turn.Spans, traces.Span{Name: "validate", Ms: 7}, traces.Span{Name: "generate", Ms: 8}, traces.Span{Name: "retrieve", Ms: 4})
 	steps = traces.BuildSteps(turn)
+	if s := stepOf(t, steps, "S6"); s.Ms != 9 {
+		t.Errorf("S6 phải là tổng execute (5) và retrieve (4) khi lượt có cả hai, được %d", s.Ms)
+	}
 	if s := stepOf(t, steps, "S9"); s.Ms != 13 {
 		t.Errorf("S9 phải là tổng hai lần validate (13), được %d", s.Ms)
 	}

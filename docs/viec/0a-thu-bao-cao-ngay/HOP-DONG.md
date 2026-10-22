@@ -382,6 +382,8 @@ Dòng sổ gồm [ĐỀ XUẤT]: `tenant`, `batch_id` (mã lô), `ordinal` (th�
 | sửa tin hoặc thu hồi chạm bản ghi đã có quyết định của người (BB7) | `HELD` `id_conflict` | bản ghi bị chạm | bản hiện hành không đổi; lần giao thành một phiên bản chờ (chưa hiện hành) để người quyết `APPLY` hoặc `REJECT` (§6.2) |
 | sửa tin chưa thấy tin gốc | `HELD` `id_conflict` | bản ghi mới mang `unit_key` của mã nguồn đó | tạo bản ghi `HELD`; tin gốc đến sau gặp hàng thứ tư của bảng |
 
+Tổ hợp không có hàng nào ở trên (ví dụ sửa tin cho bản ghi đã `RETRACTED`, thu hồi bản ghi đã `REJECTED`): lần giao `HELD` `id_conflict`, bản ghi không đổi, `detail` nêu tổ hợp; người quyết theo §6.2. Mặc định này an toàn: không `ACCEPTED` im lặng, không rơi lần giao.
+
 Quyết định của người (§6.2) **không phải lần giao** nên không thêm dòng sổ: `APPLY` đổi bản đính chính (cùng `unit_key` của chính nó) thành `OCCURRED`, `ACCEPTED`, và đặt bản gốc `SUPERSEDED`; `CORRECT` cho `QUARANTINED` thêm một phiên bản mới của cùng `unit_key`; `REPROCESS` thêm một phiên bản mới của cùng `unit_key` theo luật hiện hành. Mỗi cái ghi `decided_by`, `decision`, `pack_version` vào lịch sử bản ghi và audit.
 
 ---

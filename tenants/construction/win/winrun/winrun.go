@@ -38,7 +38,7 @@ type Config struct {
 	PG *pgstore.Store
 	// Canary: nạp thêm dữ liệu của MỌI tenant khác trong world (cùng thư mục Data) vào CÙNG kho với Tenant, hỏi
 	// dưới Principal của Tenant, rồi quét câu trả lời và trích dẫn tìm canary của tenant khác (canary.go).
-	// Tắt (mặc định) = đường cũ, không đổi gì. Chưa hỗ trợ cùng PG.
+	// Tắt (mặc định) = đường cũ, không đổi gì. Chưa hỗ trợ cùng PG: Run từ chối ngay đầu, trước mọi tác dụng phụ.
 	Canary bool
 	// wrapStore (chỉ test trong gói): thay kho chung bằng kho cố ý rò, làm đối chứng dương của canary.
 	wrapStore func(*sharedStore) coStore
@@ -122,6 +122,11 @@ func (p *pipelineAsker) Ask(ctx context.Context, pr contracts.Principal, q strin
 // Run nạp dữ liệu của tenant, đo G1 và chạy bộ ca WIN.
 func Run(cfg Config) (Result, error) {
 	var out Result
+	// Từ chối này đứng ĐẦU Run: trước mọi tác dụng phụ (đọc pack / dữ liệu, và nhất là cfg.PG.Load bên dưới, thay trọn
+	// dữ liệu của tenant trong PG). Canary cần kho chung trong bộ nhớ (canary.go); đường PG chưa hỗ trợ.
+	if cfg.Canary && cfg.PG != nil {
+		return out, fmt.Errorf("canary chưa hỗ trợ đường PostgreSQL: chạy đường bộ nhớ")
+	}
 	ctx := context.Background()
 	rt, err := tenant.Load(cfg.Pack)
 	if err != nil {
@@ -195,9 +200,6 @@ func Run(cfg Config) (Result, error) {
 	}
 	var co *coRun
 	if cfg.Canary {
-		if cfg.PG != nil {
-			return out, fmt.Errorf("canary chưa hỗ trợ đường PostgreSQL: chạy đường bộ nhớ")
-		}
 		if co, err = newCoRun(ctx, cfg, worldTenantIDs(w), rt, sm, tenantData{id: cfg.Tenant, res: res, dir: directory, docs: docs}, &deps); err != nil {
 			return out, err
 		}
@@ -334,11 +336,10 @@ func checkG1(path, tenantID string, res ingestion.Result) (int, []string, error)
 				problems = append(problems, fmt.Sprintf("%s: muốn quan sát, %s", r.Key, why))
 				continue
 			}
-			switch {
-			case o.Entity != r.Entity || o.Metric != r.Semantic || o.Source != r.Source || o.On.Format("2006-01-02") != r.On || !decimal.Equal(o.Value.Number, r.ValueL):
+			if o.Entity != r.Entity || o.Metric != r.Semantic || o.Source != r.Source || o.On.Format("2006-01-02") != r.On || !decimal.Equal(o.Value.Number, r.ValueL) {
 				problems = append(problems, fmt.Sprintf("%s: được %s/%s/%s/%s/%s, muốn %s/%s/%s/%s/%s", r.Key,
 					o.Entity, o.Metric, o.Source, o.On.Format("2006-01-02"), o.Value.Number, r.Entity, r.Semantic, r.Source, r.On, r.ValueL))
-			case o.Value.Approx != r.Approx:
+			} else if o.Value.Approx != r.Approx {
 				// mỗi bản ghi lệch chỉ ra MỘT vấn đề (báo cáo trừ "N/M khớp" theo số vấn đề): lệch trường chính
 				// báo trước, cờ ước lượng chỉ báo khi các trường chính đã khớp.
 				problems = append(problems, fmt.Sprintf("%s: %s được %v, muốn %v", r.Key, G1ApproxMark, o.Value.Approx, r.Approx))

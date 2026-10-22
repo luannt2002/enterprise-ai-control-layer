@@ -16,6 +16,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/evals"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
+	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 	"github.com/luannt2002/enterprise-ai-control-layer/tenants/construction/win/gen"
 )
 
@@ -213,4 +214,21 @@ func TestCanaryDoiChungDuongDanhBa(t *testing.T) {
 		t.Fatal("danh bạ rò và câu mồi hỏi bằng bí danh của B mà canary KHÔNG đỏ: kiểm tra mù ở cổng danh bạ")
 	}
 	t.Logf("danh bạ rò, thêm ca mồi: %d/%d câu lộ, ví dụ %s", len(r.Canary.Leaks), r.Canary.Answers, r.Canary.Leaks[0])
+}
+
+// Canary cùng PG phải bị từ chối NGAY ĐẦU Run, trước mọi tác dụng phụ: đọc pack / dữ liệu, và nhất là cfg.PG.Load
+// (thay trọn dữ liệu của tenant trong PG). Pack / dữ liệu cố ý trỏ vào chỗ không có và kho PG là giá trị rỗng: nếu việc
+// từ chối đứng SAU các bước đó thì lỗi trả về là lỗi đọc pack (hoặc Load trên kho rỗng hoảng loạn), không phải lời từ chối.
+// Ca đối chứng: PG mà không bật canary KHÔNG bị từ chối (lỗi phải là lỗi đọc pack), tức việc từ chối chỉ nhắm đúng tổ hợp.
+func TestCanaryTuChoiCungPGTruocMoiTacDungPhu(t *testing.T) {
+	missing := Config{Pack: "khong-co/pack", Data: "khong-co/data", World: "khong-co/world.yaml", CasesGlob: "khong-co/*.yaml", Tenant: "abc-infra", PG: &pgstore.Store{}}
+	withCanary := missing
+	withCanary.Canary = true
+	_, err := Run(withCanary)
+	if err == nil || !strings.Contains(err.Error(), "canary chưa hỗ trợ đường PostgreSQL") {
+		t.Fatalf("Canary + PG: lỗi = %v, muốn lời từ chối \"canary chưa hỗ trợ đường PostgreSQL\" ngay đầu Run", err)
+	}
+	if _, err := Run(missing); err == nil || strings.Contains(err.Error(), "canary") {
+		t.Errorf("PG không bật canary: lỗi = %v, muốn lỗi đọc pack (không phải lời từ chối canary)", err)
+	}
 }

@@ -39,6 +39,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, "thiếu -data")
 		os.Exit(2)
 	}
+	if cfg.Canary && *usePG {
+		// Từ chối trước pgstore.Migrate / Open (tác dụng phụ lên PG); winrun.Run cũng từ chối, đây là lớp ngoài của lệnh.
+		fmt.Fprintln(os.Stderr, "-canary chưa hỗ trợ cùng -pg: chạy đường bộ nhớ")
+		os.Exit(2)
+	}
 	path := "bộ nhớ"
 	if *usePG {
 		admin, app := pgstore.EnvDSN()

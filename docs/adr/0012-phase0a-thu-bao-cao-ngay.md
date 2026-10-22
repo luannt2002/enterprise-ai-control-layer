@@ -182,7 +182,7 @@ Ràng buộc kiến trúc phải giữ:
 
 ### I. Quyết định của người và TR3 (ghi chú soát vòng 2 R2-01 và vòng 3 R3-04; quyết định D5)
 
-Các con số dưới đây là [SUY, mô phỏng luật bằng script tạm không commit, không phải mã]: 30.000 chuỗi sự kiện ngẫu nhiên (3 đến 10 sự kiện gồm nạp, quyết định, `KEEP_BOTH`, `MARK_DUPLICATE`, thu hồi; 2 đến 5 bản; 195.026 trạng thái kiểm sau từng sự kiện). Bất biến kiểm: hai bản liền kề trong nhóm, cách ≤ W, chưa được người xét cặp thì không cùng `ACCEPTED`; đánh giá lại là điểm bất động.
+Các con số dưới đây là [SUY, mô phỏng luật bằng script tạm không commit, không phải mã]: 30.000 chuỗi sự kiện ngẫu nhiên (3 đến 10 sự kiện gồm nạp, quyết định, `KEEP_BOTH`, `MARK_DUPLICATE`, thu hồi; 2 đến 5 bản; 195.052 trạng thái kiểm sau từng sự kiện; script vòng 3 ghi đè cặp đã xét và cho 195.026, đã sửa ở vòng 4 cho cộng dồn đúng `HOP-DONG.md` §5.6 mục 3, cùng kết quả 0 chuỗi vi phạm). Bất biến kiểm: hai bản liền kề trong nhóm, cách ≤ W, chưa được người xét cặp thì không cùng `ACCEPTED`; đánh giá lại là điểm bất động.
 
 | Phương án | Ưu | Nhược |
 |---|---|---|

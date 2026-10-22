@@ -4,7 +4,8 @@
 #   m  <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy `go test` ở PKGS (đột biến của mã)
 #   ms <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy scripts/chay-thu.sh (smoke E2E) trên cây đã đột biến; đòi smoke ĐỎ
 #   sc <kịch bản> <nhãn> [<tệp> <gốc> <đột biến>]  kịch bản của CHÍNH scripts/chay-thu.sh (cổng bị chiếm, server chết giữa lúc smoke, PG chạy
-#                                                  sẵn không bị gỡ và không bị ghi đè khi không có EAIS_REUSE_PG=1): không
+#                                                  sẵn không bị gỡ và không bị ghi đè khi không có EAIS_REUSE_PG=1, hai lần chạy đồng thời
+#                                                  cùng dự án compose bị khoá, R5-01): không
 #                                                  đột biến thì đòi script nguyên bản cư xử đúng ("ĐẠT"); có đột biến thì đòi kịch bản phát hiện
 # Kỳ vọng: mọi dòng in "BỊ BẮT" hoặc "ĐẠT"; cuối cùng in tổng và thoát 0 chỉ khi không đột biến nào sống sót. Mã đổi thì chuỗi gốc có thể
 # không còn khớp (rc=2, "xuất hiện 0 lần"): sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
@@ -21,6 +22,8 @@
 # chối của nó chạy script ở các cổng TRỐNG khác do hệ điều hành chọn (script đúng thì không dựng gì ở đó), có pha đổi thêm tên container
 # (KEEP_NAME-b, cùng dự án KEEP_NAME) hay dự án compose (KEEP_NAME-p, cho phép thử PG tạm dừng): hai thứ này chỉ được tạo khi script sai, và
 # kịch bản gỡ cả hai dự án khi xong. KEEP_NAME phải là tên chưa có container hay dự án compose nào (kể cả hai tên phụ).
+# Kịch bản lock (R5-01) chạy HAI lần script cùng lúc trên dự án KEEP_NAME: lần 1 ở KEEP_NAME và KEEP_PORT (tự dựng, tự gỡ), lần 2 ở KEEP_NAME-b và một
+# cổng trống do hệ điều hành chọn (chỉ được tạo khi script sai); cuối cùng gỡ cả dự án.
 # Mỗi kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
@@ -181,6 +184,41 @@ scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ scri
 	[ "$rc3" -eq 0 ] || why+="lần 3 (EAIS_REUSE_PG=1) thoát $rc3 ($(tail -2 <<<"$out3" | tr '\n' ' ')); "
 	grep -q 'dùng lại' <<<"$out3" || why+="lần 3 không báo là dùng lại; "
 	[ -n "$running" ] || why+="PG tạm đã bị gỡ trước khi phép thử gỡ; "
+	[ -z "$why" ]
+}
+scen_lock() { # R5-01 trên dự án RIÊNG: hai lần chạy ĐỒNG THỜI cùng dự án compose (tên container và cổng khác). Docker trung gian làm lần 1 ngủ 6 giây đúng ở `compose up`, tức đoạn giữa "kiểm dự án trống" và "dựng" nơi hàng rào kiểm-rồi-làm bị vượt; lần 2 chạy ngay lúc đó. Script đúng: lần 2 TỪ CHỐI (thoát 2, nêu lần chạy khác), không tạo gì; lần 1 xong bình thường (thoát 0, smoke XANH) và gỡ PG của chính nó. Phép thử gỡ cả dự án khi xong
+	local shim out1 out2 rc1 rc2 pid1 other=${KEEP_NAME}-b port2 waited=0 left made_other
+	port2=$(free_port)
+	case $port2 in '' | *[!0-9]*) why="không chọn được cổng trống (python3)"; return 1 ;; esac
+	if [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$KEEP_NAME")$(docker ps -aq --filter "name=^/${KEEP_NAME}\$")$(docker ps -aq --filter "name=^/${other}\$")" ]; then
+		why="đã có container hay dự án compose $KEEP_NAME / $other — đặt KEEP_NAME khác"; return 1
+	fi
+	shim=$(mktemp -d)
+	cat >"$shim/docker" <<SHIM
+#!/usr/bin/env bash
+# docker trung gian của kịch bản: báo "đang chờ" rồi ngủ 6 giây trước đúng lời gọi dựng PG (compose ... up), sau đó chuyển cho docker thật
+if [ "\$1" = compose ]; then for a in "\$@"; do [ "\$a" = up ] && { : >"$shim/dang-doi"; sleep 6; }; done; fi
+exec $(command -v docker) "\$@"
+SHIM
+	chmod +x "$shim/docker"
+	local run=(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN -u EAIS_REUSE_PG -u EAIS_PG_DOWN EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_ADDR=127.0.0.1:0)
+	PATH=$shim:$PATH timeout 120 "${run[@]}" EAIS_PG_DOWN=1 EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT scripts/chay-thu.sh >"$shim/out1" 2>&1 &
+	pid1=$!
+	for _ in $(seq 1 100); do [ -e "$shim/dang-doi" ] && { waited=1; break; }; sleep 0.1; done
+	out2=$(timeout 120 "${run[@]}" EAIS_PG_CONTAINER=$other EAIS_PG_PORT=$port2 scripts/chay-thu.sh 2>&1); rc2=$?
+	wait "$pid1"; rc1=$?
+	left=$(docker ps -aq --filter "label=com.docker.compose.project=$KEEP_NAME")
+	made_other=$(docker ps -aq --filter "name=^/${other}\$")
+	EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$KEEP_NAME" -f deploy/docker-compose.yml down >/dev/null 2>&1
+	out1=$(cat "$shim/out1"); rm -rf "$shim"
+	why=''
+	[ "$waited" = 1 ] || why+="lần 1 không tới được bước dựng PG (docker trung gian không được gọi); "
+	[ "$rc2" -eq 2 ] || why+="lần 2 (cùng dự án, lúc lần 1 còn sống) thoát $rc2 thay vì 2; "
+	grep -q "một lần chạy khác của dự án compose $KEEP_NAME" <<<"$out2" || why+="lần 2 không từ chối vì lần chạy khác của dự án ($(tail -2 <<<"$out2" | tr '\n' ' ')); "
+	[ -z "$made_other" ] || why+="lần 2 đã TẠO container $other; "
+	[ "$rc1" -eq 0 ] || why+="lần 1 thoát $rc1 thay vì 0 ($(tail -2 <<<"$out1" | tr '\n' ' ')); "
+	grep -q 'smoke XANH' <<<"$out1" || why+="lần 1 không báo smoke XANH; "
+	[ -z "$left" ] || why+="sau lần 1 (EAIS_PG_DOWN=1) dự án còn container ($left); "
 	[ -z "$why" ]
 }
 scen_srvdie() { # server chết GIỮA lúc smoke (smoke giả giết nó rồi báo xanh): script phải thoát khác 0 và nói rõ, không được báo "smoke XANH"
@@ -352,6 +390,24 @@ m scripts/chay-thu.sh 'docker ps --filter "label=com.docker.compose.project=$PRO
 # R4-02: container tạm dừng (paused) vẫn giữ dữ liệu; thêm --filter status=running cạnh bộ lọc tên làm script bỏ sót nó. Test cũ không có trạng thái paused nên MS7 từng sống sót.
 m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}\$" --filter status=running' 'MS7 test: bộ lọc tên container chỉ thấy container đang chạy (bỏ sót paused)'
 
+# R5-01: khoá theo dự án (hai lần chạy đồng thời cùng dự án compose). Test có docker / go giả: lần 1 dừng ở go giả, lần 2 chạy khi lần 1 còn sống (cmd/eais/chaythu_test.go).
+m scripts/chay-thu.sh 'if [ "$rc" = 1 ]; then' 'if false; then' 'LOCK-1 test: khoá không bao giờ thấy xung đột (lần 2 cùng dự án vẫn chạy)'
+m scripts/chay-thu.sh 'eais-chay-thu-$safe.lock' 'eais-chay-thu.lock' 'LOCK-2 test: tệp khoá không theo dự án (dự án khác cũng bị từ chối)'
+m scripts/chay-thu.sh 'EOF
+		exit 2
+	fi
+	exec 9>&-' 'EOF
+		exit 1
+	fi
+	exec 9>&-' 'LOCK-3 test: từ chối vì khoá mà không thoát 2'
+m scripts/chay-thu.sh 'flock -n 9 && return 0' 'flock -n 9 && { exec 9>&-; return 0; }' 'LOCK-4 test: khoá nhả ngay sau khi lấy (không giữ suốt đời script)'
+m scripts/chay-thu.sh 'flock -n 9 && return 0' 'flock 9 && return 0' 'LOCK-5 test: khoá CHẶN (chờ lần kia xong) thay vì từ chối ngay'
+m scripts/chay-thu.sh 'echo "CẢNH BÁO: máy không có lệnh flock' ': "CẢNH BÁO: máy không có lệnh flock' 'LOCK-6 test: máy không có flock mà không cảnh báo'
+m scripts/chay-thu.sh 'cùng lúc." >&2
+		return 0' 'cùng lúc." >&2
+		exit 2' 'LOCK-7 test: máy không có flock thì từ chối thay vì cảnh báo rồi đi tiếp'
+m scripts/chay-thu.sh 'step "dùng PG có sẵn (EAIS_PG_ADMIN_DSN / EAIS_PG_DSN đã đặt); không chạm Docker"' 'step "dùng PG có sẵn (EAIS_PG_ADMIN_DSN / EAIS_PG_DSN đã đặt); không chạm Docker"; lock_project' 'LOCK-8 test: đường PG có sẵn (không chạm compose) cũng đòi khoá dự án'
+
 # --- phiên bản mã của vết và của mã lần nạp (R2-02): hàm chọn (version.go), bước ghi đè ở server, script nhúng -ldflags, workflow CI ---
 V=cmd/eais/version.go
 m $V 'if v := strings.TrimSpace(linked); v != "" {' 'if v := strings.TrimSpace(linked); v != "" && false {' 'CV1 giá trị -ldflags không được dùng'
@@ -393,6 +449,9 @@ sc scen_pgrefuse 'FILTER-2 kịch bản: bộ lọc tên container lọc nhầm 
 sc scen_pgrefuse 'PROJ-1 kịch bản: bỏ dấu hiệu dự án, cùng dự án khác tên và cổng thì compose dựng lại PG đang chạy' scripts/chay-thu.sh '&& [ -n "$peers" ]; then' '&& false; then'
 sc scen_pgrefuse 'PROJ-3 kịch bản: dấu hiệu dự án chỉ nhìn container đang chạy, PG tạm dừng cùng dự án bị bỏ sót' scripts/chay-thu.sh '--filter "label=com.docker.compose.project=$PROJECT"' '--filter "label=com.docker.compose.project=$PROJECT" --filter status=running'
 sc scen_pgrefuse 'MS7 kịch bản: bộ lọc tên container chỉ thấy container đang chạy, PG tạm dừng bị bỏ sót' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}\$" --filter status=running'
+
+sc scen_lock 'LOCK0 hai lần chạy đồng thời cùng dự án: script nguyên bản từ chối lần 2 (thoát 2), không tạo gì, lần 1 xong bình thường và gỡ PG của nó'
+sc scen_lock 'LOCK-1 kịch bản: khoá không bao giờ thấy xung đột, lần 2 cùng dự án chạy đua với lần 1 (PG bị dựng đè)' scripts/chay-thu.sh 'if [ "$rc" = 1 ]; then' 'if false; then'
 
 echo "TỔNG: $bat bị bắt, $song sống sót, $khac lỗi khác; $dat kịch bản nguyên bản đạt"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

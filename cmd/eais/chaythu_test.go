@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"net"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Test của scripts/chay-thu.sh (một lệnh: PG → migrate → nạp → serve → smoke). Script được chạy THẬT dưới bash, nhưng `docker` và `go` là
@@ -92,16 +94,33 @@ func runChayThuScript(t *testing.T, script string, dockerRunning bool, env ...st
 	return runChayThuDocker(t, script, containers, env...)
 }
 
-// runChayThuDocker chạy script với docker giả đang có đúng danh sách containers (nil = không có container nào).
-func runChayThuDocker(t *testing.T, script string, containers []fakeContainer, env ...string) chayThuResult {
+// chayThuRun là một lần chạy scripts/chay-thu.sh đã dựng sẵn (docker / go giả, thư mục tạm và TMPDIR riêng) nhưng CHƯA chạy. Tách dựng, chạy và chờ
+// để test hai lần chạy ĐỒNG THỜI (R5-01) giữ được lần 1 còn sống trong lúc chạy lần 2.
+type chayThuRun struct {
+	cmd       *exec.Cmd
+	out       *bytes.Buffer
+	callsPath string
+	exited    chan struct{} // đóng khi tiến trình đã thoát (sau start)
+	err       error         // kết quả của cmd.Wait, đọc được sau khi exited đóng
+}
+
+// newChayThuRun dựng một lần chạy với docker giả đang có đúng danh sách containers (nil = không có container nào). env là các biến thêm
+// (KEY=VALUE, biến đứng sau thắng); riêng PATH trong env là PHẦN ĐUÔI của PATH mà script thấy (sau thư mục docker / go giả), mặc định là PATH của
+// test. TMPDIR mặc định là một thư mục RIÊNG của lần chạy: tệp khoá của script (R5-01) không dùng chung với script chạy thật trên máy đang chạy test;
+// ca nào cần hai lần chạy thấy cùng tệp khoá thì đặt chung TMPDIR. Lần chạy bị chặn bởi giới hạn thời gian: script treo thì test đỏ, không treo cả bộ.
+// `go` giả có thêm FAKE_GO_HOLD=<tệp>: ghi <tệp>.dang-giu rồi dừng ở bước dịch tới khi <tệp> xuất hiện, để lần chạy đó còn sống lúc test chạy lần khác.
+func newChayThuRun(t *testing.T, script string, containers []fakeContainer, env ...string) *chayThuRun {
 	t.Helper()
 	if _, err := exec.LookPath("bash"); err != nil {
 		t.Fatalf("cần bash để chạy scripts/chay-thu.sh: %v", err)
 	}
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "bin")
-	if err := os.MkdirAll(bin, 0o755); err != nil {
-		t.Fatal(err)
+	tmp := filepath.Join(dir, "tmp")
+	for _, d := range []string{bin, tmp} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
 	callsPath := filepath.Join(dir, "calls.log")
 	stub := func(name, body string) {
@@ -153,6 +172,10 @@ exit 0
 `)
 	// go giả: ghi từng đối số trong ngoặc vuông ("-X main.x=v" là MỘT đối số, không lẫn với hai).
 	stub("go", `{ printf 'go'; for a in "$@"; do printf ' [%s]' "$a"; done; echo; } >> "$FAKE_CALLS"
+if [ -n "${FAKE_GO_HOLD-}" ]; then
+	: > "$FAKE_GO_HOLD.dang-giu"
+	while [ ! -e "$FAKE_GO_HOLD" ]; do sleep 0.05; done
+fi
 exit 42
 `)
 	var fake []string
@@ -163,27 +186,65 @@ exit 42
 		}
 		fake = append(fake, c.id+" "+c.name+" "+project+" "+c.status)
 	}
-	cmd := exec.Command("bash", "--noprofile", "--norc", script)
-	cmd.Env = append([]string{"PATH=" + bin + ":" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "FAKE_CALLS=" + callsPath,
+	pathTail, rest := os.Getenv("PATH"), []string(nil)
+	for _, e := range env {
+		if v, ok := strings.CutPrefix(e, "PATH="); ok {
+			pathTail = v
+		} else {
+			rest = append(rest, e)
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	t.Cleanup(cancel)
+	cmd := exec.CommandContext(ctx, "bash", "--noprofile", "--norc", script)
+	cmd.WaitDelay = 5 * time.Second // tiến trình con mồ côi (vd flock đang chờ) không giữ ống đầu ra mãi
+	cmd.Env = append([]string{"PATH=" + bin + ":" + pathTail, "HOME=" + os.Getenv("HOME"), "TMPDIR=" + tmp, "FAKE_CALLS=" + callsPath,
 		"FAKE_CONTAINERS=" + strings.Join(fake, "\n"),
-		"EAIS_WORK=" + filepath.Join(dir, "work"), "EAIS_PG_PORT=" + freePort(t)}, env...) // biến đứng sau thắng: env của ca đè được cổng mặc định
-	var out bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &out
-	err := cmd.Run()
-	code := 0
-	if ee, ok := err.(*exec.ExitError); ok {
-		code = ee.ExitCode()
-	} else if err != nil {
+		"EAIS_WORK=" + filepath.Join(dir, "work"), "EAIS_PG_PORT=" + freePort(t)}, rest...) // biến đứng sau thắng: env của ca đè được cổng mặc định
+	out := &bytes.Buffer{}
+	cmd.Stdout, cmd.Stderr = out, out
+	return &chayThuRun{cmd: cmd, out: out, callsPath: callsPath}
+}
+
+// start chạy tiến trình nền; exited đóng khi nó thoát.
+func (c *chayThuRun) start(t *testing.T) {
+	t.Helper()
+	if err := c.cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := os.ReadFile(callsPath)
+	c.exited = make(chan struct{})
+	go func() {
+		c.err = c.cmd.Wait()
+		close(c.exited)
+	}()
+}
+
+// wait chờ lần chạy xong (đã start) và trả kết quả.
+func (c *chayThuRun) wait(t *testing.T) chayThuResult {
+	t.Helper()
+	<-c.exited
+	code := 0
+	if ee, ok := c.err.(*exec.ExitError); ok {
+		code = ee.ExitCode()
+	} else if c.err != nil {
+		t.Fatal(c.err)
+	}
+	raw, _ := os.ReadFile(c.callsPath)
 	var calls []string
 	for _, l := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
 		if l != "" {
 			calls = append(calls, l)
 		}
 	}
-	return chayThuResult{code: code, out: out.String(), calls: calls}
+	return chayThuResult{code: code, out: c.out.String(), calls: calls}
+}
+
+// runChayThuDocker chạy script (xong mới trở về) với docker giả đang có đúng danh sách containers (nil = không có container nào).
+func runChayThuDocker(t *testing.T, script string, containers []fakeContainer, env ...string) chayThuResult {
+	t.Helper()
+	c := newChayThuRun(t, script, containers, env...)
+	c.start(t)
+	return c.wait(t)
 }
 
 // listenBusyPort mở một cổng loopback và GIỮ nó (đóng khi test xong): script thấy cổng này "đã có tiến trình nghe".
@@ -582,4 +643,123 @@ func TestChayThuNhungPhienBanMa(t *testing.T) {
 			t.Errorf("nhúng %q (có cờ: %v), muốn %q hoặc %q+dirty", got, ok, head, head)
 		}
 	})
+}
+
+// R5-01: hai lần chạy ĐỒNG THỜI cùng dự án compose. Hàng rào pg_chiem là kiểm-rồi-làm, không có khoá: hai lần chạy bắt đầu cùng lúc cùng thấy dự án
+// trống rồi cùng dựng PG, và cleanup gỡ bằng `docker compose down` cấp DỰ ÁN nên lần xong trước (EAIS_PG_DOWN=1) gỡ luôn PG của lần kia giữa lúc nó
+// chạy. Docker giả không đổi trạng thái (dự án luôn "trống"), nên pg_chiem không cứu được: chỉ khoá theo dự án mới từ chối lần 2. Lần 1 dừng ở `go`
+// giả (bước dịch) tới khi test nhả, nên nó còn sống suốt lúc các lần khác chạy; mọi lần chạy dùng CHUNG TMPDIR (nơi đặt tệp khoá).
+func TestChayThuKhoaTheoDuAn(t *testing.T) {
+	if _, err := exec.LookPath("flock"); err != nil {
+		t.Fatalf("cần flock để kiểm khoá theo dự án của scripts/chay-thu.sh: %v", err)
+	}
+	script := repoPath("scripts/chay-thu.sh")
+	shared := t.TempDir()
+	release := filepath.Join(t.TempDir(), "nha")
+	envOf := func(project string, extra ...string) []string {
+		return append([]string{"TMPDIR=" + shared, "EAIS_COMPOSE_PROJECT=" + project, "EAIS_PG_CONTAINER=" + project + "-pg", "EAIS_PG_DOWN=1"}, extra...)
+	}
+
+	first := newChayThuRun(t, script, nil, envOf("thu-proj", "FAKE_GO_HOLD="+release)...)
+	first.start(t)
+	t.Cleanup(func() {
+		os.WriteFile(release, nil, 0o644) // nhả lần 1 nếu test dừng giữa chừng
+		<-first.exited
+	})
+	for deadline := time.Now().Add(20 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		if _, err := os.Stat(release + ".dang-giu"); err == nil {
+			break
+		}
+		select {
+		case <-first.exited:
+			t.Fatalf("lần 1 thoát trước khi tới bước dịch:\n%s", first.wait(t).out)
+		default:
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("lần 1 không tới được bước dịch sau 20 giây")
+		}
+	}
+
+	// Lần 2: CÙNG dự án, tên container và cổng khác (cổng trống do harness chọn), cũng EAIS_PG_DOWN=1 — tổ hợp mà nếu lần 2 chạy tiếp thì cleanup của
+	// nó gỡ PG của lần 1. Bị từ chối thì chưa được làm gì: không một lời gọi docker / go nào.
+	second := runChayThuDocker(t, script, nil, envOf("thu-proj", "EAIS_PG_CONTAINER=thu-pg-b")...)
+	if second.code != 2 {
+		t.Errorf("lần 1 còn sống, lần 2 cùng dự án: thoát %d, muốn 2 (từ chối)\n%s", second.code, second.out)
+	}
+	for _, want := range []string{"TỪ CHỐI", "một lần chạy khác của dự án compose thu-proj"} {
+		if !strings.Contains(second.out, want) {
+			t.Errorf("lời từ chối thiếu %q:\n%s", want, second.out)
+		}
+	}
+	if len(second.calls) != 0 {
+		t.Errorf("lần 2 bị từ chối mà vẫn gọi docker / go (cleanup của nó gỡ PG của lần 1): %q", second.calls)
+	}
+
+	// Dự án KHÁC thì đi tiếp (khoá theo dự án, không phải khoá toàn cục).
+	other := runChayThuDocker(t, script, nil, envOf("thu-proj-khac")...)
+	if other.code == 2 || strings.Contains(other.out, "TỪ CHỐI: ") || !other.called("go [build]") {
+		t.Errorf("dự án khác mà script từ chối / không đi tiếp tới bước dịch: thoát %d, lời gọi %q\n%s", other.code, other.calls, other.out)
+	}
+
+	// Đường PG có sẵn (cả hai DSN) không chạm compose nên không đòi khoá dự án, dù khoá của dự án đang bị giữ.
+	viaDSN := runChayThuDocker(t, script, nil, envOf("thu-proj", "EAIS_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:1/x?sslmode=disable", "EAIS_PG_DSN=postgres://eais_app@127.0.0.1:1/x?sslmode=disable")...)
+	if viaDSN.code == 2 || viaDSN.called("docker") || !viaDSN.called("go [build]") {
+		t.Errorf("đã có DSN: script phải đi tiếp tới bước dịch, không chạm docker, không đòi khoá dự án; thoát %d, lời gọi %q\n%s", viaDSN.code, viaDSN.calls, viaDSN.out)
+	}
+
+	// Nhả lần 1: nó không bị lần 2 làm gì (thoát bằng mã của go giả, dựng đúng một lần và gỡ đúng của nó), rồi khoá được nhả: lần chạy sau cùng dự án đi tiếp.
+	if err := os.WriteFile(release, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r1 := first.wait(t)
+	if got := r1.composeCalls(); r1.code != 42 || len(got) != 2 || !strings.Contains(got[0], " up -d --wait ") || !strings.Contains(got[1], " down ") {
+		t.Errorf("lần 1: thoát %d (muốn 42 của go giả), lời gọi compose %q (muốn đúng một up rồi một down của chính nó)\n%s", r1.code, got, r1.out)
+	}
+	again := runChayThuDocker(t, script, nil, envOf("thu-proj")...)
+	if again.code == 2 || strings.Contains(again.out, "TỪ CHỐI: ") || !again.called("go [build]") {
+		t.Errorf("lần 1 đã xong mà khoá dự án vẫn giữ: lần chạy sau thoát %d, lời gọi %q\n%s", again.code, again.calls, again.out)
+	}
+}
+
+// pathKhongFlock dựng một thư mục PATH chỉ có lối tắt tới vài công cụ mà script cần để đi tới bước dịch (dirname, mkdir, git) và KHÔNG có flock:
+// mô phỏng máy không có flock (macOS mặc định) mà vẫn chạy được script thật.
+func pathKhongFlock(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	for _, tool := range []string{"dirname", "mkdir", "git"} {
+		p, err := exec.LookPath(tool)
+		if err != nil {
+			continue
+		}
+		if err := os.Symlink(p, filepath.Join(dir, tool)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+// R5-01: không khoá được (máy không có flock; hay không mở được tệp khoá) thì script in CẢNH BÁO rõ rồi đi tiếp như trước khi có khoá, KHÔNG từ chối.
+// Lựa chọn có chủ ý: từ chối sẽ chặn mọi lần chạy đơn lẻ (vốn an toàn) trên máy đó để phòng một lần chạy đồng thời hiếm, và cảnh báo nói thẳng rủi ro còn lại.
+func TestChayThuKhongKhoaDuocThiCanhBaoRoiDiTiep(t *testing.T) {
+	script := repoPath("scripts/chay-thu.sh")
+	cases := []struct {
+		name string
+		env  []string
+	}{
+		{"máy không có flock", []string{"PATH=" + pathKhongFlock(t)}},
+		{"không mở được tệp khoá", []string{"TMPDIR=" + filepath.Join(t.TempDir(), "khong-co-thu-muc")}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := runChayThuDocker(t, script, nil, c.env...)
+			if r.code == 2 || strings.Contains(r.out, "TỪ CHỐI: ") || !r.called("go [build]") {
+				t.Errorf("không khoá được mà script từ chối / không đi tiếp tới bước dịch: thoát %d, lời gọi %q\n%s", r.code, r.calls, r.out)
+			}
+			for _, want := range []string{"CẢNH BÁO", "đồng thời"} {
+				if !strings.Contains(r.out, want) {
+					t.Errorf("thiếu %q trong cảnh báo (không khoá được phải nói rõ rủi ro còn lại):\n%s", want, r.out)
+				}
+			}
+		})
+	}
 }

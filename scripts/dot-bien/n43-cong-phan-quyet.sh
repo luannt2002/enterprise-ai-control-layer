@@ -177,20 +177,6 @@ m $I '			out = append(out, d.Keywords...)
 }
 
 // Def trả' 'IK4 V5 WeakKeywords không trả từ khoá nào'
-m $W 'return k == vwScale || k == vwHundred }' 'return k == vwHundred }' 'NW1 V5 số bằng chữ mơ hồ: bỏ "<nghìn/triệu/tỷ> <chữ số>"'
-m $W 'return k == vwScale || k == vwHundred }' 'return k == vwScale }' 'NW2 V5 số bằng chữ mơ hồ: bỏ "trăm <chữ số>"'
-m $W 'return k == vwScale || k == vwHundred }' 'return k == vwScale || k == vwHundred || k == vwMuoi }' 'NW4 V5 số bằng chữ mơ hồ: "mười hai" thành mơ hồ'
-m $W 'return k == vwScale || k == vwHundred }' 'return k == vwScale || k == vwHundred || k == vwFiller }' 'NW5 V5 số bằng chữ mơ hồ: "linh hai" / "lẻ một" thành mơ hồ'
-m $W '(last == vwDigit && scaled(prev))' '(last != 0 && scaled(prev))' 'NW6 V5 số bằng chữ mơ hồ: từ cuối bất kỳ ("rưỡi") sau hàng cũng mơ hồ'
-m $W '			if tail() {
-				return true
-			}' '			if false && tail() {
-				return true
-			}' 'NW8 V5 số bằng chữ mơ hồ: không kiểm khi dãy bị ngắt bởi từ không phải số'
-m $W '	return tail()
-}' '	return false
-}' 'NW9 V5 số bằng chữ mơ hồ: không kiểm khi dãy kết thúc cuối chuỗi'
-m $W 'prev2, prev, last = prev, last, w.kind' 'prev2, prev, last = prev2, prev, w.kind' 'NW11 V5 số bằng chữ mơ hồ: không nhớ từ liền trước'
 # ---- Vòng 5, nhóm THIẾU TEST của 03c2c54: các dòng dưới SỐNG ở 03c2c54; từ 95dea0f đã có test (D1–D20 của bản đột biến vòng 1, V5S-01…V5S-06) nên BỊ BẮT (đo lại 22/10/2026, v5db2). ----
 m $C '!subj.numberOwned(raw, os, firstStart, firstEnd, lo)' '!subj.numberOwned(raw, os, firstStart, firstEnd, 0)' 'CG50 V5 numberOwned xét bí danh cả ở ngữ cảnh (lo = 0)'
 m $C 'sources, metrics := a.qualifierPhrases(idef, used)' 'sources, metrics := a.qualifierPhrases(idef, nil)' 'CG53 V5 qualifierPhrases không biết nguồn đã dùng (used = nil)'
@@ -231,9 +217,6 @@ m $C 'd = os[k].start - c.end' 'd = c.end - os[k].start' 'CG150 V5 aliasTied: l�
 m $I '		if d.Weak {
 			out = append(out, d.Keywords...)' '		if true {
 			out = append(out, d.Keywords...)' 'IK3 V5 WeakKeywords trả từ khoá của mọi ý định'
-m $W 'return k == vwScale || k == vwHundred }' 'return k == vwScale || k == vwHundred || k == vwTens }' 'NW3 V5 số bằng chữ mơ hồ: "hai mươi lăm" thành mơ hồ'
-m $W 'prev2, prev, last = 0, 0, 0' 'prev2, prev, last = prev2, prev, last' 'NW7 V5 số bằng chữ mơ hồ: từ không phải số không ngắt dãy'
-m $W 'lookupNumberWord(strings.Trim(f, ".,;:!?()[]\"'"'"'"))' 'lookupNumberWord(f)' 'NW10 V5 số bằng chữ mơ hồ: không bỏ dấu câu dính vào từ'
 # ---- Vòng 5, bốn dạng chính sách mặc định (ADR-0009 Vòng 5, bảng năm dạng): ở 03c2c54 nằm ở nhóm CHỜ QUYẾT; từ 95dea0f đã ghim trong TestCongPhanQuyetVong5 (nhãn "mặc định Vòng 5") nên BỊ BẮT. ----
 m $C '(a.start >= numEnd && plainBetween(between))' '(true && plainBetween(between))' 'CG125 V5 aliasTied: bí danh trước con số cũng gắn nếu không dấu câu'
 m $C 'if a.end <= c.start { // bí danh đứng trước lần nhắc rõ' 'if false && a.end <= c.start { // bí danh đứng trước lần nhắc rõ' 'CG127 V5 aliasTied: tắt nhánh bí danh đứng trước lần nhắc rõ'
@@ -254,28 +237,22 @@ m $C 'sources = append(sources, p)' 'metrics = append(metrics, p)' 'CG199 V5 qua
 m $C 'return sources, metrics' 'return metrics, sources' 'CG200 V5 qualifierPhrases: trả hai danh sách đổi chỗ'
 # Bước KHOÁ (brief BUILD §9.6, ADR-0009): topicQualifier, own và cụm ngữ cảnh làm chủ (extra) đã bỏ — các dòng CG155–CG188, CG202, CG203,
 # CG205, CG206, CG208, CG210, CG80, CG185, CG186 nhắm vào mã đó nên xoá; CG51, CG52, CG189–CG191, CG211 viết lại cho hai lời gọi mới.
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if false && len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'KH1 khoá: tắt bước khoá cho cụm nguồn khác'
-m $C 'if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {' 'if false && len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {' 'KH2 khoá: tắt bước khoá cho cụm chỉ số khác'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {
-		return "source"' 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'KH1 khoá: tắt bước khoá cho cụm nguồn khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'KH2 khoá: tắt bước khoá cho cụm chỉ số khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
+		return "source"' 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
 		return "metric"' 'KH3 khoá: cụm nguồn khác mang nhãn metric'
-m $C 'if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {
-		return "metric"' 'if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
+		return "metric"' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
 		return "source"' 'KH4 khoá: cụm chỉ số khác mang nhãn source'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, sources, len(raw))) > 0 {' 'CG51 khoá: cụm nguồn ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
-m $C 'if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, metrics, len(raw))) > 0 {' 'KH5 khoá: cụm chỉ số ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, len(raw))) > 0 {' 'CG51 khoá: cụm nguồn ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, len(raw))) > 0 {' 'KH5 khoá: cụm chỉ số ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
 m $C 'owners(names, in.Spans, idef.Terms)' 'owners(names, in.Spans, nil)' 'CG52 owners không loại thuật ngữ của chính ý định'
-m $C 'if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, metrics[:0], lo)) > 0 {' 'CG189 khoá: không nhận từ khoá chỉ số khác'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, sources[:0], lo)) > 0 {' 'CG190 khoá: không nhận tên nguồn khác'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, slices.DeleteFunc(slices.Clone(sources), func(p string) bool { return slices.Contains(idef.Keywords, p) }), lo)) > 0 {' 'CG211 khoá R5-5: cụm nguồn trùng từ khoá chính ý định ("phiếu kho") không tính ở ngữ cảnh (soát vòng 4 M13)'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, sources, sentenceStart(raw, lo))) > 0 {' 'KH6 khoá: chỉ xét cụm ở câu trước câu hỏi (V5S4-02/03 lọt)'
-m $C 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 && sentenceStart(raw, lo) == 0 {' 'KH7 khoá: chỉ xét khi câu hỏi là câu đầu (V5S4-04 lọt)'
-m $W '(last == vwHalf && prev == vwDigit && scaled(prev2))' '(false && last == vwHalf && prev == vwDigit && scaled(prev2))' 'NW12 V5 số bằng chữ mơ hồ: bỏ nhánh "rưỡi" sau "<hàng> <chữ số>"'
-m $W 'scaled(prev2)' '(scaled(prev2) || true)' 'NW14 V5 số bằng chữ mơ hồ: "hai rưỡi" (không hàng trước chữ số) mơ hồ'
-m $W 'scaled(prev2)' 'prev2 == vwScale' 'NW15 V5 số bằng chữ mơ hồ: nhánh "rưỡi" bỏ "trăm <chữ số> rưỡi"'
-m $W 'scaled(prev2)' 'prev2 == vwHundred' 'NW16 V5 số bằng chữ mơ hồ: nhánh "rưỡi" bỏ "<nghìn> <chữ số> rưỡi"'
-m $W 'prev2, prev, last = prev, last, w.kind' 'prev2, prev, last = prev2, last, w.kind' 'NW17 V5 số bằng chữ mơ hồ: không nhớ từ thứ ba tính từ cuối (prev2)'
-m $W 'prev2, prev, last = 0, 0, 0' 'prev2, prev, last = 0, 0, last' 'NW20 V5 số bằng chữ mơ hồ: đứt dãy không xoá last'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics[:0], lo)) > 0 {' 'CG189 khoá: không nhận từ khoá chỉ số khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources[:0], lo)) > 0 {' 'CG190 khoá: không nhận tên nguồn khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, slices.DeleteFunc(slices.Clone(sources), func(p string) bool { return slices.Contains(idef.Keywords, p) }), lo)) > 0 {' 'CG211 khoá R5-5: cụm nguồn trùng từ khoá chính ý định ("phiếu kho") không tính ở ngữ cảnh (soát vòng 4 M13)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, sentenceStart(raw, lo))) > 0 {' 'KH6 khoá: chỉ xét cụm ở câu trước câu hỏi (V5S4-02/03 lọt)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 && sentenceStart(raw, lo) == 0 {' 'KH7 khoá: chỉ xét khi câu hỏi là câu đầu (V5S4-04 lọt)'
 # ---- Vòng 5, lần 2, nhóm THIẾU TEST: các dòng dưới SỐNG ở 95dea0f (chưa test nào đỏ) và phải BỊ BẮT sau khi thêm các ca đề xuất của báo cáo v5db2 (đã chạy: ca đề xuất xanh trên 95dea0f, đỏ khi áp từng đột biến).
 # Kỳ vọng suy từ luật, không chép từ đầu ra. IK1 / CG72 BỊ BẮT ở 03c2c54 rồi mất bảo vệ khi 95dea0f chuyển đề mục thuần sang topicQualifier. CG168 là chỗ lộ lỗ hổng thật: ca "Ngày 19/10, ERP, EX-03 …" đỏ ở 95dea0f (xem báo cáo). ----
 m $I '		if contracts.RouteKind(d.Route) == contracts.RouteSQLQuery && !d.Weak {' '		if true {' 'IK1 từ khoá của ý định không phải số liệu thành ngữ cảnh hợp lệ'
@@ -284,7 +261,6 @@ m $C '&& sp.Start >= s && sp.Start < e && !inName(sp.Start, sp.End)' '&& sp.Star
 m $C '				if keepSrc(p) {' '				if keep(p) {' 'CG209 V5 qualifierPhrases: tên nguồn trùng từ khoá chính ý định ("phiếu kho") bị bỏ khỏi nguồn khác (R5-5)'
 m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) >= 1 && used[0] == src.Type {' 'CG195 V5 qualifierPhrases: nhiều nguồn đã dùng thì nguồn đầu vẫn được bỏ'
 m $C 'metrics = append(metrics, p)' 'sources = append(sources, p)' 'CG198 V5 qualifierPhrases: từ khoá chỉ số khác xếp vào danh sách nguồn'
-m $W 'last == vwHalf && prev == vwDigit && scaled(prev2)' 'last == vwHalf && scaled(prev2)' 'NW13 V5 số bằng chữ mơ hồ: "rưỡi" sau "<hàng> <từ khác chữ số> " cũng mơ hồ'
 # ---- Vòng 5, nhóm CHỜ QUYẾT (đã đo lại ở 95dea0f; chạy trên corpus 110.208 câu tổ hợp đề mục × chủ thể × số × đuôi × ý định × nguồn, không đổi phán quyết ở các dòng dưới trừ ghi chú). Chủ dự án quyết thì ghim test / sửa mã rồi bỏ dấu # (đột biến phải đỏ). ----
 # CG148 — R2-6 "EX-03 của chương trình mới …": V5 giữ phán quyết; đột biến này chính là bản đóng lỗ (0 lệch trên corpus: corpus không có dạng đó).
 # m $C 'if c.start >= lo && len(c.ids) > 1 && slices.Contains(c.ids, s.id)' 'if c.start >= lo && len(c.ids) > 1' 'CG148 V5 numberOwned: bí danh mơ hồ KHÔNG chứa chủ thể cũng phải qua aliasTied'
@@ -332,7 +308,30 @@ m $W 'last == vwHalf && prev == vwDigit && scaled(prev2)' 'last == vwHalf && sca
 # }' 'CG130 V5 aliasTied: khoảng chồng nhau coi là gắn'
 # CG193 — cụm rỗng: PhraseSpans(raw, "") không bao giờ khớp (matchAliasPrefix trả false khi alias == "", text.go:259) nên `p != ""` ở qualifierPhrases thừa với mọi pack, không chỉ pack hiện có (thay CG59 của 03c2c54)
 # m $C 'return p != "" && ' 'return ' 'CG193 V5 qualifierPhrases: cụm rỗng không bị bỏ qua'
-# NW18 / NW19 — sau lần đặt lại, prev2 / prev cũ chỉ còn ở vị trí tail() không đọc (last = 0) rồi bị đẩy ra sau một từ số
-# m $W 'prev2, prev, last = 0, 0, 0' 'prev2, prev, last = prev2, 0, 0' 'NW18 V5 số bằng chữ mơ hồ: đứt dãy không xoá prev2'
-# m $W 'prev2, prev, last = 0, 0, 0' 'prev2, prev, last = 0, prev, 0' 'NW19 V5 số bằng chữ mơ hồ: đứt dãy không xoá prev'
 # (CG59 / CG62 của 03c2c54 — cụm rỗng, bí danh của tên nguồn — nay là CG193 / CG201 vì qualifierPhrases tách khỏi contextOwners.)
+# Luật 5 dựng lại trên readViNumberWords (soát D-OP-14 F1): NW1–NW20 cũ nhắm bản tail() ba từ đã bỏ.
+m $W '		if ok && colloquial {' '		if ok && colloquial && false {' 'NW21 cổng không thấy số bằng chữ nói tắt'
+m $W '		if next > i {
+			i = next - 1
+		}' '		if false {
+			i = next - 1
+		}' 'NW22 xét lại từ giữa một dãy số đã đọc'
+m $W '				pending = -1
+				colloquial = true' '				pending = -1' 'NW23 "<hàng> <chữ số> rưỡi" không là nói tắt'
+m $W '		colloquial = colloquial || implied > 1' '		colloquial = colloquial' 'NW24 "<hàng> <chữ số>" cuối dãy không là nói tắt'
+m $W '			colloquial = true // "linh" / "lẻ" đứng cuối dãy: "hơn một chút", không phải số đúng' '			_ = colloquial' 'NW25 "linh" / "lẻ" cuối dãy không là xấp xỉ'
+m $W '		if toks[i].kind != tokWord {
+			continue
+		}
+		if _, isNum := lookupNumberWord(toks[i].text); !isNum {' '		if toks[i].kind != tokWord {
+			continue
+		}
+		if _, isNum := lookupNumberWord(toks[i].text); isNum {' 'NW26 chỉ xét từ KHÔNG phải số'
+m $C '		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period {
+			return true
+		}
+		_, same := a.inMetricUnit(sp.Value, def)' '		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period && false {
+			return true
+		}
+		_, same := a.inMetricUnit(sp.Value, def)' 'KH8 khoá F2: số của mốc ("tuần 43") thành lượng riêng của cụm'
+m $C '		return !same // lượng khác chiều đo' '		return false && !same // lượng khác chiều đo' 'KH9 khoá F2: lượng khác chiều đo ("8h") thành lượng riêng của cụm'

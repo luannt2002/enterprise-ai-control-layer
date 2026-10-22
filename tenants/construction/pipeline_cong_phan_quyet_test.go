@@ -411,6 +411,16 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "ERP: bao nhiêu? EX-03 hôm nay được cấp 3900 L đúng không?"},
 		{q: "Đội báo. EX-03 hôm nay được cấp 3850 L đúng không?"},
 		{q: "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?"},
+		// ... kể cả khi giữa cụm và câu hỏi có con số KHÔNG cùng chiều đo với chỉ số (mốc, giờ, ca, người): đó không phải lượng của riêng
+		// cụm (soát bước khoá F2; ERP ghi 3.900 L, đội báo 4.000 L)
+		{q: "ERP 8h, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP ngày 19/10 tuần 43, EX-03 được cấp 3900 L đúng không?"},
+		{q: "ERP hôm nay tuần 43, EX-03 được cấp 3900 L đúng không?"},
+		{q: "Đội báo ngày 19/10 tuần 43, EX-03 được cấp 4000 L đúng không?"},
+		{q: "ERP 2 ca, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP 5 người, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		// "lẻ" cuối số bằng chữ: xấp xỉ (soát D-OP-14 F1)
+		{q: "Lu 02 hôm nay được cấp một nghìn hai lẻ lít dầu đúng không?"},
 		// số bằng chữ kết thúc bằng "<hàng> <một chữ số>": nói thường là hàng kế dưới (1.200, 3.800), bộ đọc cho 1.002, 3.008
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám lít dầu đúng không?"},
@@ -456,6 +466,7 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "Định mức 5000 L, vậy EX-03 của dự án A hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "ERP ghi 3900 L, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "Đội báo 4000 L, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Đội báo 4 khối, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."}, // lượng cùng chiều đo (thể tích): sự kiện riêng
 		// cụm ở ngữ cảnh đứng ngay trước con số mà KHÔNG phải nguồn / chỉ số khác: từ hỏi của ý định yếu ("bao nhiêu"), từ khoá của
 		// chính ý định ("được cấp", "phiếu kho")
 		{q: "EX-03 hôm nay được cấp bao nhiêu? 3850 L đúng không?", want: "Đúng."},

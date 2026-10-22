@@ -132,10 +132,19 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	// "Dự án ERP, …"), đứng thành câu / dòng riêng ("Đội báo. EX-03 …") hay chen sau tên chủ thể ("EX-03 hôm nay đội báo, …") ⇒ không
 	// phán quyết. Giá: câu tách ý bằng cụm như thế ("Bao nhiêu định mức, vậy EX-03 … 3850 L đúng không?") mất phán quyết.
 	sources, metrics := a.qualifierPhrases(idef, used)
-	if len(contextOwners(raw, in.Spans, inName, sources, lo)) > 0 {
+	// Con số "của riêng" một cụm ngữ cảnh chỉ là lượng cùng chiều đo với chỉ số (hay số trần): mốc ("tuần 43"), giờ ("8h"), ca, người…
+	// không biến cụm nguồn / chỉ số thành sự kiện riêng ("ERP 8h, EX-03 … 3900 L đúng không?" — soát bước khoá F2).
+	ctxNumbers := slices.DeleteFunc(slices.Clone(in.Spans), func(sp contracts.Span) bool {
+		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period {
+			return true
+		}
+		_, same := a.inMetricUnit(sp.Value, def)
+		return !same // lượng khác chiều đo ("8h", "2 ca", "5 người"); số trần và lượng cùng chiều đo được giữ
+	})
+	if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
 		return "source"
 	}
-	if len(contextOwners(raw, in.Spans, inName, metrics, lo)) > 0 {
+	if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
 		return "metric"
 	}
 	if os := owners(names, in.Spans, idef.Terms); !subj.numberOwned(raw, os, firstStart, firstEnd, lo) {

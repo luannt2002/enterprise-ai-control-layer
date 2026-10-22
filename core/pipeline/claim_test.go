@@ -88,6 +88,10 @@ func TestVerdictGap(t *testing.T) {
 		{q: "DZ-03 (máy 03) hôm nay được cấp 3850 L đúng không?", claimed: "3850", subject: "DZ-03"}, // "máy 03" mơ hồ, có chủ thể trong ứng viên, trong ngoặc liền sau lần nhắc rõ
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1200", want: "value"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3850", want: "value"},
+		{q: "Lu 02 hôm nay được cấp một nghìn hai lẻ lít dầu đúng không?", claimed: "1200", want: "value"}, // "lẻ" cuối dãy: xấp xỉ
+		// con số "của riêng" cụm ngữ cảnh chỉ là lượng cùng chiều đo: mốc "tuần 43", giờ "8h" không biến cụm thành sự kiện riêng (F2)
+		{q: "ERP 8h, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Đội báo ngày 19/10 tuần 43, EX-03 được cấp 4000 L đúng không?", claimed: "4000", want: "metric"},
 		// KHOÁ (§9.6, soát vòng 4): cụm nguồn / chỉ số khác ở bất kỳ đâu trong ngữ cảnh, không kèm số riêng ⇒ "source" / "metric"
 		{q: "Bao nhiêu ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "Dầu ERP. EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},

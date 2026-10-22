@@ -10,8 +10,8 @@ m $W 'implied = lastUnit / 10 //' 'implied = 1 //' 'ND1 chữ số sau từ ch�
 m $W 'if prev == vwHundred || prev == vwScale {' 'if prev == vwScale {' 'ND2 chữ số sau "trăm" vẫn là hàng đơn vị'
 m $W 'if prev == vwHundred || prev == vwScale {' 'if prev == vwHundred {' 'ND3 chữ số sau "nghìn" / "triệu" / "tỷ" vẫn là hàng đơn vị'
 m $W '		group += pending * implied
-	}' '		group += pending
-	}' 'ND4 cuối dãy không nhân đơn vị hàng kế dưới'
+		colloquial = colloquial || implied > 1' '		group += pending
+		colloquial = colloquial || implied > 1' 'ND4 cuối dãy không nhân đơn vị hàng kế dưới'
 m $W 'case pending >= 0 && implied > 1:' 'case false && pending >= 0 && implied > 1:' 'ND5 "rưỡi" sau "<hàng> <chữ số>" là nửa đơn vị'
 m $W 'group += pending*implied + implied/2' 'group += pending * implied' 'ND6 "rưỡi" sau "<hàng> <chữ số>" bị bỏ'
 m $W '			pending = w.value

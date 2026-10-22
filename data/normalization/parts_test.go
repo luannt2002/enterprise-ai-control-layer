@@ -123,6 +123,12 @@ func TestAmbiguousNumberWords(t *testing.T) {
 		{"ba nghìn lít hai", false},
 		{"(một nghìn hai)", true},
 		{"một nghìn hai.", true},
+		// "linh" / "lẻ" đứng cuối dãy: "một nghìn hai lẻ" = hơn 1.200 một chút, "hai trăm lẻ" = hơn 200 — giá trị là xấp xỉ (soát
+		// D-OP-14 F1: "một nghìn hai lẻ lít … đúng không?" từng đổi "Không." thành "Đúng.")
+		{"một nghìn hai lẻ lít", true},
+		{"một nghìn hai Linh lít", true},
+		{"một nghìn hai linh rưỡi", true},
+		{"hai trăm lẻ lít", true},
 	} {
 		if got := AmbiguousNumberWords(c.in); got != c.want {
 			t.Errorf("AmbiguousNumberWords(%q) = %v, muốn %v", c.in, got, c.want)

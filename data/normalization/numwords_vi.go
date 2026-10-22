@@ -80,29 +80,29 @@ func lookupNumberWord(word string) (viNumWord, bool) {
 	return viNumWord{}, false
 }
 
-// AmbiguousNumberWords báo s có dãy số bằng chữ KẾT THÚC bằng một chữ số đứng ngay sau từ chỉ hàng ("một nghìn hai", "hai trăm năm",
-// "ba nghìn tám"), kể cả khi theo sau là "rưỡi" ("ba nghìn tám rưỡi"). Nói thường, chữ số đó là hàng kế dưới (1.200, 250, 3.800, 3.850);
-// trước D-OP-14 bộ đọc cộng nó như hàng đơn vị (1.002, 205, 3.008, 3.008,5), nay đọc theo cách nói thường. Dạng viết rõ hàng ("một nghìn
-// hai trăm", "một trăm linh năm", "hai nghìn rưỡi", "ba nghìn tám trăm rưỡi") không tính. Cổng phán quyết (khoá ở ADR-0009 Vòng 5) vẫn
-// dùng hàm này để không phán quyết dạng nói tắt, kể cả sau khi bộ đọc đã sửa.
+// AmbiguousNumberWords báo s có dãy số bằng chữ mà giá trị do CÁCH NÓI TẮT quyết, không do các từ viết ra (readViNumberWords trả
+// colloquial): chữ số đứng ngay sau từ chỉ hàng ở cuối dãy là hàng kế dưới ("một nghìn hai" = 1.200, "hai trăm năm" = 250, "ba nghìn tám
+// rưỡi" = 3.850; trước D-OP-14 bộ đọc cộng như hàng đơn vị: 1.002, 205, 3.008,5), hay dãy kết thúc bằng "linh" / "lẻ" ("một nghìn hai lẻ",
+// "hai trăm lẻ" = hơn một chút: xấp xỉ). Dạng viết rõ hàng ("một nghìn hai trăm", "một trăm linh năm", "hai nghìn rưỡi", "ba nghìn tám
+// trăm rưỡi") không tính. Cổng phán quyết (khoá ở ADR-0009) dùng hàm này để không phán quyết các dạng đó, kể cả sau khi bộ đọc đã sửa.
 func AmbiguousNumberWords(s string) bool {
-	var prev2, prev, last viWord // loại của ba từ số cuối trong dãy đang xét
-	scaled := func(k viWord) bool { return k == vwScale || k == vwHundred }
-	tail := func() bool {
-		return (last == vwDigit && scaled(prev)) || (last == vwHalf && prev == vwDigit && scaled(prev2))
-	}
-	for _, f := range strings.Fields(s) {
-		w, ok := lookupNumberWord(strings.Trim(f, ".,;:!?()[]\"'"))
-		if !ok {
-			if tail() {
-				return true
-			}
-			prev2, prev, last = 0, 0, 0
+	toks := tokenize(s)
+	for i := 0; i < len(toks); i++ {
+		if toks[i].kind != tokWord {
 			continue
 		}
-		prev2, prev, last = prev, last, w.kind
+		if _, isNum := lookupNumberWord(toks[i].text); !isNum {
+			continue
+		}
+		_, next, _, ok, colloquial := readViNumberWords(toks, i)
+		if ok && colloquial {
+			return true
+		}
+		if next > i {
+			i = next - 1
+		}
 	}
-	return tail()
+	return false
 }
 
 // parseViNumberWords đọc dãy từ chỉ số bắt đầu từ token i.
@@ -111,6 +111,13 @@ func AmbiguousNumberWords(s string) bool {
 // nghìn, rưỡi…). Bên gọi chỉ chấp nhận dãy KHÔNG có hàng khi ngay sau là một đơn vị:
 // "năm" một mình còn là "năm (year)", "năm 2026" không phải số 5.
 func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale bool, ok bool) {
+	value, next, hasScale, ok, _ = readViNumberWords(toks, i)
+	return value, next, hasScale, ok
+}
+
+// readViNumberWords là parseViNumberWords kèm colloquial: giá trị do cách nói tắt quyết — chữ số cuối dãy đứng ngay sau từ chỉ hàng được
+// hiểu là hàng kế dưới, hay dãy kết thúc bằng "linh" / "lẻ" (xem AmbiguousNumberWords).
+func readViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale, ok, colloquial bool) {
 	total := new(big.Rat)
 	var group int64
 	pending := int64(-1) // chữ số đang chờ hàng; -1 = không có
@@ -207,6 +214,7 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 			case pending >= 0 && implied > 1:
 				group += pending*implied + implied/2 // "ba nghìn tám rưỡi" = 3.850, "một trăm hai rưỡi" = 125
 				pending = -1
+				colloquial = true
 			case pending >= 0:
 				group += pending
 				pending = -1
@@ -233,11 +241,17 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 	}
 done:
 	if consumed == 0 {
-		return nil, i, false, false
+		return nil, i, false, false, false
 	}
 	if pending >= 0 {
 		group += pending * implied
+		colloquial = colloquial || implied > 1
+	}
+	if toks[last].kind == tokWord {
+		if w, _ := lookupNumberWord(toks[last].text); w.kind == vwFiller {
+			colloquial = true // "linh" / "lẻ" đứng cuối dãy: "hơn một chút", không phải số đúng
+		}
 	}
 	total.Add(total, new(big.Rat).SetInt64(group))
-	return total, last + 1, hasScale, true
+	return total, last + 1, hasScale, true, colloquial
 }

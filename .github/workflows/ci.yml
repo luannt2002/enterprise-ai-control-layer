@@ -53,8 +53,10 @@ jobs:
           cache: true
 
       # poppler-utils: pdftotext cho bộ nạp PDF. fonts-dejavu-core: test của data/ingestion dựng PDF thử bằng DejaVuSans.ttf và TỰ BỎ QUA nếu
-      # thiếu nó; cổng bên dưới cấm SKIP nên thiếu font sẽ làm CI đỏ ngay lần chạy đầu. poppler-utils KHÔNG kéo theo gói font này (đã tra
-      # apt-cache depends trên Ubuntu), nên cài tường minh thay vì trông chờ ảnh runner có sẵn.
+      # thiếu nó; cổng bên dưới cấm SKIP nên thiếu font sẽ làm CI đỏ ngay lần chạy đầu. poppler-utils chỉ kéo BẮC CẦU (libcairo2 →
+      # libfontconfig1 → fontconfig-config) một TRONG nhiều gói font (fonts-dejavu-core | fonts-liberation | …): ảnh runner đã có sẵn gói
+      # khác thì DejaVu không được cài. [ĐO apt-cache depends trên Linux Mint 22.3 nền Ubuntu 24.04; ảnh runner thật chưa kiểm.] Vì vậy cài
+      # tường minh thay vì trông chờ.
       - name: Cài poppler-utils (pdftotext) và fonts-dejavu-core (phông dựng PDF thử)
         run: |
           sudo apt-get update

@@ -15,6 +15,7 @@
 #                          dòng "đang nghe http://…" của server; serve -dev chỉ nhận loopback)
 #   EAIS_WORK              thư mục làm việc (binary, dữ liệu, log); mặc định mktemp -d, xoá khi xong nếu do script tạo
 #   EAIS_PG_DOWN=1         gỡ PG khi xong NẾU CHÍNH script này đã dựng nó (mặc định giữ lại để soi tay)
+#   EAIS_SMOKE             lệnh smoke thay cho scripts/smoke-e2e.sh, nhận địa chỉ http://… làm đối số (cho phép thử của chính script này)
 #
 # An toàn: nếu container PG tên đó ĐÃ chạy trước khi script bắt đầu (của việc khác), script dùng lại nhưng KHÔNG BAO GIỜ gỡ nó. Muốn
 # chạy cạnh một PG đang dùng, đổi EAIS_COMPOSE_PROJECT / EAIS_PG_CONTAINER / EAIS_PG_PORT.
@@ -112,7 +113,7 @@ done
 
 step "smoke E2E"
 rc=0
-scripts/smoke-e2e.sh "http://$addr" || rc=$?
+"${EAIS_SMOKE:-scripts/smoke-e2e.sh}" "http://$addr" || rc=$?
 
 step "dừng server"
 if kill -0 "$server_pid" 2>/dev/null; then

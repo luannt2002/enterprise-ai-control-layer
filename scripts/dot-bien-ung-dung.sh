@@ -3,7 +3,8 @@
 # workflow CI. Mỗi dòng bẻ MỘT chỗ của mã rồi đòi MỘT test (hoặc smoke) đỏ — chứng minh cổng đó đỏ được (CLAUDE.md §1).
 #   m  <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy `go test` ở PKGS (đột biến của mã)
 #   ms <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy scripts/chay-thu.sh (smoke E2E) trên cây đã đột biến; đòi smoke ĐỎ
-#   sc <kịch bản> <nhãn> [<tệp> <gốc> <đột biến>]  kịch bản của CHÍNH scripts/chay-thu.sh (cổng bị chiếm, PG chạy sẵn không bị gỡ): không
+#   sc <kịch bản> <nhãn> [<tệp> <gốc> <đột biến>]  kịch bản của CHÍNH scripts/chay-thu.sh (cổng bị chiếm, server chết giữa lúc smoke, PG chạy
+#                                                  sẵn không bị gỡ): không
 #                                                  đột biến thì đòi script nguyên bản cư xử đúng ("ĐẠT"); có đột biến thì đòi kịch bản phát hiện
 # Kỳ vọng: mọi dòng in "BỊ BẮT" hoặc "ĐẠT"; cuối cùng in tổng và thoát 0 chỉ khi không đột biến nào sống sót. Mã đổi thì chuỗi gốc có thể
 # không còn khớp (rc=2, "xuất hiện 0 lần"): sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
@@ -108,6 +109,26 @@ scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước: script dùng
 	[ -n "$running" ] || why+="container $KEEP_NAME đã bị GỠ dù chạy từ trước; "
 	[ -z "$why" ]
 }
+scen_srvdie() { # server chết GIỮA lúc smoke (smoke giả giết nó rồi báo xanh): script phải thoát khác 0 và nói rõ, không được báo "smoke XANH"
+	local fake out rc
+	fake=$(mktemp)
+	cat >"$fake" <<'FAKE'
+#!/usr/bin/env bash
+# smoke giả: giết server của script (tiến trình con tên eais của tiến trình cha) rồi báo xanh
+kill -KILL $(pgrep -P $PPID -x eais) 2>/dev/null
+sleep 0.5
+echo "smoke E2E: 21 đạt, 0 hỏng"
+exit 0
+FAKE
+	chmod +x "$fake"
+	out=$(EAIS_SMOKE=$fake EAIS_ADDR=$KEEP_ADDR scripts/chay-thu.sh 2>&1); rc=$?
+	rm -f "$fake"
+	why=''
+	[ "$rc" -ne 0 ] || why+="script thoát 0 dù server đã chết giữa lúc smoke; "
+	grep -q 'đã thoát giữa chừng' <<<"$out" || why+="không báo server đã thoát giữa chừng; "
+	grep -q 'smoke XANH' <<<"$out" && why+="vẫn in 'smoke XANH'; "
+	[ -z "$why" ]
+}
 sc() {
 	local scen=$1 label=$2 f=${3:-} before verdict
 	skip "$label" && return
@@ -206,7 +227,7 @@ m platform/pgstore/load.go 'h.Write([]byte("eais.load:" + string(tenant)))' 'h.W
 
 # --- cổng SKIP và workflow CI ---
 export PKGS=./cmd/eais/
-m scripts/kiem-skip-test.py 'if ngoai or thua:' 'if False:' 'CI1 SKIP không làm cổng đỏ'
+m scripts/kiem-skip-test.py 'if ngoai or thua or test_hong or goi_hong:' 'if test_hong or goi_hong:' 'CI1 SKIP không làm cổng đỏ'
 m scripts/kiem-skip-test.py 'if tong == 0:' 'if tong < 0:' 'CI2 đầu vào rỗng được coi là "không SKIP"'
 m scripts/kiem-skip-test.py 'ngoai = [s for s in skip if (s[0], s[1]) not in cho_phep]' 'ngoai = [s for s in skip if True]' 'CI3 danh sách cho phép không có tác dụng'
 m .github/workflows/ci.yml 'postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232' 'postgres:17@sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91233' 'CI4 CI và compose ghim hai digest khác nhau'
@@ -243,6 +264,8 @@ ms $A 'sum := sha256.Sum256([]byte(dataVersion + "\n" + packVersion + "\n" + cod
 # --- script một lệnh: cổng bị chiếm, và PG đã chạy sẵn không bị gỡ ---
 sc scen_squat 'SQ0 cổng bị chiếm: script nguyên bản từ chối, không chạy smoke vào kẻ chiếm cổng'
 sc scen_squat 'SQ1 script gõ thẳng cổng yêu cầu thay vì chờ server của mình báo địa chỉ' scripts/chay-thu.sh 'if [ -n "$line" ]; then addr=${line#đang nghe http://}; break; fi' 'addr=$ADDR; break'
+sc scen_srvdie 'SD0 server chết giữa lúc smoke: script nguyên bản thoát khác 0, không báo XANH'
+sc scen_srvdie 'SD1 script không đổi mã thoát khi server chết giữa lúc smoke' scripts/chay-thu.sh 'if [ "$rc" = 0 ]; then rc=1; fi' 'if false; then rc=1; fi'
 sc scen_pgkeep 'PK0 PG đã chạy sẵn: script nguyên bản không gỡ nó dù đặt EAIS_PG_DOWN=1'
 sc scen_pgkeep 'PK1 script gỡ cả PG đã chạy từ trước' scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1'
 

@@ -3,8 +3,12 @@
 - **Ngày:** 22/10/2026.
 - **Trạng thái:** **ĐỀ XUẤT, chưa áp mã.**
   - Mã Phase 0a (khối M2 của MVP) chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong"). H4 đã khoá (`15f04f9`) và đã chạy MỘT lần ngày 22/10 (`docs/STATUS.md`, dòng "H4, 22/10 14:59"): điều kiện này đã đạt.
-  - Soát: vòng 1 (người soát ≠ người viết) kết luận **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO]. Bản này sửa ba ghi chú đó (quyết định D1 và D5, mục G và H ở "Phương án đã cân nhắc") và khớp M1 đã lên main; **chưa soát lại sau khi sửa**. Chưa có người nghiệp vụ duyệt (D-RM-03 = "chưa có").
-- **Số ADR:** 0012. Số 0011 thuộc Phase 1 (`docs/adr/0011-phase1-hanh-dong-co-kiem-soat.md`). Migration của Phase 0a lấy **số kế tiếp sau migration cuối của main lúc mở mã**. Tại `f28ce06` migration cuối là `0003_kho_vet_ben.sql` (M1, đã lên main) nên số kế tiếp là 0004; ADR-0011 tại mốc đó vẫn dự kiến `0003_phieu_chenh_lech.sql`, số đã bị M1 chiếm: hai phase không được cùng một số, bên gộp sau lấy số kế tiếp (xem "Nơi đặt mã").
+  - Soát (mã ghi chú F01–F03 và R2-01…R2-09 định nghĩa ở mục "Ghi chú soát đã xử lý", cuối tệp):
+    - vòng 1 (người soát ≠ người viết): **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO];
+    - vòng 2 (soát lại bản sửa F01–F03): **KHÔNG ĐẠT**, một ghi chú S2 (R2-01), sáu S3 (R2-02…R2-07), hai S4 (R2-08, R2-09) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
+    - **bản này là vòng 3, vòng sửa cuối theo luật dừng (`docs/PROMPT-BUILD-EAIS.md` §9.6), chưa soát lại**: sửa R2-01…R2-09 (quyết định D5 và D10; mục I, J, K ở "Phương án đã cân nhắc"; nợ 17 đến 22). Điều cố ý chưa sửa là nợ ở "Hệ quả" và câu mở Q-0A-13…Q-0A-15 ở `HOP-DONG.md` §15.
+  - Chưa có người nghiệp vụ duyệt (D-RM-03 = "chưa có").
+- **Số ADR:** 0012. Số 0011 thuộc Phase 1 (`docs/adr/0011-phase1-hanh-dong-co-kiem-soat.md`). Migration của Phase 0a lấy **số kế tiếp sau migration cuối của main lúc mở mã**. Tại `269a539` (mã không đổi từ `f28ce06`) migration cuối là `0003_kho_vet_ben.sql` (M1, đã lên main), nên nếu mã mở ngay thì số kế tiếp là 0004. ADR-0011 cũng ghi `<NNNN>` là số kế tiếp sau migration cuối của main lúc mở mã của nó, và làn 0 đã dùng `0003`: hai phase không được cùng một số, bên mở mã sau lấy số kế tiếp tại lúc đó (xem "Nơi đặt mã").
 - **Liên quan:**
   - `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` (hợp đồng việc: chi tiết của mọi quyết định dưới đây);
   - `docs/viec/0a-thu-bao-cao-ngay/CONG-QUANIT.md` (9 câu cổng QuânIT, trên giấy: 5 ✓, 2 ◐, 2 ✗);
@@ -35,7 +39,7 @@
 5. **M1 (làn 0)**, đã lên main ở `41bc3cf` [CODE `41bc3cf`; bản nháp đầu của ADR này viết khi nhánh `lan0/ung-dung-va-vet` còn chưa gộp]: `POST /v1/ingest` (`cmd/eais/server.go:361`) nạp lại **thư mục dữ liệu đã cấu hình** của tenant, thân rỗng, principal từ token, chỉ vai toàn quyền; lưu cách ly (khoá, nguồn, lý do, chi tiết) theo mã lần nạp rồi thay trọn dữ liệu (`cmd/eais/app.go:247-292`). Migration `0003` có `decision_records`, `quarantine_records`, `usage_records`; vai `eais_app` chỉ SELECT + INSERT. Mã bước vết `L1.*` của tầng nạp đã có (`observability/traces/step.go:32-39`) nhưng chưa có chỗ phát. Nghĩa: đã có nền lưu cách ly và mã bước vết, nhưng chưa có đường nạp từng đơn vị, chưa có kết cục chờ xác nhận hay trùng, chưa có người nhận, chưa có vết của đơn vị nạp. Điểm nối cần thống nhất với M1: U2.
 6. **Quyết định của chủ dự án** [REPO]: D-RM-04 = A (mã Giai đoạn II mở sau H4); D-RM-03 = chưa có người nghiệp vụ; D-AI-00 (không lời gọi model trả tiền trước CỔNG TRƯỚC AI); D-MVP-00 (MVP gồm M2); D-OP-14 = a (đã vào main); D-OP-17 còn mở.
 7. **Cổng QuânIT (trên giấy)**: trượt câu 1 và 8 (không có người dùng thật, không có người ký), ◐ câu 3 và 9. Không chặn việc viết giấy; giới hạn kết luận: "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt".
-8. **Lệch write-set** [REPO]: `docs/PROMPT-BUILD-EAIS.md` §9.2 ghi làn 4 làm `execution/`, migration mới, pack; mã 0a lại nằm ở tầng nạp `data/ingestion/` và `platform/pgstore/` (`docs/01-architecture.md` §3).
+8. **Lệch write-set** [REPO]: `docs/PROMPT-BUILD-EAIS.md` §9.2 ghi làn 4 làm `execution/`, migration mới, pack; mã 0a lại nằm ở tầng nạp `data/ingestion/` và `platform/pgstore/` (`docs/01-architecture.md` §3). Ngoài ra mã 0a phụ thuộc hai việc thuộc write-set của làn 0 (nối `POST /v1/ingest` và đường nạp từng đơn vị ở `cmd/eais/`; phát bước `L1.*` ở `observability/`) và một việc của làn 1 ("≈" ở `data/normalization/`). Bảng việc, làn, tệp và phương án lùi: `HOP-DONG.md` §14.1.
 
 ## Quyết định
 
@@ -44,14 +48,15 @@ Mỗi quyết định có chi tiết và ca kiểm ở `HOP-DONG.md`; ADR chỉ 
 | # | Quyết định | Chi tiết |
 |---|---|---|
 | **D1** | **Kho bản ghi báo cáo**, chỉ thêm và đổi trạng thái, lưu bền, RLS FORCE, khoá duy nhất `(tenant, unit_key)`: mỗi đơn vị một bản ghi (`ACCEPTED`, `HELD`, `QUARANTINED`). Cộng **sổ lần giao** chỉ thêm: mỗi **lần giao** của một đơn vị có đúng một dòng với một kết cục có lý do (`ACCEPTED`, `HELD`, `QUARANTINED`, `DUPLICATE`); `DUPLICATE` chỉ có ở sổ, trỏ về bản đã có, không tạo bản ghi (mục G). `facts` chỉ là **phép chiếu**: chỉ bản ghi `ACCEPTED` loại `OCCURRED` thành fact, trong cùng giao dịch với kết cục. `aggregate` **không đổi**. | HOP-DONG §3.1, §3.6, §3.8 |
-| **D2** | **Nơi đặt mã:** mở rộng các gói đã có (`data/ingestion/`, `platform/pgstore/`), tệp mới; không tạo thư mục mới (bảng dưới). | bảng "Nơi đặt mã" |
+| **D2** | **Nơi đặt mã:** mở rộng các gói đã có (`data/ingestion/`, `platform/pgstore/`), tệp mới; không tạo thư mục mới (bảng dưới). Hai gói này ngoài write-set làn 4 hiện hành: Q-0A-12; nếu không mở rộng thì dùng phương án lùi (gói mới dưới `execution/`). | bảng "Nơi đặt mã", `HOP-DONG.md` §14.1 |
 | **D3** | **Cờ loại là hai trục** `kind` ∈ {`OCCURRED`, `PLAN`, `CORRECTION`} × `approx`; bốn cờ của brief suy ra từ hai trục. Gán bằng luật tất định từ lexicon của pack; luật không chắc thì `HELD`; **bảo thủ cả hai chiều**. | §3.3 |
 | **D4** | **Đính chính không tự áp:** luôn `HELD`, người quyết `APPLY` hoặc `REJECT`. | §3.3, §6.2 |
-| **D5** | **Chống trùng ba mức:** khoá nguồn (TR1), vân tay (TR2), nghi trùng trong cửa sổ W (TR3, chờ người quyết). TR1 và TR2 cho `DUPLICATE` ở sổ lần giao; TR3 đánh giá theo **thứ tự chuẩn** `(sent_at, unit_key)` chứ không theo thứ tự đến, đánh giá lại (chỉ siết) khi bản gửi sớm đến muộn, và chạy dưới **khoá tư vấn** theo (tenant, thực thể, ngày xảy ra) (mục H). **Không** khử theo giá trị, **không** "bản mới nhất thắng". | §5, §5.6 |
+| **D5** | **Chống trùng ba mức:** khoá nguồn (TR1), vân tay (TR2; đơn vị không có `sent_at` có vân tay riêng theo ngày xảy ra, mã nguồn trong tệp, chữ), nghi trùng trong cửa sổ W (TR3, chờ người quyết). TR1 và TR2 cho `DUPLICATE` ở sổ lần giao; thu hồi và sửa tin xét trước TR1. TR3 đánh giá theo **thứ tự chuẩn** `(sent_at, unit_key)` chứ không theo thứ tự đến, đánh giá lại (chỉ siết) khi bản gửi sớm đến muộn, chạy dưới **khoá tư vấn** theo (tenant, thực thể, ngày xảy ra) (mục H), và **chạy cho mọi đường vào nhóm, kể cả quyết định của người**: chỉ `KEEP_BOTH` miễn, cho đúng cặp đã xét (mục I). Bản rời nhóm (thu hồi, sửa, bác) không làm máy nhả `HELD` (mục J). **Không** khử theo giá trị, **không** "bản mới nhất thắng". | §3.8, §5, §5.6 |
 | **D6** | **Quyền người gửi theo máy:** danh bạ người gửi là dữ liệu tenant; vai và capability (`reports.submit`, `reports.review`, `reports.decide`) ở pack; đóng mặc định; tenant chỉ từ danh tính. | §4 |
 | **D7** | **Cách ly và chờ xác nhận lưu bền, có mã lý do trong danh sách đóng, có người nhận; báo cáo xuất tất định.** | §3.4, §6 |
 | **D8** | **Nhánh form / bot dùng chung hợp đồng đầu ra** với đường chat; đo song song bằng bản chiếu cặp; chọn kênh theo số đo và chi phí đổi thói quen (không phải việc của ADR). | §13 |
 | **D9** | **Không** model, **không** interface chung, **không** thư mục theo tên kiến trúc đích, **không** đụng S4 hay `aggregate`. | dưới |
+| **D10** | **Kế thừa thực thể** (tin chỉ có lượng, "chiều thêm 1k") chỉ trong một lô, theo `(sent_at, unit_key)`; không có tin nguồn trong lô thì cách ly `unknown_entity` (mục K). | §3.3 (LK7) |
 
 ## Nơi đặt mã
 
@@ -59,15 +64,29 @@ Theo `docs/01-architecture.md` §3 và `CLAUDE.md` §25: thư mục chỉ đư�
 
 | Đường dẫn | Hiện có? | Phase 0a làm gì |
 |---|---|---|
-| `data/ingestion/` | có | tệp mới trong gói: phong bì tin, phân loại `kind` và `approx`, chống trùng TR1–TR3, quyền người gửi, kết cục. Hợp đồng `Ingest` hiện có cho nguồn có cấu trúc khác không đổi |
+| `data/ingestion/` | có | tệp mới trong gói: phong bì tin, phân loại `kind` và `approx`, chống trùng TR1–TR3, quyền người gửi, kết cục. Hợp đồng `Ingest` hiện có cho nguồn có cấu trúc khác không đổi. **Ngoài write-set làn 4** (Q-0A-12) |
 | `data/ingestion/bridge.go` | có | `Facts()` chỉ chiếu bản ghi `ACCEPTED` loại `OCCURRED`; điền `ObservedAt` và `ReportedBy`; sửa nhỏ |
-| `platform/pgstore/` | có | tệp mới: kho bản ghi báo cáo và sổ lần giao (ghi từng đơn vị trong một giao dịch, quyết định, báo cáo xuất, khoá tuần tự hoá TR3). M1 đã có `vet.go` (`SaveQuarantine`, bảng vết) và khoá tư vấn của `Load`: tách tệp, thống nhất bảng (U2) |
-| `db/migrations/` | có | migration mới, **số kế tiếp sau migration cuối của main lúc mở mã** (tại `f28ce06`: 0004, vì `0003_kho_vet_ben.sql` của M1 đã lên main); ADR-0011 dự kiến `0003_phieu_chenh_lech.sql`, số đã bị chiếm: hai phase không được cùng một số |
+| `platform/pgstore/` | có | tệp mới: kho bản ghi báo cáo và sổ lần giao (ghi từng đơn vị trong một giao dịch, quyết định, báo cáo xuất, khoá tuần tự hoá TR3). M1 đã có `vet.go` (`SaveQuarantine`, bảng vết) và khoá tư vấn của `Load`: tách tệp, thống nhất bảng (U2). **Ngoài write-set làn 4** (Q-0A-12). Phase 1 (ADR-0011) cũng thêm ở đây một hàm mở giao dịch tenant (`Store.inTenant` không xuất): hai phase dùng chung một hàm |
+| `db/migrations/` | có | migration mới, **số kế tiếp sau migration cuối của main lúc mở mã** (tại `269a539`: 0004, vì `0003_kho_vet_ben.sql` của M1 đã lên main). ADR-0011 cũng lấy số kế tiếp lúc mở mã của nó (`<NNNN>`): hai phase không được cùng một số, bên mở mã sau lấy số kế tiếp |
 | `tenants/construction/pack/` | có | `lexicon.yaml`: từ khoá đính chính, kế hoạch (cờ "≈" là việc của làn 1); `policy.yaml`: capability `reports.*`, vai `site_supervisor` (Q-0A-7); `sources.yaml`: loại nguồn có cấu trúc cho báo cáo của đội, danh sách bỏ qua dòng PDF. **Làn 1 giữ pack**: phối hợp khi mở mã |
 | dữ liệu tenant | (cùng chỗ `entities.json`) | danh bạ người gửi (`HOP-DONG.md` §4.3) |
 | `core/contracts/` | có | chỉ kiểu dùng chung nếu nhiều gói cần (kết cục, loại); không bắt buộc |
-| `tenants/construction/win/`, `scripts/dot-bien/` | có | làn phép đo: bộ kiểm bảo toàn không import bộ nạp, chạy bộ ca độc lập, đột biến DB01–DB28 |
-| `execution/`, `governance/`, `cmd/`, `domain/` | chưa | **không tạo**: sự kiện đầy đủ là Phase 3; xác thực và `cmd` là Phase 5 hoặc làn 0; connector là Phase 8 |
+| `tenants/construction/win/`, `scripts/dot-bien/` | có | làn phép đo: bộ kiểm bảo toàn không import bộ nạp, chạy bộ ca độc lập, đột biến DB01–DB33 |
+| `execution/` | chưa (Phase 1 sẽ tạo `execution/commands`, ADR-0011) | **không tạo ở Phase 0a**, trừ phương án lùi nếu Q-0A-12 = không: một gói mới (ví dụ `execution/reports/`) cho kho bản ghi, sổ lần giao và luật nạp (`HOP-DONG.md` §14.1) |
+| `governance/`, `domain/` | chưa | **không tạo**: sự kiện đầy đủ là Phase 3; xác thực là Phase 5; connector là Phase 8 |
+| `cmd/eais/`, `observability/` | có (M1, làn 0) | **không thuộc write-set làn 4**: nối `POST /v1/ingest`, đường nạp từng đơn vị và phát bước `L1.*` là việc 3 và 4 của `HOP-DONG.md` §14.1 (Q-0A-15) |
+| `data/normalization/` | có | **không sửa ở Phase 0a**: nhận "≈" (HT-1) là việc của làn 1; GA3 phần "≈" chờ việc đó (`HOP-DONG.md` §14.1 mục 6) |
+
+**Việc chéo làn** (R2-07; chi tiết, tệp và phương án lùi: `HOP-DONG.md` §14.1). Mã 0a không tự đủ trong write-set của làn 4 (`docs/PROMPT-BUILD-EAIS.md` §9.2: `execution/` mới, migration mới, pack):
+
+| Việc | Tệp | Làn có tệp trong write-set | Xử lý |
+|---|---|---|---|
+| kho bản ghi, sổ lần giao, quyết định, báo cáo xuất, khoá TR3 | `platform/pgstore/`, `db/migrations/` | migration: làn 4; `platform/pgstore/`: không làn nào | Q-0A-12; lùi: gói mới dưới `execution/` |
+| luật nạp, phép chiếu fact | `data/ingestion/` | không làn nào | Q-0A-12; lùi như trên |
+| đường nạp từng đơn vị; nối `POST /v1/ingest` | `cmd/eais/` | làn 0 | Q-0A-15 |
+| phát bước `L1.*`, vết của đơn vị nạp | `observability/`, `cmd/eais/` | làn 0 | Q-0A-15 |
+| nhận "≈" (HT-1) | `data/normalization/engine.go` | làn 1 | chờ làn 1; GA3 phần "≈" ĐỎ tới lúc đó |
+| pack: capability, vai, loại nguồn, từ khoá | `tenants/construction/pack/` | làn 1 và làn 4 | phối hợp |
 
 Ràng buộc kiến trúc phải giữ:
 - mã dùng chung không chứa tên tenant hay từ miền trong chuỗi literal (`architecture_test.go`, `TestSharedCodeHasNoTenantLiterals`); từ khoá đính chính, kế hoạch ở lexicon, không ở mã;
@@ -86,7 +105,7 @@ Ràng buộc kiến trúc phải giữ:
 | 6 | Tenant-specific có đủ không? | không: từ khoá thì ở pack (có); cơ chế thì chung |
 | 7 | Tương thích? | `Ingest` cho nguồn có cấu trúc giữ nguyên; `aggregate` giữ nguyên; `PackVersion` đổi vì pack đổi |
 | 8 | Đường chuyển? | thêm bảng và đường chiếu; `Load` phối hợp (U2) |
-| 9 | Test? | 75 lớp ca âm (`HOP-DONG.md` §10), 28 đột biến (§11.3), mỗi dòng cổng có ít nhất một |
+| 9 | Test? | 82 lớp ca âm (`HOP-DONG.md` §10), 33 đột biến (§11.3); mỗi dòng cổng có ít nhất một đột biến, và mỗi cặp (đột biến, dòng) ghi lớp ca của chính dòng đó làm nó đỏ |
 | 10 | Metric? | 11 dòng cổng GA1–GA11 (§11) |
 | 11 | ADR? | đây |
 
@@ -96,7 +115,7 @@ Ràng buộc kiến trúc phải giữ:
 
 | Phương án | Ưu | Nhược |
 |---|---|---|
-| **A1 (chọn):** kho bản ghi riêng cộng phép chiếu sang `facts` | khớp bốn tầng OBSERVATION → FACT (`docs/01-architecture.md` §5.0); lọc ở biên cầu nối nên **không đổi `aggregate`** (lõi hỏi–đáp của làn 1); `HELD`, `QUARANTINED`, `DUPLICATE` có chỗ ở | thêm một bảng và một đường chiếu; `Load` thay trọn `facts` (`load.go:27`) nên phải phối hợp (U2) |
+| **A1 (chọn):** kho bản ghi riêng cộng phép chiếu sang `facts` | khớp bốn tầng OBSERVATION → FACT (`docs/01-architecture.md` §5.0); lọc ở biên cầu nối nên **không đổi `aggregate`** (lõi hỏi–đáp của làn 1); `HELD`, `QUARANTINED`, `DUPLICATE` có chỗ ở | thêm hai bảng (kho bản ghi và sổ lần giao) và một đường chiếu; `Load` thay trọn `facts` (`load.go:27`) nên phải phối hợp (U2) |
 | A2: thêm cột `kind`, `disposition` vào `facts`, để `aggregate` lọc | một bảng | phải sửa lõi đọc (làn 1); fact trộn lẫn bản ghi không dùng được; cách ly vẫn không có chỗ vì không phải fact |
 | A3: giữ trong RAM, ghi tệp sidecar | không đổi lược đồ | không bền, không RLS, không đạt "lưu bền" của hàng L1 |
 
@@ -160,6 +179,32 @@ Ràng buộc kiến trúc phải giữ:
 | Giữ như cũ, chỉ thêm khoá | nhỏ nhất | LC63 và §7.4 vẫn mâu thuẫn với TR3: đúng điều ghi chú F02 nêu |
 | Mức cô lập SERIALIZABLE kèm thử lại | không tự quản khoá | mã thử lại ở mọi đường ghi; báo lỗi tuần tự hoá oan; khoá tư vấn đã có tiền lệ ở `Load` |
 
+### I. Quyết định của người và TR3 (ghi chú soát vòng 2 R2-01; quyết định D5)
+
+Các con số dưới đây là [SUY, mô phỏng luật bằng script tạm không commit, không phải mã]: 30.000 chuỗi sự kiện ngẫu nhiên (3 đến 10 sự kiện gồm nạp, quyết định, `KEEP_BOTH`, `MARK_DUPLICATE`, thu hồi; 2 đến 5 bản; 195.026 trạng thái kiểm sau từng sự kiện). Bất biến kiểm: hai bản liền kề trong nhóm, cách ≤ W, chưa được người xét cặp thì không cùng `ACCEPTED`; đánh giá lại là điểm bất động.
+
+| Phương án | Ưu | Nhược |
+|---|---|---|
+| **Quyết định của người chạy TR3 như mọi đường vào nhóm; chỉ `KEEP_BOTH` miễn, cho đúng cặp đã xét (chọn)** | đóng đường cộng đôi im lặng khi người quyết một bản đang `HELD` vì lý do khác; không cần khái niệm "bản được bảo vệ"; kết cục TR3 là hàm của nhóm và của các cặp đã xét; mô phỏng: 0 chuỗi vi phạm | thêm một bước người (`KEEP_BOTH`) cho bản vừa được quyết mà nghi trùng; bản đã quyết có thể bị giữ lại khi bản gửi sớm đến muộn (không im lặng: vào hàng chờ, có người nhận) |
+| Quyết định của người miễn TR3 (luật vòng 2) | một bước người | cộng đôi im lặng (R2-01): A `ACCEPTED`, B `HELD` vì lý do khác, người quyết B thì cả A và B vào tổng; chữa một chiều vẫn hở chiều ngược |
+| Bản đã quyết được bảo vệ khỏi đánh giá lại; máy giữ bản kia của cặp (hai chiều) | không đổi bản người đã quyết | mô phỏng: 54 trong 30.000 chuỗi vẫn có hai bản liền kề cùng `ACCEPTED` (ví dụ sau khi bản ở giữa rời nhóm làm hai bản đã quyết liền kề); thêm khái niệm bảo vệ và luật hai chiều |
+
+### J. Bản rời nhóm TR3 (ghi chú soát vòng 2 R2-02; quyết định D5)
+
+| Phương án | Ưu | Nhược |
+|---|---|---|
+| **Chỉ siết: bản `HELD` ở lại khi bản đứng trước rời nhóm; ghi ngoại lệ có tên (`HOP-DONG.md` §7.4 (c), U10) (chọn)** | giữ nguyên tắc "máy không nhả `HELD`" (BB6, BB7) và luật F02 đã qua soát; không thêm cơ chế; cả hai kết cục an toàn (tổng không cộng đôi, không bản nào rơi) | thứ tự đến của thu hồi, sửa tin, bác đổi `HELD` hay `ACCEPTED` của bản đứng sau; thêm việc người |
+| Tính lại tất định: máy nhả `HELD` khi không còn bản đứng trước cách ≤ W | kết cục là hàm của tập bản kể cả khi thu hồi | máy tự nhả `HELD`, đổi nguyên tắc đã soát; phải kiểm bằng bộ ca; câu mở Q-0A-13 |
+| Bản rời nhóm vẫn là "bản đứng trước" (bóng) | tất định theo thứ tự đến | giữ oan bản đúng vì một bản không còn tính vào tổng; phải giữ bóng của mọi phiên bản |
+
+### K. Kế thừa thực thể (ghi chú soát vòng 2 R2-02; quyết định D10)
+
+| Phương án | Ưu | Nhược |
+|---|---|---|
+| **Chỉ trong lô, theo `(sent_at, unit_key)` (chọn)** | bỏ phụ thuộc thứ tự dòng; chặn việc nhận thực thể của tin xa hơn khi tin gửi xen giữa đến sau [SUY từ mã]; không thêm cơ chế đánh giá lại | tin chỉ có lượng ở lô khác bị cách ly `unknown_entity` (an toàn; người `CORRECT`); connector giao từng tin (Phase 8) không kế thừa được |
+| Giữ thứ tự xử lý như mã hôm nay (`c.last`, `ingest.go:271-285`) | không đổi mã | đảo hai dòng thì tin thứ hai bị cách ly (người soát vòng 2 đo); và có thể nhận nhầm thực thể im lặng [SUY] |
+| Xuyên lô qua kho theo `sent_at`, đánh giá lại tin đã cách ly khi tin mang thực thể đến muộn | tất định cả khi chia lô | máy nhả `QUARANTINED`; thêm cơ chế; câu mở Q-0A-14 |
+
 ## Hệ quả
 
 **Tích cực**
@@ -177,7 +222,7 @@ Ràng buộc kiến trúc phải giữ:
 6. **`sender_id` chưa xác thực** (Phase 5, 8).
 7. **Danh bạ người gửi** là dữ liệu mới phải có người nuôi.
 8. **Hình dạng tin Zalo thật chưa biết** (U5): phong bì là giả định.
-9. **Write-set của làn 4** phải mở rộng (Q-0A-12).
+9. **Write-set của làn 4** phải mở rộng (Q-0A-12), và hai việc ở làn 0, một việc ở làn 1 phải có chủ (Q-0A-15, nợ 21).
 10. **Pack đổi** (`lexicon`, `policy`, `sources`) làm `PackVersion` đổi: các chỗ ghim phiên bản (bằng chứng đã đóng băng) cần kiểm khi mở mã.
 11. **Câu trả lời cũ không tự cập nhật** khi đính chính được áp: thuộc Phase 3.
 12. **Kết luận chỉ "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt"**: câu 1 và 8 của cổng QuânIT còn ✗.
@@ -185,21 +230,27 @@ Ràng buộc kiến trúc phải giữ:
 14. **Khoá tư vấn theo (tenant, thực thể, ngày xảy ra)** làm các giao dịch cùng (thực thể, ngày) xếp hàng; thông lượng chưa đo (U3).
 15. **Sổ lần giao thêm một dòng cho mỗi đơn vị mỗi lần giao**, kể cả `ACCEPTED`; dung lượng chưa đo, chính sách lưu giữ chưa có (Phase 5).
 16. **`id_conflict` phụ thuộc thứ tự đến** (ngoại lệ có tên của §7.4 và LC63): luật đối xứng chưa chọn (U9).
+17. **Quyết định của người không miễn TR3** (R2-01): người quyết một bản đang `HELD` vì lý do khác mà bản đó nghi trùng thì phải quyết thêm `KEEP_BOTH`; bản đã quyết có thể bị giữ lại khi bản gửi sớm đến muộn. Thêm việc người; tần suất chưa đo (U4).
+18. **Bản rời nhóm TR3** (R2-02): thu hồi, sửa tin, bác làm thứ tự đến đổi `HELD` hay `ACCEPTED` của bản nghi trùng đứng sau (an toàn: không cộng đôi, không rơi bản); hai bản `ACCEPTED` không liền kề (có bản `HELD` ở giữa), cách ≤ W, không bị chặn trực tiếp. Q-0A-13, U10.
+19. **Kế thừa thực thể chỉ trong lô** (R2-02): tin chỉ có lượng ở lô khác bị cách ly; connector giao từng tin không kế thừa được. Q-0A-14, U11.
+20. **Đơn vị không có `sent_at` không vào TR3** (R2-06): cùng báo cáo xuất lại với số dòng hoặc chữ khác, hoặc đổi tên sang ngày khác, có thể bị tính hai lần. U12.
+21. **Việc chéo làn** (R2-07): kho PG và luật nạp ngoài write-set làn 4 (Q-0A-12); nối route và phát `L1.*` ở làn 0, "≈" ở làn 1 (Q-0A-15). Phương án lùi ở `HOP-DONG.md` §14.1. GA3 phần "≈", GA10 và đường nạp qua HTTP có thể giữ ĐỎ vì lý do làn, không vì lỗi mã 0a.
+22. **Trường của hệ** (R2-04): phép so "cùng byte" bỏ `trace_id`, `batch_id`, `recorded_at`, `decided_at` và dấu thời gian do hệ sinh (`HOP-DONG.md` §3.7); bộ chạy của đường form phải đặt được đồng hồ của hệ nhận.
 
 ## Chứng minh (thứ tự)
 
-Điều kiện mở mã: H4 chạy xong; D-OP-14 đã vào main (có); hợp đồng đơn vị nạp của làn 0 chốt; write-set làn 4 mở rộng; bộ ca độc lập đóng băng và băm.
+Điều kiện mở mã: H4 chạy xong; D-OP-14 đã vào main (có); hợp đồng đơn vị nạp của làn 0 chốt; việc chéo làn có chủ (`HOP-DONG.md` §14.1: kho PG và luật nạp theo Q-0A-12 hoặc phương án lùi; nối route và phát `L1.*` ở làn 0; "≈" ở làn 1 trước khi đo GA3); bộ ca độc lập đóng băng và băm.
 
 1. **Đo nền trên mã hiện tại** (luật trước và sau khi đo, `docs/PROMPT-BUILD-EAIS.md` §3): bộ kiểm bảo toàn không import bộ nạp cộng bộ ca độc lập (người không đọc mã soạn, đóng băng, băm). Ghi nền đỏ theo nhóm. Đỏ dự kiến: A (HT-9), B (HT-1, 2, 3), C (HT-5), E (HT-4), F (chưa có quyền), G (HT-10), H, I (HT-8); nhóm D có thể xanh phần lớn vì D-OP-14 [SUY, chưa đo bằng bộ độc lập].
-2. **Kho bản ghi, sổ lần giao và kết cục** (D1): nền của mọi thứ sau; đột biến DB28.
-3. **Chống trùng** TR1, TR2, TR3 (D5): đột biến DB05, DB06, DB07, DB16, DB26, DB27.
+2. **Kho bản ghi, sổ lần giao và kết cục** (D1): nền của mọi thứ sau; đột biến DB01, DB02, DB20, DB28.
+3. **Chống trùng** TR1, TR2, TR3 (D5): đột biến DB05, DB06, DB07, DB16, DB26, DB27, DB29, DB30, DB33.
 4. **Cờ loại** (D3, D4): đột biến DB03, DB04, DB17, DB19.
 5. **Thời gian** (`occurred_on`): đột biến DB08.
-6. **Quyền người gửi và danh bạ** (D6): đột biến DB09, DB10.
-7. **Phục hồi** (sửa tin, thu hồi, đảo thứ tự, dừng giữa lô): đột biến DB11, DB15, DB21, DB27.
+6. **Quyền người gửi, danh bạ và kế thừa thực thể** (D6, D10): đột biến DB09, DB10, DB32.
+7. **Phục hồi** (sửa tin, thu hồi, đảo thứ tự, dừng giữa lô): đột biến DB11, DB15, DB21, DB27, DB31.
 8. **Báo cáo xuất** (D7): đột biến DB14.
 9. **Nhánh form / bot** (D8): đột biến DB25.
-10. Chạy bộ ca độc lập **một lần** ở mã đóng băng; báo cáo theo GA1–GA11; không chỉnh lexicon theo bộ này sau khi chạy (`docs/PROMPT-BUILD-EAIS.md` §9.9). Đột biến DB22, DB23 (GA6) và DB24 (GA10) chạy cùng bước này.
+10. Chạy bộ ca độc lập **một lần** ở mã đóng băng; báo cáo theo GA1–GA11; không chỉnh lexicon theo bộ này sau khi chạy (`docs/PROMPT-BUILD-EAIS.md` §9.9). Đột biến DB12, DB13, DB18 (GA5: đọc số, không model; đọc số đã có từ D-OP-14), DB22, DB23 (GA6) và DB24 (GA10) chạy cùng bước này.
 11. Ghi "PHASE 0A RA" (M2 ra khi GA1–GA6 đạt), kèm câu "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt".
 
 Mỗi bước: test đỏ trước → sửa nhỏ nhất → đo → đột biến → soát độc lập. Quá ba vòng soát còn lỗi cùng họ thì khoá và ghi nợ (§9.6 của brief). Một dòng không đạt được chỉ bằng luật: ghi vào CHO để chủ dự án chọn, **không tự nới ngưỡng**.
@@ -214,5 +265,24 @@ Mỗi bước: test đỏ trước → sửa nhỏ nhất → đo → đột bi�
 
 ## Câu mở và điểm chưa kiểm chứng
 
-- Câu mở cho chủ dự án: `HOP-DONG.md` §15 (Q-0A-1…Q-0A-12). Chặn nhiều nhất: Q-0A-12 (write-set làn 4), Q-0A-4, Q-0A-5, Q-0A-6, Q-0A-7 (chính sách), D-OP-17 (nghĩa của "k").
-- Điểm chưa kiểm chứng: `HOP-DONG.md` §16 (U1–U9). Riêng ADR này: điểm nối với M1 (mã lô cấp mới so với mã lần nạp suy từ nội dung; quyền đổi trạng thái của kho bản ghi so với vai `eais_app` chỉ SELECT + INSERT) chưa chốt; chi phí người xác nhận và tỉ lệ `HELD` chưa đo; `Load` phối hợp chưa thử; khoá tuần tự hoá TR3 và sổ lần giao chưa đo thông lượng và dung lượng.
+- Câu mở cho chủ dự án: `HOP-DONG.md` §15 (Q-0A-1…Q-0A-15). Chặn nhiều nhất: Q-0A-12 và Q-0A-15 (write-set, việc chéo làn), Q-0A-4, Q-0A-5, Q-0A-6, Q-0A-7 (chính sách), D-OP-17 (nghĩa của "k"). Q-0A-13 và Q-0A-14 có mặc định an toàn nên không chặn.
+- Điểm chưa kiểm chứng: `HOP-DONG.md` §16 (U1–U12). Riêng ADR này: điểm nối với M1 (mã lô cấp mới so với mã lần nạp suy từ nội dung; quyền đổi trạng thái của kho bản ghi so với vai `eais_app` chỉ SELECT + INSERT) chưa chốt; chi phí người xác nhận và tỉ lệ `HELD` chưa đo; `Load` phối hợp chưa thử; khoá tuần tự hoá TR3 và sổ lần giao chưa đo thông lượng và dung lượng.
+
+## Ghi chú soát đã xử lý
+
+Mã ghi chú do người soát đặt; nội dung đầy đủ nằm ở báo cáo của người soát (phiên điều phối ghi vào `docs/bao-cao/` khi gộp). Bảng này chỉ cho biết ghi chú nói gì và đã sửa ở đâu. Mức: S2 nặng hơn S3, S3 nặng hơn S4.
+
+| Mã | Mức | Ghi chú (một dòng) | Sửa ở |
+|---|---|---|---|
+| F01 | S3 | chỗ ở của `DUPLICATE`: kho bản ghi có khoá duy nhất theo `unit_key` nên bản trùng không thể là dòng thứ hai | `HOP-DONG.md` §3.8; ADR D1, mục G |
+| F02 | S3 | kết cục TR3 phụ thuộc thứ tự đến, và hai tiến trình nạp song song cho cả hai bản `ACCEPTED` | `HOP-DONG.md` §5.6, §7.4, LC74, LC75; ADR D5, mục H |
+| F03 | S3 | có dòng cổng không có đột biến nào, hai bảng §11.1 và §11.3 lệch nhau | `HOP-DONG.md` §11; `CONG-QUANIT.md` §5 |
+| R2-01 | S2 | quyết định của người đưa bản `HELD` (lý do khác) thành `ACCEPTED` mà không chạy TR3 với bản đứng trước: cộng đôi im lặng | `HOP-DONG.md` §5.1, §5.6 mục 3, §6.2, LC77, LC78, DB29, DB30; ADR D5, mục I, nợ 17 |
+| R2-02 | S3 | thứ tự đến vẫn đổi kết cục khi có thu hồi, sửa tin, bác (bản rời nhóm) và ở kế thừa thực thể, mà §7.4 và LC63 khẳng định bất biến | `HOP-DONG.md` §5.6 mục 4, §7.4, LK7, LC63, LC81, LC82, DB31, DB32, U10, U11, Q-0A-13, Q-0A-14; ADR D10, mục J, K, nợ 18, 19 |
+| R2-03 | S3 | GA11 không có ca nào làm DB25 đỏ; phải rà DB22 đến DB28 xem mỗi đột biến có ca của đúng dòng đó | `HOP-DONG.md` LC76, §11.3 (cột ca làm đỏ), LC01, LC64; ADR Cổng đổi kiến trúc hàng 9 |
+| R2-04 | S3 | đòi "cùng byte" nhưng `trace_id`, `batch_id`, `recorded_at` khác nhau mỗi lần chạy | `HOP-DONG.md` §3.7 (trường của hệ), BB5, §6.4, LC54, LC69, GA5, §13.2; ADR nợ 22 |
+| R2-05 | S3 | sổ lần giao thiếu bảng cho sửa tin, thu hồi, dấu thu hồi, quyết định; TR1 với `recalled`; sửa A, B, A; thua đua khoá duy nhất | `HOP-DONG.md` §3.8 (bảng lần giao), §5.1 TR1, §6.2, §7.2, §7.3, §7.5, §9, LC59 đến LC62, LC65 |
+| R2-06 | S3 | vân tay TR2 cần `sender_id`, `sent_at` mà dòng PDF và hàng bảng không có | `HOP-DONG.md` §5.1 TR2, LC79, LC80, DB33, U12; ADR D5, nợ 20 |
+| R2-07 | S3 | phụ thuộc chéo làn chưa đóng: kho PG và luật nạp ngoài write-set làn 4, hai việc ở làn 0, "≈" ở làn 1 | `HOP-DONG.md` §1.4, §14.1 (bảng việc, làn, tệp; phương án lùi; mục 6), Q-0A-12, Q-0A-15; ADR bối cảnh 8, D2, "Nơi đặt mã", nợ 9, 21 |
+| R2-08 | S4 | sót nhỏ: "mỗi đơn vị" thành "mỗi lần giao"; "thêm một bảng"; dòng "Đỏ dự kiến" của nhóm D; bước "Chứng minh" thiếu sáu đột biến; GA6 "Đúng" so với sổ hay bản ghi; số dòng của D-OP-17 ở CHO | `HOP-DONG.md` §1.2, GA1, §14.2, §3.8, §11.2, LK5, Q-0A-2; `CONG-QUANIT.md` câu 8; ADR A1, "Chứng minh" |
+| R2-09 | S4 | rebase lên origin/main; câu nói ADR-0011 còn giữ số migration cũ trở thành sai sau khi gộp (cũng là ghi chú L3D-07 của làn M4) | ADR "Số ADR", "Nơi đặt mã" |

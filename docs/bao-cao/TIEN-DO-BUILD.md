@@ -22,7 +22,9 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     đầu XANH;
   - **H4 theo tầng (xong):** S4 sai đầu tiên ở 10 / 119 = 8,4% (> 5%), 3 câu sai nghĩa không nhãn ⇒ dòng S4 KHÔNG ĐẠT ⇒ **M3 chưa RA,
     chờ D-AI-02** (CHO, khuyến nghị: sửa tiếp bằng luật C3 / C4 / C5 / N1 rồi chấm trên bộ giữ lại mới);
-  - M4: sửa 4 ghi chú L3C-01…04 của giấy Phase 1 (tác giả → người soát); nợ S4 sau H4 (ở máy, đang soát);
+  - M4: giấy Phase 1 sửa xong 4 ghi chú L3C-01…04 + kịch bản demo (commit chứa dòng này; soát ĐẠT CÓ GHI CHÚ). Trước khi mở mã M4:
+    sửa 8 ghi chú S3 L3D-01…08 và soạn + băm + commit bộ ca giữ lại độc lập của Phase 1 (HOP-DONG §13, L3D-10); nợ S4 sau H4 (ở máy, soát
+    vòng 2);
 - **Tiếp theo:**
   1. Soát khoá vòng 4 kết luận (chỉ sửa tiếp nếu còn phán quyết sai chiều).
   2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai` đã tạo; băm tệp ca khớp bản đóng băng) → báo cáo theo tầng sai đầu
@@ -85,3 +87,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 15:4x | 22 commit làn 0 (`b88b23b` … `9ed7a6a` trên nhánh, cherry-pick lên main) + commit chứa dòng này | **M1: ứng dụng + vết từng bước** (làn 0) | Cổng ở bản tích hợp: vet 0; gofmt 0; test có PG 601 pass, 0 fail, 0 skip — so theo tên 0 đổi / 0 mất, 122 mới; `scripts/kiem-skip-test.py` XANH; 117 / H1 / H3 / H4 hai đường 0 dòng khác; một lệnh từ clone sạch (`scripts/chay-thu.sh`): PG có sẵn 1 s, tự dựng PG bằng compose 4 s — smoke E2E 21 đạt / 0 hỏng cả hai; `eais trace <id>` in bảng S0–S10 cho lượt thường và lượt lỗi, tenant sai thì không thấy | Ghi chú S3 của soát U0.2 vòng 2: R2-01 data_version của vết có thể chưa từng nạp; R2-02 code_version "(devel)" khi dựng trong worktree; R2-03 5/11 bước chưa có lý do / phương án bị loại (cần móc ở core/pipeline — M5 dòng vết); R2-04 một lệnh với mặc định dùng lại và ghi đè container eais-pg đang chạy |
 | 22/10 15:5x | commit chứa dòng này | H4 theo tầng sai đầu tiên + câu mở **D-AI-02** | Người phân tích chạy lại 15 ca qua pipeline thật; người kiểm chéo độc lập chạy lại 13 ca: đồng ý 13 / 13. S4 ở 10 ca (C3 / S4R-05 ×5, C4 ×2, C5 ×2, N1 ×1), cổng phán quyết ở 5 ca (đóng thừa); 3 câu sai nghĩa không nhãn (758, 847, 854) | Dòng S4 của CỔNG TRƯỚC AI KHÔNG ĐẠT; M3 chưa RA; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
 | 22/10 15:5x | commit chứa dòng này | **M1 RA** | CI GitHub run 39750100276 (`41bc3cf`): success — vet, gofmt, go test có PG (service postgres:17 ghim digest), cấm SKIP / FAIL, cổng danh tính, smoke E2E một lệnh; cộng các số đo ở máy của dòng 15:4x | Ghi chú S3 R2-01…04 của soát U0.2 xếp hàng, không chặn M1 |
+| 22/10 16:1x | commit chứa dòng này | M4 bước 1: giấy Phase 1 sửa L3C-01…04 + demo (lượt "Tạo phiếu kiểm tra" vào bằng route lệnh riêng `POST /v1/commands/open_discrepancy_ticket` của `cmd/eais`, vết lệnh C0–C7; mã lệnh đặt ở `execution/commands`, `core/` không chạm tệp nào; câu Q-P1-8 mặc định (a)) | Soát độc lập ĐẠT CÓ GHI CHÚ (0 S1 / S2; 8 ghi chú S3 L3D-01…08); quét 0 đường dẫn máy, 0 ký tự lạ; cổng danh tính xanh | Điều phối cập nhật các câu trạng thái H4 đã cũ (L3D-06) khi gộp. Chờ trước mã M4: L3D-01…08, bộ ca giữ lại độc lập Phase 1 (L3D-10) |

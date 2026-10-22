@@ -2,7 +2,8 @@
 
 > **Trạng thái: GIẤY, chưa có mã.**
 > - Mã Giai đoạn II chỉ mở sau khi chạy xong H4: D-RM-04 = A (`docs/CHO-QUYET-DINH.md` mục 0, dòng 22/10 11:2x).
-> - H4 đã khoá và CHƯA chạy (`docs/STATUS.md`).
+> - H4 đã chạy MỘT lần ngày 22/10 14:59 ở `57409f2` (104/119 hai đường; `docs/STATUS.md`).
+> - Cập nhật 22/10/2026 theo bốn ghi chú L3C-01…04 của lần soát lại (xem đầu `HOP-DONG.md`): cửa vào `cmd/eais`, vết của lượt lệnh, nơi đặt mã dưới `execution/commands`. Dấu chấm của chín câu **không đổi**.
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc bác từng câu chấm;
@@ -37,7 +38,7 @@
   - không chặn việc viết giấy, và không chặn mã khi D-RM-04 cho phép;
   - mọi kết luận về Phase 1 ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
   - không tuyên bố Phase 1 "đáng giá": phép đo giá trị chưa có số nền (câu 1).
-- **Cổng gốc** (`docs/ROADMAP-DAY-DU.md` §4.2): xem §5. Điều kiện 1 (phase tiên quyết) **chưa đạt** vì H4 chưa chạy: đó là lý do mã đang bị chặn.
+- **Cổng gốc** (`docs/ROADMAP-DAY-DU.md` §4.2): xem §5. Điều kiện 1 (phase tiên quyết) **đã đạt**: H4 đã chạy một lần (22/10 14:59).
 
 ---
 
@@ -48,12 +49,12 @@
 - **Nguồn của việc:**
   - `docs/ROADMAP-DAY-DU.md` §5 luồng L3 và §6, bảng phase, dòng Phase 1;
   - `docs/05-master-roadmap.md:37` (câu gốc: "tạo phiếu yêu cầu kiểm tra chênh lệch EX-03");
-  - `docs/ROADMAP-DAY-DU.md` §5b, khối M4 của MVP (D-MVP-00; đọc ở `main` sau mốc `c086fe7`): Phase 1 là phần tạo phiếu của chuỗi "phát hiện chênh lệch → tạo phiếu" (`HOP-DONG.md` §1.4);
+  - `docs/ROADMAP-DAY-DU.md` §5b, khối M4 của MVP (D-MVP-00; đọc ở `main` sau mốc `c086fe7`): Phase 1 là phần tạo phiếu của chuỗi "phát hiện chênh lệch → tạo phiếu" (`HOP-DONG.md` §1.4); kịch bản demo hai lượt của khối M4: `HOP-DONG.md` §2.6.4;
   - ca nghiệp vụ CON-S-026 (`docs/tenants/construction/05-problem-catalog.md` mục 3), CON-T-010 (`tenants/construction/evals/cases.yaml:314`), ca hỏng CON-F-020 (`docs/tenants/construction/07-failure-catalog.md:76`).
 - **Chế độ B** (EAIS giữ sự thật, quyền, giao dịch): doanh nghiệp chỉ có Zalo, Excel, giấy nên chưa có hệ phiếu nào. Chế độ A (tạo task trên CRM của khách) là Phase 4b, không thuộc đây.
 - **Chênh lệch** là chỉ số dẫn xuất `issue_vs_measured` = dầu kho xuất − dầu tiêu thụ đo được (`tenants/construction/pack/metrics.yaml:50-51`) [CODE].
 - **Ví dụ giả lập:** máy EX-03 trong một ngày: kho xuất 3.850 L, cảm biến đo 3.782 L, chênh lệch 68 L. Hai vế lấy theo ví dụ của `CLAUDE.md` §20; test `tenants/construction/construction_test.go:105-106` (ý định `fuel_variance`, route `CALCULATION`) kiểm câu trả lời chứa "68" [CODE]. Đây là dữ liệu hạt giống giả lập, không phải số của doanh nghiệp nào.
-- **Hiện trạng:** 0 dòng mã thi hành lệnh. Thư mục `execution/`, `governance/`, `cmd/`, `domain/` chưa có tệp nào được git theo dõi [ĐO `git ls-files | grep -E '^(execution|governance|cmd|domain)/'` → rỗng]. `EntryCommand` và route `TOOL` chỉ được khai báo (`core/contracts/contracts.go:196`, `:210`); route `TOOL` rơi vào nhánh lỗi `core/pipeline/ask.go:187-190` [CODE]. 17 ca COMMAND tồn tại dạng dữ liệu, chưa có bộ chạy [ĐO `grep -c "entry_type: COMMAND" tenants/construction/evals/cases.yaml` → 17].
+- **Hiện trạng:** 0 dòng mã thi hành lệnh. Thư mục `execution/`, `governance/`, `cmd/`, `domain/` chưa có tệp nào được git theo dõi [ĐO `git ls-files | grep -E '^(execution|governance|cmd|domain)/'` → rỗng; đo lại tại `5d69d24`: 0 dòng]. `cmd/` sẽ có khi làn 0 gộp (`cmd/eais`: ứng dụng HTTP và CLI, không thi hành lệnh; `HOP-DONG.md` §1.3). `EntryCommand` và route `TOOL` chỉ được khai báo (`core/contracts/contracts.go:196`, `:210`); route `TOOL` rơi vào nhánh lỗi `core/pipeline/ask.go:187-190` [CODE]. 17 ca COMMAND tồn tại dạng dữ liệu, chưa có bộ chạy [ĐO `grep -c "entry_type: COMMAND" tenants/construction/evals/cases.yaml` → 17].
 - **Đường hỏi coi câu lệnh là câu hỏi** [ĐO, test thăm dò tạm không commit, tại `c086fe7`, `1e5457b` và `7d72e33`; chi tiết `HOP-DONG.md` §1.5]: "Tạo phiếu kiểm tra chênh lệch máy EX-03 hôm qua" được trả lời như câu hỏi tính toán (route `CALCULATION`, ý định `fuel_variance`): "Chưa có dữ liệu Chênh lệch dầu kho xuất và dầu tiêu thụ đo được của Máy xúc EX-03 ngày 18/10/2026."; cùng câu với "hôm nay" cho "68 L". Động từ "Tạo phiếu" bị bỏ qua im lặng: người dùng không được báo là chưa có phiếu nào. Cùng họ với CON-F-020 nhưng chưa có lời "đã tạo". Chặn ở đường hỏi nằm ngoài Phase 1 (nợ cho S4 hoặc Phase 6).
 - **Ánh xạ CON-S-026 / CON-T-010 sang Phase 1** (không trùng khít: hai ca này thuộc domain bảo trì thiết bị, Phase 1 là chênh lệch nhiên liệu). Thuộc tính của CON-T-010 (`tenants/construction/evals/cases.yaml:314-337` tại `c086fe7`) và cách Phase 1 xử lý:
 
@@ -93,11 +94,11 @@
 
 - **Trả lời.**
   - Người dùng (giả định): kế toán (`accountant`) làm đối soát nhiên liệu cuối kỳ; quản lý dự án (`project_manager`) của dự án chứa máy.
-  - Việc: biến một chênh lệch đã phát hiện thành một bản ghi có chủ, có vết, không trùng. Hôm nay chênh lệch chỉ hiện trong câu trả lời của luồng hỏi và không được lưu ở đâu.
+  - Việc: biến một chênh lệch đã phát hiện thành một bản ghi có chủ, có vết, không trùng. Hôm nay chênh lệch chỉ hiện trong câu trả lời của luồng hỏi; không có bản ghi nào có chủ, có trạng thái, có người nhận (khi làn 0 gộp, câu trả lời nằm trong vết gỡ lỗi `decision_records`, nhưng vết đó không phải phiếu).
   - Giá trị đo được (đề xuất phép đo, chưa có số): (a) thời gian từ lúc có chênh lệch vượt ngưỡng tới lúc có phiếu; (b) tỉ lệ chênh lệch vượt ngưỡng có đúng một phiếu; (c) số lần hệ báo "đã tạo" mà không có phiếu, đích 0.
 - **Bằng chứng / nguồn.**
   - Vai và bước đối soát: `docs/tenants/construction/01-business-map.md` §3.11 (kế toán: "đối soát nhiên liệu"; ngoại lệ "lệch giữa các chỉ số nhiên liệu") [REPO].
-  - Chênh lệch chỉ hiện trong câu trả lời: route `CALCULATION` ở `intelligence/router/router.go:239` [CODE]; bản ghi quyết định chưa lưu bền (`docs/01-architecture.md` §4 L7, dòng "lưu bền bản ghi quyết định: chưa có") [REPO].
+  - Chênh lệch chỉ hiện trong câu trả lời: route `CALCULATION` ở `intelligence/router/router.go:239` [CODE]; bản ghi quyết định chưa lưu bền ở `main` (`docs/01-architecture.md` §4 L7, dòng "lưu bền bản ghi quyết định: chưa có") [REPO]; làn 0 sắp lưu vết bền từng lượt hỏi (`decision_records`), nhưng đó là vết gỡ lỗi, không phải bản ghi nghiệp vụ có chủ [CODE, nhánh làn 0 chưa gộp].
   - Lời hứa không có việc đứng sau: mẫu câu "đã chuyển người phụ trách đối soát" (`tenants/construction/pack/templates.yaml:16-17`) [CODE]. **Phase 1 một mình không sửa được lời hứa này**: chưa có người nhận phiếu cho tới Phase 2.
   - Số nền: KPI "Chênh lệch nhiên liệu" ghi "chưa đo" (`01-business-map.md:498`) [REPO].
 - **Qua cổng? ✗.** Giống Fuel (`docs/ROADMAP-DAY-DU.md` §7): tenant hư cấu (`01-business-map.md:3`), chưa có người dùng thật, chưa có số nền.
@@ -150,7 +151,7 @@
 
 | Ngữ cảnh | Nguồn | Quyền đọc |
 |---|---|---|
-| danh tính bên gọi (tenant, vai, `entity_scope`) | Principal do bên gọi tin cậy dựng; **chưa có xác thực** (Phase 5) | không áp dụng |
+| danh tính bên gọi (tenant, vai, `entity_scope`) | Principal lấy từ token của `cmd/eais` (ở dev: token công khai, chỉ loopback); **chưa có xác thực thật** (Phase 5) | không áp dụng |
 | máy cần kiểm tra và các tổ tiên của nó | danh mục thực thể, `entityresolution.Lineage` (`data/entityresolution/resolver.go:249-251`) | phạm vi thực thể (`router.go:143-161`) |
 | hai vế chênh lệch | fact `issued_fuel`, `measured_consumption` qua `Catalog.Derive` (`query.go:251`): thẩm quyền, dung sai, xung đột | `metrics.read` cho **cả hai vế**, như câu so sánh ở luồng hỏi (`router.go:203-209`) |
 | chính sách | `policy.yaml` (vai → capability); `tools.yaml` (ĐÍCH) | không áp dụng |
@@ -158,7 +159,7 @@
 | "hôm nay" | múi giờ của tenant (`pack.yaml`) | không áp dụng |
 
 - **Không gom:** tin chat, tài liệu SOP, lịch sử hội thoại, đầu ra của model.
-- **Bằng chứng / nguồn:** cột "Nguồn" và "Quyền đọc" của bảng; Principal chưa có xác thực: `docs/01-architecture.md` §4 L7 [REPO].
+- **Bằng chứng / nguồn:** cột "Nguồn" và "Quyền đọc" của bảng; xác thực thật chưa có, token dev của làn 0 là công khai (`HOP-DONG.md` §1.3): `docs/01-architecture.md` §4 L7 [REPO].
 - **Qua cổng? ✓.**
 
 ### Câu 7. Thiếu hay mâu thuẫn thì hỏi lại thế nào?
@@ -228,7 +229,7 @@
 
 | # | Điều kiện | Trạng thái | Nguồn |
 |---|---|---|---|
-| 1 | Phase tiên quyết đã đạt | **Chưa.** D-RM-04 = A: mã mở "sau khi chạy xong H4"; H4 đã khoá (`15f04f9`), chưa chạy, chờ vòng sửa S4 | `docs/CHO-QUYET-DINH.md` mục 0; `docs/STATUS.md` |
+| 1 | Phase tiên quyết đã đạt | **Đạt.** D-RM-04 = A: mã mở "sau khi chạy xong H4"; H4 đã chạy một lần 22/10 14:59 (`57409f2`) | `docs/CHO-QUYET-DINH.md` mục 0; `docs/STATUS.md` |
 | 2 | Có lỗi đo được hoặc ca nghiệp vụ đòi năng lực mới | **Có ca nghiệp vụ** (CON-S-026, CON-T-010, CON-F-020; hai ca đầu thuộc domain bảo trì, Phase 1 đáp ứng một phần: ánh xạ ở mục 1); **có một lỗi đo được**: đường hỏi coi câu lệnh là câu hỏi (mục 1, [ĐO]; chưa xếp mức, chưa đo thiệt hại). Quan sát trong mã: mẫu câu hứa chuyển người mà không có việc nào đứng sau (`templates.yaml:16-17`) | mục 1, câu 1 |
 | 3 | Trả lời được "ai sở hữu?" | Trả lời đủ 10 mặt ở `HOP-DONG.md` §8 (giấy) | `docs/05-master-roadmap.md:30` |
 | 4 | Cổng ra nhị phân, có ca âm chứng minh cổng đỏ được | Viết ở `HOP-DONG.md` §10 (ca âm), §11 (cổng ra, đột biến) (giấy; chưa chạy) | `docs/ROADMAP-DAY-DU.md` §6 |

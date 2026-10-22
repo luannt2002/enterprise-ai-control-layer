@@ -419,8 +419,17 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "Đội báo ngày 19/10 tuần 43, EX-03 được cấp 4000 L đúng không?"},
 		{q: "ERP 2 ca, EX-03 hôm nay được cấp 3900 L đúng không?"},
 		{q: "ERP 5 người, EX-03 hôm nay được cấp 3900 L đúng không?"},
-		// "lẻ" cuối số bằng chữ: xấp xỉ (soát D-OP-14 F1)
+		// "lẻ" cuối số bằng chữ: xấp xỉ (soát D-OP-14 F1); "<chục> trăm" là nói tắt (soát khoá vòng 2)
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lẻ lít dầu đúng không?"},
+		{q: "EX-03 hôm nay được cấp bốn nghìn lẻ lít dầu đúng không?"},
+		{q: "Lu 02 hôm nay được cấp mười hai trăm lít dầu đúng không?"},
+		// số trần mang đơn vị nhờ "dầu" và con số của cụm khác không phải lượng riêng của cụm (soát khoá vòng 2; ERP ghi 3.900 L)
+		{q: "Dầu ERP 19-10, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "Dầu ERP 19-10, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Dầu đội báo 43, EX-03 hôm nay được cấp 4000 L đúng không?"},
+		{q: "ERP, đội báo 4000 L, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "ERP, hoá đơn 4100 L, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "Đội báo, ERP 3900 L, EX-03 hôm nay được cấp 4000 L đúng không?"},
 		// số bằng chữ kết thúc bằng "<hàng> <một chữ số>": nói thường là hàng kế dưới (1.200, 3.800), bộ đọc cho 1.002, 3.008
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám lít dầu đúng không?"},

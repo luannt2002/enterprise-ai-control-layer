@@ -89,6 +89,11 @@ func TestVerdictGap(t *testing.T) {
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1200", want: "value"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3850", want: "value"},
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lẻ lít dầu đúng không?", claimed: "1200", want: "value"}, // "lẻ" cuối dãy: xấp xỉ
+		{q: "Lu 02 hôm nay được cấp mười hai trăm lít dầu đúng không?", claimed: "210", want: "value"},     // "<chục> trăm": nói tắt
+		// số trần chỉ có đơn vị nhờ chữ "dầu" ("Dầu ERP 19-10") không phải lượng của riêng cụm; con số của cụm KHÁC đứng sau ("ERP, đội báo
+		// 4000 L") không phải của cụm trước (soát khoá vòng 2, phát hiện 2 và 3)
+		{q: "Dầu ERP 19-10, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
+		{q: "ERP, đội báo 4000 L, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
 		// con số "của riêng" cụm ngữ cảnh chỉ là lượng cùng chiều đo: mốc "tuần 43", giờ "8h" không biến cụm thành sự kiện riêng (F2)
 		{q: "ERP 8h, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "Đội báo ngày 19/10 tuần 43, EX-03 được cấp 4000 L đúng không?", claimed: "4000", want: "metric"},

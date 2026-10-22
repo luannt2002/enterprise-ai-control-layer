@@ -129,6 +129,11 @@ func TestAmbiguousNumberWords(t *testing.T) {
 		{"một nghìn hai Linh lít", true},
 		{"một nghìn hai linh rưỡi", true},
 		{"hai trăm lẻ lít", true},
+		// "<chục> trăm" ("mười hai trăm" = 1.200 kiểu nói "mười hai trăm", bộ đọc cộng dồn ra 210): hàng trăm sau hàng chục là nói tắt
+		// (soát khoá vòng 2, phát hiện 1)
+		{"mười hai trăm lít", true},
+		{"mười một trăm", true},
+		{"hai mươi hai trăm", true},
 	} {
 		if got := AmbiguousNumberWords(c.in); got != c.want {
 			t.Errorf("AmbiguousNumberWords(%q) = %v, muốn %v", c.in, got, c.want)

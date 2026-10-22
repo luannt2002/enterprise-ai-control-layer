@@ -184,6 +184,9 @@ func readViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale,
 			lastUnit = 10
 			hasScale = true
 		case vwHundred:
+			if group > 0 {
+				colloquial = true // "mười hai trăm" (= 1.200 kiểu nói tắt): bộ đọc cộng dồn ra 210, không đọc chắc
+			}
 			if pending < 0 {
 				pending = 1 // "trăm" một mình = một trăm
 			}

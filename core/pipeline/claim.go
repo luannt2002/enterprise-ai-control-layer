@@ -138,13 +138,17 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period {
 			return true
 		}
+		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) {
+			return true // số trần chỉ có đơn vị nhờ chữ "dầu" đứng cạnh ("Dầu ERP 19-10"): có thể là ngày, số hiệu — không chắc là lượng
+		}
 		_, same := a.inMetricUnit(sp.Value, def)
 		return !same // lượng khác chiều đo ("8h", "2 ca", "5 người"); số trần và lượng cùng chiều đo được giữ
 	})
-	if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
+	quals := slices.Concat(sources, metrics)
+	if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {
 		return "source"
 	}
-	if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
+	if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {
 		return "metric"
 	}
 	if os := owners(names, in.Spans, idef.Terms); !subj.numberOwned(raw, os, firstStart, firstEnd, lo) {
@@ -346,18 +350,36 @@ func (a *Ask) qualifierPhrases(idef intent.Def, used []string) (sources, metrics
 
 // contextOwners trả các cụm qualifierPhrases ở ngữ cảnh [0, lo) mà KHÔNG có con số nào xen giữa chúng và phạm vi hỏi: chúng có thể là
 // nguồn / chỉ số của con số đứng sau ("… 3850 L. Định mức, 5000 L đúng không?", "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?").
-// Cụm đã có số của riêng nó ("Đội báo 3k, vậy được cấp 3850 L") là một sự kiện riêng của ngữ cảnh. Cụm nằm trong tên thực thể vẫn tính
-// (sai thì về phía không phán quyết).
-func contextOwners(raw string, spans []contracts.Span, inName func(s, e int) bool, phrases []string, lo int) [][2]int {
+// Cụm đã có số của riêng nó ("Đội báo 3k, vậy được cấp 3850 L") là một sự kiện riêng của ngữ cảnh — số của riêng cụm phải đứng TRƯỚC cụm
+// kế tiếp trong all ("ERP, đội báo 4000 L, …": 4000 L là của đội báo, không phải của ERP). Cụm nằm trong tên thực thể vẫn tính (sai thì
+// về phía không phán quyết).
+func contextOwners(raw string, spans []contracts.Span, inName func(s, e int) bool, phrases, all []string, lo int) [][2]int {
 	numberIn := func(s, e int) bool {
 		return slices.ContainsFunc(spans, func(sp contracts.Span) bool {
 			return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= s && sp.Start < e && !inName(sp.Start, sp.End)
 		})
 	}
+	var starts []int // đầu mọi cụm của all ở ngữ cảnh
+	for _, p := range all {
+		for _, sp := range normalization.PhraseSpans(raw, p) {
+			if sp[1] <= lo {
+				starts = append(starts, sp[0])
+			}
+		}
+	}
 	var out [][2]int
 	for _, p := range phrases {
 		for _, sp := range normalization.PhraseSpans(raw, p) {
-			if sp[1] <= lo && !numberIn(sp[1], lo) {
+			if sp[1] > lo {
+				continue
+			}
+			end := lo
+			for _, st := range starts {
+				if st >= sp[1] && st < end {
+					end = st
+				}
+			}
+			if !numberIn(sp[1], end) {
 				out = append(out, sp)
 			}
 		}

@@ -89,8 +89,14 @@ m $C '	keep := func(p string) bool { return keepSrc(p) && !slices.Contains(idef.
 m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) == 1 && used[0] != src.Type {' 'CG61 V5 qualifierPhrases đảo điều kiện: chỉ tên nguồn đã dùng là nguồn khác'
 m $C 'for _, p := range append([]string{src.Label}, src.Aliases...) {' 'for _, p := range src.Aliases {' 'CG63 V5 qualifierPhrases: nhãn của nguồn không là nguồn khác'
 m $C 'for _, p := range slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers) {' 'for _, p := range slices.Concat(a.RT.Intents.MetricKeywords()) {' 'CG65 V5 qualifierPhrases: từ chỉ lượng không là chỉ số khác'
-m $C 'if sp[1] <= lo && !numberIn(sp[1], lo) {' 'if sp[1] <= lo && (!numberIn(sp[1], lo) || true) {' 'CG66 V5 R-1 cụm đã có số của riêng nó vẫn là chủ của con số sau (bỏ numberIn)'
-m $C 'if sp[1] <= lo && !numberIn(sp[1], lo) {' 'if !numberIn(sp[1], lo) {' 'CG67 V5 R-1 cụm ở phạm vi hỏi cũng tính là chủ (bỏ sp[1] <= lo)'
+m $C '			if !numberIn(sp[1], end) {' '			if !numberIn(sp[1], end) || true {' 'CG66 khoá: cụm đã có số của riêng nó vẫn chặn (bỏ numberIn)'
+m $C '			if sp[1] > lo {
+				continue
+			}
+			end := lo' '			if false {
+				continue
+			}
+			end := lo' 'CG67 khoá: cụm ở phạm vi hỏi cũng tính là ngữ cảnh'
 m $C 'return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= s && sp.Start < e' 'return sp.Kind == contracts.ValueQuantity && sp.Start >= s && sp.Start < e' 'CG69 V5 numberIn: số trần không tính là "số xen giữa"'
 m $C 'return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= s && sp.Start < e' 'return sp.Kind == contracts.ValueNumber && sp.Start >= s && sp.Start < e' 'CG70 V5 numberIn: lượng có đơn vị không tính là "số xen giữa"'
 m $C '&& sp.Start >= s && sp.Start < e && !inName(sp.Start, sp.End)' '&& sp.Start >= s && !inName(sp.Start, sp.End)' 'CG71 V5 numberIn: bỏ cận trên (số ở phạm vi hỏi cũng xen giữa)'
@@ -237,22 +243,22 @@ m $C 'sources = append(sources, p)' 'metrics = append(metrics, p)' 'CG199 V5 qua
 m $C 'return sources, metrics' 'return metrics, sources' 'CG200 V5 qualifierPhrases: trả hai danh sách đổi chỗ'
 # Bước KHOÁ (brief BUILD §9.6, ADR-0009): topicQualifier, own và cụm ngữ cảnh làm chủ (extra) đã bỏ — các dòng CG155–CG188, CG202, CG203,
 # CG205, CG206, CG208, CG210, CG80, CG185, CG186 nhắm vào mã đó nên xoá; CG51, CG52, CG189–CG191, CG211 viết lại cho hai lời gọi mới.
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'KH1 khoá: tắt bước khoá cho cụm nguồn khác'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'KH2 khoá: tắt bước khoá cho cụm chỉ số khác'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
-		return "source"' 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'KH1 khoá: tắt bước khoá cho cụm nguồn khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {' 'if false && len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {' 'KH2 khoá: tắt bước khoá cho cụm chỉ số khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {
+		return "source"' 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {
 		return "metric"' 'KH3 khoá: cụm nguồn khác mang nhãn metric'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
-		return "metric"' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {
+		return "metric"' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {
 		return "source"' 'KH4 khoá: cụm chỉ số khác mang nhãn source'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, len(raw))) > 0 {' 'CG51 khoá: cụm nguồn ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, len(raw))) > 0 {' 'KH5 khoá: cụm chỉ số ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, len(raw))) > 0 {' 'CG51 khoá: cụm nguồn ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, len(raw))) > 0 {' 'KH5 khoá: cụm chỉ số ở phạm vi hỏi cũng tính là ngữ cảnh (lo = len)'
 m $C 'owners(names, in.Spans, idef.Terms)' 'owners(names, in.Spans, nil)' 'CG52 owners không loại thuật ngữ của chính ý định'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics[:0], lo)) > 0 {' 'CG189 khoá: không nhận từ khoá chỉ số khác'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources[:0], lo)) > 0 {' 'CG190 khoá: không nhận tên nguồn khác'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, slices.DeleteFunc(slices.Clone(sources), func(p string) bool { return slices.Contains(idef.Keywords, p) }), lo)) > 0 {' 'CG211 khoá R5-5: cụm nguồn trùng từ khoá chính ý định ("phiếu kho") không tính ở ngữ cảnh (soát vòng 4 M13)'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, sentenceStart(raw, lo))) > 0 {' 'KH6 khoá: chỉ xét cụm ở câu trước câu hỏi (V5S4-02/03 lọt)'
-m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, lo)) > 0 && sentenceStart(raw, lo) == 0 {' 'KH7 khoá: chỉ xét khi câu hỏi là câu đầu (V5S4-04 lọt)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, metrics, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, metrics[:0], quals, lo)) > 0 {' 'CG189 khoá: không nhận từ khoá chỉ số khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources[:0], quals, lo)) > 0 {' 'CG190 khoá: không nhận tên nguồn khác'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, slices.DeleteFunc(slices.Clone(sources), func(p string) bool { return slices.Contains(idef.Keywords, p) }), quals, lo)) > 0 {' 'CG211 khoá R5-5: cụm nguồn trùng từ khoá chính ý định ("phiếu kho") không tính ở ngữ cảnh (soát vòng 4 M13)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, sentenceStart(raw, lo))) > 0 {' 'KH6 khoá: chỉ xét cụm ở câu trước câu hỏi (V5S4-02/03 lọt)'
+m $C 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {' 'if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 && sentenceStart(raw, lo) == 0 {' 'KH7 khoá: chỉ xét khi câu hỏi là câu đầu (V5S4-04 lọt)'
 # ---- Vòng 5, lần 2, nhóm THIẾU TEST: các dòng dưới SỐNG ở 95dea0f (chưa test nào đỏ) và phải BỊ BẮT sau khi thêm các ca đề xuất của báo cáo v5db2 (đã chạy: ca đề xuất xanh trên 95dea0f, đỏ khi áp từng đột biến).
 # Kỳ vọng suy từ luật, không chép từ đầu ra. IK1 / CG72 BỊ BẮT ở 03c2c54 rồi mất bảo vệ khi 95dea0f chuyển đề mục thuần sang topicQualifier. CG168 là chỗ lộ lỗ hổng thật: ca "Ngày 19/10, ERP, EX-03 …" đỏ ở 95dea0f (xem báo cáo). ----
 m $I '		if contracts.RouteKind(d.Route) == contracts.RouteSQLQuery && !d.Weak {' '		if true {' 'IK1 từ khoá của ý định không phải số liệu thành ngữ cảnh hợp lệ'
@@ -330,8 +336,21 @@ m $W '		if toks[i].kind != tokWord {
 m $C '		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period {
 			return true
 		}
-		_, same := a.inMetricUnit(sp.Value, def)' '		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period && false {
+		if strings.Contains(sp.Rule,' '		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period && false {
 			return true
 		}
-		_, same := a.inMetricUnit(sp.Value, def)' 'KH8 khoá F2: số của mốc ("tuần 43") thành lượng riêng của cụm'
+		if strings.Contains(sp.Rule,' 'KH8 khoá F2: số của mốc ("tuần 43") thành lượng riêng của cụm'
 m $C '		return !same // lượng khác chiều đo' '		return false && !same // lượng khác chiều đo' 'KH9 khoá F2: lượng khác chiều đo ("8h") thành lượng riêng của cụm'
+# Soát khoá vòng 2 (phát hiện 1–3): "<chục> trăm" là nói tắt; số trần mang đơn vị nhờ "dầu" không phải lượng riêng của cụm; số riêng của cụm phải
+# đứng trước cụm kế tiếp.
+m $W '			if group > 0 {
+				colloquial = true' '			if false {
+				colloquial = true' 'NW27 "mười hai trăm" không là nói tắt'
+m $C '		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) {' '		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) && false {' 'KH10 số trần mang đơn vị nhờ "dầu" thành lượng riêng của cụm'
+m $C '				if st >= sp[1] && st < end {' '				if false && st >= sp[1] && st < end {' 'KH11 số của cụm kế tiếp thành số riêng của cụm trước'
+m $C '			if sp[1] <= lo {
+				starts = append(starts, sp[0])' '			if false {
+				starts = append(starts, sp[0])' 'KH12 không biết đầu các cụm ở ngữ cảnh'
+m $C '	quals := slices.Concat(sources, metrics)' '	quals := slices.Concat(sources)' 'KH13 ranh giới chỉ tính cụm nguồn, bỏ cụm chỉ số'
+# X3 — bỏ slices.Clone ở ctxNumbers: DeleteFunc sửa mảng in.Spans tại chỗ (owners đọc in.Spans sau đó); bộ test hiện có không bắt — giữ Clone
+# m $C 'ctxNumbers := slices.DeleteFunc(slices.Clone(in.Spans), func' 'ctxNumbers := slices.DeleteFunc(in.Spans, func' 'X3 ctxNumbers sửa in.Spans tại chỗ'

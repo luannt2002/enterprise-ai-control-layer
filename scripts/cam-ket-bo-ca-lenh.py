@@ -3,7 +3,9 @@
 BĂM (ADR-0006 §10): ghi holdout-manifest.json gồm sha256 của tệp ca, số đếm theo lớp và băm bộ đồ nghề của người soạn, KHÔNG
 chép nội dung ca. Bản cho bộ ca WIN là scripts/cam-ket-giu-lai.py; tệp này tách riêng để không đổi hành vi của bản đó.
 
-    python3 -I scripts/cam-ket-bo-ca-lenh.py <tệp ca> <thư mục ra> --bo-do-nghe <thư mục>
+    python3 -I scripts/cam-ket-bo-ca-lenh.py <tệp ca> <thư mục ra> --bo-do-nghe <thư mục> [--kem <tệp> …]
+
+--kem: tệp đi kèm bộ ca, cùng đóng băng (ví dụ tệp thế giới bổ sung do người soạn viết): chỉ ghi sha256, không đọc nội dung.
 
 Tệp ca: YAML {suite: lenh, cases: [...]}, mỗi ca đúng 23 khoá của §5, entry_type COMMAND, lớp ca (A01…) ở khoá scenario.
 Chỉ in sha256 và số đếm, không in input hay kỳ vọng (phiên viết mã không được đọc chúng). Từ chối khi thư mục ra đã có
@@ -50,6 +52,7 @@ def main():
     ap.add_argument("cases")
     ap.add_argument("out")
     ap.add_argument("--bo-do-nghe", required=True, help="thư mục bộ đồ nghề người soạn được đọc (ghi băm từng tệp)")
+    ap.add_argument("--kem", action="append", default=[], help="tệp đi kèm bộ ca, cùng đóng băng (chỉ ghi sha256)")
     a = ap.parse_args()
     src, out, kit = Path(a.cases), Path(a.out), Path(a.bo_do_nghe)
     manifest = out / "holdout-manifest.json"
@@ -59,6 +62,12 @@ def main():
         refuse(f"không có tệp ca {src}")
     if not kit.is_dir():
         refuse(f"không có bộ đồ nghề {kit}")
+    kem = [Path(k) for k in a.kem]
+    for k in kem:
+        if not k.is_file():
+            refuse(f"không có tệp đi kèm {k}")
+    if len({k.name for k in kem} | {src.name}) != len(kem) + 1:
+        refuse("tên tệp đi kèm trùng nhau hoặc trùng tệp ca")
     raw = src.read_bytes()
     try:
         doc = yaml.safe_load(raw)
@@ -91,7 +100,7 @@ def main():
         "frozen_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "revision_at_freeze": rev,
         "content_published": False,
-        "files_sha256": {src.name: sha(raw)},
+        "files_sha256": {src.name: sha(raw), **{k.name: sha(k.read_bytes()) for k in kem}},
         "counts": {
             "total": sum(per_class.values()),
             "per_class": dict(sorted(per_class.items())),
@@ -101,7 +110,8 @@ def main():
     }
     out.mkdir(parents=True, exist_ok=True)
     manifest.write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"sha256 {src.name}: {m['files_sha256'][src.name]}")
+    for name, h in m["files_sha256"].items():
+        print(f"sha256 {name}: {h}")
     for k, v in m["counts"]["per_class"].items():
         print(f"lớp {k:<10} {v} ca")
     print(f"TỔNG {m['counts']['total']} ca")

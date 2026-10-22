@@ -82,14 +82,22 @@ func TestVerdictGap(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03 được cấp 3000 L, đúng không?", claimed: "3000", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
-		{q: "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "subject"},
+		{q: "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "metric"}, // trước bước khoá: "subject" (chủ gần nhất)
 		{q: "Dự án hôm nay được cấp 3850 L cho EX-03 đúng không?", claimed: "3850", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L, máy 03 đúng không?", claimed: "3850", want: "subject"},
 		{q: "DZ-03 (máy 03) hôm nay được cấp 3850 L đúng không?", claimed: "3850", subject: "DZ-03"}, // "máy 03" mơ hồ, có chủ thể trong ứng viên, trong ngoặc liền sau lần nhắc rõ
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1200", want: "value"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3850", want: "value"},
-		// đề mục thuần (topicQualifier): nhãn "metric" cho chỉ số khác, "source" khi cụm vừa là nguồn vừa là chỉ số; đề mục được có từ
-		// trung tính, mốc (kể cả "ngày" / "hôm" đứng trước mốc số), dấu ngăn nhiều byte; số do hai nguồn thì không nguồn nào là "đúng nguồn"
+		// KHOÁ (§9.6, soát vòng 4): cụm nguồn / chỉ số khác ở bất kỳ đâu trong ngữ cảnh, không kèm số riêng ⇒ "source" / "metric"
+		{q: "Bao nhiêu ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Dầu ERP. EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Đội báo. EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
+		{q: "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
+		// bước khoá chỉ xét NGỮ CẢNH [0, lo): từ khoá chỉ số khác trong chính mệnh đề hỏi là phần dư, không phải đề mục
+		{q: "EX-03 hôm nay đội báo được cấp 3850 L đúng không?", claimed: "3850", want: "residual"},
+		// đề mục đầu câu (trước bước khoá do topicQualifier bắt, nay do bước khoá): nhãn "metric" cho chỉ số khác, "source" khi cụm vừa là
+		// nguồn vừa là chỉ số; đề mục được có từ trung tính, mốc (kể cả "ngày" / "hôm" đứng trước mốc số), dấu ngăn nhiều byte; số do hai
+		// nguồn thì không nguồn nào là "đúng nguồn"
 		{q: "Đội báo, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
 		{q: "Hoá đơn, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
 		{q: "ERP ơi, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
@@ -114,9 +122,10 @@ func TestVerdictGap(t *testing.T) {
 		{q: "Hôm nay, EX-03 được cấp 3850 L đúng không?", claimed: "3850"},
 		{q: "Cho hỏi, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850"},
 		{q: "Tổng, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "residual"},
-		// chủ gần nhất (contextOwners): tên nguồn ở ngữ cảnh đứng ngay trước con số; số ở câu trước không biến "đội báo" thành sự kiện riêng
-		{q: "EX-03 hôm nay ERP, được cấp 3900 L đúng không?", claimed: "3900", want: "subject"},
-		{q: "ERP ghi 3900 L. EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "subject"},
+		// cụm nguồn / chỉ số khác ở ngữ cảnh đứng ngay trước con số; số ở câu trước không biến "đội báo" thành sự kiện riêng. Trước bước
+		// khoá hai câu này ra "subject" (cụm là chủ gần nhất); nay bước khoá bắt trước với nhãn của cụm
+		{q: "EX-03 hôm nay ERP, được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "ERP ghi 3900 L. EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
 		{q: "EX-03 ngày 19/10 được cấp 3850 L máy 03 đúng không?", claimed: "3850"},
 	} {
 		in := rt.Normalizer.Normalize(c.q, normalization.Options{Now: now})

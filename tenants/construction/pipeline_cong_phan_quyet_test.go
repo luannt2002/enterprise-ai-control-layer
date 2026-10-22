@@ -262,7 +262,6 @@ func TestCongPhanQuyetSoatDoiKhangVong2(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L (3850 lít) đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp dầu 3850 đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp 3.850 L đúng không?", want: "Đúng."},
-		{q: "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "EX-03 của công ty ABC hôm nay được cấp 3900 L đúng không?", want: "Đúng.", tiers: true}, // công ty là cấp cha 3 tầng
 	} {
 		a := std
@@ -400,6 +399,18 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "Phiếu kho, EX-03 hôm nay được cấp 3900 L đúng không?", tiers: true},
 		// ... kể cả khi "phiếu kho" đứng ở ngữ cảnh sau tên chủ thể: nó vẫn là chủ gần nhất của con số (soát vòng 4, V5S4-01)
 		{q: "EX-03 hôm nay phiếu kho, được cấp 3900 L đúng không?", tiers: true},
+		// KHOÁ (brief BUILD §9.6, soát vòng 4 V5S4-02…04): cụm nguồn khác / chỉ số khác ở BẤT KỲ đâu trong ngữ cảnh, không kèm số của
+		// riêng nó — đề mục có "bao nhiêu", có danh từ chung, đứng thành câu / dòng riêng — đều không phán quyết (ERP ghi 3.900 L,
+		// đội báo 4.000 L). Kể cả đối chứng cũ của Vòng 2 ("Bao nhiêu định mức, vậy …"): cái giá chấp nhận của bước khoá.
+		{q: "Bao nhiêu ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP bao nhiêu, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP ghi bao nhiêu, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Dự án ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Dầu ERP. EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP.\nEX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "ERP: bao nhiêu? EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Đội báo. EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?"},
 		// số bằng chữ kết thúc bằng "<hàng> <một chữ số>": nói thường là hàng kế dưới (1.200, 3.800), bộ đọc cho 1.002, 3.008
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám lít dầu đúng không?"},

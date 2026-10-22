@@ -258,6 +258,13 @@ func (w *Why) reject(format string, a ...any) {
 	w.Rejected = append(w.Rejected, fmt.Sprintf(format, a...))
 }
 
+// addOrigin ghi nguồn của một ứng viên nếu chưa có (mỗi thực thể một nguồn — nguồn đầu tiên; một bí danh nhắc N lần không sinh N bản ghi).
+func (w *Why) addOrigin(o Origin) {
+	if !slices.ContainsFunc(w.Origins, func(x Origin) bool { return x.ID == o.ID }) {
+		w.Origins = append(w.Origins, o)
+	}
+}
+
 // Unclear ghi phần câu hỏi nêu NHIỀU giá trị khác nhau, hoặc một giá trị hỏng, cho một khe chỉ nhận MỘT: khe đó không
 // được điền (nằm ở Intent.Missing) để router hỏi lại, thay vì lặng lẽ lấy vế đầu (P5). Khác Candidates (bí danh mơ hồ,
 // router được gỡ bằng quyền xem hay dự án): đây là thứ người hỏi VIẾT RÕ, nên không ai được chọn thay họ.
@@ -291,7 +298,7 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
 		if focus, f, fp := keywordHits(s.defs, in.Raw[fs:fe], s.opt.IgnorePhrases); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
 			counts, firsts, phrases = focus, f, fp
-			w.reason("từ khoá lấy trong mệnh đề hỏi %q (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", strings.TrimSpace(in.Raw[fs:fe]))
+			w.reason("từ khoá lấy trong mệnh đề hỏi %s (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", contracts.Quote(in.Raw[fs:fe]))
 		}
 	}
 	if hits := hitsText(s.defs, counts, phrases); hits != "" {
@@ -349,7 +356,7 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 			for _, m := range res.Ambiguous {
 				cands = append(cands, m.Candidates...)
 				for _, c := range m.Candidates {
-					w.Origins = append(w.Origins, Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %q", m.Mention)})
+					w.addOrigin(Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s", contracts.Quote(m.Mention))})
 				}
 			}
 			opts := s.meaningOptions()
@@ -564,7 +571,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 				it.Missing = append(it.Missing, sd.Name)
 				unclear.Entities = append(unclear.Entities, clash...)
 				clashSlot = sd.Name
-				w.reason("khe %s thiếu: câu nêu %d thực thể khác nhau cùng loại (%s) cho khe chỉ nhận một — không lấy thực thể nhắc đầu", sd.Name, len(clash), strings.Join(refKeys(clash), ", "))
+				w.reason("khe %s thiếu: câu nêu %d thực thể khác nhau cùng loại (%s) cho khe chỉ nhận một — không lấy thực thể nhắc đầu", sd.Name, len(clash), contracts.Brief(refKeys(clash), 6, "thực thể"))
 				continue
 			}
 			if e, ok := firstOfTypes(res.Entities, sd.Types); ok {
@@ -592,7 +599,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 			if len(ps) == 1 { // kỳ duy nhất (kỳ hẹp, nếu câu viết lồng nhiều kỳ)
 				v := ps[0].Value
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: ps[0].Raw}
-				w.reason("khe %s ← %s (mốc %q trong câu)", sd.Name, v.Text, ps[0].Raw)
+				w.reason("khe %s ← %s (mốc %s trong câu)", sd.Name, v.Text, contracts.Quote(ps[0].Raw))
 				continue
 			}
 			if v, ok := defaultPeriod(sd.Default, now); ok {
@@ -791,7 +798,7 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 		if !slices.ContainsFunc(own, func(c string) bool {
 			return slices.ContainsFunc(normalization.PhraseSpans(raw, c), func(sp [2]int) bool { return sp[0] == i && sp[1] == j })
 		}) {
-			return Def{}, false, fmt.Sprintf("chữ %q chưa được giải thích (không phải tên, mốc, lượng, thuật ngữ, cụm xác nhận, từ trung tính hay mảnh từ khoá của ý định riêng)", raw[i:j])
+			return Def{}, false, fmt.Sprintf("chữ %s chưa được giải thích (không phải tên, mốc, lượng, thuật ngữ, cụm xác nhận, từ trung tính hay mảnh từ khoá của ý định riêng)", contracts.Quote(raw[i:j]))
 		}
 		meaning = true
 		i = j
@@ -888,7 +895,7 @@ func ambiguousHint(res contracts.Resolution) string {
 	}
 	var ms []string
 	for _, m := range res.Ambiguous {
-		ms = append(ms, fmt.Sprintf("%q", m.Mention))
+		ms = append(ms, contracts.Quote(m.Mention))
 	}
 	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng dự án đã nêu hay phạm vi dữ liệu của người hỏi)"
 }
@@ -926,19 +933,22 @@ func originsOf(res contracts.Resolution, cands, clash []contracts.EntityRef, cla
 		}
 		return ""
 	}
-	var out []Origin
+	// mỗi thực thể một nguồn (nguồn đầu tiên): một bí danh nhắc nhiều lần không sinh hàng nghìn dòng trùng
+	var w Why
 	for _, c := range cands {
-		out = append(out, Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %q", mentionOf(c.ID))})
+		if !slices.ContainsFunc(w.Origins, func(o Origin) bool { return o.ID == c.ID }) {
+			w.addOrigin(Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s", contracts.Quote(mentionOf(c.ID)))})
+		}
 	}
 	for _, e := range clash {
 		why := fmt.Sprintf("khe %s chỉ nhận một thực thể mà câu nêu %d", clashSlot, len(clash))
 		if slices.ContainsFunc(res.Entities, func(r contracts.EntityRef) bool { return r.ID == e.ID }) {
-			out = append(out, Origin{ID: e.ID, From: OriginS4, Note: fmt.Sprintf("thực thể rõ %q ở S3, S4 gộp vào danh sách vì %s", e.Mention, why)})
-		} else {
-			out = append(out, Origin{ID: e.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %q, S4 giữ trong danh sách vì %s", mentionOf(e.ID), why)})
+			w.addOrigin(Origin{ID: e.ID, From: OriginS4, Note: fmt.Sprintf("thực thể rõ %s ở S3, S4 gộp vào danh sách vì %s", contracts.Quote(e.Mention), why)})
+		} else if !slices.ContainsFunc(w.Origins, func(o Origin) bool { return o.ID == e.ID }) {
+			w.addOrigin(Origin{ID: e.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s, S4 giữ trong danh sách vì %s", contracts.Quote(mentionOf(e.ID)), why)})
 		}
 	}
-	return out
+	return w.Origins
 }
 
 // implicitTerm trả thuật ngữ mặc định được hiểu ngầm ("" khi không áp) và báo câu có nói về một

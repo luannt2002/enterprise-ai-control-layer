@@ -51,11 +51,69 @@ func refKeys(refs []contracts.EntityRef) []string {
 	return out
 }
 
-func keyList(keys []string) string {
+// maxListed là số khoá tối đa in trong MỘT danh sách của dòng giải thích (còn lại in "và N … khác"); maxWhyLines là trần số ý mỗi danh sách
+// (Reasons / Rejected) của một chặng, áp sau khi các dòng giống nhau đã gộp: câu dài hay bí danh nhiều ứng viên không làm vết phình theo.
+const (
+	maxListed   = 6
+	maxWhyLines = 40
+)
+
+// distinct bỏ khoá trùng, giữ thứ tự gặp đầu tiên.
+func distinct(keys []string) []string {
+	var out []string
+	for _, k := range keys {
+		if !slices.Contains(out, k) {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// distinctRefs bỏ thực thể trùng mã, giữ thứ tự gặp đầu tiên.
+func distinctRefs(refs []contracts.EntityRef) []contracts.EntityRef {
+	var out []contracts.EntityRef
+	for _, r := range refs {
+		if !slices.ContainsFunc(out, func(x contracts.EntityRef) bool { return x.ID == r.ID }) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// candidateCount nói số ứng viên; khoá trùng (một thực thể là ứng viên của nhiều cụm mơ hồ, bước "đúng một ứng viên" của router đếm từng lần)
+// được nói ra để số đếm khớp với quyết định.
+func candidateCount(keys []string) string {
+	if d := distinct(keys); len(d) != len(keys) {
+		return fmt.Sprintf("%d ứng viên (%d khoá khác nhau)", len(keys), len(d))
+	}
+	return fmt.Sprintf("%d ứng viên", len(keys))
+}
+
+// afterText mô tả tập ứng viên SAU lọc: số lượng và các khoá (cắt bớt).
+func afterText(keys []string) string {
 	if len(keys) == 0 {
 		return "không còn ứng viên nào"
 	}
-	return strings.Join(keys, ", ")
+	return fmt.Sprintf("%s [%s]", candidateCount(keys), contracts.Brief(distinct(keys), maxListed, "ứng viên"))
+}
+
+// checkGroup là các bậc kiểm GIỐNG HỆT nhau của router (vòng lặp qua nhiều lần nhắc của cùng thực thể), kèm số lần.
+type checkGroup struct {
+	check contracts.RouteCheck
+	n     int
+}
+
+// groupChecks gộp các bậc kiểm giống hệt nhau, giữ thứ tự gặp đầu tiên.
+func groupChecks(checks []contracts.RouteCheck) []checkGroup {
+	var out []checkGroup
+	for _, c := range checks {
+		if i := slices.IndexFunc(out, func(g checkGroup) bool { return g.check == c }); i >= 0 {
+			out[i].n++
+			continue
+		}
+		out = append(out, checkGroup{c, 1})
+	}
+	return out
 }
 
 // explainNormalize giải thích S2: luật sinh từng đoạn (Span.Rule) và các chỗ chuẩn hoá KHÔNG tự quyết (chỗ mơ hồ, ngày hỏng).
@@ -65,7 +123,7 @@ func explainNormalize(in contracts.NormalizedInput) traces.Notes {
 		n.Reason("không có đoạn số, ngày, mã hay thuật ngữ nào được nhận ra")
 	}
 	for _, sp := range in.Spans {
-		line := fmt.Sprintf("%s:%s ← %s", sp.Kind, sp.Raw, sp.Rule)
+		line := fmt.Sprintf("%s %s ← %s", sp.Kind, contracts.Quote(sp.Raw), sp.Rule)
 		if sp.Confidence > 0 && sp.Confidence < 1 {
 			line += fmt.Sprintf(" (độ tin cậy %.2f)", sp.Confidence)
 		}
@@ -76,53 +134,64 @@ func explainNormalize(in contracts.NormalizedInput) traces.Notes {
 		for _, c := range amb.Candidates {
 			readings = append(readings, valueText(c))
 		}
-		n.Reject("chỗ mơ hồ %q không được tự quyết (%s): các cách đọc %s", amb.Raw, amb.Reason, strings.Join(readings, " | "))
+		n.Reject("chỗ mơ hồ %s không được tự quyết (%s): các cách đọc %s", contracts.Quote(amb.Raw), amb.Reason, strings.Join(readings, " | "))
 	}
 	for _, raw := range in.InvalidDates {
-		n.Reject("ngày %q không đọc được thành ngày trên lịch: bỏ, không đoán và không rơi về ngày mặc định", raw)
+		n.Reject("ngày %s không đọc được thành ngày trên lịch: bỏ, không đoán và không rơi về ngày mặc định", contracts.Quote(raw))
 	}
 	return n
 }
 
 // explainResolve giải thích S3: thực thể rõ, cụm mơ hồ, và tập ứng viên TRƯỚC / SAU lọc phạm vi — lọc của router khi gỡ mơ hồ (nar) và lọc
-// của luồng hỏi khi dựng câu hỏi lại (ci).
-func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar contracts.Narrowing, ci clarifyInfo) traces.Notes {
+// của luồng hỏi khi dựng câu hỏi lại (ci). Vết do chính người hỏi đọc, nên: KHÔNG kể trạng thái phạm vi của TỪNG ứng viên ngoài phạm vi (chỉ số
+// lượng bị loại và lý do chung), và chỉ kể tên + loại thực thể khi fullScope (người hỏi có phạm vi dữ liệu không hạn chế).
+func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar contracts.Narrowing, ci clarifyInfo, fullScope bool) traces.Notes {
 	var n traces.Notes
 	if len(res.Entities)+len(res.Ambiguous) == 0 {
 		n.Reason("không nhận ra thực thể nào trong câu")
 	}
 	for _, e := range res.Entities {
-		n.Reason("cụm %q (khoá so khớp %q) khớp %s (%s, loại %s)", rawSpan(in.Raw, e.Start, e.End), e.Mention, e.Key, e.Name, e.Type)
+		line := fmt.Sprintf("cụm %s (khoá so khớp %s) khớp %s", contracts.Quote(rawSpan(in.Raw, e.Start, e.End)), contracts.Quote(e.Mention), e.Key)
+		if fullScope {
+			line += fmt.Sprintf(" (%s, loại %s)", e.Name, e.Type)
+		}
+		n.Reasons = append(n.Reasons, line)
 	}
 	for _, m := range res.Ambiguous {
-		n.Reason("cụm %q (khoá so khớp %q) khớp %d thực thể: %s — không chọn bừa", rawSpan(in.Raw, m.Start, m.End), m.Mention, len(m.Candidates), strings.Join(refKeys(m.Candidates), ", "))
+		keys := refKeys(m.Candidates)
+		n.Reason("cụm %s (khoá so khớp %s) khớp %d thực thể: %s — không chọn bừa", contracts.Quote(rawSpan(in.Raw, m.Start, m.End)), contracts.Quote(m.Mention),
+			len(keys), contracts.Brief(keys, maxListed, "ứng viên"))
 	}
 	if nar.Slot != "" {
 		by, dropWhy := "phạm vi dữ liệu của người hỏi", "ngoài phạm vi dữ liệu của người hỏi"
 		if nar.By == contracts.NarrowByProject {
 			by, dropWhy = "dự án đã nêu trong câu", "không thuộc dự án đã nêu trong câu"
 		}
-		result := fmt.Sprintf("còn %d ứng viên, giữ nguyên mơ hồ", len(nar.After))
+		result := "giữ nguyên mơ hồ"
 		if nar.Chosen != "" {
 			result = "chọn " + nar.Chosen
 		}
-		n.Reason("gỡ mơ hồ cho khe %s bằng %s: ứng viên trước lọc [%s] → sau lọc [%s] → %s", nar.Slot, by, keyList(nar.Before), keyList(nar.After), result)
-		for _, k := range nar.Before {
-			if !slices.Contains(nar.After, k) {
-				n.Reject("ứng viên %s bị loại khi gỡ mơ hồ: %s", k, dropWhy)
-			}
+		n.Reason("gỡ mơ hồ cho khe %s bằng %s: trước lọc %s → sau lọc %s → %s", nar.Slot, by, candidateCount(nar.Before), afterText(nar.After), result)
+		if dropped := len(nar.Before) - len(nar.After); dropped > 0 {
+			n.Reject("%d ứng viên bị loại khi gỡ mơ hồ: %s (vết không kể từng ứng viên)", dropped, dropWhy)
 		}
 	}
 	if ci.used {
 		if len(ci.before) > 0 {
-			n.Reason("ứng viên của câu hỏi lại: trước lọc phạm vi [%s] → sau lọc [%s]", keyList(refKeys(ci.before)), keyList(refKeys(ci.shown)))
+			n.Reason("ứng viên của câu hỏi lại: trước lọc phạm vi %d ứng viên → sau lọc %s", len(refKeys(ci.before)), afterText(refKeys(ci.shown)))
 		}
-		var seen []string
+		var reasons []string // lý do bị loại, theo thứ tự gặp đầu tiên
+		byWhy := map[string][]string{}
 		for _, h := range ci.hidden {
-			if !slices.Contains(seen, h.ref.Key) {
-				seen = append(seen, h.ref.Key)
-				n.Reject("ứng viên %s bị loại khỏi câu hỏi lại: %s", h.ref.Key, h.why)
+			if _, ok := byWhy[h.why]; !ok {
+				reasons = append(reasons, h.why)
 			}
+			if !slices.Contains(byWhy[h.why], h.ref.Key) {
+				byWhy[h.why] = append(byWhy[h.why], h.ref.Key)
+			}
+		}
+		for _, why := range reasons {
+			n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết không kể từng ứng viên)", len(byWhy[why]), why)
 		}
 		if ci.suppressed != "" {
 			n.Reason("không kể ứng viên thực thể trong câu hỏi lại: %s", ci.suppressed)
@@ -138,7 +207,12 @@ func explainIntent(cls intent.Result, ci clarifyInfo) traces.Notes {
 	if !ci.used {
 		return n
 	}
-	for _, c := range ci.shown {
+	shown := distinctRefs(ci.shown)
+	for i, c := range shown {
+		if i == maxListed {
+			n.Reason("và %d ứng viên hỏi lại khác, nguồn xác định theo cùng cách", len(shown)-maxListed)
+			break
+		}
 		for _, o := range cls.Why.Origins {
 			if o.ID != c.ID {
 				continue
@@ -160,20 +234,28 @@ func (a *Ask) explainRoute(routed, plan contracts.RoutePlan) traces.Notes {
 	var n traces.Notes
 	n.Reason("%s", routed.Reason)
 	if len(routed.Checked) > 0 {
-		steps := make([]string, 0, len(routed.Checked))
-		for i, c := range routed.Checked {
+		groups := groupChecks(routed.Checked)
+		steps := make([]string, 0, len(groups))
+		for i, g := range groups {
 			// bậc không áp dụng chỉ ghi "qua": dữ kiện của nó nằm ở dòng phương án bị loại tương ứng (không in hai lần)
-			step := fmt.Sprintf("%d) %s: qua", i+1, c.Rule)
-			if c.Fired {
-				step = fmt.Sprintf("%d) %s — %s → chọn %s", i+1, c.Rule, c.Detail, c.Route)
+			step := fmt.Sprintf("%d) %s: qua", i+1, g.check.Rule)
+			if g.check.Fired {
+				step = fmt.Sprintf("%d) %s — %s → chọn %s", i+1, g.check.Rule, g.check.Detail, g.check.Route)
+			}
+			if g.n > 1 {
+				step += fmt.Sprintf(" (×%d)", g.n)
 			}
 			steps = append(steps, step)
 		}
 		n.Reason("đã kiểm theo thứ tự: %s", strings.Join(steps, " · "))
-	}
-	for _, c := range routed.Checked {
-		if !c.Fired {
-			n.Reject("%s (%s): không áp dụng — %s", c.Route, c.Rule, c.Detail)
+		for _, g := range groups {
+			if !g.check.Fired {
+				line := fmt.Sprintf("%s (%s): không áp dụng — %s", g.check.Route, g.check.Rule, g.check.Detail)
+				if g.n > 1 {
+					line += fmt.Sprintf(" (×%d)", g.n)
+				}
+				n.Rejected = append(n.Rejected, line)
+			}
 		}
 	}
 	// route khai của ý định mà router không đi (bị bậc kiểm chặn, hay thay bằng phép tính / HYBRID)

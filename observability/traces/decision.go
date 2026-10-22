@@ -2,8 +2,11 @@ package traces
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"time"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Decision là bản ghi QUYẾT ĐỊNH của một lượt hỏi (G6): hệ đã quyết gì ở từng chặng, trên phiên
@@ -68,6 +71,67 @@ type Why struct {
 	Route     Notes `json:"route,omitzero"`     // S5: các bậc kiểm của router, route đã loại, ghi đè của luồng hỏi
 	Context   Notes `json:"context,omitzero"`   // S7: bằng chứng được dùng / bị loại (thẩm quyền, quyền đọc tài liệu)
 	Validate  Notes `json:"validate,omitzero"`  // S9: cổng phán quyết của câu xác nhận
+}
+
+// quoted tìm mọi đoạn chữ của người hỏi trong một dòng giải thích: contracts.Quote không để QuoteClose lọt vào bên trong đoạn được bao nên
+// khớp này chính xác.
+var quoted = regexp.MustCompile(contracts.QuoteOpen + `[^` + contracts.QuoteClose + `]*` + contracts.QuoteClose)
+
+// Withheld thay cho chữ của người hỏi khi Why.WithholdQuoted giữ nó lại.
+const Withheld = contracts.QuoteOpen + "đã che" + contracts.QuoteClose
+
+// WithholdQuoted thay MỌI đoạn chữ của người hỏi (giữa “ và ”, xem contracts.Quote) trong các dòng giải thích bằng Withheld. Dùng khi câu hỏi
+// mang bí mật mà bộ làm sạch nhận ra: mệnh đề hay mảnh chữ cắt ra khỏi câu có thể mất tên khoá (token: "abc. phần-đuôi" bị cắt ở dấu chấm) nên
+// mẫu che không còn nhận ra phần đuôi — an toàn hơn là không trích chữ nào của câu (câu đầy đủ, đã che, vẫn nằm ở Decision.Question).
+func (w Why) WithholdQuoted() Why {
+	return w.apply(func(lines []string) []string {
+		if len(lines) == 0 {
+			return lines
+		}
+		out := make([]string, len(lines))
+		for i, l := range lines {
+			out[i] = quoted.ReplaceAllString(l, Withheld)
+		}
+		return out
+	})
+}
+
+// Compact gộp các ý GIỐNG HỆT nhau thành một ý kèm "(×N)" (câu dài nhắc lại một cụm nhiều lần không in lặp từng lần) rồi cắt mỗi danh sách còn
+// tối đa limit ý, ý cuối nói còn bao nhiêu ý không in: phần giải thích có trần, không phình theo độ dài câu hỏi.
+func (w Why) Compact(limit int) Why {
+	return w.apply(func(lines []string) []string { return compactLines(lines, limit) })
+}
+
+func (w Why) apply(f func([]string) []string) Why {
+	for _, n := range []*Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Context, &w.Validate} {
+		n.Reasons, n.Rejected = f(n.Reasons), f(n.Rejected)
+	}
+	return w
+}
+
+func compactLines(lines []string, limit int) []string {
+	if len(lines) == 0 {
+		return lines
+	}
+	count := map[string]int{}
+	var order []string
+	for _, l := range lines {
+		if count[l]++; count[l] == 1 {
+			order = append(order, l)
+		}
+	}
+	out := make([]string, 0, min(len(order), limit+1))
+	for i, l := range order {
+		if i == limit {
+			out = append(out, fmt.Sprintf("… và %d ý khác không in (trần %d ý mỗi danh sách)", len(order)-limit, limit))
+			break
+		}
+		if c := count[l]; c > 1 {
+			l += fmt.Sprintf(" (×%d)", c)
+		}
+		out = append(out, l)
+	}
+	return out
 }
 
 // Diff trả tên các chặng mà hai bản ghi quyết định khác nhau (rỗng = khớp hoàn toàn).

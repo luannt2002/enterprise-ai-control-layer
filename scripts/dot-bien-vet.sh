@@ -119,13 +119,13 @@ m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie
 # ---- R2-03: giải thích của vết (đầu vào quyết định, phương án đã xét, lý do bị loại). Test bắt đột biến nằm ở observability/traces (vết
 # dựng từ lượt THẬT), core/pipeline (why_test.go), intelligence/router và intelligence/intent. Đột biến chỉ đổi phần ghi giải thích hoặc
 # cách hiển thị; không đột biến nào đổi quyết định của luồng hỏi (cái đó do bộ ca WIN và test của từng gói canh).
-export PKGS="./observability/traces/ ./core/pipeline/ ./intelligence/intent/ ./intelligence/router/"
-W=core/pipeline/why.go RT=intelligence/router/router.go IN=intelligence/intent/intent.go D=observability/traces/decision.go
-m $W 'line := fmt.Sprintf("%s:%s ← %s", sp.Kind, sp.Raw, sp.Rule)' 'line := fmt.Sprintf("%s:%s ← %s", sp.Kind, sp.Raw, "")' 'WV1 luật sinh từng đoạn (Span.Rule) không được ghi'
+export PKGS="./observability/traces/ ./core/pipeline/ ./intelligence/intent/ ./intelligence/router/ ./core/contracts/"
+W=core/pipeline/why.go RT=intelligence/router/router.go IN=intelligence/intent/intent.go D=observability/traces/decision.go ASK=core/pipeline/ask.go CT=core/contracts/why_text.go ST=observability/traces/step.go
+m $W 'line := fmt.Sprintf("%s %s ← %s", sp.Kind, contracts.Quote(sp.Raw), sp.Rule)' 'line := fmt.Sprintf("%s %s ← %s", sp.Kind, contracts.Quote(sp.Raw), "")' 'WV1 luật sinh từng đoạn (Span.Rule) không được ghi'
 m $W 'for _, amb := range in.Ambiguities {' 'for _, amb := range in.Ambiguities[:0] {' 'WV2 cách đọc khác của chỗ mơ hồ không được kể'
 m $W 'for _, raw := range in.InvalidDates {' 'for _, raw := range in.InvalidDates[:0] {' 'WV3 ngày hỏng không được kể là bị bỏ'
 m $W 'if nar.Slot != "" {' 'if false && nar.Slot != "" {' 'WV4 lần router lọc ứng viên bằng phạm vi không được kể'
-m $W 'if !slices.Contains(nar.After, k) {' 'if false {' 'WV5 ứng viên bị loại khi gỡ mơ hồ không được kể'
+m $W 'if dropped := len(nar.Before) - len(nar.After); dropped > 0 {' 'if dropped := len(nar.Before) - len(nar.After); false && dropped > 0 {' 'WV5 ứng viên bị loại khi gỡ mơ hồ không được kể'
 m $W 'from = "do S4 gộp thêm"' 'from = "S3"' 'WV6 thực thể do S4 gộp thêm bị kể là của S3'
 m $W 'ok && def.Route != "" && contracts.RouteKind(def.Route) != routed.Route {' 'ok && false && def.Route != "" && contracts.RouteKind(def.Route) != routed.Route {' 'WV7 route khai của ý định bị chặn không được kể'
 m $W 'if plan.Route != routed.Route {' 'if false && plan.Route != routed.Route {' 'WV8 việc luồng hỏi ghi đè route không được kể'
@@ -151,6 +151,67 @@ m observability/traces/step.go 's.Reason += "; " + joinReasons(n)' 's.Reason += 
 m $D 'func (n Notes) Recorded() bool { return len(n.Reasons) > 0 }' 'func (n Notes) Recorded() bool { return len(n.Reasons) > 99 }' 'TV30 chặng đã ghi giải thích bị coi là chưa ghi'
 m observability/traces/record.go 'd.Why = Why{}' '_ = d' 'TV31 bản ghi bền giữ giải thích hai lần (Decision và Steps)'
 # ---- hết R2-03
+# ---- R2-03 vòng 2 (soát vòng 1: F1 bí mật, F2 khẳng định lỏng, F3 kích thước, F4 phạm vi). Nhãn [MX] là mã đột biến tay của người soát vòng 1.
+# F2: 26 đột biến tay của người soát (15 sống sót ở vòng 1, trong đó 5 làm vết nói SAI mà test vẫn xanh) — nay đều bị bắt.
+m $W 'afterText(refKeys(ci.shown)))' 'afterText(refKeys(ci.before)))' 'WV15 [MA] ứng viên "sau lọc" của câu hỏi lại in bằng danh sách "trước lọc"'
+m $W 'if !slices.Contains(ids, e.ID) {' 'if false {' 'WV16 [MG1] đoạn truy xuất mà không được dẫn không được kể'
+m $ASK 'why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn nào được trích dẫn", prefix)' '_ = prefix' 'AV1 [MG2] bản nháp bị loại ở S9 không được ghi ở S7'
+m $W 'g.subject, len(readPeriods(g.in)), markerCount' 'g.subject, 0, markerCount' 'WV17 [ME] đầu vào cổng: số kỳ đọc được luôn 0'
+m $ASK 'ci = clarifyInfo{used: true, before: asked, shown: visible, hidden: hidden}' 'ci = clarifyInfo{used: true, before: cls.Candidates, shown: visible, hidden: hidden}' 'AV2 [ML] ứng viên trước lọc của câu hỏi lại thiếu thực thể do S4 gộp'
+m $W 'if sp.Confidence > 0 && sp.Confidence < 1 {' 'if false && sp.Confidence > 0 && sp.Confidence < 1 {' 'WV18 [MJ] độ tin cậy của đoạn không được kể'
+m $ASK 'if plan.Route == contracts.RouteHybrid {' 'if false && plan.Route == contracts.RouteHybrid {' 'AV3 [MQ] HYBRID không gắn tiền tố "số liệu:"'
+m $ASK 'prefix = "tri thức: "' 'prefix = ""' 'AV4 [MR] HYBRID không gắn tiền tố "tri thức:"'
+m $W 'prefix, subject, entities)' 'prefix, subject, entities+1)' 'WV19 [MS] dòng quyền của S7 nói sai số thực thể truy vấn'
+m $W 'by, dropWhy = "dự án đã nêu trong câu", "không thuộc dự án đã nêu trong câu"' 'by, dropWhy = "dự án đã nêu trong câu", "ngoài phạm vi dữ liệu của người hỏi"' 'WV20 [MT] lý do dự án luôn nói "ngoài phạm vi"'
+m $IN 'w.reason("thuật ngữ hiểu ngầm %s (câu nhắc thực thể mà không nói vật tư và không có đại lượng đo được nào khác — chính sách của pack)", implicit)' '_ = implicit' 'IV7 [MU] không kể thuật ngữ hiểu ngầm'
+m $IN 'w.reject("%s (tri thức): khớp cùng nhưng bị bỏ — câu đã nêu mốc thời gian, ngày hỏng hay nhiều thực thể của một câu hỏi số liệu, hỏi lại phần số liệu thay vì chuyển sang câu hỏi quy trình", defNames(knowledge))' '_ = defNames(knowledge)' 'IV8 [MV] ý định tri thức bị bỏ không được kể'
+m $RT 'nar := contracts.Narrowing{Slot: slot, Before: keysOf(cls.Candidates)}' 'nar := contracts.Narrowing{Slot: slot, Before: slices.Compact(slices.Sorted(slices.Values(keysOf(cls.Candidates))))}' 'RV6 [MW] ứng viên trùng bị gộp trong số đếm của router'
+m $RT 'defer func() { plan.Checked, plan.Narrowed = checked, narrowed }()' 'defer func() { plan.Checked = checked; _ = narrowed }()' 'RV7 [MX] Narrowed không được gắn vào plan'
+m $ST 's.Rejected = slices.Clone(n.Rejected)' '_ = n' 'TV32 [MY] Rejected của cổng phán quyết bị mất ở S9'
+m $W 'for _, e := range extra {' 'for _, e := range extra[:0] {' 'WV21 [MZ] bằng chứng đi kèm thêm không được kể ở S7'
+m $W 'displayNumber(g.claimed.Number), displayNumber(g.total.Number), word(g.tmpl))' 'displayNumber(g.total.Number), displayNumber(g.claimed.Number), word(g.tmpl))' 'WV22 [MB] số của người hỏi và số có thẩm quyền đảo chỗ trong dòng so sánh'
+m $W 'prefix, len(pkg.Evidence), facts, len(main)-facts, len(extra))' 'prefix, len(pkg.Evidence), facts, len(main), len(extra))' 'WV23 [MC] số bằng chứng khác của truy vấn đếm sai'
+m $W 'n.Reason("luồng hỏi ghi đè route %s thành %s: %s", routed.Route, plan.Route, plan.Reason)' 'n.Reason("luồng hỏi ghi đè route %s thành %s: %s", plan.Route, routed.Route, plan.Reason)' 'WV24 [MD] route bị ghi đè kể ngược chiều'
+m $W '(tối đa %d): %s", prefix, len(ev), k, strings.Join(ids, ", "))' '(tối đa %d): %s", prefix, len(ev), len(ev), strings.Join(ids, ", "))' 'WV25 [MF1] trần số đoạn ghi bằng số đoạn thực tế'
+m $W 'ids[i] = e.ID + " (" + e.Source.Name + ")"' 'ids[i] = e.ID' 'WV26 [MF2] không kể tên nguồn của đoạn'
+m $ASK 'hidden = append(hidden, hiddenCandidate{c, "không tra được tổ tiên trong danh mục (đóng mặc định)"})' 'hidden = append(hidden, hiddenCandidate{c, "ngoài phạm vi dữ liệu của người hỏi"})' 'AV5 [MH] ứng viên không tra được tổ tiên bị kể là ngoài phạm vi'
+m $IN 'w.reject("%s: ý định số liệu bị bỏ — thiếu khe thực thể và câu không có dấu hiệu hỏi số liệu, coi là câu hỏi quy trình", r.Intent.Name)' '_ = r.Intent.Name' 'IV9 [MY2] ý định số liệu bị bỏ không được kể'
+m $IN 'w.reason("từ khoá lấy trong mệnh đề hỏi %s (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", contracts.Quote(in.Raw[fs:fe]))' '_ = fs' 'IV10 [MZ2] mệnh đề hỏi quyết định ý định không được kể'
+m $W 'line += fmt.Sprintf(" (%s, loại %s)", e.Name, e.Type)' 'line += fmt.Sprintf(" (%s, loại %s)", e.Key, e.Type)' 'WV27 [MN] thực thể rõ in sai tên'
+m $W 'prefix, src, groups[src].authority, groups[src].count, role)' 'prefix, src, groups[src].authority+1, groups[src].count, role)' 'WV28 [MO] dòng nguồn in thẩm quyền sai'
+# F1: chữ tự do của người hỏi qua MỘT hàm (contracts.Quote), không thoát nháy; câu mang bí mật thì không trích chữ nào
+m $CT 'return QuoteOpen + s + QuoteClose' 'return QuoteOpen + strings.NewReplacer(`"`, `\"`).Replace(s) + QuoteClose' 'CV1 Quote thoát nháy kiểu %q (lỗi F1: mẫu che bí mật không còn nhận ra)'
+m $CT 's = strings.NewReplacer(QuoteOpen, `"`, QuoteClose, `"`).Replace(s)' 's = strings.NewReplacer().Replace(s)' 'CV2 Quote để “ ” có sẵn trong chữ lọt vào đoạn được bao'
+m $CT 's = strings.Join(strings.Fields(s), " ")' '_ = strings.Fields' 'CV3 Quote không gộp khoảng trắng và xuống dòng'
+m $CT 'if r := []rune(s); len(r) > maxQuoteRunes {' 'if r := []rune(s); len(r) > 1<<20 {' 'CV4 Quote không cắt chữ dài'
+m $CT 'if len(items) <= max {' 'if len(items) <= max+1000 {' 'CV5 Brief không cắt danh sách dài'
+m $D 'out[i] = quoted.ReplaceAllString(l, Withheld)' 'out[i] = l' 'DV1 câu mang bí mật vẫn trích chữ của câu vào giải thích'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw {' 'if false && traces.Sanitize(in.Raw) != in.Raw {' 'AV6 Handle không giữ lại chữ của câu khi câu mang bí mật'
+# F3: vết có trần
+m $D 'if count[l]++; count[l] == 1 {' 'if count[l]++; true {' 'DV2 dòng giống nhau không được gộp'
+m $D 'if i == limit {' 'if i == limit+100000 {' 'DV3 danh sách giải thích không bị cắt ở trần'
+m $D 'if c := count[l]; c > 1 {' 'if c := count[l]; false && c > 1 {' 'DV4 dòng gộp không nói số lần'
+m $ASK 'd.Why = why.Compact(maxWhyLines)' 'd.Why = why' 'AV7 Handle không gộp / cắt phần giải thích'
+m $W 'len(keys), contracts.Brief(keys, maxListed, "ứng viên"))' 'len(keys), strings.Join(keys, ", "))' 'WV29 danh sách ứng viên của cụm mơ hồ không bị cắt'
+m $W 'if d := distinct(keys); len(d) != len(keys) {' 'if d := distinct(keys); false && len(d) != len(keys) {' 'WV30 số ứng viên không nói khoá trùng'
+m $W 'out[i].n++' 'out[i].n += 0' 'WV31 bậc kiểm giống nhau gộp mà không nói số lần'
+m $W 'if i == maxListed {' 'if i == maxListed+100 {' 'WV32 nguồn ứng viên hỏi lại không bị cắt'
+m $IN 'if !slices.ContainsFunc(w.Origins, func(x Origin) bool { return x.ID == o.ID }) {' 'if true {' 'IV11 nguồn của ứng viên ghi lặp theo số lần nhắc'
+# F4: vết do chính người hỏi đọc không kể tên / loại / trạng thái phạm vi của từng ứng viên ngoài phạm vi
+m $ASK 'why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))' 'why.Resolve = explainResolve(in, res, routed.Narrowed, ci, true)' 'AV8 người hỏi phạm vi hạn chế vẫn thấy tên và loại thực thể'
+m $W 'if fullScope {' 'if true {' 'WV33 tên và loại thực thể kể cho mọi người hỏi'
+m $W 'n.Reject("%d ứng viên bị loại khi gỡ mơ hồ: %s (vết không kể từng ứng viên)", dropped, dropWhy)' 'n.Reject("%d ứng viên bị loại khi gỡ mơ hồ: %s (vết không kể từng ứng viên)", dropped+1, dropWhy)' 'WV34 số ứng viên bị loại khi gỡ mơ hồ ghi sai'
+m $W 'n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết không kể từng ứng viên)", len(byWhy[why]), why)' 'n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết không kể từng ứng viên)", len(byWhy[why])+1, why)' 'WV35 số ứng viên bị loại khỏi câu hỏi lại ghi sai'
+# F1 qua cửa HTTP thật (test cmd/eais chạy trên bộ nhớ và PG) và F5 (đầu vào của cổng phán quyết khớp điều kiện của verdictGap — chỉ test của gói
+# observability/traces phải bắt, không nhờ test của luồng hỏi): đổi điều kiện ở verdictGap mà vết vẫn nói như cũ thì test đỏ.
+export PKGS=./cmd/eais/
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw {' 'if false && traces.Sanitize(in.Raw) != in.Raw {' 'AV9 qua HTTP: vết người hỏi tự đọc còn đuôi bí mật của câu'
+export PKGS=./observability/traces/
+CL=core/pipeline/claim.go
+m $CL 'if len(readPeriods(in)) != 1 {' 'if len(readPeriods(in)) > 1 {' 'GV1 [F5] cổng: câu không nêu mốc nào vẫn qua chiều "period"'
+m $CL 'if !normalization.HasDiacritic(raw) {' 'if false && !normalization.HasDiacritic(raw) {' 'GV2 [F5] cổng: câu không dấu vẫn qua chiều "accent"'
+m $CL 'if markerCount(raw, a.RT.ConfirmMarkers) != 1 {' 'if markerCount(raw, a.RT.ConfirmMarkers) > 2 {' 'GV3 [F5] cổng: hai cụm xác nhận vẫn qua chiều "marker"'
+# ---- hết R2-03 vòng 2
 
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"

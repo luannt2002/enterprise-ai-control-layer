@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"slices"
@@ -12,6 +13,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 	"github.com/luannt2002/enterprise-ai-control-layer/simulations/fixtures"
 )
 
@@ -51,12 +53,19 @@ func TestExplainNormalizeGiuMoiThu(t *testing.T) {
 		Ambiguities:  []contracts.Ambiguity{{Raw: "DA", Reason: "viết tắt nhiều nghĩa", Candidates: []contracts.Value{{Kind: contracts.ValueTerm, Text: "diesel_fuel"}, {Kind: contracts.ValueTerm, Text: "project"}}}},
 		InvalidDates: []string{"31/02"},
 	})
-	wantR := []string{"quantity:4k ← number:digits+multiplier+unit_from_term:diesel_fuel (độ tin cậy 0.80)", "date:hôm nay ← date:relative"}
+	wantR := []string{"quantity “4k” ← number:digits+multiplier+unit_from_term:diesel_fuel (độ tin cậy 0.80)", "date “hôm nay” ← date:relative"}
 	if !slices.Equal(n.Reasons, wantR) {
 		t.Errorf("luật sinh đoạn (độ tin cậy chỉ in khi < 1): %q, muốn %q", n.Reasons, wantR)
 	}
-	if len(n.Rejected) != 2 || !strings.Contains(n.Rejected[0], `"DA"`) || !strings.Contains(n.Rejected[0], "diesel_fuel | project") || !strings.Contains(n.Rejected[1], `"31/02"`) {
-		t.Errorf("cách đọc khác và ngày hỏng: %q", n.Rejected)
+	wantX := []string{"chỗ mơ hồ “DA” không được tự quyết (viết tắt nhiều nghĩa): các cách đọc diesel_fuel | project",
+		"ngày “31/02” không đọc được thành ngày trên lịch: bỏ, không đoán và không rơi về ngày mặc định"}
+	if !slices.Equal(n.Rejected, wantX) {
+		t.Errorf("cách đọc khác và ngày hỏng: %q, muốn %q", n.Rejected, wantX)
+	}
+	// chữ của người hỏi đi qua contracts.Quote: nháy kép trong chữ KHÔNG bị thoát (thoát \" làm hỏng mẫu che bí mật của traces.Sanitize)
+	q := explainNormalize(contracts.NormalizedInput{Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: `a"b`, Rule: "r", Confidence: 1}}})
+	if want := `term “a"b” ← r`; len(q.Reasons) != 1 || q.Reasons[0] != want {
+		t.Errorf("nháy kép phải giữ nguyên trong cặp “…”: %q, muốn %q", q.Reasons, want)
 	}
 	// câu không có đoạn nào: vẫn có MỘT ý ở Reasons để phân biệt "đã ghi, không có gì" với "chưa ghi"
 	if e := explainNormalize(contracts.NormalizedInput{}); !e.Recorded() || len(e.Rejected) != 0 {
@@ -64,7 +73,7 @@ func TestExplainNormalizeGiuMoiThu(t *testing.T) {
 	}
 }
 
-func TestExplainResolveLocPhamViVaUngVienBiLoai(t *testing.T) {
+func TestExplainResolveKhongKeTrangThaiPhamViTungUngVien(t *testing.T) {
 	dz := contracts.EntityRef{ID: "DZ-03", Key: "DZ-03", Type: "equipment", Name: "Máy ủi DZ-03"}
 	ex := contracts.EntityRef{ID: "EX-03", Key: "EX-03", Type: "equipment", Name: "Máy xúc EX-03", Mention: "ex 3", Start: 0, End: 5}
 	in := contracts.NormalizedInput{Raw: "EX-03 hay máy 03?"}
@@ -72,22 +81,95 @@ func TestExplainResolveLocPhamViVaUngVienBiLoai(t *testing.T) {
 		Ambiguous: []contracts.AmbiguousMention{{Mention: "may 3", Type: "equipment", Candidates: []contracts.EntityRef{dz, ex}, Start: 10, End: 17}}}
 	ci := clarifyInfo{used: true, before: []contracts.EntityRef{dz, ex, dz}, shown: []contracts.EntityRef{ex},
 		hidden: []hiddenCandidate{{dz, "ngoài phạm vi dữ liệu của người hỏi"}, {dz, "ngoài phạm vi dữ liệu của người hỏi"}}}
-	n := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByScope, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, ci)
-	got := strings.Join(n.Reasons, "\n")
-	for _, frag := range []string{`cụm "EX-03" (khoá so khớp "ex 3") khớp EX-03`, `cụm "máy 03" (khoá so khớp "may 3") khớp 2 thực thể: DZ-03, EX-03`,
-		"trước lọc [DZ-03, EX-03] → sau lọc [EX-03] → chọn EX-03", "trước lọc phạm vi [DZ-03, EX-03] → sau lọc [EX-03]"} {
-		if !strings.Contains(got, frag) {
-			t.Errorf("thiếu %q trong:\n%s", frag, got)
-		}
+	nar := contracts.Narrowing{Slot: "subject", By: contracts.NarrowByScope, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}
+
+	// phạm vi dữ liệu không hạn chế: đọc đủ tên và loại; ứng viên bị loại chỉ kể SỐ LƯỢNG và lý do chung (DZ-03 trùng hai lần chỉ tính một)
+	n := explainResolve(in, res, nar, ci, true)
+	if want := []string{
+		"cụm “EX-03” (khoá so khớp “ex 3”) khớp EX-03 (Máy xúc EX-03, loại equipment)",
+		"cụm “máy 03” (khoá so khớp “may 3”) khớp 2 thực thể: DZ-03, EX-03 — không chọn bừa",
+		"gỡ mơ hồ cho khe subject bằng phạm vi dữ liệu của người hỏi: trước lọc 2 ứng viên → sau lọc 1 ứng viên [EX-03] → chọn EX-03",
+		"ứng viên của câu hỏi lại: trước lọc phạm vi 2 ứng viên → sau lọc 1 ứng viên [EX-03]",
+	}; !slices.Equal(n.Reasons, want) {
+		t.Errorf("lý do:\n%q\nmuốn:\n%q", n.Reasons, want)
 	}
-	// DZ-03 bị loại hai lần (khi gỡ mơ hồ và khi dựng câu hỏi lại) nhưng mỗi nơi chỉ kể một dòng, không in lặp ứng viên trùng
-	if len(n.Rejected) != 2 || !strings.Contains(n.Rejected[0], "khi gỡ mơ hồ") || !strings.Contains(n.Rejected[1], "khỏi câu hỏi lại") {
-		t.Errorf("ứng viên bị loại: %q", n.Rejected)
+	if want := []string{
+		"1 ứng viên bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
+		"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
+	}; !slices.Equal(n.Rejected, want) {
+		t.Errorf("loại:\n%q\nmuốn:\n%q", n.Rejected, want)
+	}
+	// phạm vi hạn chế: chỉ khoá, không tên, không loại
+	if got := explainResolve(in, res, nar, ci, false).Reasons[0]; got != "cụm “EX-03” (khoá so khớp “ex 3”) khớp EX-03" {
+		t.Errorf("người hỏi phạm vi hạn chế không được thấy tên / loại: %q", got)
 	}
 	// gỡ theo dự án nói đúng lý do loại
-	p := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByProject, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, clarifyInfo{})
-	if len(p.Rejected) != 1 || !strings.Contains(p.Rejected[0], "không thuộc dự án đã nêu") {
+	p := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByProject, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, clarifyInfo{}, true)
+	if want := []string{"1 ứng viên bị loại khi gỡ mơ hồ: không thuộc dự án đã nêu trong câu (vết không kể từng ứng viên)"}; !slices.Equal(p.Rejected, want) {
 		t.Errorf("gỡ theo dự án: %q", p.Rejected)
+	}
+	// khoá trùng (một thực thể là ứng viên của hai cụm mơ hồ) được nói ra: số đếm khớp với bước "đúng một ứng viên" của router
+	d := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByScope, Before: []string{"DZ-03", "EX-03", "DZ-03", "EX-03"}, After: []string{"EX-03", "EX-03"}}, clarifyInfo{}, true)
+	if want := "gỡ mơ hồ cho khe subject bằng phạm vi dữ liệu của người hỏi: trước lọc 4 ứng viên (2 khoá khác nhau) → sau lọc 2 ứng viên (1 khoá khác nhau) [EX-03] → giữ nguyên mơ hồ"; d.Reasons[2] != want {
+		t.Errorf("khoá trùng: %q", d.Reasons[2])
+	}
+	// lọc xong không còn ai
+	if e := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByScope, Before: []string{"DZ-03"}}, clarifyInfo{}, true); !strings.HasSuffix(e.Reasons[2], "sau lọc không còn ứng viên nào → giữ nguyên mơ hồ") {
+		t.Errorf("không còn ứng viên: %q", e.Reasons[2])
+	}
+	// hai lý do loại khỏi câu hỏi lại: mỗi lý do một dòng với số ứng viên riêng
+	ex8, ex9 := contracts.EntityRef{ID: "EX-08", Key: "EX-08"}, contracts.EntityRef{ID: "EX-09", Key: "EX-09"}
+	two := explainResolve(in, contracts.Resolution{}, contracts.Narrowing{}, clarifyInfo{used: true, hidden: []hiddenCandidate{
+		{dz, "ngoài phạm vi dữ liệu của người hỏi"}, {ex8, "không tra được tổ tiên trong danh mục (đóng mặc định)"}, {ex9, "không tra được tổ tiên trong danh mục (đóng mặc định)"}}}, true)
+	if want := []string{"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
+		"2 ứng viên bị loại khỏi câu hỏi lại: không tra được tổ tiên trong danh mục (đóng mặc định) (vết không kể từng ứng viên)"}; !slices.Equal(two.Rejected, want) {
+		t.Errorf("hai lý do: %q", two.Rejected)
+	}
+	// bí danh có 42 ứng viên: danh sách bị cắt, số thực thể vẫn đúng
+	var cands []contracts.EntityRef
+	for i := range 42 {
+		id := fmt.Sprintf("MX-%02d", i+1)
+		cands = append(cands, contracts.EntityRef{ID: id, Key: id, Type: "equipment"})
+	}
+	raw := "máy 03"
+	big := explainResolve(contracts.NormalizedInput{Raw: raw}, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{{Mention: "may 3", Candidates: cands, End: len(raw)}}}, contracts.Narrowing{}, clarifyInfo{}, true)
+	if want := "cụm “máy 03” (khoá so khớp “may 3”) khớp 42 thực thể: MX-01, MX-02, MX-03, MX-04, MX-05, MX-06 và 36 ứng viên khác — không chọn bừa"; big.Reasons[0] != want {
+		t.Errorf("danh sách 42 ứng viên: %q", big.Reasons[0])
+	}
+}
+
+// Nguồn của ứng viên hỏi lại chỉ kể tối đa maxListed ứng viên (khoá trùng chỉ tính một), phần còn lại gộp một dòng.
+func TestExplainIntentCatNguonUngVien(t *testing.T) {
+	var shown []contracts.EntityRef
+	var origins []intent.Origin
+	for i := range 10 {
+		id := fmt.Sprintf("MX-%02d", i+1)
+		shown = append(shown, contracts.EntityRef{ID: id, Key: id}, contracts.EntityRef{ID: id, Key: id}) // mỗi ứng viên hiện hai lần (nhắc hai lần)
+		origins = append(origins, intent.Origin{ID: id, From: intent.OriginS3, Note: "ghi chú " + id})
+	}
+	n := explainIntent(intent.Result{Why: intent.Why{Reasons: []string{"r"}, Origins: origins}}, clarifyInfo{used: true, shown: shown})
+	if len(n.Reasons) != 1+maxListed+1 || n.Reasons[1] != "ứng viên hỏi lại MX-01 ← S3: ghi chú MX-01" || n.Reasons[maxListed] != "ứng viên hỏi lại MX-06 ← S3: ghi chú MX-06" ||
+		n.Reasons[maxListed+1] != "và 4 ứng viên hỏi lại khác, nguồn xác định theo cùng cách" {
+		t.Errorf("nguồn ứng viên: %q", n.Reasons)
+	}
+}
+
+// Các bậc kiểm router giống hệt nhau (vòng lặp qua nhiều lần nhắc cùng một thực thể) gộp một bậc kèm số lần, ở cả thang bậc lẫn phương án bị loại.
+func TestExplainRouteGopBacKiemGiongNhau(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &Ask{RT: rt}
+	same := contracts.RouteCheck{Rule: "phạm vi dữ liệu (câu hỏi nghĩa số liệu)", Route: contracts.RouteReject, Detail: "EX-03: trong phạm vi"}
+	fired := contracts.RouteCheck{Rule: "hỏi lại nghĩa số liệu", Route: contracts.RouteClarification, Fired: true, Detail: "fuel_issued"}
+	routed := contracts.RoutePlan{Route: contracts.RouteClarification, Reason: "hỏi lại", Checked: []contracts.RouteCheck{same, same, same, fired}}
+	n := a.explainRoute(routed, routed)
+	if want := "đã kiểm theo thứ tự: 1) phạm vi dữ liệu (câu hỏi nghĩa số liệu): qua (×3) · 2) hỏi lại nghĩa số liệu — fuel_issued → chọn CLARIFICATION"; len(n.Reasons) != 2 || n.Reasons[1] != want {
+		t.Errorf("thang bậc: %q", n.Reasons)
+	}
+	if want := []string{"REJECT (phạm vi dữ liệu (câu hỏi nghĩa số liệu)): không áp dụng — EX-03: trong phạm vi (×3)"}; !slices.Equal(n.Rejected, want) {
+		t.Errorf("phương án bị loại: %q", n.Rejected)
 	}
 }
 

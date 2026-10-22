@@ -86,7 +86,7 @@ func TestClassifyNguonUngVienHoiLai(t *testing.T) {
 	// chỉ một cụm mơ hồ: mọi ứng viên đến từ S3, S4 không gộp thêm gì
 	only := classifyRes(t, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{alias("may 3", "equipment", dz, ex)}})
 	for _, id := range []string{"DZ-03", "EX-03"} {
-		if o, ok := originOf(only, id); !ok || o.From != OriginS3 || !strings.Contains(o.Note, `"may 3"`) {
+		if o, ok := originOf(only, id); !ok || o.From != OriginS3 || !strings.Contains(o.Note, `“may 3”`) {
 			t.Errorf("%s phải là ứng viên S3 của cụm %q: %+v (có=%v)", id, "may 3", o, ok)
 		}
 	}
@@ -121,5 +121,33 @@ func TestClassifyNguonUngVienHoiLai(t *testing.T) {
 	}
 	if g := whyOf(nm); !strings.Contains(g, "hỏi lại nghĩa số liệu") || !strings.Contains(g, "ý định chung") {
 		t.Errorf("NeedMeaning phải nói vì sao không trả lời theo ý định chung:\n%s", g)
+	}
+}
+
+// Một bí danh mơ hồ nhắc nhiều lần không sinh nhiều bản ghi nguồn cho cùng một ứng viên (ở cả đường hỏi lại lẫn đường hỏi lại nghĩa số liệu).
+func TestClassifyNguonUngVienKhongGhiLap(t *testing.T) {
+	dz, ex := ent("DZ-03", "equipment"), ent("EX-03", "equipment")
+	three := []contracts.AmbiguousMention{alias("may 3", "equipment", dz, ex), alias("may 3", "equipment", dz, ex), alias("may 3", "equipment", dz, ex)}
+	if r := classifyRes(t, contracts.Resolution{Ambiguous: three}); len(r.Why.Origins) != 2 {
+		t.Errorf("ba lần nhắc, hai ứng viên: muốn 2 nguồn, được %+v", r.Why.Origins)
+	}
+	yes := func(string) bool { return true }
+	set, _ := Compile([]Def{{Name: "q", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Terms: []string{"diesel_fuel"}, Capability: "m"}}, yes, yes)
+	nm := set.Classify(contracts.NormalizedInput{Raw: "máy 03 dầu", Spans: []contracts.Span{dauTerm()}}, contracts.Resolution{Ambiguous: three}, testNow)
+	if len(nm.NeedMeaning) == 0 || len(nm.Why.Origins) != 2 {
+		t.Errorf("hỏi lại nghĩa số liệu: muốn 2 nguồn, được %+v (NeedMeaning=%v)", nm.Why.Origins, nm.NeedMeaning)
+	}
+}
+
+// Mệnh đề hỏi được trích trong cặp “…” KHÔNG thoát nháy kép (thoát kiểu %q làm hỏng mẫu che bí mật ở traces.Sanitize), và nháy kiểu chữ in có sẵn
+// trong câu không phá cặp bao.
+func TestClassifyTrichMenhDeHoiKhongThoatNhay(t *testing.T) {
+	yes := func(string) bool { return true }
+	set, _ := Compile([]Def{{Name: "q", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Capability: "m"}}, yes, yes)
+	set.SetOptions(Options{FocusMarkers: []string{"đúng không"}})
+	r := set.Classify(contracts.NormalizedInput{Raw: `đội báo 4k, vậy được cấp {"api_key": "abc"} và “x” đúng không?`}, contracts.Resolution{}, testNow)
+	want := "từ khoá lấy trong mệnh đề hỏi “vậy được cấp {\"api_key\": \"abc\"} và \"x\" đúng không” (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)"
+	if len(r.Why.Reasons) == 0 || r.Why.Reasons[0] != want {
+		t.Errorf("dòng trích mệnh đề hỏi:\n%q\nmuốn:\n%q", r.Why.Reasons, want)
 	}
 }

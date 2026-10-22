@@ -202,11 +202,16 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
 	why.Normalize = explainNormalize(in)
-	why.Resolve = explainResolve(in, res, routed.Narrowed, ci)
+	// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ chúng
+	// cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
+	why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
 	why.Intent = explainIntent(cls, ci)
 	why.Route = a.explainRoute(routed, plan)
+	if traces.Sanitize(in.Raw) != in.Raw { // câu mang bí mật mà bộ làm sạch nhận ra: không trích chữ nào của câu vào giải thích
+		why = why.WithholdQuoted()
+	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
-	d.Why = why
+	d.Why = why.Compact(maxWhyLines)
 	return Outcome{
 		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),

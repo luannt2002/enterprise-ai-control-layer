@@ -73,11 +73,11 @@ func TestVetDuKhongConODeTrongOCacBuocDaXuat(t *testing.T) {
 func TestVetDuS2LuatSinhDoanVaChoMoHo(t *testing.T) {
 	director := person("director", "")
 	s2 := stepOf(t, steps(t, director, "EX-03 hôm nay được cấp 4k dầu đúng không?"), "S2")
-	wantAll(t, "S2 luật sinh đoạn", s2.Reason, "quantity:4k", "unit_from_term", "date:hôm nay", "date:relative")
+	wantAll(t, "S2 luật sinh đoạn", s2.Reason, "quantity “4k”", "unit_from_term", "date “hôm nay”", "date:relative")
 
 	// viết tắt nhiều nghĩa đứng trước số trần: bộ chuẩn hoá không tự quyết, hai cách đọc phải nằm trong phương án bị loại
 	amb := stepOf(t, steps(t, director, "EX-03 hôm nay DA: 4.000 đúng không?"), "S2")
-	wantAll(t, "S2 chỗ mơ hồ", strings.Join(amb.Rejected, "\n"), `"DA"`, "diesel_fuel", "project")
+	wantAll(t, "S2 chỗ mơ hồ", strings.Join(amb.Rejected, "\n"), `“DA”`, "diesel_fuel", "project")
 
 	// ngày không có trên lịch: không sinh đoạn ngày, và vết nói rõ nó bị bỏ chứ không rơi về ngày mặc định
 	bad := stepOf(t, steps(t, director, "EX-03 ngày 31/02 được cấp bao nhiêu dầu?"), "S2")
@@ -89,7 +89,7 @@ func TestVetDuS3UngVienTruocSauLocPhamVi(t *testing.T) {
 	// kỹ sư chỉ được xem PRJ-A: router gỡ "máy 03" về EX-03 bằng phạm vi; DZ-03 (PRJ-B) bị loại và vết nói đúng lý do
 	eng := stepOf(t, steps(t, person("site_engineer", "PRJ-A"), "Máy 03 hôm nay được cấp bao nhiêu dầu?"), "S3")
 	wantAll(t, "S3 gỡ bằng phạm vi", eng.Reason, "may 3", "DZ-03", "EX-03", "phạm vi dữ liệu của người hỏi", "chọn EX-03")
-	wantAll(t, "S3 ứng viên bị loại", strings.Join(eng.Rejected, "\n"), "ứng viên DZ-03 bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi")
+	wantAll(t, "S3 ứng viên bị loại", strings.Join(eng.Rejected, "\n"), "1 ứng viên bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi")
 
 	// giám đốc xem được cả hai: lọc phạm vi không gỡ được, hỏi lại — cả hai ứng viên còn lại và vết nói đúng điều đó
 	dir := stepOf(t, steps(t, person("director", ""), "Máy 03 hôm nay được cấp bao nhiêu dầu?"), "S3")
@@ -97,7 +97,7 @@ func TestVetDuS3UngVienTruocSauLocPhamVi(t *testing.T) {
 
 	// thực thể rõ kèm khoá so khớp và nguyên văn trong câu
 	clear := stepOf(t, steps(t, person("director", ""), "EX-03 hôm nay được cấp bao nhiêu dầu?"), "S3")
-	wantAll(t, "S3 thực thể rõ", clear.Reason, `"EX-03"`, "ex 3", "Máy xúc EX-03")
+	wantAll(t, "S3 thực thể rõ", clear.Reason, `“EX-03”`, "ex 3", "Máy xúc EX-03")
 }
 
 // S4: ý định khớp đủ / khớp một phần (thiếu thuật ngữ nào) / ý định chung, và NGUỒN của từng ứng viên khi hỏi lại.
@@ -119,7 +119,7 @@ func TestVetDuS4YDinhDaXet(t *testing.T) {
 	// hai máy cùng loại tranh một khe, một trong hai viết bằng bí danh mơ hồ: ứng viên của bí danh đến từ S3, thực thể rõ do S4 gộp thêm
 	mix := stepOf(t, steps(t, director, "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?"), "S4")
 	// mỗi ứng viên nói ĐÚNG nơi sinh ra nó: RL-02 là thực thể rõ do S4 gộp thêm; DZ-03 và EX-03 là ứng viên của cụm mơ hồ do S3 thấy
-	wantAll(t, "S4 nguồn ứng viên", mix.Reason, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm:", "ứng viên hỏi lại DZ-03 ← S3:", "ứng viên hỏi lại EX-03 ← S3:", `cụm mơ hồ "may 3"`)
+	wantAll(t, "S4 nguồn ứng viên", mix.Reason, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm:", "ứng viên hỏi lại DZ-03 ← S3:", "ứng viên hỏi lại EX-03 ← S3:", `cụm mơ hồ “may 3”`)
 	if strings.Contains(mix.Reason, "ứng viên hỏi lại DZ-03 ← do S4") || strings.Contains(mix.Reason, "ứng viên hỏi lại RL-02 ← S3") {
 		t.Errorf("nguồn ứng viên bị đảo: %s", mix.Reason)
 	}

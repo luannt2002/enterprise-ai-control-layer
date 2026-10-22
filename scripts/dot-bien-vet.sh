@@ -7,13 +7,26 @@
 # CẦN PG RIÊNG và hai biến môi trường đặt rõ (không có giá trị mặc định, để không vô tình chạy vào PG đang phục vụ việc khác):
 #   EAIS_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:<cổng>/eais?sslmode=disable
 #   EAIS_PG_DSN=postgres://eais_app@127.0.0.1:<cổng>/eais?sslmode=disable
-# Script tạo rồi xoá database $DB_DOT_BIEN (mặc định eais_dot_bien_vet) trong cụm đó; đột biến migration chạy trên database này vì
-# migration chỉ áp MỘT lần mỗi database.
+# Script đụng tới cụm PG đó ở BA chỗ — đừng trỏ vào PG đang phục vụ việc khác:
+#   1. tạo rồi xoá database $DB_DOT_BIEN (mặc định eais_dot_bien_vet) cho các đột biến migration (MV*), vì migration chỉ áp MỘT lần mỗi
+#      database; DB_DOT_BIEN KHÔNG được trùng tên database trong hai DSN (script từ chối, kẻo DROP chính database đang dùng);
+#   2. các đột biến mã Go (SV*, TV*) chạy `go test` trên database trong EAIS_PG_DSN: test GHI dòng vào các bảng vết (tenant ngẫu nhiên,
+#      TestMain dọn bằng vai quản trị khi xong), tạo rồi gỡ database eais_vet_* và vai eais_test_vet_* (BYPASSRLS);
+#   3. cần `psql` trên máy để dựng / xoá database đột biến (script kiểm trước khi chạy).
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
 : "${EAIS_PG_DSN:?đặt EAIS_PG_DSN (PG riêng của bạn)}"
 export EAIS_PG_ADMIN_DSN EAIS_PG_DSN
 DB_DOT_BIEN=${DB_DOT_BIEN:-eais_dot_bien_vet}
+command -v psql >/dev/null || { echo "thiếu psql: cần để dựng / xoá database đột biến" >&2; exit 1; }
+# db_of <dsn>: tên database trong DSN dạng postgres://vai@máy:cổng/<database>[?tham số].
+db_of() { printf '%s' "$1" | sed -E 's#^[a-z]+://[^/]*/([^/?]*).*#\1#'; }
+for d in "$EAIS_PG_ADMIN_DSN" "$EAIS_PG_DSN"; do
+	if [ "$(db_of "$d")" = "$DB_DOT_BIEN" ]; then
+		echo "DB_DOT_BIEN=$DB_DOT_BIEN trùng tên database trong DSN: script sẽ DROP chính database đó. Đặt DB_DOT_BIEN khác." >&2
+		exit 1
+	fi
+done
 bat=0 song=0 khac=0
 m() {
 	local res rc
@@ -66,6 +79,10 @@ m $V 'append(details, traces.Sanitize(r.Detail))' 'append(details, r.Detail)' 'S
 m $V 'pgErr.Code == pgFKViolation {' 'pgErr.Code == "00000" {' 'SV9 usage mồ côi bị gán nhãn hạ tầng'
 m $V 'if errors.Is(err, pgx.ErrNoRows) {' 'if false {' 'SV10 không thấy bản ghi không thành ErrNotFound'
 m $V 'if err := rec.Validate(); err != nil {' 'if err := rec.Validate(); false && err != nil {' 'SV11 bản ghi hỏng không bị từ chối ở tầng Go'
+m $V 'if clean.Decision.TraceID != rec.Decision.TraceID {' 'if false && clean.Decision.TraceID != rec.Decision.TraceID {' 'SV12 trace_id bị làm sạch đổi vẫn được ghi (lưu khác mã nơi gọi cấp)'
+m $V 'func stable(id string) bool { return traces.Sanitize(id) == id }' 'func stable(id string) bool { return true }' 'SV13 mã tra cứu bị làm sạch đổi không bị chặn ở bất kỳ hàm nào'
+m $V 'if loadID == "" || !stable(loadID) {' 'if loadID == "" {' 'SV14 mã lần nạp bị làm sạch đổi vẫn được ghi'
+m $V 'if !stable(u.TraceID) {' 'if false && !stable(u.TraceID) {' 'SV15 usage với trace_id bị làm sạch đổi vẫn chạm DB'
 
 export PKGS=./observability/traces/
 S=observability/traces/sanitize.go R=observability/traces/record.go T=observability/traces/step.go
@@ -77,14 +94,26 @@ m $S 'len(r) > maxErrorRunes {' 'false && len(r) > maxErrorRunes {' 'TV5 thông 
 m $S 'fault = contracts.FaultCode' 'fault = ""' 'TV6 lỗi chưa gắn nhãn thành lượt không lỗi'
 m $R 'if a.Fault != b.Fault {' 'if false && a.Fault != b.Fault {' 'TV7 so lượt lỗi bỏ qua nhãn lỗi'
 m $R '{"normalize", StageNormalize}, {"resolve", StageResolve}, {"intent", StageIntent},' '{"resolve", StageResolve}, {"normalize", StageNormalize}, {"intent", StageIntent},' 'TV8 thứ tự chặng bị đảo'
-m $R 'case verdictChanged:' 'case verdictChanged && !answerChanged:' 'TV9 khác cả câu lẫn verdict tính là S8'
+m $R '{"verdict", StageValidate},' '{"outcome", StageExecute}, {"verdict", StageValidate},' 'TV9 outcome xét trước verdict (lỗi R1-01 nguyên bản)'
+m $R '{"verdict", StageValidate},' '{"evidence", StageContext}, {"verdict", StageValidate},' 'TV17 bằng chứng xét trước verdict'
+m $R '{"verdict", StageValidate},' '{"answer", StageGenerate}, {"verdict", StageValidate},' 'TV18 câu xét trước verdict (khác cả câu lẫn verdict tính là S8)'
 m $R 'if s.TraceID != "" && s.TraceID != r.Decision.TraceID {' 'if false {' 'TV10 bước mang trace_id lượt khác qua được'
 m $T 'executed := has("execute") || has("retrieve")' 'executed := true' 'TV11 bước không chạy vẫn tính là chạy'
 m $T 's.Ms, s.Timed = s.Ms+ms, true' 's.Ms, s.Timed = ms, true' 'TV12 span cùng tên không cộng dồn'
 m $T 's.Reason = notRecorded("luật sinh từng đoạn (Span.Rule) chưa xuất khỏi Handle")' 's.Reason = "luật mặc định của chuẩn hoá"' 'TV13 bịa lý do thay vì ghi chưa ghi'
 m $T 'if id != c.ChosenID {' 'if true {' 'TV14 bằng chứng được chọn bị kể là bị loại'
 m $T 'n <= 10 &&' 'n <= 11 &&' 'TV15 chấp nhận mã bước S11'
-m $T 'case route.NeedsModel():' 'case !route.NeedsModel():' 'TV16 đảo route cần model / không cần model'
+m $T 'case route.NeedsModel() && has("generate"):' 'case !route.NeedsModel() && has("generate"):' 'TV16 đảo route cần model / không cần model'
+m $T 'case route.NeedsModel() && has("generate"):' 'case route.NeedsModel():' 'TV19 S8 kể model diễn đạt dù không có span generate (R1-02)'
+m $T 'case route.NeedsModel():' 'case !route.NeedsModel():' 'TV20 route cần model mà không gọi model rơi vào nhánh mẫu câu'
+m $T 'if d.Outcome == string(contracts.OutcomeInsufficientEvidence) {' 'if false && d.Outcome == string(contracts.OutcomeInsufficientEvidence) {' 'TV21 truy vấn không đủ dữ liệu mà S6 không lệch (R1-03)'
+m $T 'if route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'if false && route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'TV22 HYBRID phần tri thức rỗng mà S6 không nói'
+m $T 'StageExecute: {"execute", "retrieve"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'StageExecute: {"execute"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'TV23 span retrieve không gắn vào bước nào (R1-05)'
+m $T 'StageValidate: {"validate"},' 'StageValidate: {"validate", "generate"},' 'TV24 span generate gắn vào hai bước (thời gian đếm đôi)'
+RX_Q=$'(?:(")[^"]*"?|(\')[^\']*\'?|[^\\s"\',;&]+)'
+m $S "$RX_Q" $'(?:(")[^\\s"\',;&]+|(\')[^\\s"\',;&]+|[^\\s"\',;&]+)' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
+m $S "$RX_Q" $'(?:(")[^"]*"|(\')[^\']*\'|[^\\s"\',;&]+)' 'TV27 nháy không đóng không được che'
+m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie / Set-Cookie'
 
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"

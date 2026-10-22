@@ -1,29 +1,36 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 22/10/2026 17:0x, chốt ca ngày 22/10 (báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`; tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: 22/10 14:4x giữa ca; chốt ca tối 21/10; 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
+> Cập nhật: 22/10/2026 21:5x, dừng tối 22/10 (báo cáo ca: `docs/bao-cao/2026-10-22-ca.md` mục 7; tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: 22/10 17:0x chốt ca ngày; 22/10 14:4x giữa ca; chốt ca tối 21/10; 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
-## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 RA theo cổng ra của lệnh ca 22/10, M3 chờ D-AI-02
+## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 RA theo cổng ra của lệnh ca 22/10, M3 chờ D-AI-02, M4 đủ điều kiện mở mã
 
-Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Bảng lệnh và kết quả: báo cáo ca 22/10 mục 1, mục 5.
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Bảng lệnh và kết quả: báo cáo ca 22/10 mục 7 (dừng 21:30); từng dòng CỔNG
+TRƯỚC AI: `docs/bao-cao/CONG-TRUOC-AI.md`.
 
 - **M1 RA theo cổng ra của lệnh ca 22/10** (`41bc3cf`; cổng: 4 route, principal từ token, một lệnh từ checkout sạch, CI có PG, vết lưu bền
   kể cả lượt lỗi, 117 / H1 / H3 không đổi). Vế còn lại của cổng ra M1 ở §5b (người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90% ca
-  đỏ): lần đo 1 (22/10 tối) **KHÔNG ĐẠT**, 29 / 33 = 87,9% ("luôn đoán S4" được 84,8%) — vết chưa xuất phương án đã xét / bị loại
-  (R2-03, đang làm). Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz; principal từ token, không lấy tenant từ
-  thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`, kể cả lượt lỗi; một lệnh
-  `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21); CI GitHub có PG, cấm SKIP (run 39750100276 xanh).
-- **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`: không nhận thêm luật, lỗ mới ghi nợ, giữ fail-closed; còn nợ S3 ở ADR-0009); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu
-  sai nghĩa không nhãn) ⇒ chờ **D-AI-02**.
-- **M4, M2**: giấy (ADR-0011, ADR-0012, hợp đồng việc, cổng QuânIT; soát độc lập ĐẠT CÓ GHI CHÚ); chưa mở mã. Bản sửa F01–F03 của giấy M2 ở
-  nhánh máy: soát vòng 2 KHÔNG ĐẠT, sửa vòng 3.
-- **M5 chưa đạt**: dòng S4 KHÔNG ĐẠT; các dòng khác chưa đủ bảng lệnh theo brief BUILD §9.3.
+  đỏ): lần đo 1 (22/10 tối) **KHÔNG ĐẠT**, 29 / 33 = 87,9% ("luôn đoán S4" được 84,8%) — vết chưa xuất phương án đã xét / bị loại (R2-03:
+  nhánh máy, chưa gộp vì vòng soát 3 tìm một lỗ an ninh mới). Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET
+  /healthz; principal từ token, không lấy tenant từ thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration
+  0003, RLS), xem bằng `eais trace`, kể cả lượt lỗi; một lệnh `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21; từ tối 22/10 từ chối
+  dùng lại PG đang chạy trừ khi `EAIS_REUSE_PG=1`, và từ chối khi compose project đã có container chạy / tạm dừng); `code_version` của vết
+  là mã git, giá trị nhúng bằng `-ldflags`, hoặc băm của binary; CI GitHub có PG, cấm SKIP.
+- **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`: không nhận thêm luật, lỗ mới ghi nợ, giữ fail-closed; còn nợ S3 ở ADR-0009); H4 chạy
+  một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn) ⇒ chờ **D-AI-02**.
+- **M4**: ADR-0011 CHỐT; bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG bằng cam kết băm (`1ddd10b`, `docs/g7/holdout-p1/holdout-manifest.json`,
+  157 ca / 23 lớp; nội dung công bố lúc chạy) ⇒ đủ bốn điều kiện mở mã (HOP-DONG §13). Lõi lệnh `execution/commands` (K1) ở nhánh máy,
+  chưa soát.
+- **M2**: giấy (ADR-0012, hợp đồng việc, cổng QuânIT; `5d69d24`); bản sửa F01–F03 ở nhánh máy: soát vòng 6 KHÔNG ĐẠT chỉ vì R6-01 (họ
+  "rơi khỏi tổng im lặng"), sửa vòng 7.
+- **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; S5, S6 ĐẠT theo tầng, có điều kiện; L1, S7, S9 chưa có bộ ca độc lập (giấy đo S9 đã khoá); Vết: vế
+  ≥ 90% KHÔNG ĐẠT; câu mở D-AI-03 (S7 trong hay ngoài MVP).
 - Nợ S4 sau H4: hai vòng soát KHÔNG ĐẠT ⇒ mã chưa lên main; câu mở **D-OP-18** (ADR-0010).
-- Cổng cuối (`47a4a15`): test có PG 601 test (kể cả test con) pass, 0 skip (so cổng M1 theo tên: 0 đổi, 0 mất, 0 mới); bộ 117 117/117
-  (đường bộ nhớ); H1 92/104, H3 113/134, H4 104/119 (hai đường); CI GitHub run 39755113290 success.
+- Cổng cuối (dừng 21:30; mã giống `7101b6a`): test có PG 639 test (kể cả test con) pass, 0 skip (theo tên 0 đổi / 0 mất so cổng trước); bộ
+  117 117/117 (đường bộ nhớ); H1 92/104, H3 113/134, H4 104/119 (hai đường); CI GitHub run 39789245179 success (`76a79e2`).
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 

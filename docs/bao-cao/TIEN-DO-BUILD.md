@@ -6,41 +6,36 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 22/10/2026 17:0x, mốc chốt ca ngày 22/10 (chủ dự án dặn làm tiếp, không dừng) · **HEAD:** commit chứa dòng này (mã giống
-  `41bc3cf`; sau đó chỉ đổi tài liệu).
-- **MVP chưa RA:** mới M1 qua cổng ra, theo cổng ra do lệnh ca đặt. M3 chờ D-AI-02; M2, M4 mới là giấy; M5 chưa đạt. Trên dữ liệu giả lập,
-  chưa có người nghiệp vụ duyệt (D-RM-03).
-  - M1 **RA theo cổng ra của lệnh ca** · `41bc3cf` · `scripts/chay-thu.sh` (smoke 21/21 ở máy và trên CI từ checkout sạch), `go test
-    -count=1 -json ./...` có PG, `eais trace -tenant <t> <id>` (lượt thường và lượt lỗi), CI GitHub run 39750100276 · ĐẠT các mục: 4 route,
-    principal từ token, một lệnh, CI có PG, vết lưu bền, 117 / H1 / H3 không đổi. Vế "người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90%
-    ca đỏ" của cổng ra M1 ở `docs/ROADMAP-DAY-DU.md` §5b: lần đo 1 (22/10 17:5x) **KHÔNG ĐẠT** — 29 / 33 = 87,9% ca đỏ H1 + H3 ("luôn
-    đoán S4" được 84,8%); 4 ca lệch đều do vết thiếu phương án đã xét (`docs/bao-cao/2026-10-22-do-nguoi-soat-doc-vet.md`); R2-03 đang làm.
-  - M3 **chưa RA** · H4 một lần ở `57409f2`, theo tầng ở `e698e30` · dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn)
-    ⇒ chờ **D-AI-02**.
-  - M4 giấy: sửa L3D-01…08, 11 (lượt 4 ĐẠT CÓ GHI CHÚ; điều phối áp đề xuất L3E khi gộp — commit chứa dòng này). Kế: người soạn độc lập
-    viết bộ ca giữ lại Phase 1 + tệp thế giới bổ sung, băm, commit cam kết → mã. Khi mã xong, dòng M4 ghi "lệnh tạo phiếu có kiểm soát; chưa
-    có bên kích hoạt tự động (Q-P1-6)".
-  - M2 giấy (`5d69d24`); bản sửa F01–F03 ở nhánh máy (5 commit, chưa gộp): soát vòng 2 KHÔNG ĐẠT — 1 S2 (quyết định của người đưa bản HELD vì lý do khác sang ACCEPTED mà không chạy TR3 với bản đứng trước ⇒ cộng đôi im lặng) và 6 S3; sửa vòng 3 (vòng cuối theo §9.6).
-  - M5 **chưa đạt**: bảng lệnh từng dòng ở `docs/bao-cao/CONG-TRUOC-AI.md` (22/10 17:3x) — S2, S3, S4 KHÔNG ĐẠT; L1, S7, S9 chưa có bộ ca
-    độc lập; S6 và vế ≥ 90% của dòng Vết chưa đo; S5 đạt theo tầng có điều kiện; câu mở D-AI-03 (S7 trong hay ngoài MVP).
-- **Đang làm** (tối đa 5 agent cùng lúc, chủ dự án 17:2x): M4 sửa giấy L3D; M2 sửa giấy vòng 3; đo vế "người soát chỉ đọc vết ≥ 90%"
-  (thẻ vết + người đọc mù + nhãn chuẩn độc lập); M1 sửa ghi chú S3 R2-01/02/04/05. Câu chờ quyết: `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
-- **Xong từ lần trước (cả ca 22/10):** cổng phán quyết KHOÁ HẲN (`59557c2`); S4 đóng băng `a665298`; H4 chạy một lần (104/119 hai đường;
-  mốc 102/119); M1 RA theo lệnh ca; giấy Phase 1 (sửa L3C-01…04 + demo), giấy Phase 0a; nợ S4 sau H4: hai vòng soát KHÔNG ĐẠT ⇒ không gộp,
-  câu mở D-OP-18. Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
-- **Tiếp theo:** (1) chủ dự án quyết D-AI-02, D-OP-18, D-OP-16, D-OP-17; (2) M4: L3D-01…08 → bộ ca giữ lại Phase 1 → mã; (3) M2: sửa giấy
-  vòng 3 → soát → gộp → bộ ca độc lập → mã; (4) M5: bảng lệnh từng dòng §9.3, đo vế ≥ 90% của dòng vết.
+- **Cập nhật lúc:** 22/10/2026 21:5x, dừng tối 22/10 (chủ dự án: 21:30 bắt đầu dừng, 09:00 ngày 23/10 làm tiếp) · **HEAD:** commit chứa
+  dòng này (mã giống `7101b6a`; sau đó chỉ đổi tài liệu).
+- **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Chi tiết: báo cáo ca `docs/bao-cao/2026-10-22-ca.md` mục 7.
+  - M1 **RA theo cổng ra của lệnh ca** (`41bc3cf`; ghi chú soát đóng thêm tới `7101b6a`). Vế "người soát chỉ đọc vết chỉ đúng tầng sai đầu
+    tiên ≥ 90% ca đỏ" của §5b: lần đo 1 **KHÔNG ĐẠT** (29 / 33 = 87,9%; "luôn đoán S4" 84,8%) ⇒ R2-03 ở nhánh máy, soát vòng 3 KHÔNG ĐẠT vì
+    một lỗ an ninh mới (N1').
+  - M3 **chưa RA** · dòng S4 KHÔNG ĐẠT trên H4 (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn) ⇒ chờ **D-AI-02**.
+  - M4: ADR-0011 CHỐT, bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG (`1ddd10b`, 157 ca / 23 lớp) ⇒ được mở mã; lõi lệnh K1 ở nhánh máy
+    `m4/k1-loi-lenh`, chưa soát. Khi mã xong, dòng M4 ghi "lệnh tạo phiếu có kiểm soát; chưa có bên kích hoạt tự động (Q-P1-6)".
+  - M2: giấy (`5d69d24`); bản sửa F01–F03 ở nhánh máy `m2/phase0a-sua-f`, soát vòng 6 KHÔNG ĐẠT chỉ vì R6-01 (họ "rơi khỏi tổng im lặng").
+  - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4 KHÔNG ĐẠT; S5, S6 ĐẠT theo tầng, có điều kiện; L1, S7, S9 chưa có bộ ca độc
+    lập (S9 có giấy đo đã khoá, `5553f41`); Vết: vế ≥ 90% KHÔNG ĐẠT; câu mở D-AI-03 (S7).
+- **Đang làm:** không agent nào chạy (dừng 21:30). Việc dở ở nhánh máy, chưa push: R2-03 (`m1/r203-vet-du`), K1 (`m4/k1-loi-lenh`), giấy M2
+  (`m2/phase0a-sua-f`), khoá `flock` của `scripts/chay-thu.sh` (`m1/r5-01-flock`) — báo cáo ca mục 7.3.
+- **Xong từ lần trước (tối 22/10):** bảng lệnh M5 + D-AI-03; đo người đọc vết lần 1 (KHÔNG ĐẠT); S6 đo bằng script; cam kết băm bộ ca kiểu
+  LỆNH; giấy Phase 1 sửa L3D / L3E; bộ ca giữ lại Phase 1 ĐÓNG BĂNG + ADR-0011 CHỐT; M1 R2-02 / 04 / 05, R3-01…04, R4-01 / 02; giấy đo S9
+  KHOÁ; `CHO` mục 5.
+- **Tiếp theo (09:02 ngày 23/10):** (1) R2-03 vòng 4 (an ninh) → gộp → đo lại người đọc vết có ca xanh đối chứng; (2) soát K1 → K2 → K3 ∥ K4
+  → chạy bộ ca giữ lại Phase 1 một lần; (3) giấy M2 vòng 7 → bộ ca độc lập Phase 0a → mã; (4) `flock` vòng 2; (5) S9: người soạn + bộ chạy.
 - **Bị chặn:**
   - M3 và dòng S4 của M5: D-AI-02;
+  - lời tuyên bố M3 / M5 RA: D-AI-03 (S7 trong hay ngoài MVP);
+  - dòng S2, S3 của M5: D-OP-9, D-OP-11;
   - vòng cuối của nợ S4 sau H4: D-OP-18 (mã ở nhánh máy, chưa push);
-  - D-OP-16, D-OP-17: chờ chủ dự án, không chặn việc nào; mặc định đang chạy: D-OP-16 (a), D-OP-17 giữ "2k" như cũ;
-  - dữ liệu / người nghiệp vụ thật: không có (D-RM-03) — mọi kết luận ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
-  - W-G7 trả tiền: chưa cấp.
-- **Test** (cổng cuối ở `47a4a15`, container `eais-pg`): `go vet ./...` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 -json ./...` có PG: 601 test
-  (kể cả test con) pass, 0 skip, so theo tên với cổng M1 0 đổi / 0 mất / 0 mới; winreport: bộ 117 117/117 (đường bộ nhớ), H1 92/104, H3
-  113/134, H4 104/119 (hai đường) — 0 dòng nội dung khác so với cổng M1; CI GitHub ở `47a4a15` run 39755113290 success.
-- **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN (M2, M3 chờ D-AI-02, M4, M5 còn mở); `docs/PROMPT-BUILD-EAIS.md` §9; PROMPT-DOI-TEN Việc 3
-  còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C.
+  - dữ liệu / người nghiệp vụ thật: không có (D-RM-03); W-G7 trả tiền: chưa cấp.
+- **Test** (cổng ở `7101b6a`; mã ở HEAD giống hệt): `go vet ./...` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 -json ./...` có PG: 639 test
+  (kể cả test con) pass, so theo tên 0 đổi / 0 mất / 8 mới; winreport: bộ 117 117/117 (đường bộ nhớ), H1 92/104, H3 113/134, H4 104/119 (hai
+  đường) — 0 dòng nội dung khác; CI GitHub `76a79e2` run 39789245179 success.
+- **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN (M2–M5 còn mở); `docs/PROMPT-BUILD-EAIS.md` §9; PROMPT-DOI-TEN Việc 3 còn mục 3–7;
+  PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết: `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -101,3 +96,5 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 20:2x | commit chứa dòng này | M4: bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG bằng cam kết băm (`docs/g7/holdout-p1/holdout-manifest.json`, nội dung ở máy tới lúc chạy); ADR-0011 CHỐT (lệnh ca 3b) ⇒ đủ bốn điều kiện mở mã M4 (HOP-DONG §13) | 157 ca / 23 lớp (`scripts/cam-ket-bo-ca-lenh.py` + `--kem` tệp thế giới bổ sung, ghi chú soát); soát chéo ĐẠT CÓ GHI CHÚ (0 sai kỳ vọng); kiểm toán nhiễm: ba agent chỉ Read bộ đồ nghề + tệp ca + tệp tạm của mình, 0 Glob / Grep; id đổi cơ học CON-P1-NNN → CON-T-(700+NNN) cho khớp `evals.Validate` (lỗi đề giao của điều phối) | A11, A12, A24–A28, A29 (a)–(d) không khai được bằng khuôn §12.1 (U10) ⇒ cần kênh kiểm khác |
 | 22/10 20:3x | commit chứa dòng này | M1 R4-01 (mất dữ liệu) + R4-02: `scripts/chay-thu.sh` từ chối khi compose project đã có container chạy / tạm dừng (khác tên, khác cổng), container đã dừng hẳn thì đi tiếp (tmpfs đã mất) | Đỏ trước: test mới đỏ trên script gốc; kịch bản thật trên dự án riêng tái hiện "container cũ biến mất, container mới được dựng". Soát độc lập ĐẠT CÓ GHI CHÚ (0 S1 / S2). Điều phối đo lại: vet 0, gofmt 0, test có PG 631 → 639 (theo tên 0 đổi / 0 mất / 8 mới), 117 / H1 / H3 / H4 0 dòng khác | Mở: R5-01 (S3) hai lần chạy đồng thời cùng dự án — đề xuất `flock`; R5-02, R5-03 (S4) |
 | 22/10 20:4x | commit chứa dòng này | M5 dòng S9: giấy đo `docs/viec/m5-cong-truoc-ai/S9-HOP-DONG-DO.md` (ĐỀ XUẤT) — KHOÁ sau ba vòng soát (vòng 1, 2 KHÔNG ĐẠT; vòng 3 ĐẠT, 0 S1 / S2) | Người soát vòng 2 tự soạn 15 bản ĐÚNG qua pipeline thật (15 qua) và 50 bản SAI (44 chặn; 6 lọt đều là dạng số khó đếm); vòng 3 mô phỏng cơ chế ghim bằng `scripts/mutate.sh` thật trên module mẫu | Điều phối áp S9G3-01, S9G3-02 (hai câu); S9G3-03…08 (S4) ghi nợ; S9 CHƯA đo |
+| 22/10 17:1x–20:4x | `a4daffd`, `36e2005`, `9618d6c`, `76a79e2` | Bổ sung nhật ký: tệp câu hỏi chờ chủ dự án; `scripts/cam-ket-bo-ca-lenh.py` (cam kết băm bộ ca kiểu LỆNH) và tuỳ chọn `--kem`; `CHO` mục 5 gom câu mở Q-P1-1…9, Q-S9-1…8 | Script: 6 đầu vào hỏng bị từ chối (thoát 2), ghi đè manifest bị từ chối, tệp đúng ghi manifest | Các commit này không kèm dòng nhật ký lúc push |
+| 22/10 21:5x | commit chứa dòng này | Dừng tối 22/10 (chủ dự án: 21:30 dừng, 09:00 ngày 23/10 làm tiếp): báo cáo ca mục 7, STATUS, CHANGELOG, tệp câu hỏi | Mã ở HEAD giống `7101b6a` (`git diff --stat` chỉ có tài liệu); cổng ở `7101b6a`: test có PG 639, 117 / H1 / H3 / H4 0 dòng khác; CI `76a79e2` run 39789245179 success | Bốn việc dở ở nhánh máy, chưa push: R2-03, K1, giấy M2, `flock` (báo cáo ca mục 7.3) |

@@ -5,7 +5,8 @@
 > Trong lúc chờ, BUILD chạy theo **mặc định an toàn, đảo lại được** ghi ở cột "Đang chạy".
 > Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt** (D-RM-03).
 
-Cập nhật: 22/10/2026 20:4x. Câu mở Q-P1-1…9 và Q-S9-1…8 đã gom vào `docs/CHO-QUYET-DINH.md` mục 5 (trả lời ở đó).
+Cập nhật: 22/10/2026 21:5x (dừng tối 22/10; làm tiếp 09:00 ngày 23/10). Câu mở Q-P1-1…9 và Q-S9-1…8 đã gom vào
+`docs/CHO-QUYET-DINH.md` mục 5 (trả lời ở đó). Từ 20:4x không có câu mới.
 
 ## 1. Đang chặn một khối MVP
 
@@ -35,3 +36,6 @@ Cập nhật: 22/10/2026 20:4x. Câu mở Q-P1-1…9 và Q-S9-1…8 đã gom và
 | 22/10 17:0x | Nợ S4 sau H4 không gộp sau hai vòng soát KHÔNG ĐẠT | luật dừng brief BUILD §9.6 | trả lời D-OP-18 rồi chạy vòng cuối |
 | 22/10 17:2x | Trần agent cùng lúc 3 → 5 | lời chủ dự án 17:2x | — |
 | 22/10 17:3x | "Lượt" của vế 100% dòng Vết = lượt đã xác thực (lượt 401 chỉ bộ đếm + log) | chưa có tenant để ghi vết theo RLS | đổi định nghĩa trong `docs/bao-cao/CONG-TRUOC-AI.md` |
+| 22/10 18:2x | Ngày 23/10 cũng dừng lúc 21:30 như tối 22/10 | chủ dự án mới nói giờ của tối 22/10 | nói giờ khác |
+| 22/10 21:2x | Giấy M2 (Phase 0a) làm tiếp vòng 7 dù đã quá 3 vòng soát | luật dừng §9.6, ngoại lệ mất dữ liệu: R6-01 thuộc họ "rơi khỏi tổng im lặng" | khoá giấy ở vòng 6, ghi R6-01 thành nợ |
+| 22/10 21:2x | R2-03 (vết xuất phương án đã xét) làm tiếp vòng 4 dù đã quá 3 vòng soát | luật dừng §9.6, ngoại lệ an ninh: N1' | bỏ R2-03, giữ vết như main |

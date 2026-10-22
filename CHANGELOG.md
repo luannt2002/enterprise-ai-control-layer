@@ -6,6 +6,26 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 22/10/2026 tối — bộ ca giữ lại Phase 1 đóng băng, ADR-0011 CHỐT; M1 đóng thêm ghi chú soát; bảng lệnh M5; đo người đọc vết lần 1
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA.**
+
+- **M4:** bộ ca giữ lại độc lập Phase 1 đóng băng bằng cam kết băm (`1ddd10b`; 157 ca / 23 lớp; người soạn không đọc mã, kiểm toán nhiễm 0 vi
+  phạm); ADR-0011 CHỐT ⇒ đủ điều kiện mở mã. Giấy Phase 1 sửa theo soát (`ce6bd0e`): khuôn ca máy đọc được, tệp thế giới bổ sung do người soạn
+  viết, build tag cho bộ chạy giữ lại. Script mới `scripts/cam-ket-bo-ca-lenh.py` (`36e2005`, `9618d6c`).
+- **M1:** `scripts/chay-thu.sh` không còn ghi đè hay gỡ PG đang chạy: từ chối dùng lại container đang chạy trừ khi `EAIS_REUSE_PG=1`
+  (`a2f6c02`), từ chối khi compose project đã có container chạy / tạm dừng dù khác tên và cổng (`7101b6a`); test canh hàng rào tên container
+  (`790d821`). `code_version` của vết không còn "(devel)": mã git, giá trị nhúng bằng `-ldflags`, hoặc băm của binary (`a2f6c02`).
+- **M5:** bảng lệnh từng dòng CỔNG TRƯỚC AI (`b7f62fb`; CHƯA ĐẠT); dòng S6 đo bằng `scripts/do-s6-so-dung.py` (`fd4f652`; 256 / 266, ĐẠT theo
+  tầng, có điều kiện); giấy đo dòng S9 khoá sau ba vòng soát (`5553f41`; S9 chưa đo).
+- **Đo "người soát chỉ đọc vết"**, lần 1 (`e6dba24`): 29 / 33 = 87,9% ca đỏ H1 + H3, ngưỡng 90% ⇒ KHÔNG ĐẠT; mức "luôn đoán S4" 84,8%.
+- Câu mở mới: D-AI-03 (S7 trong hay ngoài MVP); `CHO` mục 5 gom câu mở của hợp đồng Phase 1 và giấy đo S9 (`76a79e2`); tệp
+  `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
+- Chưa gộp (nhánh máy): vết xuất phương án đã xét (R2-03 — vòng soát 3 tìm một lỗ an ninh mới, sửa trước khi gộp), lõi lệnh M4 (chưa soát),
+  bản sửa giấy Phase 0a (R6-01), khoá `flock` của `chay-thu.sh`.
+- Bằng chứng cổng cuối (mã giống `7101b6a`): vet 0, gofmt 0, test có PG 639 test (kể cả test con) pass / 0 skip (theo tên so cổng 17:00:
+  0 đổi, 0 mất, 38 mới); bộ 117 (đường bộ nhớ) và H1 / H3 / H4 (hai đường): 0 dòng nội dung khác so cổng 17:00; CI run 39789245179 success.
+
 ### 22/10/2026 cuối chiều — cổng phán quyết KHOÁ HẲN; H4; M1 RA theo lệnh ca; giấy Phase 1, Phase 0a
 
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA**: mới M1 qua cổng ra (theo cổng ra của lệnh ca); M3 chờ

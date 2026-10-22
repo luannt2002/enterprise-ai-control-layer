@@ -23,8 +23,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
   - **H4 theo tầng (xong):** S4 sai đầu tiên ở 10 / 119 = 8,4% (> 5%), 3 câu sai nghĩa không nhãn ⇒ dòng S4 KHÔNG ĐẠT ⇒ **M3 chưa RA,
     chờ D-AI-02** (CHO, khuyến nghị: sửa tiếp bằng luật C3 / C4 / C5 / N1 rồi chấm trên bộ giữ lại mới);
   - M4: giấy Phase 1 sửa xong 4 ghi chú L3C-01…04 + kịch bản demo (commit chứa dòng này; soát ĐẠT CÓ GHI CHÚ). Trước khi mở mã M4:
-    sửa 8 ghi chú S3 L3D-01…08 và soạn + băm + commit bộ ca giữ lại độc lập của Phase 1 (HOP-DONG §13, L3D-10); nợ S4 sau H4 (ở máy, soát
-    vòng 2);
+    sửa 8 ghi chú S3 L3D-01…08 và soạn + băm + commit bộ ca giữ lại độc lập của Phase 1 (HOP-DONG §13, L3D-10); nợ S4 sau H4: soát hai vòng KHÔNG ĐẠT, mã để ở nhánh máy
+    `lead/no-s4-sau-h4`, chờ D-OP-18 + vòng cuối (ADR-0010);
 - **Tiếp theo:**
   1. Soát khoá vòng 4 kết luận (chỉ sửa tiếp nếu còn phán quyết sai chiều).
   2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai` đã tạo; băm tệp ca khớp bản đóng băng) → báo cáo theo tầng sai đầu
@@ -88,3 +88,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 15:5x | commit chứa dòng này | H4 theo tầng sai đầu tiên + câu mở **D-AI-02** | Người phân tích chạy lại 15 ca qua pipeline thật; người kiểm chéo độc lập chạy lại 13 ca: đồng ý 13 / 13. S4 ở 10 ca (C3 / S4R-05 ×5, C4 ×2, C5 ×2, N1 ×1), cổng phán quyết ở 5 ca (đóng thừa); 3 câu sai nghĩa không nhãn (758, 847, 854) | Dòng S4 của CỔNG TRƯỚC AI KHÔNG ĐẠT; M3 chưa RA; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
 | 22/10 15:5x | commit chứa dòng này | **M1 RA** | CI GitHub run 39750100276 (`41bc3cf`): success — vet, gofmt, go test có PG (service postgres:17 ghim digest), cấm SKIP / FAIL, cổng danh tính, smoke E2E một lệnh; cộng các số đo ở máy của dòng 15:4x | Ghi chú S3 R2-01…04 của soát U0.2 xếp hàng, không chặn M1 |
 | 22/10 16:1x | commit chứa dòng này | M4 bước 1: giấy Phase 1 sửa L3C-01…04 + demo (lượt "Tạo phiếu kiểm tra" vào bằng route lệnh riêng `POST /v1/commands/open_discrepancy_ticket` của `cmd/eais`, vết lệnh C0–C7; mã lệnh đặt ở `execution/commands`, `core/` không chạm tệp nào; câu Q-P1-8 mặc định (a)) | Soát độc lập ĐẠT CÓ GHI CHÚ (0 S1 / S2; 8 ghi chú S3 L3D-01…08); quét 0 đường dẫn máy, 0 ký tự lạ; cổng danh tính xanh | Điều phối cập nhật các câu trạng thái H4 đã cũ (L3D-06) khi gộp. Chờ trước mã M4: L3D-01…08, bộ ca giữ lại độc lập Phase 1 (L3D-10) |
+| 22/10 16:2x | commit chứa dòng này | Nợ S4 sau H4: hai vòng sửa, hai vòng soát độc lập KHÔNG ĐẠT ⇒ không gộp; ghi bài học + trạng thái ở ADR-0010; câu mở **D-OP-18** | Vòng 2 đo: test có PG 602 pass (theo tên 0 đổi / 0 mất), 117 / H1 / H3 / H4 0 dòng, corpus 0 phán quyết mới; F6' đóng | Mã ở nhánh máy `lead/no-s4-sau-h4` (3 commit WIP); vòng 3 là vòng cuối (§9.6) |

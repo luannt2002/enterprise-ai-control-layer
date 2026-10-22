@@ -243,3 +243,22 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Bằng 
 (ngưỡng 0). Năm ca dừng ở cổng phán quyết đều là đóng thừa (không phán quyết sai chiều), cổng đã khoá. Việc tiếp theo chờ chủ dự án quyết
 **D-AI-02** (`docs/CHO-QUYET-DINH.md`): sửa tiếp bằng luật (khuyến nghị) và chấm trên bộ giữ lại mới, hay hạ ngưỡng, hay cho một lượt model
 nhỏ. Từ nay H4 là bộ hồi quy; không chạy lại, không dùng làm bằng chứng cho bản sửa sau.
+
+## Nợ S4 sau H4 (lệnh ca MVP ALL-IN mục 3d) — CHƯA lên main
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Mã ở nhánh máy `lead/no-s4-sau-h4` (ba commit WIP), KHÔNG push: soát độc lập hai vòng
+đều KHÔNG ĐẠT; vòng 3 là vòng cuối theo §9.6.
+
+- Vòng 1 (cụm ghép vào `ignore_phrases` + kiểm miền cho mọi lượng): KHÔNG ĐẠT — S1: bỏ qua "nhà cung cấp" làm câu hỏi TIỀN bị trả số lít theo
+  hoá đơn; bỏ qua "dự báo / cảnh báo / báo giá" làm câu bị trả theo chỉ số còn lại ("dự báo tiêu thụ …" ra số tiêu thụ thực đo); S2: tổng
+  tháng / tuần viết rõ đơn vị (> 20.000 L) bị hỏi lại oan.
+- Vòng 2 (rút 5 cụm mang nghĩa chưa hỗ trợ; kiểm miền chỉ cho số không tự viết đơn vị): S1-1, S1-2, S2-1 đóng (trở về hành vi cũ); KHÔNG ĐẠT có
+  điều kiện vì "ghi nhận", "nhận xét" cũng mang nghĩa chưa hỗ trợ (lệnh ghi, đánh giá): "Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay" bị trả như
+  truy vấn, đọc lại đúng số người dùng đưa — dễ hiểu nhầm là đã ghi. Đổi lại 37 câu "… ghi nhận tiêu …" thôi trả nhầm số kho xuất.
+- Đã đo ở vòng 2: test có PG 602 pass (theo tên 0 đổi / 0 mất); 117 / H1 / H3 / H4 hai đường 0 dòng khác; corpus 716.133 câu: 0 phán quyết
+  mới / 0 đổi chiều; F6' (tiền nói tắt "4 củ", "dầu 4tr", "4,1 triệu dầu", "dầu 150k") đóng; số trần của cả tháng ("150000 dầu") bị hỏi lại
+  (đánh đổi phía an toàn).
+- **Bài học:** danh sách đóng các cụm ghép không đủ — mỗi cụm có thể mang một nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh
+  ghi, đánh giá); bỏ qua cụm thì câu bị trả theo chỉ số còn lại. Cần cơ chế "nghĩa chưa hỗ trợ ⇒ hỏi lại / từ chối" và quyết định của chủ dự
+  án về nghĩa của câu "ghi nhận + giá trị" (câu mở **D-OP-18**). Nợ còn mở: S4R-03 cho các cụm đã rút, F6' ở khung "bao nhiêu" (nhánh từ khoá
+  yếu, D-OP-16) và ký hiệu "$", khoảng trắng kép làm cụm hở, chiều tiền ("thanh toán" là từ khoá của dầu theo hoá đơn).

@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -368,6 +370,51 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 		a := decodeAs[contracts.AskResponse](t, e.ask(tokDirector, qSQL))
 		if got := e.getTrace(tokDirector, a.TraceID).Record.Decision.DataVersion; got != rep2.DataVersion {
 			t.Errorf("vết sau nạp lại mang phiên bản dữ liệu %q, muốn %q", got, rep2.DataVersion)
+		}
+	})
+
+	// Hai lần nạp chồng nhau: lần sau bị từ chối 409 NGAY (không xếp hàng ngầm giữ kết nối, không nạp song song); lần đầu vẫn xong và sau đó
+	// nạp lại được. Lần đầu được giữ dở dang bằng móc afterRead (đã đọc nguồn, chưa ghi kho).
+	t.Run("nap-chong-nhau", func(t *testing.T) {
+		e := mk(t)
+		entered, release := make(chan struct{}), make(chan struct{})
+		var calls atomic.Int32
+		e.app.afterRead = func() {
+			if calls.Add(1) == 1 {
+				close(entered)
+				<-release
+			}
+		}
+		var once sync.Once
+		free := func() { once.Do(func() { close(release) }) }
+		defer free()
+		first, second := make(chan reply, 1), make(chan reply, 1)
+		go func() { first <- e.post("/v1/ingest", tokDirector, map[string]string{}) }()
+		select {
+		case <-entered:
+		case <-time.After(30 * time.Second):
+			t.Fatal("lần nạp đầu không tới điểm giữ")
+		}
+		go func() { second <- e.post("/v1/ingest", tokDirector, map[string]string{}) }()
+		select {
+		case r := <-second:
+			if r.status != http.StatusConflict || !strings.Contains(string(r.body), "đang có một lần nạp khác") {
+				t.Errorf("lần nạp thứ hai khi lần đầu còn dở = %d %s, muốn 409 'đang có một lần nạp khác'", r.status, r.body)
+			}
+		case <-time.After(5 * time.Second):
+			t.Error("lần nạp thứ hai không bị từ chối ngay khi lần đầu còn dở: nó chờ hoặc chạy chồng")
+		}
+		free()
+		select {
+		case r := <-first:
+			if rep := decodeAs[ingestReport](t, r); r.status != 200 || rep.LoadID != e.load.LoadID || rep.NewQuarantine != 0 {
+				t.Errorf("lần nạp đầu sau khi được nhả = %d %+v, muốn 200, cùng mã lần nạp %s, 0 cách ly mới", r.status, rep, e.load.LoadID)
+			}
+		case <-time.After(30 * time.Second):
+			t.Fatal("lần nạp đầu không xong sau khi được nhả")
+		}
+		if r := e.post("/v1/ingest", tokDirector, map[string]string{}); r.status != 200 {
+			t.Errorf("sau hai lần nạp chồng nhau, lần nạp kế = %d %s, muốn 200 (khoá phải được nhả)", r.status, r.body)
 		}
 	})
 

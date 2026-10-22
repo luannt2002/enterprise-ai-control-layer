@@ -324,6 +324,56 @@ func TestMigration0002DinhDanhEAIS(t *testing.T) {
 }
 
 // Nạp lại A thay trọn dữ liệu của A, không đụng dữ liệu của B (lệnh xoá cũng đi qua RLS).
+// Hai lần nạp CÙNG tenant chạy chồng nhau — server đang nạp trong khi `eais ingest` chạy ở một tiến trình khác; khoá của server chỉ xếp
+// hàng trong MỘT tiến trình — phải xếp hàng chứ không giẫm nhau. Load là "xoá rồi ghi lại" trong một giao dịch READ COMMITTED: không có
+// khoá thì hai giao dịch cùng xoá cái cũ rồi cùng ghi cái mới, và giao dịch sau đụng khoá chính, bị huỷ nguyên khối. Load giữ khoá tư vấn
+// mức giao dịch theo tenant; kết quả cuối là ĐÚNG MỘT bản dữ liệu (lần ghi sau thay lần trước, không cộng dồn).
+func TestLoadDongThoiCungTenant(t *testing.T) {
+	s, admin, _ := open(t)
+	ctx := context.Background()
+	tenant := uniq("ccl")
+	const nEnt, nFact, writers = 200, 2000, 8
+	ents := make([]entityresolution.Entity, nEnt)
+	for i := range ents {
+		id := fmt.Sprintf("E-%04d", i)
+		ents[i] = entityresolution.Entity{ID: id, Type: "equipment", Key: id, Name: "Thiết bị " + id}
+	}
+	facts := make([]sourceoftruth.Fact, nFact)
+	for i := range facts {
+		id := fmt.Sprintf("F-%05d", i)
+		facts[i] = sourceoftruth.Fact{ID: id, Metric: "issued_fuel", EntityID: ents[i%nEnt].ID, OccurredOn: day,
+			Value:  contracts.Value{Kind: contracts.ValueQuantity, Number: "10", Unit: "L"},
+			Source: sourceoftruth.Observation{ID: id, SourceType: "warehouse_slip", SourceRef: id}}
+	}
+	start := make(chan struct{})
+	errs := make(chan error, writers)
+	for i := 0; i < writers; i++ {
+		go func() {
+			<-start
+			errs <- s.Load(contracts.WithTenant(ctx, tenant), ents, facts, nil)
+		}()
+	}
+	close(start)
+	for i := 0; i < writers; i++ {
+		if err := <-errs; err != nil {
+			t.Errorf("Load chồng nhau #%d: %v — các lần nạp cùng tenant phải xếp hàng, không huỷ nhau", i, err)
+		}
+	}
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close(ctx)
+	var gotE, gotF int
+	if err := conn.QueryRow(ctx, `SELECT (SELECT count(*) FROM entities WHERE tenant_id = $1), (SELECT count(*) FROM facts WHERE tenant_id = $1)`,
+		string(tenant)).Scan(&gotE, &gotF); err != nil {
+		t.Fatal(err)
+	}
+	if gotE != nEnt || gotF != nFact {
+		t.Errorf("sau %d lần nạp chồng nhau có %d thực thể, %d fact; muốn đúng một bản: %d, %d", writers, gotE, gotF, nEnt, nFact)
+	}
+}
+
 func TestLoadThayDuLieuMotTenant(t *testing.T) {
 	s, _, _ := open(t)
 	a, b := uniq("ta"), uniq("tb")

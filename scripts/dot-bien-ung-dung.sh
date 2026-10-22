@@ -81,6 +81,7 @@ m $A 'if rep.NewQuarantine, err = a.st.SaveQuarantine(tctx, rep.LoadID, recs); e
 m $A 'a.setAsk(before)' '_ = before' 'IG5 nạp lại xong không cập nhật phiên bản dữ liệu của vết'
 m $A 'if after != before {' 'if after != before && false {' 'IG6 dữ liệu đổi giữa chừng không bị phát hiện'
 m $A 'lines = append(lines, filepath.ToSlash(rel)+"\x00"+hex.EncodeToString(h.Sum(nil)))' 'lines = append(lines, filepath.ToSlash(rel)[:0]+hex.EncodeToString(h.Sum(nil)))' 'IG7 phiên bản dữ liệu bỏ qua đường dẫn tệp'
+m $S 'if !s.ingestMu.TryLock() {' 's.ingestMu.Lock(); if false {' 'IG8 hai lần nạp chồng nhau xếp hàng ngầm thay vì bị từ chối 409'
 # --- vết của mọi lượt ---
 m $S 'if s.persist(r.Context(), pr, rec, acc) == nil {' 'if true {' 'VT1 lượt lỗi trả trace_id mà không lưu vết'
 m $A 'return pgstore.UsageRecord{TraceID: traceID, Model: model, Calls: a.calls, Tokens: a.tokens}' 'return pgstore.UsageRecord{TraceID: traceID, Model: model, Calls: 0, Tokens: a.tokens}' 'VT2 usage ghi 0 lời gọi dù có gọi model'
@@ -118,6 +119,8 @@ m platform/pgstore/ready.go 'if !exists {' 'if false {' 'RD1 bảng thiếu khô
 m platform/pgstore/ready.go 'if !ok {' 'if false {' 'RD2 thiếu quyền không được báo'
 
 m platform/pgstore/migrate.go 'if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrateLockKey); err != nil {' 'if _, err := conn.Exec(ctx, "SELECT $1::bigint", migrateLockKey); err != nil {' 'MG1 Migrate đồng thời không xếp hàng (đua CREATE TABLE)'
+m platform/pgstore/load.go 'if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", loadLockKey(tenant)); err != nil {' 'if _, err := tx.Exec(ctx, "SELECT $1::bigint", loadLockKey(tenant)); err != nil {' 'LK1 Load cùng tenant không xếp hàng (trùng khoá chính, giao dịch sau bị huỷ)'
+m platform/pgstore/load.go 'h.Write([]byte("eais.load:" + string(tenant)))' 'h.Write([]byte("eais.load:"))' 'LK2 khoá nạp không theo tenant (mọi tenant chờ nhau)'
 
 # --- cổng SKIP và workflow CI ---
 export PKGS=./cmd/eais/

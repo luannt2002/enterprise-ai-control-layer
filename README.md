@@ -46,6 +46,8 @@ export EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
 go test ./... -count=1 && scripts/scale-smoke.sh
 ```
 
+Trước khi chạy **Một lệnh** (mục "Chạy thử trong 5 phút") trong cùng shell: `unset EAIS_PG_ADMIN_DSN EAIS_PG_DSN` — đã `export` cả hai biến này thì `scripts/chay-thu.sh` ghi thẳng vào PG đó mà không hỏi.
+
 Mọi dữ liệu trong repo là dữ liệu giả lập; repo công khai không chứa dữ liệu thật của tenant nào.
 
 ## Chạy thử trong 5 phút
@@ -98,7 +100,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 - **Toàn quyền dữ liệu** tính theo `policy.yaml` của pack, không nêu tên vai: có một vai phạm vi `all` nắm **mọi** capability mà policy định nghĩa. Với pack hiện tại chỉ `director` (accountant có phạm vi `all` nhưng không có `documents.read`).
 - **Mọi lượt đã xác thực để lại vết bền** (kể cả lượt lỗi, lượt bị chính sách chặn, thân sai), gồm usage (extractive: 0 token). Lượt không lưu được vết thì không giao câu trả lời. Lượt chưa xác thực được tenant (401) không có dòng vết theo tenant; chúng chỉ được đếm trong log tổng kết khi tắt server.
 - Mã lần nạp là băm của (dữ liệu, pack, mã): nạp lại cùng dữ liệu cho cùng mã và không nhân đôi bản ghi cách ly.
-- **Phiên bản mã** (`code_version` của vết, và phần "mã" của mã lần nạp) là mã git của cây đã dựng binary: `scripts/chay-thu.sh` nhúng nó bằng `-ldflags` (thêm `+dirty` khi cây có sửa chưa commit; CI đặt `EAIS_CODE_VERSION` = commit đang kiểm) rồi đối chiếu với phiên bản mà server báo lúc khởi động. `go build` tay trong một clone thường tự ghi mã git vào binary; trong git worktree liên kết hay cây không có `.git` thì không có, và khi đó ứng dụng dùng băm sha256 của chính binary với tiền tố `bin-sha256:` — không bao giờ ghi `(devel)`. Hai bản sửa khác nhau chưa commit trên cùng một commit vẫn cùng phiên bản `+dirty`.
+- **Phiên bản mã** (`code_version` của vết, và phần "mã" của mã lần nạp) là mã git của cây đã dựng binary: `scripts/chay-thu.sh` nhúng nó bằng `-ldflags` (thêm `+dirty` khi cây có sửa chưa commit; CI đặt `EAIS_CODE_VERSION` = commit đang kiểm) rồi đối chiếu với phiên bản mà server báo lúc khởi động. `go build` tay trong một clone thường tự ghi mã git vào binary; trong git worktree liên kết hay cây không có `.git` thì không có, và khi đó ứng dụng dùng băm sha256 của chính binary với tiền tố `bin-sha256:` — không bao giờ ghi `(devel)`. Băm binary là dấu của BINARY, không phải của mã nguồn: chỉ so được giữa các vết do cùng một binary ghi (cùng commit dựng ở hai thư mục cho hai băm khác nhau, vì Go nhúng đường dẫn nguồn khi không có `-trimpath`). Hai bản sửa khác nhau chưa commit trên cùng một commit vẫn cùng phiên bản `+dirty`.
 
 **Giới hạn đã biết** (ghi thẳng):
 - `serve` chỉ chạy được với `-dev` (token công khai, chỉ nghe loopback, chặn `Host` không phải loopback). Chưa có cơ chế xác thực cho môi trường thật — đang chờ quyết định.

@@ -13,7 +13,8 @@ import (
 
 // Test của scripts/chay-thu.sh (một lệnh: PG → migrate → nạp → serve → smoke). Script được chạy THẬT dưới bash, nhưng `docker` và `go` là
 // hai chương trình GIẢ đứng đầu PATH: không container nào bị đụng, không gì được dịch. `docker ps` giả báo có container đang chạy hay
-// không theo ý test; mọi lời gọi docker / go được ghi lại để test khẳng định script ĐÃ và CHƯA làm gì. `go` giả thoát 42 nên script dừng
+// không theo ý test và — như docker thật — CHỈ thấy nó khi lời gọi lọc ĐÚNG theo tên container đó (--filter name=^/<tên>$); mọi lời gọi
+// docker / go được ghi lại để test khẳng định script ĐÃ và CHƯA làm gì. `go` giả thoát 42 nên script dừng
 // ngay ở bước dịch binary — đủ để biết nó đã vượt cổng PG hay chưa mà không dựng gì thật.
 
 // chayThuResult là kết quả một lần chạy scripts/chay-thu.sh với docker / go giả.
@@ -32,7 +33,26 @@ func (r chayThuResult) called(sub string) bool {
 	return false
 }
 
-// runChayThu chạy scripts/chay-thu.sh. dockerRunning = `docker ps` giả báo có container đang chạy. env là các biến thêm (KEY=VALUE);
+// defaultPGContainer là tên container PG mặc định của script (khi EAIS_PG_CONTAINER không đặt) và của deploy/docker-compose.yml.
+const defaultPGContainer = "eais-pg"
+
+// pgContainerName là tên container mà script sẽ hỏi docker: EAIS_PG_CONTAINER trong env (biến đứng sau thắng, như exec.Cmd); không đặt
+// hoặc rỗng thì tên mặc định.
+func pgContainerName(env []string) string {
+	name := ""
+	for _, e := range env {
+		if v, ok := strings.CutPrefix(e, "EAIS_PG_CONTAINER="); ok {
+			name = v
+		}
+	}
+	if name == "" {
+		return defaultPGContainer
+	}
+	return name
+}
+
+// runChayThu chạy scripts/chay-thu.sh. dockerRunning = `docker ps` giả báo container tên EAIS_PG_CONTAINER (trong env; không đặt thì tên
+// mặc định) đang chạy — và chỉ khi lời gọi lọc đúng theo tên đó. env là các biến thêm (KEY=VALUE);
 // KHÔNG kế thừa biến EAIS_* của môi trường thật (kể cả DSN): mỗi ca tự nêu cái nó cần. Cổng PG mặc định của ca là một cổng đang TRỐNG chứ
 // không phải 25432: script thăm dò cổng bằng một lần kết nối thật, nên cổng mặc định mà trên máy có PG của việc khác thì (1) ca "container
 // đang chạy" bị từ chối nhờ cổng chứ không nhờ container, che lỗi của phép kiểm container, (2) test chạm vào PG của người khác.
@@ -59,9 +79,17 @@ func runChayThuScript(t *testing.T, script string, dockerRunning bool, env ...st
 			t.Fatal(err)
 		}
 	}
-	// docker giả: ghi lời gọi (kèm hai biến mà compose đọc), `docker ps` trả một mã container khi test bảo "đang chạy".
+	// docker giả: ghi lời gọi (kèm hai biến mà compose đọc). `docker ps` chỉ in mã container khi test bảo "đang chạy" (FAKE_RUNNING = tên
+	// container) VÀ có một đối số lọc đúng bằng name=^/<tên>$ (sau --filter, hoặc dạng --filter=…). Bộ lọc sai tên, không bao giờ khớp hay
+	// không lọc theo tên thì không thấy gì: nếu docker giả in mã cho mọi lời gọi thì test không phân biệt được bộ lọc đúng với bộ lọc hỏng (R3-01).
 	stub("docker", `echo "docker $* [EAIS_PG_CONTAINER=${EAIS_PG_CONTAINER-} EAIS_PG_PORT=${EAIS_PG_PORT-}]" >> "$FAKE_CALLS"
-if [ "$1" = ps ] && [ -n "${FAKE_RUNNING-}" ]; then echo 0123456789ab; fi
+if [ "$1" = ps ] && [ -n "${FAKE_RUNNING-}" ]; then
+	prev=
+	for a in "$@"; do
+		if [ "$a" = "--filter=name=^/${FAKE_RUNNING}\$" ] || { [ "$prev" = --filter ] && [ "$a" = "name=^/${FAKE_RUNNING}\$" ]; }; then echo 0123456789ab; fi
+		prev=$a
+	done
+fi
 exit 0
 `)
 	// go giả: ghi từng đối số trong ngoặc vuông ("-X main.x=v" là MỘT đối số, không lẫn với hai).
@@ -72,7 +100,7 @@ exit 42
 	cmd.Env = append([]string{"PATH=" + bin + ":" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "FAKE_CALLS=" + callsPath,
 		"EAIS_WORK=" + filepath.Join(dir, "work"), "EAIS_PG_PORT=" + freePort(t)}, env...) // biến đứng sau thắng: env của ca đè được cổng mặc định
 	if dockerRunning {
-		cmd.Env = append(cmd.Env, "FAKE_RUNNING=1")
+		cmd.Env = append(cmd.Env, "FAKE_RUNNING="+pgContainerName(env))
 	}
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
@@ -142,6 +170,62 @@ func TestChayThuTuChoiCongBan(t *testing.T) {
 	}
 	if r.called("go ") || r.called("compose") {
 		t.Errorf("script từ chối mà vẫn làm việc: %q", r.calls)
+	}
+}
+
+// R3-01: người chạy chỉ đổi CỔNG sang một cổng TRỐNG mà giữ cùng tên container (và cùng dự án compose, tức cùng container do compose quản
+// lý). Cổng trống nên phép thăm dò cổng không bắt được: hàng rào DUY NHẤT là bộ lọc tên container của `docker ps`. Hỏng bộ lọc thì bước kế
+// tiếp là `docker compose up` cùng dự án với cổng khác, và compose TẠO LẠI container đang chạy (mất dữ liệu tmpfs của PG đó) — nặng hơn cả
+// ghi đè. Docker giả chỉ thấy container khi lời gọi lọc đúng name=^/<tên>$ nên bộ lọc sai tên / không bao giờ khớp / không lọc đều làm test đỏ.
+func TestChayThuTuChoiCungTenContainerChiDoiCong(t *testing.T) {
+	cases := []struct {
+		name string
+		env  []string // ngoài cổng
+	}{
+		{"tên mặc định", nil},
+		{"tên và dự án đặt tay", []string{"EAIS_PG_CONTAINER=thu-pg", "EAIS_COMPOSE_PROJECT=thu-proj"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			port := freePort(t) // trống thật: chỉ container mới là dấu hiệu "đã chạy"
+			env := append(append([]string{}, c.env...), "EAIS_PG_PORT="+port)
+			r := runChayThu(t, true, env...)
+			if r.code != 2 {
+				t.Errorf("container %q đang chạy, cổng %s trống: script thoát %d, muốn 2 (từ chối)\n%s", pgContainerName(env), port, r.code, r.out)
+			}
+			if want := "container " + pgContainerName(env) + " ĐÃ chạy từ trước"; !strings.Contains(r.out, "TỪ CHỐI") || !strings.Contains(r.out, want) {
+				t.Errorf("lời từ chối phải nêu %q (tín hiệu container, không phải cổng):\n%s", want, r.out)
+			}
+			if r.called("go ") || r.called("compose") {
+				t.Errorf("script từ chối mà vẫn làm việc (compose up cùng dự án khác cổng sẽ TẠO LẠI container đang chạy): %q", r.calls)
+			}
+		})
+	}
+}
+
+// R3-03: chỉ đúng "1" là lời xác nhận dùng lại PG đang chạy. Giá trị khác (0, true — thứ người ta hay gõ để NÓI "không" hay "có") vẫn bị
+// TỪ CHỐI, ở cả hai dấu hiệu (container, cổng). Bắt được thay đổi thành "đặt giá trị bất kỳ là cố ý dùng lại" (vd kiểm khác rỗng) mà
+// TestChayThuDungLaiKhiCoY (chỉ thử "1") không thấy.
+func TestChayThuReusePGChiNhanDungMot(t *testing.T) {
+	where := map[string]struct {
+		running bool
+		env     []string
+	}{
+		"container đang chạy": {true, nil},
+		"cổng bận":            {false, []string{"EAIS_PG_PORT=" + listenBusyPort(t)}},
+	}
+	for _, val := range []string{"0", "true"} {
+		for name, c := range where {
+			t.Run("EAIS_REUSE_PG="+val+" "+name, func(t *testing.T) {
+				r := runChayThu(t, c.running, append([]string{"EAIS_REUSE_PG=" + val}, c.env...)...)
+				if r.code != 2 || !strings.Contains(r.out, "TỪ CHỐI") {
+					t.Errorf("EAIS_REUSE_PG=%s: script thoát %d, muốn 2 (chỉ \"1\" mới là dùng lại)\n%s", val, r.code, r.out)
+				}
+				if strings.Contains(r.out, "dùng lại, sẽ không gỡ nó") || r.called("go ") || r.called("compose") {
+					t.Errorf("EAIS_REUSE_PG=%s mà script vẫn dùng lại / làm việc trên PG đang chạy: %q\n%s", val, r.calls, r.out)
+				}
+			})
+		}
 	}
 }
 

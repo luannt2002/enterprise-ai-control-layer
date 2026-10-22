@@ -17,8 +17,9 @@
 # của pack (seed 42) vào PG đó — nên chỉ trỏ vào PG của riêng bạn. Dòng `ms` nghe ở SMOKE_ADDR (mặc định 127.0.0.1:28085). Hai kịch bản
 # `sc` dựng thứ riêng của chúng: SQUAT_ADDR (127.0.0.1:28086) là cổng bị một server giả chiếm; kịch bản pgkeep dựng một PG tạm tên
 # KEEP_NAME (eais-giu-pg) ở cổng KEEP_PORT (25449), chạy server ở KEEP_ADDR (127.0.0.1:28087), rồi gỡ đúng PG tạm đó; kịch bản pgrefuse
-# cũng dựng PG tạm KEEP_NAME ở KEEP_PORT (do CHÍNH scripts/chay-thu.sh dựng ở lần 1, server ở cổng hệ điều hành chọn) rồi gỡ nó. Mỗi
-# kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
+# cũng dựng PG tạm KEEP_NAME ở KEEP_PORT (do CHÍNH scripts/chay-thu.sh dựng ở lần 1, server ở cổng hệ điều hành chọn) rồi gỡ nó; riêng
+# một pha của nó chạy script với cùng KEEP_NAME nhưng một cổng TRỐNG khác do hệ điều hành chọn (script đúng thì không dựng gì ở cổng đó).
+# Mỗi kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
 : "${EAIS_PG_DSN:?đặt EAIS_PG_DSN (PG riêng của bạn)}"
@@ -110,17 +111,26 @@ scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước + EAIS_REUSE_
 	[ -n "$running" ] || why+="container $KEEP_NAME đã bị GỠ dù chạy từ trước; "
 	[ -z "$why" ]
 }
-scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ script tự dựng PG (xong còn chạy) · lần 2 mặc định (PG đang chạy; rồi PG tạm dừng) ⇒ TỪ CHỐI, thoát 2, KHÔNG ghi gì · lần 3 EAIS_REUSE_PG=1 ⇒ dùng lại; cuối cùng gỡ đúng PG tạm
-	local out1 out2 out2p out3 rc1 rc2 rc2p rc3 mark2 mark2p running
+scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ script tự dựng PG (xong còn chạy) · lần 2 mặc định (PG đang chạy; rồi chỉ đổi cổng sang một cổng trống, R3-01; rồi PG tạm dừng) ⇒ TỪ CHỐI, thoát 2, KHÔNG ghi gì, container KHÔNG bị dựng lại · lần 3 EAIS_REUSE_PG=1 ⇒ dùng lại; cuối cùng gỡ đúng PG tạm
+	local out1 out2 out2c out2p out3 rc1 rc2 rc2c rc2p rc3 mark2 mark2c mark2p running id1 id2c port2
 	local run=(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN -u EAIS_REUSE_PG -u EAIS_PG_DOWN EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_PG_CONTAINER=$KEEP_NAME
 		EAIS_PG_PORT=$KEEP_PORT EAIS_ADDR=127.0.0.1:0)
 	psql_keep() { docker exec "$KEEP_NAME" psql -U postgres -d eais -Atc "$1" 2>/dev/null; }
 	if [ -n "$(docker ps -aq --filter "name=^/${KEEP_NAME}\$")" ]; then why="đã có container $KEEP_NAME — đặt KEEP_NAME khác"; return 1; fi
+	# Cổng TRỐNG thứ hai cho pha "chỉ đổi cổng", chọn trước khi dựng gì: giá trị rỗng mà lọt vào script thì EAIS_PG_PORT rỗng = cổng mặc định 25432 của PG thật.
+	port2=$(python3 -I -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])' 2>/dev/null)
+	case $port2 in '' | *[!0-9]*) why="không chọn được cổng trống thứ hai (python3)"; return 1 ;; esac
 	out1=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc1=$?
 	# Dấu hiệu "dữ liệu của người khác": sửa một fact của tenant đã nạp. Script nào ghi đè PG này sẽ nạp lại giá trị seed và làm dấu hiệu mất.
 	psql_keep "update facts set value = 999999 where tenant_id = 'abc-infra' and id = (select min(id) from facts where tenant_id = 'abc-infra')" >/dev/null
 	out2=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2=$?
 	mark2=$(psql_keep "select count(*) from facts where value = 999999")
+	# R3-01: cùng dự án, cùng tên container, chỉ đổi cổng sang một cổng TRỐNG. Cổng trống nên phép thăm dò cổng không bắt được: hàng rào DUY NHẤT là bộ lọc
+	# tên container của `docker ps`. Hỏng nó thì script chạy `docker compose up` cùng dự án với cổng khác và compose TẠO LẠI container (mất dữ liệu tmpfs).
+	id1=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
+	out2c=$(timeout 90 "${run[@]}" EAIS_PG_PORT=$port2 scripts/chay-thu.sh 2>&1); rc2c=$?
+	id2c=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
+	mark2c=$(psql_keep "select count(*) from facts where value = 999999")
 	docker pause "$KEEP_NAME" >/dev/null 2>&1
 	out2p=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2p=$?
 	docker unpause "$KEEP_NAME" >/dev/null 2>&1
@@ -133,6 +143,10 @@ scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ scri
 	[ "$rc2" -eq 2 ] || why+="lần 2 (PG đang chạy, mặc định) thoát $rc2 thay vì 2; "
 	grep -q 'TỪ CHỐI' <<<"$out2" || why+="lần 2 không nói TỪ CHỐI; "
 	[ "$mark2" = 1 ] || why+="lần 2 đã GHI vào PG đang chạy (dấu hiệu mất); "
+	[ "$rc2c" -eq 2 ] || why+="lần 2 chỉ đổi cổng sang $port2 (cùng dự án, cùng tên container) thoát $rc2c thay vì 2; "
+	grep -q "container $KEEP_NAME ĐÃ chạy từ trước" <<<"$out2c" || why+="lần 2 chỉ đổi cổng không từ chối vì container (bộ lọc tên container hỏng?); "
+	{ [ -n "$id1" ] && [ "$id1" = "$id2c" ]; } || why+="lần 2 chỉ đổi cổng đã DỰNG LẠI container (mã ${id1:-không có} thành ${id2c:-không còn}); "
+	[ "$mark2c" = 1 ] || why+="lần 2 chỉ đổi cổng đã GHI vào PG (dấu hiệu mất); "
 	[ "$rc2p" -eq 2 ] || why+="lần 2 với container tạm dừng thoát $rc2p thay vì 2 (bỏ sót container paused?); "
 	[ "$mark2p" = 1 ] || why+="lần 2 với container tạm dừng đã GHI vào PG; "
 	[ "$rc3" -eq 0 ] || why+="lần 3 (EAIS_REUSE_PG=1) thoát $rc3 ($(tail -2 <<<"$out3" | tr '\n' ' ')); "
@@ -296,6 +310,11 @@ m scripts/chay-thu.sh 'EOF
 		exit 2' 'EOF
 		exit 0' 'RP5 từ chối mà thoát 0'
 m scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1' 'RP6 PG dùng lại bị gỡ khi đặt EAIS_PG_DOWN=1'
+# R3-01: chỉ đổi cổng sang cổng trống (cùng dự án, cùng tên) thì bộ lọc tên container là hàng rào DUY NHẤT; docker giả của test chỉ thấy container khi lọc đúng name=^/<tên>$.
+m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}x\$"' 'FILTER-1 test: bộ lọc tên container không bao giờ khớp'
+m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/eais-khac\$"' 'FILTER-2 test: bộ lọc tên container lọc nhầm tên khác'
+# R3-03: chỉ đúng "1" là lời xác nhận dùng lại (0, true vẫn bị từ chối).
+m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif [ -n "${EAIS_REUSE_PG:-}" ]; then' 'REUSE-1 test: EAIS_REUSE_PG đặt giá trị bất kỳ (cả 0, true) bị coi là cố ý dùng lại'
 
 # --- phiên bản mã của vết và của mã lần nạp (R2-02): hàm chọn (version.go), bước ghi đè ở server, script nhúng -ldflags, workflow CI ---
 V=cmd/eais/version.go
@@ -333,6 +352,8 @@ sc scen_pgkeep 'PK0 PG đã chạy sẵn: script nguyên bản không gỡ nó d
 sc scen_pgkeep 'PK1 script gỡ cả PG đã chạy từ trước' scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1'
 sc scen_pgrefuse 'RP7 PG đã chạy sẵn (lần 1 do script dựng): mặc định script nguyên bản TỪ CHỐI và không ghi gì; EAIS_REUSE_PG=1 mới dùng lại'
 sc scen_pgrefuse 'RP8 script bỏ cổng từ chối: dùng lại PG đang chạy dù không đặt EAIS_REUSE_PG' scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif true; then'
+sc scen_pgrefuse 'FILTER-1 kịch bản: bộ lọc tên container không bao giờ khớp, chỉ đổi cổng thì compose dựng lại PG đang chạy' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}x\$"'
+sc scen_pgrefuse 'FILTER-2 kịch bản: bộ lọc tên container lọc nhầm tên khác' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/eais-khac\$"'
 
 echo "TỔNG: $bat bị bắt, $song sống sót, $khac lỗi khác; $dat kịch bản nguyên bản đạt"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

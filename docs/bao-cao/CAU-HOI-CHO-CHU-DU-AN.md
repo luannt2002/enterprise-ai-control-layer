@@ -24,6 +24,7 @@ Cập nhật: 22/10/2026 17:3x.
 | D-OP-16 | Điều kiện (ii) của D-OP-15 có áp cho nhánh từ khoá yếu không | (a) |
 | D-OP-17 | Tin chat "2k" có tính là ước lượng không | giữ "2k" như cũ; G1 giữ danh sách lệch đã biết |
 | Q-P1-1…Q-P1-8 | Câu mở của Phase 1 (khối M4): vai được tạo phiếu, ngưỡng mở phiếu, chỉ số đầu tiên, huỷ phiếu nhầm, audit lần gửi lại, bên kích hoạt tự động, thứ tự C4b, cửa vào của demo | mặc định ở `docs/viec/1-hanh-dong/HOP-DONG.md` §14; mã M4 viết theo các mặc định này |
+| Q-S9-1…Q-S9-8 | Câu mở của giấy đo S9 (khối M5): dạng viết ngoài danh sách có tính là ĐÚNG không, làm tròn / đổi đơn vị, phạm vi của S9, điểm cắm bản nháp ở đường số liệu, cách chấm (cận tin cậy hay đếm thô), lọt một chiều có làm cổng đỏ, vòng kiểm hình dạng trước băm, sửa S9 cho dạng đã biết trước lần chạy | mặc định ở `docs/viec/m5-cong-truoc-ai/S9-HOP-DONG-DO.md` §9 |
 | Q-0A-1…Q-0A-12 | Câu mở của Phase 0a (khối M2): ngưỡng GA6, hậu tố "k", tổng ước lượng, áp đính chính, cửa sổ trùng, người nhận hàng chờ, vai gửi báo cáo, lịch ca, tin nhiều máy, nhóm nghìn, kênh form, write-set | mặc định ở `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` §15 |
 
 ## 3. BUILD đã tự quyết khi chờ (đảo lại được)

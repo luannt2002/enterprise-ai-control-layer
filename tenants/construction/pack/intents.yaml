@@ -103,6 +103,8 @@ intents:
     route: SQL_QUERY
     keywords: [bao nhiêu, tổng, hết bao nhiêu]
     weak: true   # "bao nhiêu" một mình không đủ coi là câu về dầu ("VN-Index bao nhiêu?")
+    # Câu giả định nối vào mọi câu trả lời theo ý định này — lời chủ dự án (D-OP-15 điều kiện (i)), giữ nguyên chữ.
+    assumption: "Hiểu là dầu kho xuất; nếu bạn hỏi tiêu thụ / đội báo / hoá đơn thì nói rõ."
     terms: [diesel_fuel]
     metric_by_term: {diesel_fuel: issued_fuel}
     priority: 10

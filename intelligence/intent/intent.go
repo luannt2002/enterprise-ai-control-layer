@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
@@ -37,6 +39,8 @@ type Def struct {
 	// Weak: chỉ có từ khoá chung chung ("bao nhiêu", "tổng") — một mình không đủ để coi câu là
 	// thuộc phạm vi, nên không gây hỏi lại khi thiếu thuật ngữ ("VN-Index bao nhiêu?").
 	Weak bool `yaml:"weak"`
+	// Assumption: câu giả định nối vào MỌI câu trả lời theo ý định này (ý định chung: "Hiểu là dầu kho xuất; …", D-OP-15 điều kiện (i)).
+	Assumption string `yaml:"assumption"`
 }
 
 // Options là chính sách phân loại do pack khai.
@@ -56,6 +60,10 @@ type Options struct {
 	// QuantityMarkers: cụm cho biết câu hỏi đòi một LƯỢNG ("bao nhiêu", "định mức"): cùng FocusMarkers là dấu hiệu của một câu hỏi SỐ LIỆU, để câu hỏi
 	// quy trình thuần có từ khoá số liệu yếu ("Thủ tục xin cấp dầu cho dự án A và dự án B?") không bị hỏi lại "máy hoặc dự án" (xem Set.asksData).
 	QuantityMarkers []string
+	// NeutralWords: từ không mang nghĩa số liệu (lịch sự, trợ từ — claim_neutral_words của pack). Câu không khớp từ khoá nào chỉ được
+	// trả lời theo ý định chung khi ngoài tên, mốc, lượng, thuật ngữ, cụm xác nhận ra chỉ còn những từ này và mảnh từ khoá của ý
+	// định riêng mà ý định chung quy về (xem Set.generic).
+	NeutralWords []string
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -202,6 +210,11 @@ type Result struct {
 	// NeedTerm: ý định khớp từ khoá nhưng câu thiếu thuật ngữ bắt buộc ("nhận bao nhiêu?" mà
 	// không nói vật tư gì) — router hỏi lại, không coi là ngoài phạm vi.
 	NeedTerm []string
+	// NeedMeaning: câu có thực thể + thuật ngữ vật tư mà không từ khoá ý định nào khớp, và không trả lời được theo ý định chung —
+	// router hỏi lại nghĩa số liệu, liệt kê các ý định này; không coi là ngoài phạm vi (ADR-0010 bất biến (a)).
+	NeedMeaning []string
+	// Mentioned: thực thể đã giải của câu hỏi lại nghĩa số liệu — router kiểm phạm vi dữ liệu của người hỏi TRƯỚC khi hỏi lại.
+	Mentioned []contracts.EntityRef
 	// Knowledge: ý định tri thức (RAG) khớp cùng ý định dữ liệu — router ghép thành HYBRID.
 	Knowledge string
 	// Compare: ý định thứ hai của câu so sánh — Intent là vế trái, Compare là vế phải (khe
@@ -255,7 +268,21 @@ func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 	}
 	if len(matched) == 0 {
-		return Result{NeedTerm: topPriority(partial)}
+		if len(partial) > 0 || !s.scopeSignal(in, res) {
+			return Result{NeedTerm: topPriority(partial)}
+		}
+		// ADR-0010 (a), D-OP-15 = a2: có thực thể + thuật ngữ mà không từ khoá nào khớp KHÔNG phải ngoài phạm vi — trả lời theo ý
+		// định chung khi câu không nói gì thêm ngoài nghĩa của nó (generic), còn lại hỏi lại nghĩa số liệu.
+		g, ok := s.generic(in, res)
+		if !ok {
+			var cands []contracts.EntityRef
+			for _, m := range res.Ambiguous {
+				cands = append(cands, m.Candidates...)
+			}
+			return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands}
+		}
+		matched = []Def{g}
+		score[g.Name], first[g.Name] = 1, 0
 	}
 	// Ghép route: ý định DỮ LIỆU (SQL/CALC) và ý định TRI THỨC (RAG) cùng khớp —
 	//   chỉ một nhóm → nhóm đó; cả hai mà ý định dữ liệu điền được thực thể → HYBRID (số liệu +
@@ -519,6 +546,132 @@ func FocusClause(text string, markers []string) (start, end int, ok bool) {
 	}
 	// chỉ một mệnh đề (phần sau chỉ còn dấu câu) thì không có gì để thu hẹp
 	return start, end, start > 0 || strings.TrimSpace(strings.TrimLeft(text[end:], ",;.?!")) != ""
+}
+
+// scopeSignal báo câu có tín hiệu thuộc phạm vi số liệu (ADR-0010 (a), định nghĩa D1s của bước điều tra 22/10): có thực thể (đã giải
+// hay bí danh mơ hồ) VÀ có thuật ngữ mà ít nhất một ý định đòi. Một trong hai thì chưa đủ: "VN-Index bao nhiêu?", "dầu ăn", tên máy
+// trong chuyện phiếm vẫn ngoài phạm vi.
+func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution) bool {
+	if len(res.Entities)+len(res.Ambiguous) == 0 {
+		return false
+	}
+	return slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
+		return slices.ContainsFunc(s.defs, func(d Def) bool { return slices.Contains(d.Terms, sp.Value.Text) })
+	})
+}
+
+// meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.
+func (s *Set) meaningOptions() []string {
+	var out []string
+	for _, d := range s.defs {
+		if len(d.Terms) > 0 && !d.Weak && contracts.RouteKind(d.Route) != contracts.RouteRAG {
+			out = append(out, d.Name)
+		}
+	}
+	return out
+}
+
+// generic chọn ý định chung (yếu) để trả lời câu có thực thể + thuật ngữ mà không từ khoá nào khớp (D-OP-15 = a2). Câu phải có cụm xác
+// nhận; đúng MỘT ý định yếu đòi thuật ngữ của câu; mọi chữ còn lại — ngoài tên thực thể, mốc, lượng, thuật ngữ, cụm xác nhận, từ trung
+// tính — phải là mảnh từ khoá của ý định riêng mà ý định chung quy về (cùng chỉ số theo metric_by_term: "xuất" của "kho xuất"), và phải
+// có ÍT NHẤT một mảnh như thế: câu xác nhận không nêu chỉ số ("Hôm qua máy 03 4k dầu đúng không?") thì hỏi lại (BR-FUEL-02 của tenant:
+// chưa rõ chỉ số mà các nguồn đang lệch thì hỏi lại, không xác nhận).
+// Mảnh từ khoá của ý định số liệu khác ("tiêu" của "tiêu thụ", "đo" của "đo được") không được coi là trung tính. Còn chữ lạ ("xài",
+// "hao", "đổ", "tính tiền", "định mức") ⇒ không chọn: câu có thể hỏi một chỉ số khác, nên hỏi lại (D-OP-15 điều kiện (ii)).
+func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (Def, bool) {
+	raw := in.Raw
+	if !slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return len(normalization.PhraseSpans(raw, m)) > 0 }) {
+		return Def{}, false
+	}
+	var gen []Def
+	term := ""
+	for _, sp := range in.SpansOf(contracts.ValueTerm) {
+		for _, d := range s.defs {
+			if d.Weak && slices.Contains(d.Terms, sp.Value.Text) && !slices.ContainsFunc(gen, func(g Def) bool { return g.Name == d.Name }) {
+				gen, term = append(gen, d), sp.Value.Text
+			}
+		}
+	}
+	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
+		return Def{}, false
+	}
+	var own, other []string // từng chữ của từ khoá: ý định riêng cùng chỉ số với ý định chung / ý định số liệu khác
+	for _, d := range s.defs {
+		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
+			continue
+		}
+		for _, k := range d.Keywords {
+			if d.MetricByTerm[term] == gen[0].MetricByTerm[term] {
+				own = append(own, strings.Fields(k)...)
+			} else {
+				other = append(other, strings.Fields(k)...)
+			}
+		}
+	}
+	whole := func(w string, list []string) bool {
+		return slices.ContainsFunc(list, func(c string) bool {
+			sp := normalization.PhraseSpans(w, c)
+			return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
+		})
+	}
+	covered := make([]bool, len(raw))
+	cover := func(st, en int) {
+		for i := max(st, 0); i < en && i < len(raw); i++ {
+			covered[i] = true
+		}
+	}
+	for _, e := range res.Entities {
+		cover(e.Start, e.End)
+	}
+	for _, m := range res.Ambiguous {
+		cover(m.Start, m.End)
+	}
+	for _, sp := range in.Spans {
+		switch sp.Kind {
+		case contracts.ValueDate, contracts.ValuePeriod:
+			cover(sp.Start, sp.End)
+			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
+				cover(ws, we)
+			}
+		case contracts.ValueTerm, contracts.ValueQuantity, contracts.ValueNumber:
+			cover(sp.Start, sp.End)
+		}
+	}
+	for _, p := range s.opt.FocusMarkers {
+		for _, sp := range normalization.PhraseSpans(raw, p) {
+			cover(sp[0], sp[1])
+		}
+	}
+	for _, p := range s.opt.NeutralWords {
+		if whole(p, other) && !whole(p, own) {
+			continue // "đo": trung tính với cổng phán quyết, nhưng là mảnh của "đo được" (tiêu thụ đo được)
+		}
+		for _, sp := range normalization.PhraseSpans(raw, p) {
+			cover(sp[0], sp[1])
+		}
+	}
+	meaning := false // có chữ nêu nghĩa của chỉ số chung
+	for i := 0; i < len(raw); {
+		r, n := utf8.DecodeRuneInString(raw[i:])
+		if covered[i] || !(unicode.IsLetter(r) || unicode.IsDigit(r)) {
+			i += n
+			continue
+		}
+		j := i
+		for j < len(raw) && !covered[j] {
+			rr, m := utf8.DecodeRuneInString(raw[j:])
+			if !unicode.IsLetter(rr) && !unicode.IsDigit(rr) {
+				break
+			}
+			j += m
+		}
+		if !whole(raw[i:j], own) {
+			return Def{}, false
+		}
+		meaning = true
+		i = j
+	}
+	return gen[0], meaning
 }
 
 // keywordHits báo ý định nào có từ khoá khớp, theo luật KHỚP DÀI NHẤT trên từ khoá của MỌI ý

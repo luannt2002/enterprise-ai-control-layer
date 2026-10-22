@@ -108,6 +108,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	cls, _ := traces.Measure(tr, "intent", func() (intent.Result, error) {
 		return a.RT.Intents.Classify(in, res, now), nil
 	})
+	// Hỏi lại nghĩa số liệu chỉ kể ý định người hỏi có quyền; không còn ý định nào thì như câu không khớp (từ chối như cũ) — không lộ
+	// nhãn ý định cho người không có capability (CLAUDE.md §21)
+	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, func(n string) bool {
+		d, _ := a.RT.Intents.Def(n)
+		return d.Capability != "" && !a.RT.Policy.Allows(pr, d.Capability)
+	})
 	// S5 — route
 	var lineageErr error
 	lineage := func(e contracts.EntityRef) []string {
@@ -161,7 +167,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
-		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(append(cls.Ambiguous, cls.NeedTerm...))
+		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
 		resp.Answer = a.render(plan.Template, vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}
 		resp.Clarification.Question = resp.Answer
@@ -342,6 +348,10 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	vars["metric_label"] = a.metricLabel(metric)
 	vars["entity_name"], vars["entity_key"] = entitySlot.Entity.Name, entitySlot.Entity.Key
 	vars["period"] = displayPeriod(from, to)
+	if def, ok := a.RT.Intents.Def(it.Name); ok && def.Assumption != "" {
+		// trả lời theo ý định chung: MỌI câu trả lời (có số, chưa có dữ liệu, chờ đối soát) nói rõ đã hiểu câu hỏi là gì (D-OP-15 (i))
+		vars["assumption_note"] = " " + def.Assumption
+	}
 
 	switch {
 	case result.NeedsReview:

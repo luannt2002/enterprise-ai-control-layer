@@ -182,6 +182,21 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 			Reason:  "khớp từ khoá nhưng thiếu thuật ngữ bắt buộc: " + strings.Join(cls.NeedTerm, ", "),
 			Outcome: contracts.OutcomeClarificationRequired,
 		}
+	case len(cls.NeedMeaning) > 0:
+		// thực thể ngoài phạm vi dữ liệu của người hỏi: nghĩa nào cũng bị từ chối, nên từ chối ngay, không hỏi lại
+		for _, e := range cls.Mentioned {
+			if !pol.InScope(pr, lineage(e)) {
+				return contracts.RoutePlan{
+					Route: contracts.RouteReject, Template: "forbidden", Outcome: contracts.OutcomePermissionDenied,
+					Reason: "thực thể " + e.Key + " ngoài phạm vi dữ liệu của người hỏi",
+				}
+			}
+		}
+		return contracts.RoutePlan{
+			Route: contracts.RouteClarification, Template: "clarify_intent",
+			Reason:  "có thực thể và thuật ngữ nhưng không từ khoá ý định nào khớp: " + strings.Join(cls.NeedMeaning, ", "),
+			Outcome: contracts.OutcomeClarificationRequired,
+		}
 	case cls.Intent.Name == "":
 		r := contracts.RouteKind(st.UnmatchedRoute)
 		return contracts.RoutePlan{

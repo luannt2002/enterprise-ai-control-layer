@@ -75,7 +75,7 @@ var requiredTemplates = []string{
 // AllowedPlaceholders là các biến mẫu câu được phép dùng.
 var AllowedPlaceholders = map[string]bool{
 	"metric_label": true, "entity_name": true, "entity_key": true, "period": true,
-	"value": true, "unit": true, "approx_note": true, "conflict_note": true,
+	"value": true, "unit": true, "approx_note": true, "conflict_note": true, "assumption_note": true,
 	"missing": true, "candidates": true, "options": true, "reason": true,
 	"claimed": true, "others": true, "others_note": true,
 	"conflicts": true, "conflict_more": true, "count": true,
@@ -201,6 +201,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				FocusMarkers:      inf.ConfirmMarkers,
 				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
+				NeutralWords:      inf.ClaimNeutralWords,
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)
 					return ok && d.DefaultUnit != ""

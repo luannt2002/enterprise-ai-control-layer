@@ -178,12 +178,16 @@ func TestDoiCachVietKhongDoiNghia(t *testing.T) {
 		"EX-03 ngày 2026-10-19 được cấp bao nhiêu dầu",
 		"EX-03 hôm nay kho xuất bao nhiêu dầu?",
 		"MX-03 bữa nay được cấp bao nhiêu dầu",
-		"EX-03 hôm nay bao nhiêu dầu?",
 		"ex03 hom nay duoc cap bao nhieu lit dau",
-		"may xuc 03 hom nay bao nhieu dau",
 	} {
 		if got := key(ask(t, a, director, v)); got != base {
 			t.Errorf("%q\n  được: %s\n  muốn: %s", v, got, base)
+		}
+	}
+	// câu chung chung ("bao nhiêu dầu") trả đúng số, đúng nguồn ấy, kèm câu giả định của ý định chung (D-OP-15 điều kiện (i))
+	for _, v := range []string{"EX-03 hôm nay bao nhiêu dầu?", "may xuc 03 hom nay bao nhieu dau"} {
+		if got, want := key(ask(t, a, director, v)), base+" "+giaDinhChung; got != want {
+			t.Errorf("%q\n  được: %s\n  muốn: %s", v, got, want)
 		}
 	}
 }

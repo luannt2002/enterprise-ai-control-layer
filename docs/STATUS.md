@@ -57,7 +57,7 @@ Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, Phase 0–10). Phase đ
 
 | Cổng | Kết quả | Bằng chứng |
 |---|---|---|
-| G1 DATA | ĐẠT | - G1: 2.739/2.739 (functional), 359.945/359.945 (smoke).<br>- Metamorphic: R-004 × 4 biểu diễn, R-001 × 4 cách viết, 0 lệch.<br>- Bộ kiểm có test âm.<br>- `representation` 16/16. |
+| G1 DATA | ĐẠT | - **Từ 22/10 (làn 2, K1) G1 so cả cờ ước lượng: 2.736/2.739** — 3 lệch đã biết, ghim ở `tenants/construction/win/g1-approx-known.txt` (ratchet chỉ đi xuống): R-001, R-002 "2k" (nghĩa nghiệp vụ, câu mở D-OP-17), R-003 "≈" (bộ chuẩn hoá chưa nhận "≈" — làn 1 sửa). Trước 22/10: G1: 2.739/2.739 (functional), 359.945/359.945 (smoke).<br>- Metamorphic: R-004 × 4 biểu diễn, R-001 × 4 cách viết, 0 lệch.<br>- Bộ kiểm có test âm.<br>- `representation` 16/16. |
 | G2 IDENTITY | ĐẠT **có điều kiện** (107, 108 là kỳ vọng trọng tài) | - `entity` 13/13.<br>- `ambiguity` 13/13, ứng viên đúng tập. |
 | G3 TRUTH | ĐẠT | - `semantic` 14/14, `source_conflict` 12/12.<br>- Ca biên dung sai sinh từ pack cho MỌI cặp nguồn: 4 cặp × "= dung sai" / "dung sai + 1", gồm cặp ngang hạng. |
 | G4 DECISION | ĐẠT | - `routing` 17/17.<br>- Runner chấm `model_calls` bằng gateway giả đếm lời gọi.<br>- Đột biến bắt buộc "SQL gọi gateway" (BA) và "RAG bỏ gateway" (BB) đều bị bắt. |

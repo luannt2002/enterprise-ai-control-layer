@@ -56,7 +56,9 @@ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03).
    chỉ bị bắt nhờ khoá bản ghi `warehouse.csv#R-B01` trong trích dẫn.
 3. **"0 rò rỉ" chưa chứng minh RLS:** kho chung là bản bộ nhớ do harness dựng; việc lọc theo tenant ở đó là của harness. Mã thật được thử:
    S1 gắn tenant từ Principal (`ask.go:95`), `rag.NewMemoryIndex` loại tài liệu của tenant khác. Vì vậy kết quả sạch chủ yếu nói luồng hỏi
-   truyền đúng tenant; RLS của PostgreSQL không đi qua chế độ này (đối chứng cấp thành phần: `TestRLSCanaryB`, chưa chạy ở lượt này).
+   truyền đúng tenant; RLS của PostgreSQL không đi qua chế độ này. Đối chứng cấp thành phần là `TestRLSCanaryB` (`platform/pgstore`: gọi thẳng kho
+   PG với ngữ cảnh tenant, có đối chứng dương rằng dữ liệu của B nằm thật trong DB): đạt trên PG riêng ở lượt sửa theo soát (22/10/2026) [ĐO]; nó không
+   đi qua luồng hỏi nên không thay cho phép đo này.
 4. Tenant B ở seed 42 chỉ có 1 quan sát và 1 tài liệu: độ phủ nhỏ. B được nạp bằng pack của tenant được chấm (cùng ngành), chưa thử tenant khác ngành.
 5. **Bề mặt quét hẹp:** `surface` (`canary.go`) chỉ gom `Answer`, `Citations`, `Conflicts`, `Clarification`. KHÔNG quét `Verdict.Violations[].Detail`
    (chuỗi tự do của validator, có thể nhắc giá trị hay mã), `Intent` và `PackVersion` (`core/contracts/contracts.go`, `AskResponse`); `TraceID` bỏ cố ý

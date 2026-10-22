@@ -422,7 +422,7 @@ Capability mới (thêm vào `policy.yaml` khi mở mã): `reports.submit` (gử
 
 ### 4.4 Tin cậy kênh
 
-`sender_id` được tin như kênh giao (§1.5). Phạm vi người gửi giới hạn thiệt hại khi `sender_id` bị giả: người đó chỉ ghi được cho máy của người bị giả. Xác thực chặng kênh là Phase 5, 8.
+`sender_id` được tin như kênh giao (hợp đồng không xác thực người gửi: kênh đã xác thực người đó theo cách của kênh). Phạm vi người gửi giới hạn thiệt hại khi `sender_id` bị giả: người đó chỉ ghi được cho máy của người bị giả. Xác thực chặng kênh là Phase 5, 8.
 
 ---
 
@@ -734,7 +734,7 @@ Mỗi dòng cần: bộ ca độc lập, lệnh, kết quả, ca âm (`docs/PROM
 | **GA7** | Thời gian: ngày xảy ra đúng, không rơi về ngày gửi im lặng | 100% ca nhóm E (trừ ca phụ thuộc câu mở) | do hợp đồng này thêm (HT-4) | nhóm E; DB08 |
 | **GA8** | Quyền người gửi và tenant | 100% ca nhóm F; canary hai tenant: 0 rò | do hợp đồng này thêm; S5 là của làn 2 | nhóm F; DB09, DB10, DB32 |
 | **GA9** | Phục hồi: gửi lại, sửa tin, thu hồi, đảo thứ tự, dừng giữa lô, khởi động lại | 100% ca nhóm H; hội tụ | §9.3 Vận hành (khởi động lại) cộng phần thêm | nhóm H, LC67; DB11, DB15, DB16, DB21, DB27, DB31 |
-| **GA10** | Vết: mỗi lần giao của mỗi đơn vị (kể cả cách ly, trùng) có vết từng bước `L1.*` (§1.4), kèm lý do và phương án bị loại | 100% đơn vị | §9.3 Vết / debug (phần nạp) | mọi ca của bộ độc lập (đọc vết từng đơn vị); DB24 |
+| **GA10** | Vết: mỗi lần giao của mỗi đơn vị (kể cả cách ly, trùng) có vết từng bước của tầng nạp (đọc, chuẩn hoá, thực thể, gán nghĩa, thời gian, kiểm miền, cách ly, đối soát), kèm lý do và phương án bị loại | 100% đơn vị | §9.3 Vết / debug (phần nạp) | mọi ca của bộ độc lập (đọc vết từng đơn vị); DB24 |
 | **GA11** | Nhánh form / bot: cùng hợp đồng, parity trên bản chiếu cặp; bảng so hai đường được ghi | 100% ca nhóm J; bảng so có mặt | `docs/ROADMAP-DAY-DU.md` §6 (Phase 0a: "có nhánh so sánh") | nhóm J; DB25 |
 
 - **M2 ra khi GA1–GA6 đạt** (đúng chữ khối M2: bản ghi có cờ, cách ly hiện ra, không cộng đôi, đọc số tất định, độ chính xác trên bộ độc lập).

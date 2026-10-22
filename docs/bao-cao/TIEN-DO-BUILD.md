@@ -13,10 +13,13 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
   - soát khoá vòng 3: bản sửa vòng 2 tự nó đạt, nhưng còn 2 lỗ SAI CHIỀU có từ trước ⇒ mở lại theo ngoại lệ §9.6, sửa `be91cd0`;
   - làn 3: giấy Phase 1 lên main (`2b80a38`).
 - **Đang làm (lệnh ca MVP ALL-IN):**
-  - **M1 (làn 0) gộp lên main** (commit chứa dòng này): `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz;
+  - **M1 RA** (22/10 15:5x): M1 · `41bc3cf` (22 commit làn 0, cherry-pick lên main) · lệnh chứng minh: `scripts/chay-thu.sh` từ clone sạch
+    (smoke E2E 21 / 21, cả nhánh PG có sẵn lẫn nhánh tự dựng PG), `go test -count=1 -json ./...` có PG (601 pass, 0 skip; theo tên 0 đổi /
+    0 mất), winreport 117 / H1 / H3 / H4 hai đường (0 dòng khác), `eais trace <id>` (lượt thường + lượt lỗi), CI GitHub run 39750100276
+    (success: PG, cấm SKIP, cổng danh tính, smoke) · kết quả: **ĐẠT** mọi mục cổng ra của lệnh ca. Chi tiết bản gộp: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz;
     principal từ token, không lấy tenant từ thân), vết từng bước S0–S10 lưu bền theo tenant (migration 0003, RLS), `eais trace <id>`,
-    một lệnh `scripts/chay-thu.sh`, CI có PG cấm SKIP. Soát độc lập: U0.1 hai vòng, U0.2 hai vòng → ĐẠT CÓ GHI CHÚ. CI trên GitHub: chờ
-    lần chạy đầu sau push này;
+    một lệnh `scripts/chay-thu.sh`, CI có PG cấm SKIP. Soát độc lập: U0.1 hai vòng, U0.2 hai vòng → ĐẠT CÓ GHI CHÚ. CI trên GitHub: lần chạy
+    đầu XANH;
   - **H4 theo tầng (xong):** S4 sai đầu tiên ở 10 / 119 = 8,4% (> 5%), 3 câu sai nghĩa không nhãn ⇒ dòng S4 KHÔNG ĐẠT ⇒ **M3 chưa RA,
     chờ D-AI-02** (CHO, khuyến nghị: sửa tiếp bằng luật C3 / C4 / C5 / N1 rồi chấm trên bộ giữ lại mới);
   - M4: sửa 4 ghi chú L3C-01…04 của giấy Phase 1 (tác giả → người soát); nợ S4 sau H4 (ở máy, đang soát);
@@ -81,3 +84,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 15:0x | `fe48bda`, `dc07e1b` + commit chứa dòng này | **H4 chạy MỘT lần** ở `57409f2` (`scripts/chay-giu-lai.sh`, database `eais_giu_lai`) + đối chứng mốc `7d72e33` | Trạng thái HOÀN TẤT; 104/119 cả hai đường; phát lại 119/119, 0 lệch; G2' / G5' KHÔNG ĐẠT, G6' phần đo được ĐẠT; mốc 102/119; 2 đỏ → xanh, 0 xanh → đỏ | Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt; tầng sai đầu tiên đang phân tích |
 | 22/10 15:4x | 22 commit làn 0 (`b88b23b` … `9ed7a6a` trên nhánh, cherry-pick lên main) + commit chứa dòng này | **M1: ứng dụng + vết từng bước** (làn 0) | Cổng ở bản tích hợp: vet 0; gofmt 0; test có PG 601 pass, 0 fail, 0 skip — so theo tên 0 đổi / 0 mất, 122 mới; `scripts/kiem-skip-test.py` XANH; 117 / H1 / H3 / H4 hai đường 0 dòng khác; một lệnh từ clone sạch (`scripts/chay-thu.sh`): PG có sẵn 1 s, tự dựng PG bằng compose 4 s — smoke E2E 21 đạt / 0 hỏng cả hai; `eais trace <id>` in bảng S0–S10 cho lượt thường và lượt lỗi, tenant sai thì không thấy | Ghi chú S3 của soát U0.2 vòng 2: R2-01 data_version của vết có thể chưa từng nạp; R2-02 code_version "(devel)" khi dựng trong worktree; R2-03 5/11 bước chưa có lý do / phương án bị loại (cần móc ở core/pipeline — M5 dòng vết); R2-04 một lệnh với mặc định dùng lại và ghi đè container eais-pg đang chạy |
 | 22/10 15:5x | commit chứa dòng này | H4 theo tầng sai đầu tiên + câu mở **D-AI-02** | Người phân tích chạy lại 15 ca qua pipeline thật; người kiểm chéo độc lập chạy lại 13 ca: đồng ý 13 / 13. S4 ở 10 ca (C3 / S4R-05 ×5, C4 ×2, C5 ×2, N1 ×1), cổng phán quyết ở 5 ca (đóng thừa); 3 câu sai nghĩa không nhãn (758, 847, 854) | Dòng S4 của CỔNG TRƯỚC AI KHÔNG ĐẠT; M3 chưa RA; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
+| 22/10 15:5x | commit chứa dòng này | **M1 RA** | CI GitHub run 39750100276 (`41bc3cf`): success — vet, gofmt, go test có PG (service postgres:17 ghim digest), cấm SKIP / FAIL, cổng danh tính, smoke E2E một lệnh; cộng các số đo ở máy của dòng 15:4x | Ghi chú S3 R2-01…04 của soát U0.2 xếp hàng, không chặn M1 |

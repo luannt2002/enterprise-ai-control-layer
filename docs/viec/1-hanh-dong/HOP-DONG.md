@@ -1,9 +1,11 @@
 # Hợp đồng việc — Phase 1: tạo một phiếu kiểm tra chênh lệch nhiên liệu
 
 > **Trạng thái: ĐỀ XUẤT, GIẤY, chưa áp mã.**
-> - Mã Giai đoạn II chỉ mở sau khi chạy xong H4 (D-RM-04 = A, `docs/CHO-QUYET-DINH.md` mục 0, dòng 22/10 11:2x).
-> - Soát độc lập lượt 1 (22/10/2026): KHÔNG ĐẠT, đã sửa theo soát. Soát lại sau sửa (22/10/2026): ĐẠT CÓ GHI CHÚ, bốn ghi chú mức S3 (L3C-01…04). Bản này sửa cả bốn và thêm cửa vào cho kịch bản demo của khối M4 (§2.6, câu Q-P1-8); **phần sửa này chưa được soát**. Chưa có người nghiệp vụ duyệt (D-RM-03 = "chưa có").
-> - Chỗ sửa của bốn ghi chú: L3C-01 (A04, M21, định nghĩa "đơn vị ghi phiếu": §10, §11.2) · L3C-02 (ca đồng thời, nhiều người gọi: §12.1) · L3C-03 (cửa `cmd/eais`, số migration: §1.3, §2.6, §7.4) · L3C-04 (nơi đặt mã dưới `execution/commands`: ADR-0011, "Nơi đặt mã").
+> - Mã Giai đoạn II chỉ mở sau khi chạy xong H4 (D-RM-04 = A, `docs/CHO-QUYET-DINH.md` mục 0, dòng 22/10 11:2x). H4 đã chạy MỘT lần ngày 22/10 14:59 ở `57409f2`, 104/119 ở cả hai đường (`docs/STATUS.md`) [REPO]: điều kiện này **đã thoả** (§13). Dòng S4 của CỔNG TRƯỚC AI KHÔNG ĐẠT (S4 là tầng sai đầu tiên ở 10/119 ca = 8,4%, ngưỡng ≤ 5%) và chờ câu D-AI-02 [REPO, `docs/STATUS.md`]: dòng đó chặn M3 và M5, không chặn điều kiện mở mã M4 (`docs/PROMPT-BUILD-EAIS.md` §9.2: sau H4 và D-RM-04 = A), và cổng ra X1–X9 không đo S4 (ADR-0011, D2).
+> - Soát độc lập lượt 1 (22/10/2026): KHÔNG ĐẠT, đã sửa theo soát. Lượt 2 (soát lại, 22/10/2026): ĐẠT CÓ GHI CHÚ, bốn ghi chú mức S3 (L3C-01…04), đã sửa (kèm cửa vào cho kịch bản demo của khối M4: §2.6, câu Q-P1-8) và được lượt 3 xác nhận đã đóng. **Lượt 3 (soát lại, 22/10/2026): ĐẠT CÓ GHI CHÚ, mười hai ghi chú L3D-01…12 (bảy mức S3: 01, 03, 04, 05, 06, 07, 08; năm mức S4: 02, 09, 10, 11, 12).** Bản này sửa L3D-01…06, 08 và 11; **không sửa** L3D-07 (thuộc ADR-0012, làn M2 đang sửa), L3D-09 (chữ của TIEN-DO, việc của điều phối), L3D-10 (thứ tự việc: bộ ca giữ lại soạn xong rồi mới giao mã) và L3D-12 (giữ nhãn [SUY] tới khi demo chạy); **phần sửa này chưa được soát lại**. Chưa có người nghiệp vụ duyệt (D-RM-03 = "chưa có").
+> - Lượt 4 (soát bản sửa L3D, 22/10/2026 tối): ĐẠT CÓ GHI CHÚ, 4 ghi chú S3 (L3E-01…04) và 9 ghi chú S4. Điều phối áp đúng đề xuất của người soát cho L3E-01 (tệp thế giới bổ sung do người soạn viết, §12.1, U11), L3E-02 (lúc thả F5), L3E-03 (không audit riêng cho kết cục hạ tầng, §3, §7.3), L3E-04 (thứ tự trong R3), L3E-06 (§11.4), L3E-08 (`detail` lớp data, §2.6.2), L3E-09 (chuỗi có nháy), L3E-12 (build tag cho bộ chạy giữ lại) khi gộp, không soát lại riêng (luật dừng brief BUILD §9.6: lượt này đạt, các ghi chú là làm rõ). L3E-05, 07, 10, 11, 13 ghi nợ.
+> - Chỗ sửa của lượt 3: L3D-01 (khuôn ca máy đọc được, bộ đếm, điểm chèn lỗi, thứ tự chạy: §12.1; A04: §10; phạm vi của khuôn và nợ U10: §12, §15) · L3D-02 (cột ca đỏ của M21: §11.2) · L3D-03 (`detail`, `invalid_fields`: §2.3; A08, A13, A28: §10; §4.4) · L3D-04 (`fault` qua HTTP chỉ là lớp lỗi: §2.3, §2.4, §2.6.2; A28) · L3D-05 (M26: §11.2, §11.4, X8) · L3D-06 (trạng thái H4 và làn 0, mốc đọc làn 0, mốc so sánh đường hỏi của A25 (3) và A27: đầu tệp, §1.3, §10, §13, §15 U9) · L3D-08 (câu Q-P1-9: §14; nơi đặt mã: ADR-0011) · L3D-11 (danh sách nhận của người soạn: §12; mã đột biến ra khỏi mục được nhận: §3, §6.4, §7.1, §10, §12.1; bước C7: §7.5; 405: §2.6.2, A28; CLI `eais trace`: §8; lệch `platform/httpapi`: §2.6.2).
+> - Chỗ sửa của bốn ghi chú lượt 2: L3C-01 (A04, M21, định nghĩa "đơn vị ghi phiếu": §10, §11.2) · L3C-02 (ca đồng thời, nhiều người gọi: §12.1) · L3C-03 (cửa `cmd/eais`, số migration: §1.3, §2.6, §7.4) · L3C-04 (nơi đặt mã dưới `execution/commands`: ADR-0011, "Nơi đặt mã").
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hợp đồng và trả lời câu mở ở §14;
@@ -14,7 +16,7 @@
 >
 > **Thứ bậc khi mâu thuẫn:** như đầu `docs/ROADMAP-DAY-DU.md`. Chỗ tệp này tinh chỉnh `CLAUDE.md` §14 được nêu rõ ở §3.
 >
-> **Ngày:** 22/10/2026. **Mốc đọc mã:** `c086fe7`. Tra một dòng trích bằng `git show c086fe7:<tệp>`. Nhánh `main` có thể đã đổi các tệp được trích (ví dụ `ask.go`, `router.go`, `intent.go`, pack), nên số dòng ở `main` có thể lệch; khi gộp phải đối chiếu lại các dòng trích. **Mốc đọc làn 0** (cửa `cmd/eais`, vết, migration): nhánh làn 0 tại `b5be82e`, chưa gộp lúc viết và còn đang sửa theo soát; các dòng trích ghi "làn 0" tra bằng `git show b5be82e:<tệp>` nếu mốc còn trong lịch sử, nếu không thì đối chiếu lại ở `main` sau khi gộp.
+> **Ngày:** 22/10/2026. **Mốc đọc mã:** `c086fe7`. Tra một dòng trích bằng `git show c086fe7:<tệp>`. Nhánh `main` có thể đã đổi các tệp được trích (ví dụ `ask.go`, `router.go`, `intent.go`, pack), nên số dòng ở `main` có thể lệch; khi gộp phải đối chiếu lại các dòng trích. **Mốc đọc làn 0** (cửa `cmd/eais`, vết, migration): `9ed7a6a`, một commit nằm trong lịch sử của `main`: làn 0 (khối M1) đã gộp, mốc M1 ghi ở `41bc3cf`, `cmd/eais` có 10 tệp [ĐO `git ls-files cmd/ | wc -l` → 10 tại `269a539`]. Các dòng trích ghi "làn 0" tra bằng `git show 9ed7a6a:<tệp>`; các thư mục `cmd`, `db`, `observability`, `platform` ở `main` giống hệt `9ed7a6a` [ĐO `git diff --stat 9ed7a6a 269a539 -- cmd db observability platform` → rỗng], nên số dòng đã trích vẫn đúng ở `main` tại `269a539`. Làn 0 đổi tiếp thì đối chiếu lại.
 >
 > **Nhãn bằng chứng:** [ĐO] người viết tự chạy lệnh · [REPO] tài liệu repo tự ghi, chưa chạy lại · [CODE] đọc thấy trong mã (`tệp:dòng` tại `c086fe7`) · [SUY] suy luận của người viết · [ĐỀ XUẤT] chưa quyết, đảo được · "chưa đo" = chưa chạy lệnh nào.
 >
@@ -38,7 +40,7 @@
 | I6 | Quyền đóng mặc định: thiếu quyền tạo, thiếu quyền đọc hai vế, hoặc ngoài phạm vi ⇒ 0 ghi (§10): chỉ còn dòng audit `REFUSED`. |
 | I7 | Giá trị chênh lệch do hệ tính từ fact có thẩm quyền; bên gọi không đưa số; không chọn số khi hai nguồn ngang thẩm quyền lệch. |
 | I8 | Ghi chỉ-thêm: vai ứng dụng không có quyền UPDATE, DELETE trên ba bảng mới. |
-| I9 | Không đổi đường hỏi: bộ 117 / H1 / H3 / H4 không đổi một chữ nào; bốn route sẵn có của `cmd/eais` (`/v1/ask`, `/v1/ingest`, `/v1/trace/{id}`, `/healthz`) không đổi hành vi. |
+| I9 | Không đổi đường hỏi: bộ 117 / H1 / H3 / H4 không đổi một chữ nào; bốn route sẵn có của `cmd/eais` (`/v1/ask`, `/v1/ingest`, `/v1/trace/{id}`, `/healthz`) không đổi hành vi. "Không đổi" là so với commit gốc của nhánh Phase 1 (§10, "Mốc so sánh đường hỏi"). |
 | I10 | Không biết thì nói `UNKNOWN`; không làm tròn thành `FAILED` hay `DONE`. |
 | I11 | Mọi lượt lệnh đã xác thực để lại vết từng bước xem được bằng `eais trace`, kể cả lượt bị từ chối hay lỗi (trừ khi chính kho vết hỏng: kết quả lệnh không đổi, có bộ đếm, §7.5); vết không lộ điều mà kết quả trả về không lộ. |
 
@@ -73,7 +75,7 @@
 
 ### 1.3 Giả định danh tính (đọc kỹ)
 
-- Principal lấy từ **token** ở tiêu đề `Authorization` của `cmd/eais` (làn 0, khối M1), không từ thân yêu cầu, không từ query. Ở chế độ `-dev` token là thông tin công khai suy từ `world.yaml` (dạng `dev-<tenant>-<principal>`, Principal loại `user`); `serve` từ chối chạy khi thiếu `-dev`, chỉ nghe loopback và chặn `Host` không phải loopback (`cmd/eais/auth.go:48`, `cmd/eais/main.go:163-180`, `cmd/eais/server.go:120`, `:138` tại `b5be82e`) [CODE, làn 0, chưa gộp lúc viết]. Xác thực thật vẫn chưa có (`docs/01-architecture.md` §4 L7, dòng "xác thực: chưa có") [REPO].
+- Principal lấy từ **token** ở tiêu đề `Authorization` của `cmd/eais` (làn 0, khối M1), không từ thân yêu cầu, không từ query. Ở chế độ `-dev` token là thông tin công khai suy từ `world.yaml` (dạng `dev-<tenant>-<principal>`, Principal loại `user`); `serve` từ chối chạy khi thiếu `-dev`, chỉ nghe loopback và chặn `Host` không phải loopback (`cmd/eais/auth.go:48`, `cmd/eais/main.go:163-180`, `cmd/eais/server.go:120`, `:138` tại `9ed7a6a`) [CODE, làn 0]. Xác thực thật vẫn chưa có (`docs/01-architecture.md` §4 L7, dòng "xác thực: chưa có") [REPO].
 - Ai biết token dev của một vai thì mang vai đó (ví dụ `director`). Vì vậy Phase 1 **chứng minh phân quyền** (có Principal đúng thì quyền đúng), **không chứng minh xác thực**.
 - Hệ quả: route lệnh (§2.6) chỉ sống trong chế độ `-dev` của `serve` (loopback, token công khai). Lệnh này **không được mở ra ngoài máy dev, không được nối kênh chat** trước Phase 5. Ghi vào ADR-0011 như một ràng buộc.
 
@@ -142,7 +144,9 @@ Người dùng gõ một câu lệnh vào luồng hỏi hôm nay **không đư�
 |---|---|---|
 | `status` | `DONE` (ĐÃ LÀM) · `UNKNOWN` (CHƯA BIẾT) · `FAILED` (THẤT BẠI) | ba trị của luồng L3 (`docs/ROADMAP-DAY-DU.md` §5) |
 | `reason_code` | bảng §2.4 | rỗng khi `DONE` |
-| `fault` | nhãn lỗi `docs/CONVENTIONS.md` §4.3 | khi `status` ≠ `DONE` |
+| `detail` | chuỗi | thông điệp công khai cho bên gọi, rỗng khi `DONE`; hệ đặt, bên gọi không đưa. Lỗi lớp `input`, `policy`, `data`: một câu viết cho bên gọi, nói điều cần sửa hay lý do từ chối, không lộ giá trị ngoài quyền đọc; `PERMISSION_DENIED` dùng đúng MỘT câu cho máy không tồn tại, máy ngoài phạm vi và khoá có ký tự lạ (§4.4). Lỗi lớp `infra` và `code`: một câu chung, không có chi tiết nội bộ (tên thành phần, lỗi trình điều khiển, đường dẫn, SQL); chi tiết đã làm sạch chỉ nằm ở vết và log |
+| `invalid_fields` | danh sách chuỗi | chỉ có khi `reason_code` = `INVALID_REQUEST`: tên các trường của `CommandRequest` (§2.1) mà chặng từ chối thấy là sai (thiếu, sai dạng, ký tự NUL, chỉ số ngoài danh sách, ngày không phải ngày đã qua; khoá thực thể sai loại thì là `subject_key`), theo thứ tự `command_id`, `subject_key`, `metric`, `day`; hoặc tên trường lạ đầu tiên mà lớp giải mã của HTTP gặp (§2.6.2). Rỗng khi lỗi không quy về một trường (JSON hỏng, thân rỗng, sai `Content-Type`) |
+| `fault` | nhãn lỗi `docs/CONVENTIONS.md` §4.3 | khi `status` ≠ `DONE`. Trong tiến trình (kết quả của `execution/commands`): nhãn đầy đủ, ví dụ `infra:postgres`. **Qua HTTP: chỉ lớp lỗi**, phần trước dấu hai chấm (`input`, `policy`, `data`, `infra`, `code`); nhãn đầy đủ nằm ở vết (bước C6, C7, §7.5) và log |
 | `retry` | `none` · `same_key` · `fix_request` · `later` | xem dưới |
 | `replayed` | true / false | chỉ có nghĩa khi `DONE` |
 | `ticket` | mã phiếu, trạng thái, và (khi `DONE`) các trường §7.4 | cũng có khi `DUPLICATE_OPEN_TICKET` (chỉ mã và trạng thái) |
@@ -181,7 +185,7 @@ Từ vựng dùng lại tên sẵn có ở `core/contracts/contracts.go:298-305`
 | `VERIFY_MISMATCH` | `UNKNOWN` | `code` | `none` | đã commit; đọc lại không thấy hoặc lệch trường: cần người xem audit |
 | `INTERNAL_ERROR` | `FAILED` nếu lỗi trước BEGIN; `UNKNOWN` nếu sau BEGIN mà không xác nhận rollback | `code` | `none` | lỗi mã không lường trước |
 
-HTTP: mã HTTP của lệnh lấy từ nhãn `fault` của kết quả qua `contracts.HTTPStatus` (`core/contracts/fault.go:97`) [CODE]; bảng ở §2.6.2. Thân phản hồi luôn là `CommandResult`: bên gọi dựa vào `status` và `reason_code` trong thân, không dựa vào mã HTTP.
+HTTP: mã HTTP của lệnh lấy từ nhãn `fault` của kết quả qua `contracts.HTTPStatus` (`core/contracts/fault.go:97`) [CODE]; bảng ở §2.6.2. Thân phản hồi luôn là `CommandResult`: bên gọi dựa vào `status` và `reason_code` trong thân, không dựa vào mã HTTP. Cột `fault` của bảng trên là nhãn đầy đủ trong tiến trình; qua HTTP thân chỉ mang lớp lỗi (§2.3).
 
 ### 2.5 Hình dạng minh hoạ
 
@@ -204,6 +208,7 @@ Kết quả `DONE`:
 {
   "status": "DONE",
   "reason_code": "",
+  "detail": "",
   "retry": "none",
   "replayed": false,
   "ticket": {
@@ -245,10 +250,10 @@ Chọn a vì đó là cách nhỏ nhất vẫn khớp hợp đồng: một route
 
 | Mục | Quy định |
 |---|---|
-| Đường | `POST /v1/commands/open_discrepancy_ticket`. Mỗi tool khai trong `tools.yaml` có một route, đăng ký lúc khởi động; tên ở đường dẫn là tên tool. Tên lạ rơi vào 404 mặc định của mux, trước xác thực: không audit, không vết (chưa có yêu cầu hợp lệ). `/v1/commands` là namespace đích của `docs/01-architecture.md` §3 (`platform/httpapi`) [REPO] |
+| Đường | `POST /v1/commands/open_discrepancy_ticket`. Mỗi tool khai trong `tools.yaml` có một route, đăng ký lúc khởi động; tên ở đường dẫn là tên tool. Tên lạ rơi vào 404 mặc định của mux, và sai phương thức (không phải `POST`) rơi vào 405 của mux (như `GET /v1/ask` ở làn 0: `cmd/eais/server_test.go:519-521` [CODE, làn 0]); cả hai xảy ra trước xác thực: không audit, không vết (chưa có yêu cầu hợp lệ). `/v1/commands` là namespace đích của `docs/01-architecture.md` §3, nơi §3 đặt ở `platform/httpapi` [REPO]; handler của Phase 1 nằm ở `cmd/eais/server.go` (lớp HTTP của làn 0, ADR-0011 D10): lệch này ghi ở ADR-0011, "Lệch tài liệu kiến trúc" |
 | Xác thực | y hệt `/v1/ask`: tiêu đề `Authorization: Bearer <token>`, Principal từ token. Thiếu, sai hay lạ token: 401 cùng một phản hồi, **không** có vết (chưa có tenant; chỉ tăng bộ đếm `Unauthenticated` của làn 0) [CODE, làn 0] |
 | Thân | `CommandRequest` (§2.1), giải mã chặt như `decodeAsk` (`cmd/eais/server.go:317` [CODE, làn 0]): `Content-Type: application/json`, có trần kích thước, trường lạ bị từ chối (kể cả `tenant`, `principal`, `role`), không có nội dung thừa. Tenant, người gọi, vai, phạm vi chỉ đến từ token (C1) |
-| Kết quả | thân luôn là `CommandResult` (§2.3) cho mọi lượt đã xác thực, kể cả `INVALID_REQUEST` do lớp giải mã; tiêu đề `X-Trace-Id` mang `trace_id` khi lưu được vết |
+| Kết quả | thân luôn là `CommandResult` (§2.3) cho mọi lượt đã xác thực, kể cả `INVALID_REQUEST` do lớp giải mã. Trường `fault` của thân chỉ mang lớp lỗi (`input`, `policy`, `data`, `infra`, `code`), không có tên thành phần nội bộ sau dấu hai chấm, như `publicFault` của `/v1/ask` (`cmd/eais/server.go:185` [CODE, làn 0]); nhãn đầy đủ nằm ở vết và log. `detail` do pipeline lệnh đặt từ bảng câu cố định theo mã lý do (§2.3); KHÔNG dùng `publicMessage` của `/v1/ask` (nó đổi mọi lớp ngoài `input`, `policy` thành "lỗi hệ thống", sai với từ chối nghiệp vụ lớp `data`). Tiêu đề `X-Trace-Id` mang `trace_id` khi lưu được vết |
 | Mã HTTP | `DONE`, kể cả phát lại: 200. Còn lại lấy từ `fault` qua `contracts.HTTPStatus`, không lập bảng riêng: `input` 400 (sai `Content-Type` 415, thân quá lớn 413, như `/v1/ask`); `policy` 403; `data` 409; `infra:*` 503; `code` 500. Theo bảng §2.4: 400 = `INVALID_REQUEST`, `IDEMPOTENCY_KEY_REUSED`; 403 = `PERMISSION_DENIED`; 409 = `INSUFFICIENT_EVIDENCE`, `HUMAN_REVIEW_REQUIRED`, `NO_DISCREPANCY`, `DUPLICATE_OPEN_TICKET`; 503 = `STORE_UNAVAILABLE`, `COMMIT_UNKNOWN`, `READBACK_UNAVAILABLE`; 500 = `VERIFY_MISMATCH`, `INTERNAL_ERROR` |
 | Chế độ | chỉ khi `serve -dev` (§1.3) |
 
@@ -292,7 +297,7 @@ Khuôn lấy từ `docs/01-architecture.md` §4.1 (pipeline lệnh, ĐÍCH) và 
 | **C4b tra sổ lệnh** | tìm (tenant, người gọi, `command_id`): thấy và cùng fingerprint ⇒ phát lại (đọc lại phiếu, trả `DONE` `replayed`); thấy mà khác fingerprint ⇒ từ chối; không thấy ⇒ đi tiếp | Idempotency (nửa đọc) | `IDEMPOTENCY_KEY_REUSED` |
 | **C5 chính sách, luật, tính** | loại thực thể hợp lệ cho chỉ số (kiểm **sau** quyền, để không lộ loại của máy ngoài phạm vi); tính chênh lệch bằng `Derive`; chạy R1–R6 (§5) | Policy, Business Rules | `INVALID_REQUEST` (loại thực thể), `INSUFFICIENT_EVIDENCE`, `HUMAN_REVIEW_REQUIRED`, `NO_DISCREPANCY`, `DUPLICATE_OPEN_TICKET` |
 | **C6 ghi** | một giao dịch: phiếu, sổ lệnh, audit `EXECUTED`, theo thứ tự đó (§7.1); vi phạm khoá duy nhất thì phân loại lại (§6.4) | Idempotency (nửa ghi), Execute | `STORE_UNAVAILABLE`, `COMMIT_UNKNOWN` |
-| **C7 đọc lại, trả** | đọc lại bằng giao dịch mới từ nơi ghi, so với bản chụp ý định (§7.2); `DONE` chỉ khi khớp. Kết cục nào từ C4 trở đi (trừ `EXECUTED`, đã nằm trong đơn vị ghi phiếu) được ghi một dòng audit riêng (§7.3) | Verify, Audit | `READBACK_UNAVAILABLE`, `VERIFY_MISMATCH` |
+| **C7 đọc lại, trả** | đọc lại bằng giao dịch mới từ nơi ghi, so với bản chụp ý định (§7.2); `DONE` chỉ khi khớp. Kết cục nào từ C4 trở đi (trừ `EXECUTED`, đã nằm trong đơn vị ghi phiếu, và trừ kết cục hạ tầng / mã, §7.3) được ghi một dòng audit riêng (§7.3) | Verify, Audit | `READBACK_UNAVAILABLE`, `VERIFY_MISMATCH` |
 
 **Đối chiếu số chặng với `docs/01-architecture.md` §4.1** (ĐÍCH; cùng khuôn C0–C7 nhưng nghĩa của C5–C7 khác):
 
@@ -310,7 +315,7 @@ Khuôn lấy từ `docs/01-architecture.md` §4.1 (pipeline lệnh, ĐÍCH) và 
 - §14 xếp Idempotency sau Business Rules. Hợp đồng này tách Idempotency làm hai nửa: **nửa đọc** (C4b) đặt ngay sau quyền; **nửa ghi** (khoá duy nhất) ở C6.
 - Lý do: nếu luật "không trùng phiếu mở" (R5) chạy trước tra sổ lệnh, lần gửi lại hợp lệ sau một timeout sẽ bị báo `DUPLICATE_OPEN_TICKET` thay vì `DONE` phát lại. Bên gọi không phân biệt được "lần trước của tôi đã thành công" với "người khác đã tạo". Đó đúng là ca của cổng ra (A21).
 - Quyền vẫn kiểm **trước** khi phát lại, nên người đã mất quyền không lấy lại được kết quả.
-- [SUY] Ca A01, A21 và đột biến M5 kiểm điều này. Nếu chủ dự án muốn giữ đúng thứ tự §14, phải đổi cách phân biệt ở R5 (khi đó M5 thành thiết kế đúng, không còn là đột biến).
+- [SUY] Ca A01 và A21 kiểm điều này: một bản đặt tra sổ lệnh sau luật "không trùng" phải làm chúng đỏ. Nếu chủ dự án muốn giữ đúng thứ tự §14, phải đổi cách phân biệt ở R5; khi đó thứ tự đảo ấy thành thiết kế đúng và ca A01, A21 đổi theo.
 - Chỗ lệch này cũng lệch `docs/ROADMAP-DAY-DU.md` §5 luồng L3 (khoá chống trùng đứng sau luật nghiệp vụ) và cách đánh số của `docs/01-architecture.md` §4.1 (bảng trên). Thứ bậc ở đầu `docs/ROADMAP-DAY-DU.md` cho ADR và hợp đồng đứng trên `CLAUDE.md`, nhưng cả hai còn ĐỀ XUẤT: **chưa coi là được chấp nhận cho tới khi chủ dự án trả lời câu Q-P1-7 (§14)**.
 
 **Hạn chót.** Cả lệnh (C0 tới hết C7) chạy dưới một hạn chót: cái đến trước giữa ngữ cảnh của bên gọi và `timeout` của tool trong pack. Giá trị `timeout`: chưa chọn, chưa đo.
@@ -356,7 +361,7 @@ Ca âm: A12. Mẫu test sẵn có: `TestLoadChanPackHong` (`core/tenant/pack_tes
 
 ### 4.4 Một mã cho "không có" và "ngoài phạm vi" [ĐỀ XUẤT]
 
-- Máy không tồn tại, máy ngoài phạm vi, và khoá có ký tự lạ (ví dụ ký tự SQL, dấu nháy) cùng trả `PERMISSION_DENIED`, **cùng thông báo**. Lý do tồn tại thật chỉ nằm ở `reason_detail` của dòng audit. Ngoại lệ duy nhất: ký tự NUL bị C0 chặn bằng `INVALID_REQUEST` trước khi tra danh mục (§2.1).
+- Máy không tồn tại, máy ngoài phạm vi, và khoá có ký tự lạ (ví dụ ký tự SQL, dấu nháy) cùng trả `PERMISSION_DENIED`, **cùng thông báo** (trường `detail` của kết quả, §2.3). Lý do tồn tại thật chỉ nằm ở `reason_detail` của dòng audit. Ngoại lệ duy nhất: ký tự NUL bị C0 chặn bằng `INVALID_REQUEST` trước khi tra danh mục (§2.1).
 - Lý do: lệnh là đường ghi; hai thông báo khác nhau cho phép người gọi dò xem máy nào tồn tại.
 - Cứng hơn luồng hỏi một bậc: luồng hỏi trả `forbidden` cho thực thể đã giải mà ngoài phạm vi (`router.go:217-223`) [CODE]. Đảo được; chọn mềm hơn thì đổi ca A08.
 
@@ -372,7 +377,7 @@ Không có đường nào để model (hay bất kỳ bên đề xuất nào) t�
 |---|---|---|
 | R1 | Chỉ số được phép | `metric` thuộc danh sách của tool trong pack. Phase 1: chỉ `issue_vs_measured`. Hai vế đều từ nguồn có cấu trúc (phiếu kho, ERP, bảng tổng hợp; cảm biến). `reported_vs_issued` hoãn vì vế trái là tin chat và mẫu báo cáo (`CONG-QUANIT.md` câu 3). Thêm chỉ số sau này là đổi pack và thêm ca âm, không đổi mã (mục tiêu, chưa kiểm). |
 | R2 | Kỳ | Đúng một ngày `day`, trước "hôm nay" theo múi giờ tenant. Ngày chưa kết thúc thì số liệu chưa đủ để gọi là chênh lệch [SUY]. Một ngày để khoá trùng so bằng nhau được (kỳ nhiều ngày cần ràng buộc loại trừ chồng lấn). |
-| R3 | Đủ bằng chứng | Gọi `Catalog.Derive(issue_vs_measured, [máy], day, day)`. Cần `Total` có giá trị và `NeedsReview` = false. Thiếu một vế ⇒ `INSUFFICIENT_EVIDENCE`. Hai nguồn ngang thẩm quyền lệch quá dung sai ở một vế ⇒ `HUMAN_REVIEW_REQUIRED`, **không chọn số** (`query.go:64-197`; `combine` trả không có tổng khi `NeedsReview`) [CODE]. |
+| R3 | Đủ bằng chứng | Gọi `Catalog.Derive(issue_vs_measured, [máy], day, day)`. Cần `Total` có giá trị và `NeedsReview` = false. Thiếu một vế ⇒ `INSUFFICIENT_EVIDENCE`. Hai nguồn ngang thẩm quyền lệch quá dung sai ở một vế ⇒ `HUMAN_REVIEW_REQUIRED`, **không chọn số**. Cả hai cùng có (một vế xung đột, vế kia thiếu): `HUMAN_REVIEW_REQUIRED` trước — xung đột cần người quyết dù vế kia có hay chưa; chỉ khi không vế nào xung đột mà thiếu vế mới ra `INSUFFICIENT_EVIDENCE` (`query.go:64-197`; `combine` trả không có tổng khi `NeedsReview`) [CODE]. |
 | R4 | Có chênh lệch | \|chênh lệch\| > `min_abs_diff` (tham số của tool trong pack, đơn vị lít, mặc định 0 tức mọi chênh lệch khác 0), so sánh thập phân chính xác (`core/decimal`). Ngưỡng theo phần trăm (BR-FUEL-03 ghi "±1%/ngày", `01-business-map.md:382`) chưa hỗ trợ vì chưa rõ phần trăm của vế nào (câu Q-P1-2). |
 | R5 | Không trùng | Chưa có phiếu `OPEN` cùng (tenant, máy, chỉ số, ngày). Kiểm ở C5 để trả lời nhanh; **bảo đảm thật** bằng chỉ mục duy nhất ở C6. |
 | R6 | Cờ ước lượng | Nếu một vế là số ước lượng thì **vẫn tạo** phiếu, phiếu và kết quả mang `approx = true`: phiếu để kiểm tra, không để kết luận. Cờ không được mất. Lưu ý: đường nạp hiện còn làm mất cờ ở vài định dạng (`docs/ROADMAP-DAY-DU.md` §5 L1) nên `approx = false` **không** chứng minh số chính xác [REPO]. |
@@ -422,7 +427,7 @@ Hai lệnh đua nhau có thể làm một giao dịch gặp lỗi vi phạm kho�
 2. không có, nhưng có phiếu `OPEN` cùng khoá nghiệp vụ ⇒ `DUPLICATE_OPEN_TICKET`;
 3. không thấy gì ⇒ `INTERNAL_ERROR` (không lường trước).
 
-Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải lỗi 500. Ca A02, A02b, A04b (cả ba ép đua bằng F7, §10); đột biến M20.
+Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải lỗi 500. Ca A02, A02b, A04b (cả ba ép đua bằng F7, §10).
 
 ---
 
@@ -430,8 +435,8 @@ Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải 
 
 ### 7.1 Đơn vị ghi
 
-- **Một giao dịch PostgreSQL** đặt GUC tenant từ Principal (như `platform/pgstore/pgstore.go:59-70`), ba INSERT theo thứ tự cố định: (1) phiếu, (2) sổ lệnh, (3) audit `EXECUTED`. Cả ba cùng có hoặc cùng không (I4). Giao dịch này, từ BEGIN tới COMMIT, gọi là **đơn vị ghi phiếu** ở các mục sau. Các dòng audit khác (`REFUSED`, `REPLAYED`, `VERIFY_FAILED`) **không** thuộc nó: chúng ghi bằng giao dịch riêng (§7.3), và harness đếm hai thứ tách nhau (§10).
-- **Vì sao thứ tự này.** Sổ lệnh có khoá ngoại **thường** (không `DEFERRABLE`) tới phiếu (§7.4), nên phiếu phải có trước; đảo thì INSERT sổ lệnh vi phạm khoá ngoại ở mọi lần tạo (đột biến M23). Audit đứng cuối để F2 (A20) thử đúng điều khó: hai dòng đã INSERT phải bị huỷ khi dòng thứ ba hỏng. Phiếu giữ `command_id` dạng cột thường, không có khoá ngoại ngược tới sổ lệnh (sẽ thành vòng tròn và buộc phải hoãn kiểm tra khoá ngoại).
+- **Một giao dịch PostgreSQL** đặt GUC tenant từ Principal (như `platform/pgstore/pgstore.go:59-70`), ba INSERT theo thứ tự cố định: (1) phiếu, (2) sổ lệnh, (3) audit `EXECUTED`. Cả ba cùng có hoặc cùng không (I4). Giao dịch này, từ BEGIN tới COMMIT, gọi là **đơn vị ghi phiếu** ở các mục sau. Các dòng audit khác (`REFUSED`, `REPLAYED`, `VERIFY_FAILED`) **không** thuộc nó: chúng ghi bằng giao dịch riêng (§7.3), và lớp bọc của harness đếm chúng tách khỏi đơn vị ghi phiếu (ba bộ đếm, §10).
+- **Vì sao thứ tự này.** Sổ lệnh có khoá ngoại **thường** (không `DEFERRABLE`) tới phiếu (§7.4), nên phiếu phải có trước; đảo thì INSERT sổ lệnh vi phạm khoá ngoại ở mọi lần tạo. Audit đứng cuối để F2 (A20) thử đúng điều khó: hai dòng đã INSERT phải bị huỷ khi dòng thứ ba hỏng. Phiếu giữ `command_id` dạng cột thường, không có khoá ngoại ngược tới sổ lệnh (sẽ thành vòng tròn và buộc phải hoãn kiểm tra khoá ngoại).
 - Mức cô lập mặc định (READ COMMITTED) đủ vì mọi bảo đảm duy nhất đến từ chỉ mục, không từ đọc rồi ghi. Chưa đo tranh chấp.
 - **Không dùng lại `inTenant` nguyên trạng.** Nó gom mọi lỗi, kể cả lỗi COMMIT, thành `infra:postgres` (`pgstore.go:59-70`) [CODE], nên không phân biệt "chắc chắn chưa ghi" với "không biết". Đơn vị ghi phiếu của Phase 1 phải tách được lỗi COMMIT. `Store.pool` và `inTenant` không xuất ra khỏi `platform/pgstore` [CODE `pgstore.go:21`, `:59` tại `5d69d24`], nên mã của `execution/commands` mở giao dịch qua một hàm mới, nhỏ, của `platform/pgstore` (mở giao dịch đã đặt GUC tenant, trả giao dịch để bên gọi tự `Commit` / `Rollback`): ADR-0011, "Nơi đặt mã".
 - **Phân loại lỗi trong giao dịch:**
@@ -455,6 +460,7 @@ Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải 
   - `REPLAYED`;
   - `REFUSED` kèm `reason_code` (gồm cả `PERMISSION_DENIED`, `DUPLICATE_OPEN_TICKET`, các từ chối do luật);
   - `VERIFY_FAILED` (bất thường, có thể đi kèm `EXECUTED` trước đó).
+- **Không có dòng audit riêng** cho kết cục hạ tầng và mã (`STORE_UNAVAILABLE`, `COMMIT_UNKNOWN`, `READBACK_UNAVAILABLE`, `INTERNAL_ERROR`): kho có thể đang hỏng, và lần gửi lại cùng khoá để lại dòng của kết cục thật; nhãn đầy đủ nằm ở vết (C6, C7) và log. Ca A19–A23 không khẳng định `audit_writes` cho lời gọi gặp lỗi hạ tầng.
 - **Cột:** thời gian (đồng hồ DB), tenant, người gọi (`Principal.ID`, vai, `entity_scope`), `command_id`, hành động (`open_discrepancy_ticket`), kết cục, `reason_code`, `reason_detail` (lý do thật, ví dụ phân biệt "không tồn tại" với "ngoài phạm vi"), `subject_key`, `metric`, `day`, mã phiếu (nếu có), fingerprint, phiên bản pack, phiên bản mã, `trace_id`.
 - **Không ghi:** bí mật, token, bất cứ thứ gì ngoài danh sách cột trên.
 - **Ở đâu.** Bảng `audit_log` cùng PostgreSQL, cùng tenant, RLS FORCE. `EXECUTED` nằm **trong** đơn vị ghi phiếu (§7.1). Các dòng khác ghi bằng giao dịch riêng, cố gắng tối đa: ghi audit của một lần từ chối hỏng thì kết quả từ chối không đổi, nhưng để lại vết trong trace với nhãn `infra:postgres`.
@@ -504,7 +510,7 @@ Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải 
 | `C6` | `write` | bản chụp ý định → mã phiếu; `commit` hoặc `rollback` | thứ tự ba INSERT; phân loại lỗi COMMIT (§7.1) | `error`: `STORE_UNAVAILABLE`, `COMMIT_UNKNOWN`, `INTERNAL_ERROR`; `deviant`: kết cục phân loại lại sau vi phạm khoá duy nhất (§6.4) |
 | `C7` | `verify` | mã phiếu → đọc lại khớp; dòng audit đã ghi hoặc không ghi được | so với bản chụp ý định (§7.2) | `error`: `READBACK_UNAVAILABLE`, `VERIFY_MISMATCH` |
 
-- **Trạng thái.** Bước đi qua là `ok`. Bước dừng là `deviant` (từ chối theo luật) hoặc `error` (hạ tầng, mã) kèm nhãn `fault`. Bước nằm giữa bước dừng và C7 là `skipped` kèm lý do "lượt dừng ở C<k>". C7 luôn chạy: trả kết quả và ghi audit của lượt, nếu lượt có audit (§7.3); phần đọc lại chỉ chạy khi C6 đã ghi hoặc khi phát lại (§7.2). `INTERNAL_ERROR` ở bước nào thì bước đó là `error`. Vì vậy dòng "BƯỚC LỆCH ĐẦU TIÊN" của `eais trace` trỏ đúng chặng ở cột "Dừng ở đây thì" của bảng trên (ca A29); cột đó là cột "Từ chối bằng" của §3, thêm các kết cục hạ tầng và kết cục phân loại lại ở C6.
+- **Trạng thái.** Bước đi qua là `ok`. Bước dừng là `deviant` (từ chối theo luật) hoặc `error` (hạ tầng, mã) kèm nhãn `fault`. Bước nằm giữa bước dừng và C7 là `skipped` kèm lý do "lượt dừng ở C<k>". C7 luôn chạy và không bao giờ là `skipped`: nó trả kết quả, ghi audit của lượt nếu lượt có audit (§7.3), và đọc lại khi có gì để đọc lại (chỉ khi C6 đã ghi hoặc khi phát lại, §7.2). Khi không đọc lại (lượt dừng trước C6, hoặc C6 báo `STORE_UNAVAILABLE`, `COMMIT_UNKNOWN`, `INTERNAL_ERROR`), C7 vẫn là `ok` kèm lý do "không đọc lại: <vì sao>" (ví dụ "commit chưa xác nhận" với `COMMIT_UNKNOWN`); C7 chỉ là `error` khi chính việc đọc lại hỏng (`READBACK_UNAVAILABLE`, `VERIFY_MISMATCH`). `INTERNAL_ERROR` ở bước nào thì bước đó là `error`, kể cả C7. Vì vậy dòng "BƯỚC LỆCH ĐẦU TIÊN" của `eais trace` trỏ đúng chặng ở cột "Dừng ở đây thì" của bảng trên (ca A29); cột đó là cột "Từ chối bằng" của §3, thêm các kết cục hạ tầng và kết cục phân loại lại ở C6.
 - **Trường quyết định.** Dùng đúng kiểu `traces.Decision` của làn 0; trường nào luồng lệnh không có nghĩa thì để rỗng, không bịa. `Question` = dạng chuẩn của yêu cầu đã làm sạch (`open_discrepancy_ticket subject_key=… metric=… day=… command_id=…`; rỗng khi thân không đọc được); `Intent` = tên lệnh; `Slots` = `metric=…`, `day=…`; `Route` = `TOOL` (một trong 12 route, `docs/CONVENTIONS.md` §4.1); `Entities` = khoá máy, chỉ khi đã qua C4; `Evidence` = mã bằng chứng của bản chụp (từ C5); `Outcome` = `DONE` hoặc `reason_code`; `Answer` = `status=… reason_code=… replayed=… ticket=…`; `Normalized` và `Verdict` rỗng.
 - **Không lộ.** Vết của lượt `PERMISSION_DENIED` không phân biệt "máy không tồn tại" với "máy ngoài phạm vi" (§4.4): cùng một quyết định, cùng một lý do chung; lý do thật chỉ ở `reason_detail` của audit (đọc bằng vai quản trị). Phép tra khoá máy trong danh mục (§3 nhắc ở C2) không ghi kết quả "có" hay "không" vào C2: C2 luôn `skipped`, kết quả chỉ vào quyết định của C4. Vết không chứa giá trị ngoài quyền đọc của người gọi (C5 chỉ chạy sau C4) và không chứa bí mật (làm sạch của làn 0).
 - **Mất vết.** Lưu vết xảy ra sau C7. Không lưu được vết thì kết quả lệnh **không đổi**: phiếu đã commit và đã đọc lại là sự thật không rút lại được, và đổi `DONE` thành lỗi chỉ khiến bên gọi thử lại mù. `trace_id` để rỗng, bộ đếm lỗi lưu vết của làn 0 tăng, ghi log; gửi lại cùng khoá phát lại kết quả và ghi vết mới. Khác luồng hỏi: ở đó mất vết thì không giao câu trả lời (`cmd/eais/server.go:205`, hàm `ask` [CODE, làn 0]), vì câu trả lời không có tác dụng phụ.
@@ -522,7 +528,7 @@ Trả lời 10 mặt của cổng "ai sở hữu?" (`docs/05-master-roadmap.md:3
 | 2. Trạng thái gì | Phiếu: đúng một trạng thái `OPEN` (CHECK). Sổ lệnh chỉ chứa lệnh đã được ghi. Mọi chuyển trạng thái sau `OPEN` thuộc engine của Phase 2. |
 | 3. Nguồn sự thật nào | Bảng `discrepancy_tickets` là nguồn sự thật duy nhất cho câu "phiếu có tồn tại không". Giá trị chênh lệch trong phiếu là **bản chụp** tại lúc tính; nguồn sự thật của số liệu vẫn là fact có thẩm quyền (L1). Câu chữ của luồng hỏi và kết quả trả về không phải nguồn sự thật. |
 | 4. Ai ghi | Chỉ đường lệnh (pipeline lệnh gọi đơn vị ghi phiếu của lớp lưu trữ) bằng vai `eais_app`, trong một giao dịch. Không có đường UPDATE, DELETE. Luồng hỏi và model không ghi vào ba bảng. |
-| 5. Ai đọc | Người tạo, qua kết quả lệnh, trong giới hạn `metrics.read` và phạm vi. Pipeline đọc lại nội bộ. Liệt kê, tìm phiếu cho người dùng: ngoài Phase 1. Điều tra vận hành: truy vấn trực tiếp bằng vai quản trị ngoài đường ứng dụng. Vết của chính lượt lệnh (§7.5): người đã gọi, hoặc principal toàn quyền dữ liệu của `cmd/eais`. |
+| 5. Ai đọc | Người tạo, qua kết quả lệnh, trong giới hạn `metrics.read` và phạm vi. Pipeline đọc lại nội bộ. Liệt kê, tìm phiếu cho người dùng: ngoài Phase 1. Điều tra vận hành: truy vấn trực tiếp bằng vai quản trị ngoài đường ứng dụng. Vết của chính lượt lệnh (§7.5): người đã gọi, hoặc principal toàn quyền dữ liệu của `cmd/eais`; riêng CLI `eais trace` đọc bằng quyền của người vận hành có DSN, không có Principal (tenant do cờ `-tenant` nói rõ, RLS vẫn giới hạn trong tenant đó; `cmd/eais/cli_trace.go:16-17` [CODE, làn 0]). |
 | 6. Vòng đời | tạo (`OPEN`) → [Phase 2: điều tra → duyệt → xác minh → đối soát → đóng]. Phase 1 không xoá, không sửa, không hết hạn. Sổ lệnh và audit giữ vô hạn; chính sách giữ: Phase 5. |
 | 7. Hỏng thế nào | §9 (T1–T6) và các từ chối ở §2.4. |
 | 8. Phục hồi thế nào | Gửi lại cùng `command_id` luôn an toàn. Không có job nền. Khởi động lại tiến trình không mất gì vì trạng thái ở PostgreSQL. `VERIFY_MISMATCH` cần người xem audit. Sao lưu và khôi phục cơ sở dữ liệu: Phase 5. |
@@ -571,9 +577,9 @@ Trả lời 10 mặt của cổng "ai sở hữu?" (`docs/05-master-roadmap.md:3
 | F7 `race_barrier` | rào đồng bộ ngay trước đơn vị ghi (đầu C6, trước khi mở giao dịch): giữ N lần chạy song song cho tới khi cả N đã qua C4b và C5, rồi thả cùng lúc. Không đủ N lần tới rào trong hạn của harness thì ca ĐỎ, không được bỏ qua |
 | F8 `trace_save_fail` | kho vết trả lỗi khi lưu vết của lượt (sau C7); lớp bọc nằm quanh kho vết, không quanh lớp lưu trữ của phiếu (§7.5) |
 
-**Đơn vị ghi phiếu và bộ đếm của lớp bọc.** *Đơn vị ghi phiếu* là lời gọi **duy nhất** của lớp lưu trữ ở C6: mở một giao dịch, ba INSERT (phiếu, sổ lệnh, audit `EXECUTED`), COMMIT (§7.1). Lớp bọc quanh lớp lưu trữ giữ ba bộ đếm lời gọi **tách nhau**: (1) đơn vị ghi phiếu; (2) ghi audit riêng, tức mỗi dòng `REFUSED`, `REPLAYED`, `VERIFY_FAILED` là một giao dịch riêng (§7.3); (3) đọc (tra sổ lệnh, tìm phiếu mở, đọc lại). Ca nào nói "đơn vị ghi phiếu không được gọi" (A04) chỉ đọc bộ đếm (1); một dòng audit không bao giờ làm bộ đếm (1) tăng. Bộ đếm là của lớp bọc (phía mã); mọi khẳng định về số dòng vẫn được kiểm chéo bằng đếm ở kết nối riêng của harness.
+**Đơn vị ghi phiếu và bộ đếm của lớp bọc.** *Đơn vị ghi phiếu* là lời gọi **duy nhất** của lớp lưu trữ ở C6: mở một giao dịch, ba INSERT (phiếu, sổ lệnh, audit `EXECUTED`), COMMIT (§7.1). Lớp bọc quanh lớp lưu trữ giữ ba bộ đếm lời gọi **tách nhau**: (1) đơn vị ghi phiếu; (2) ghi audit riêng, tức mỗi dòng `REFUSED`, `REPLAYED`, `VERIFY_FAILED` là một giao dịch riêng (§7.3); (3) đọc (tra sổ lệnh, tìm phiếu mở, đọc lại). Bộ đếm (1) và (2) tăng ngay lúc pipeline gọi, kể cả khi lần gọi đó hỏng vì F1 hay F2. Ca nào nói "đơn vị ghi phiếu không được gọi" (A04) chỉ đọc bộ đếm (1); một dòng audit không bao giờ làm bộ đếm (1) tăng. Ca khẳng định bộ đếm (1) bằng khoá `write_unit_calls` và bộ đếm (2) bằng khoá `audit_writes` (§12.1). **Bộ đếm (3) không được khẳng định ở ca nào**: số lần đọc phụ thuộc cách cài (ví dụ gộp hai lần tra thành một), nên khẳng định nó biến ca thành kiểm tra cách cài thay vì kiểm tra hợp đồng; §12.1 không có khoá cho nó. Bộ đếm là của lớp bọc (phía mã); mọi khẳng định về số dòng vẫn được kiểm chéo bằng đếm ở kết nối riêng của harness.
 
-**Vì sao F7** [SUY]: không có rào, lần đến sau thường bị C4b hoặc R5 chặn trước C6, nên đường vi phạm khoá duy nhất (§6.4) không chạy và ca đồng thời xanh nhờ lịch chạy, kể cả khi M2, M4 hay M20 đang sống. F7 buộc cả N lần cùng qua C4b và C5 khi chưa lần nào ghi, nên chỉ còn khoá của cơ sở dữ liệu phân xử. Ai thắng thì ca không đoán trước, nên ca chỉ khẳng định số lượng và loại kết quả, không khẳng định lần nào thắng.
+**Vì sao F7** [SUY]: không có rào, lần đến sau thường bị C4b hoặc R5 chặn trước C6, nên đường vi phạm khoá duy nhất (§6.4) không chạy và ca đồng thời xanh nhờ lịch chạy, kể cả khi chốt chống trùng ở cơ sở dữ liệu hoặc bước phân loại lại bị hỏng. F7 buộc cả N lần cùng qua C4b và C5 khi chưa lần nào ghi, nên chỉ còn khoá của cơ sở dữ liệu phân xử. Ai thắng thì ca không đoán trước, nên ca chỉ khẳng định số lượng và loại kết quả, không khẳng định lần nào thắng.
 
 | Mã | Tình huống | Phải thấy |
 |---|---|---|
@@ -581,17 +587,17 @@ Trả lời 10 mặt của cổng "ai sở hữu?" (`docs/05-master-roadmap.md:3
 | **A02** | gửi đôi đồng thời, ép đua bằng F7: N ≥ 2 lần song song, cùng khoá, cùng nội dung | phiếu = 1; mọi lần `DONE` cùng mã phiếu, đúng một lần `replayed` = false (hạn chót đủ dài: không lần nào hết hạn chờ khoá); không lần nào nhận lỗi vi phạm khoá hay `INTERNAL_ERROR` |
 | **A02b** | đua đồng thời, ép bằng F7: N ≥ 2 lần song song, cùng khoá, cùng người gọi, **khác** nội dung (máy khác nhau, đều trong phạm vi và có số liệu) | đúng một lần `DONE` (`replayed` = false); các lần còn lại `IDEMPOTENCY_KEY_REUSED`; phiếu = 1, sổ lệnh = 1; không `INTERNAL_ERROR` |
 | **A03** | cùng khoá, khác nội dung (khác máy, khác ngày) | `IDEMPOTENCY_KEY_REUSED`; không ghi mới; phiếu cũ nguyên vẹn |
-| **A04** | khác khoá, cùng (máy, chỉ số, ngày), phiếu còn mở; **tuần tự** | `DUPLICATE_OPEN_TICKET` kèm mã phiếu cũ; phiếu = 1, sổ lệnh = 1; **đơn vị ghi phiếu** không được gọi cho lần thứ hai: bộ đếm (1) của lớp bọc = 1 sau cả hai lần (từ chối đến từ R5 ở C5, không phải từ chỉ mục duy nhất). Dòng audit `REFUSED` (`reason_code` = `DUPLICATE_OPEN_TICKET`) **vẫn** được ghi bằng giao dịch riêng (§7.3): audit `REFUSED` = 1, bộ đếm (2) tăng đúng 1 ở lần thứ hai. Ca **không** đòi "không có giao dịch ghi nào" |
+| **A04** | khác khoá, cùng (máy, chỉ số, ngày), phiếu còn mở; **tuần tự** | `DUPLICATE_OPEN_TICKET` kèm mã phiếu cũ; phiếu = 1, sổ lệnh = 1; **đơn vị ghi phiếu** không được gọi cho lần thứ hai: bộ đếm (1) của lớp bọc = 1 sau cả hai lần (khoá `write_unit_calls`, §12.1; từ chối đến từ R5 ở C5, không phải từ chỉ mục duy nhất). Dòng audit `REFUSED` (`reason_code` = `DUPLICATE_OPEN_TICKET`) **vẫn** được ghi bằng giao dịch riêng (§7.3): audit `REFUSED` = 1, bộ đếm (2) tăng đúng 1 ở lần thứ hai (khoá `audit_writes`). Ca **không** đòi "không có giao dịch ghi nào" |
 | **A04b** | đua đồng thời, ép bằng F7: N ≥ 2 lần song song, **khác** khoá, cùng (máy, chỉ số, ngày) | đúng một lần `DONE`; các lần còn lại `DUPLICATE_OPEN_TICKET` kèm mã phiếu của lần thắng; phiếu = 1; không `INTERNAL_ERROR` |
 | **A05** | người gọi khác (cùng tenant), cùng khoá, cùng nội dung | **không** phát lại kết quả của người kia; xử lý như lệnh mới ⇒ `DUPLICATE_OPEN_TICKET`; audit ghi người gọi thứ hai |
 | **A06** | hai tenant dùng cùng khoá | mỗi tenant đúng 1 phiếu của mình; đọc chéo bằng vai ứng dụng = 0 dòng |
 | **A07** | thiếu `tickets.create`: `site_engineer` (có `metrics.read`) và `driver` | `PERMISSION_DENIED`; 0 ghi; audit `REFUSED` |
-| **A08** | có `tickets.create` nhưng máy ngoài phạm vi; máy không tồn tại; khoá chứa ký tự SQL | cùng `PERMISSION_DENIED`, cùng thông báo; 0 ghi; không lỗi SQL, không `INTERNAL_ERROR` |
+| **A08** | có `tickets.create` nhưng máy ngoài phạm vi; máy không tồn tại; khoá chứa ký tự SQL | cùng `PERMISSION_DENIED`, cùng thông báo (trường `detail`, §2.3); 0 ghi; không lỗi SQL, không `INTERNAL_ERROR` |
 | **A09** | có `tickets.create` nhưng thiếu `metrics.read`: **chỉ ca phát triển** (dựng Policy bằng tay, vì pack hợp lệ không cho cấu hình này, §4.3) | `PERMISSION_DENIED`; 0 ghi |
 | **A10** | Principal thuộc tenant khác với runtime | `FAILED` `fault` = `policy`; 0 ghi; không có dòng audit (§7.3) |
 | **A11** | yêu cầu mang trường tenant, vai, Principal hoặc trường lạ | `INVALID_REQUEST`; 0 ghi; cổng kiến trúc không thấy kiểu yêu cầu nào mang trường tenant (ở lớp HTTP: A28) |
 | **A12** | pack hỏng: tool không capability; vai có `tickets.create` thiếu `metrics.read`; chỉ số không phải dẫn xuất | pack không nạp được, lỗi gom đủ thông tin (§4.3) |
-| **A13** | thiếu trường; `command_id` không phải UUID; ký tự NUL trong một trường (kể cả khoá máy); ngày sai dạng, hôm nay, tương lai; chỉ số ngoài danh sách (kể cả chỉ số gốc `issued_fuel`); khoá thực thể là dự án, không phải máy, với người có quyền mọi máy | `INVALID_REQUEST` kèm trường sai; 0 ghi; không có giá trị mặc định ngầm; riêng biến thể loại thực thể (kiểm sau quyền) có audit `REFUSED` |
+| **A13** | thiếu trường; `command_id` không phải UUID; ký tự NUL trong một trường (kể cả khoá máy); ngày sai dạng, hôm nay, tương lai; chỉ số ngoài danh sách (kể cả chỉ số gốc `issued_fuel`); khoá thực thể là dự án, không phải máy, với người có quyền mọi máy | `INVALID_REQUEST`, `invalid_fields` nêu đúng trường sai (§2.3); 0 ghi; không có giá trị mặc định ngầm; riêng biến thể loại thực thể (kiểm sau quyền) có audit `REFUSED` |
 | **A14** | hai vế bằng nhau (hoặc không vượt `min_abs_diff`) | `NO_DISCREPANCY`; 0 ghi |
 | **A15** | thiếu một vế (không có fact trong ngày) | `INSUFFICIENT_EVIDENCE`; 0 ghi |
 | **A16** | một vế có hai nguồn ngang thẩm quyền lệch quá dung sai | `HUMAN_REVIEW_REQUIRED`; 0 ghi; không có số nào được chọn |
@@ -603,11 +609,18 @@ Trả lời 10 mặt của cổng "ai sở hữu?" (`docs/05-master-roadmap.md:3
 | **A22** | F5 commit đến muộn | gửi lại ⇒ tổng cộng đúng 1 phiếu, không hai |
 | **A23** | F6 đọc lại hỏng | không bao giờ `DONE`; `UNKNOWN`; lệch trường thì có audit `VERIFY_FAILED` |
 | **A24** | đếm lời gọi model trên đường lệnh | = 0, kể cả khi gateway model được gắn |
-| **A25** | câu lệnh tự do vào luồng hỏi, với các vai có `metrics.read`: "Tạo phiếu kiểm tra chênh lệch máy EX-03 hôm qua" và biến thể (thêm chữ "dầu"; "hôm nay"; vai khác) | (1) câu trả lời không chứa lời khẳng định một phiếu đã được tạo hay mở (ví dụ "đã tạo", "đã mở phiếu", mã phiếu); (2) số phiếu = 0, đếm bằng kết nối riêng của harness; (3) đường hỏi **không đổi** so với bản chụp lấy ngay trước dòng mã Phase 1 đầu tiên (route, ý định, kết cục, câu trả lời; sau khi vòng S4 đóng băng). **Không** đòi từ chối hay hỏi lại: hiện hành câu này được trả lời như câu hỏi tính toán (§1.5, [ĐO] ở `c086fe7`, `1e5457b` và `7d72e33`); chặn động từ lệnh là nợ của S4 hoặc Phase 6 |
+| **A25** | câu lệnh tự do vào luồng hỏi, với các vai có `metrics.read`: "Tạo phiếu kiểm tra chênh lệch máy EX-03 hôm qua" và biến thể (thêm chữ "dầu"; "hôm nay"; vai khác) | (1) câu trả lời không chứa lời khẳng định một phiếu đã được tạo hay mở (ví dụ "đã tạo", "đã mở phiếu", mã phiếu); (2) số phiếu = 0, đếm bằng kết nối riêng của harness; (3) đường hỏi **không đổi** so với phía gốc (route, ý định, kết cục, câu trả lời; mốc ở đoạn "Mốc so sánh đường hỏi" ngay dưới bảng). **Không** đòi từ chối hay hỏi lại: hiện hành câu này được trả lời như câu hỏi tính toán (§1.5, [ĐO] ở `c086fe7`, `1e5457b` và `7d72e33`); chặn động từ lệnh là nợ của S4 hoặc Phase 6 |
 | **A26** | vai ứng dụng thử UPDATE, DELETE trên ba bảng; chèn trực tiếp một dòng sổ lệnh trỏ tới phiếu không tồn tại; vai vượt RLS | UPDATE, DELETE bị từ chối quyền; dòng sổ lệnh mồ côi bị khoá ngoại từ chối; `pgstore.Open` từ chối vai vượt RLS (test có sẵn) |
-| **A27** | hồi quy đường hỏi | bộ 117 / H1 / H3 / H4, đường bộ nhớ và PostgreSQL: 0 câu trả lời đổi chữ; test so **theo tên**: 0 mất, 0 đổi; cùng phép so cho bộ test của `cmd/eais` (làn 0): `/v1/ask`, `/v1/ingest`, `/v1/trace/{id}`, `/healthz` giữ nguyên hành vi |
-| **A28** | cửa HTTP của lệnh (§2.6.2) bằng token dev thật: (a) không token, token lạ; (b) thân mang trường `tenant`, `principal` hay `role`, hoặc trường lạ; thân rỗng; JSON hỏng; nội dung thừa; sai `Content-Type`; (c) tên lệnh lạ ở đường dẫn; (d) một lượt cho mỗi nhóm kết cục: `DONE`, từ chối do luật, `UNKNOWN` (F3) | (a) 401, cùng một phản hồi, 0 ghi, không có vết; (b) `INVALID_REQUEST`, 400 (415 cho sai `Content-Type`), 0 ghi, **có** vết dừng ở C0, thông điệp nói rõ tenant, vai, phạm vi chỉ đến từ token; (c) 404, 0 ghi, không vết; (d) mã HTTP đúng bảng §2.6.2 và thân là `CommandResult` đủ trường; bốn route cũ cho kết quả như trước (A27) |
+| **A27** | hồi quy đường hỏi, so đầu nhánh Phase 1 với phía gốc (mốc ở đoạn "Mốc so sánh đường hỏi" ngay dưới bảng) | bộ 117 / H1 / H3 / H4, đường bộ nhớ và PostgreSQL: 0 câu trả lời đổi chữ; test so **theo tên**: 0 mất, 0 đổi (test mới của Phase 1 được phép); cùng phép so cho bộ test của `cmd/eais` (làn 0): `/v1/ask`, `/v1/ingest`, `/v1/trace/{id}`, `/healthz` giữ nguyên hành vi |
+| **A28** | cửa HTTP của lệnh (§2.6.2) bằng token dev thật: (a) không token, token lạ; (b) thân mang trường `tenant`, `principal` hay `role`, hoặc trường lạ; thân rỗng; JSON hỏng; nội dung thừa; sai `Content-Type`; (c) tên lệnh lạ ở đường dẫn; sai phương thức (không phải `POST`); (d) một lượt cho mỗi nhóm kết cục: `DONE`, từ chối do luật, `UNKNOWN` (F3) | (a) 401, cùng một phản hồi, 0 ghi, không có vết; (b) `INVALID_REQUEST`, 400 (415 cho sai `Content-Type`), 0 ghi, **có** vết dừng ở C0, `detail` nói rõ tenant, vai, phạm vi chỉ đến từ token và `invalid_fields` nêu trường lạ; (c) 404 (tên lạ) hoặc 405 (sai phương thức), 0 ghi, không vết; (d) mã HTTP đúng bảng §2.6.2 và thân là `CommandResult` đủ trường theo §2.3, trong đó `fault` chỉ mang lớp lỗi (không có dấu hai chấm); bốn route cũ cho kết quả như trước (A27) |
 | **A29** | vết của lượt lệnh (§7.5): với mỗi kết cục của các ca A01, A03, A04, A07, A08, A10, A13, A14, A15, A16, A19, A20, A21 (a), A23, mở vết bằng `trace_id` của kết quả, qua `eais trace` và `GET /v1/trace/{id}`; thêm (e) lỗi lưu vết do F8 | (a) đúng chín bước C0, C1, C2, C3, C4, C4b, C5, C6, C7 theo thứ tự, C2 luôn `skipped`; (b) bước lệch đầu tiên (bước đầu có `deviant` hoặc `error`) là đúng chặng ở cột "Dừng ở đây thì" của §7.5; lượt `DONE`, kể cả phát lại, không có bước lệch; bước giữa bước dừng và C7 là `skipped`; (c) hai lượt `PERMISSION_DENIED` (máy không tồn tại; máy ngoài phạm vi) cho hai vết chỉ khác nhau ở khoá máy người gọi đã gõ, `trace_id`, đồng hồ và thời gian: mọi quyết định, lý do, trạng thái bước y hệt, và vết không chứa lý do thật; (d) vết lượt `DONE` mang mã phiếu và mã bằng chứng khớp bản chụp trong phiếu; (e) F8 không đổi kết quả đã ghi: 1 phiếu, kết quả như cũ, `trace_id` rỗng, bộ đếm lỗi lưu vết tăng |
+
+**Mốc so sánh đường hỏi (A25 (3), A27, X7, I9).** "Không đổi" luôn là so hai phía chạy trên CÙNG mã đường hỏi, để một thay đổi hợp lệ của làn khác (ví dụ vòng sửa nợ S4 sau H4 của làn 1, đang chờ gộp: hai vòng soát KHÔNG ĐẠT, câu mở D-OP-18 [REPO, `docs/STATUS.md`]) không làm cổng đỏ nhầm:
+- **phía gốc**: commit gốc của nhánh Phase 1, tức commit của `main` mà nhánh đang dựa trên: `git merge-base` của nhánh với `main` tại lúc so (khi nhánh vừa tách ra, trước dòng mã Phase 1 đầu tiên, đó là đầu `main` lúc tách). Bản chụp của A25 (3) và kết quả gốc của A27 lấy ở đó, bằng đúng lệnh và đúng hai đường (bộ nhớ, PostgreSQL) dùng cho phía còn lại;
+- **phía so**: đầu nhánh Phase 1;
+- nhánh được rebase lên hay gộp `main` mới (ví dụ sau khi nợ S4 vào `main`) thì commit gốc đổi: lấy lại phía gốc ở commit gốc mới và đo lại phía so; số đo của cặp cũ không dùng lại;
+- khác biệt giữa hai phía chỉ có thể đến từ chính các commit Phase 1 (kể cả `tools.yaml` đổi `PackVersion`, `policy.yaml` thêm `tickets.create`): có khác biệt ở route, ý định, kết cục hay câu trả lời thì cổng đỏ, đúng ý mục "Không làm" của ADR-0011; thay đổi đến từ `main` nằm ở cả hai phía nên không làm cổng đỏ;
+- báo cáo cổng ghi cả hai mã commit của cặp đã đo. Giấy này **không** đòi bằng một bản chụp lấy trước một mốc S4 cố định.
 
 ---
 
@@ -625,8 +638,8 @@ Cổng ra là **AND** của các dòng dưới; mỗi dòng nhị phân. X1–X3
 | X4 nguyên tử và hỏng giữa chừng | A19, A20, A23 đều đạt | điểm chèn lỗi F1, F2, F6 |
 | X5 dữ liệu và luật | A13–A18 đều đạt | ca có đáp án tính tay |
 | X6 biên | A24–A26 đều đạt | đếm lời gọi model; thử SQL trực tiếp |
-| X7 không đổi đường hỏi | A27 đạt | so theo tên test; so từng câu trả lời của 117 / H1 / H3 / H4 |
-| X8 đột biến | mỗi đột biến M1–M25 làm ít nhất một ca đỏ | chạy danh mục đột biến mới (tên và số do BUILD chọn) |
+| X7 không đổi đường hỏi | A27 đạt | so theo tên test; so từng câu trả lời của 117 / H1 / H3 / H4; hai phía theo mốc ở §10 |
+| X8 đột biến | mỗi đột biến M1–M26 làm ít nhất một ca đỏ | chạy danh mục đột biến mới (tên và số do BUILD chọn) |
 | X9 cửa vào và vết (demo M4) | A28 và A29 đạt | gọi route lệnh bằng token dev thật; đọc vết bằng `eais trace` |
 
 **Kèm theo các cổng chung của repo** (`docs/PROMPT-BUILD-EAIS.md` §6): `go vet ./...` sạch; `gofmt -l` rỗng; `go test -count=1 ./...` xanh có PG, so theo tên; cổng danh tính xanh.
@@ -657,17 +670,19 @@ Cổng ra là **AND** của các dòng dưới; mỗi dòng nhị phân. X1–X3
 | M18 | thêm mẫu câu "đã tạo phiếu" ở luồng hỏi | A25 |
 | M19 | chọn một số khi hai nguồn ngang thẩm quyền lệch | A16 |
 | M20 | bỏ phân loại lại sau vi phạm khoá duy nhất (§6.4) | A02, A02b, A04b |
-| M21 | bỏ kiểm R5 ở C5 (còn chỉ mục duy nhất và §6.4) | A04 (nhờ điều kiện "đơn vị ghi phiếu không được gọi cho lần thứ hai"; thiếu điều kiện đó M21 tương đương về kết quả) |
+| M21 | bỏ kiểm R5 ở C5 (còn chỉ mục duy nhất và §6.4) | A04 (bộ đếm (1) = 2 thay vì 1: điều kiện "đơn vị ghi phiếu không được gọi cho lần thứ hai"); A29 (b) (bước lệch đầu tiên là C6, không phải C5) |
 | M22 | bỏ khoá ngoại từ sổ lệnh tới phiếu (§7.4) | A26 |
 | M23 | đảo thứ tự ghi: sổ lệnh trước phiếu (§7.1) | A01 (khoá ngoại làm hỏng mọi lần tạo) |
 | M24 | vết của lượt `PERMISSION_DENIED` ghi lý do thật (tách "không tồn tại" với "ngoài phạm vi"), hoặc vết lộ giá trị ngoài quyền đọc của người gọi | A29 (c) |
 | M25 | không lưu vết cho lượt không phải `DONE` (chỉ lưu lượt thành công), hoặc để lỗi lưu vết đổi kết quả đã ghi | A29 (b), (e) |
+| M26 | tra sổ lệnh và khoá chính của sổ lệnh chỉ theo (tenant, `command_id`), bỏ người gọi | A05 |
 
 **Ghi chú ánh xạ** [SUY; chưa chạy đột biến vì chưa có mã]:
 - M2 chỉ bị giết bởi ca đua **khác nội dung** (A02b). Với ca cùng nội dung (A02), chỉ mục duy nhất của phiếu vẫn chặn lệnh thứ hai, rồi §6.4 phát lại: kết quả giống bản nguyên.
 - M4 chỉ bị giết bởi ca đua **khác khoá** (A04b). Ca tuần tự (A04) bị R5 ở C5 chặn trước khi tới chỉ mục.
-- M21 chỉ bị giết nhờ điều kiện "đơn vị ghi phiếu không được gọi cho lần thứ hai" của A04. Bỏ R5 ở C5 thì lần thứ hai vẫn gọi đơn vị ghi phiếu (bộ đếm (1) = 2); chỉ mục duy nhất và §6.4 rồi cho cùng kết quả `DUPLICATE_OPEN_TICKET` và cùng một dòng audit `REFUSED`. Vì vậy kết quả và audit đều không phân biệt được M21 với bản đúng; chỉ bộ đếm (1) phân biệt được. Dòng audit `REFUSED` có ở cả hai phía, nên không dùng nó để giết M21.
+- M21 bị giết bằng hai đường độc lập. (1) Bộ đếm (1) của A04: bỏ R5 ở C5 thì lần thứ hai vẫn gọi đơn vị ghi phiếu (bộ đếm (1) = 2, bản đúng = 1); chỉ mục duy nhất và §6.4 rồi cho cùng kết quả `DUPLICATE_OPEN_TICKET` và cùng một dòng audit `REFUSED`, nên kết quả và audit không phân biệt được M21 với bản đúng, và dòng audit `REFUSED` không dùng để giết M21. (2) Vết của A29 (b), không cần bộ đếm: ở bản đúng, lượt thứ hai của A04 dừng ở C5 (R5) nên bước lệch đầu tiên là C5; ở M21 bước C5 đi qua, đơn vị ghi phiếu bị gọi, gặp 23505 rồi phân loại lại ở C6 (§7.5) nên bước lệch đầu tiên là C6. A04 nằm trong danh sách của A29, nên M21 vẫn đỏ ở A29 (b) kể cả khi ca không khai bộ đếm.
 - M23 chỉ bị giết khi khoá ngoại của sổ lệnh còn nguyên (M22 chưa áp): thứ tự ghi là hệ quả của khoá ngoại, không phải bất biến riêng.
+- M26 chỉ bị giết bởi ca hai người gọi (A05): với một người gọi duy nhất, khoá có hay không có người gọi đều cho cùng kết quả. Ở M26 người gọi thứ hai nhận lại kết quả của người kia (phát lại) thay vì `DUPLICATE_OPEN_TICKET`: lộ kết quả giữa các người dùng, trái I5 và §6.2.
 
 ### 11.3 Mức bằng chứng
 
@@ -681,7 +696,7 @@ Lệnh ca MVP của chủ dự án đặt bốn điều kiện cho cổng ra c�
 
 | Điều kiện của lệnh ca | Cổng và ca đo | Đột biến làm ca đỏ (§11.2) |
 |---|---|---|
-| ca âm gửi đôi đỏ đúng | X1: A01–A06, A02b, A04b | M1 đến M5, M20, M21 |
+| ca âm gửi đôi đỏ đúng | X1: A01–A06, A02b, A04b | M1 đến M5, M9, M20, M21, M23, M26 |
 | ca âm thiếu quyền đỏ đúng | X2: A07–A12 | M6 đến M10 |
 | ca âm timeout sau khi ghi đỏ đúng | X3: A21, A22 | M1, M5, M13 |
 | đúng MỘT phiếu cho mỗi chênh lệch | I5; A01, A02, A02b, A04, A04b: sau mọi tổ hợp gửi (tuần tự, đồng thời, cùng khoá, khác khoá), số phiếu `OPEN` của mỗi (máy, chỉ số, ngày) đếm bằng kết nối riêng của harness = 1 | M2, M4, M20, M21 |
@@ -700,51 +715,182 @@ Việc này **giao người khác, không làm ở tệp này.** Hợp đồng c
 - **Hai tầng.**
   1. Ca phát triển: người viết mã soạn khi viết test đỏ trước.
   2. Bộ giữ lại độc lập: người **không đọc mã, không đọc pack thật**; chạy MỘT lần ở cổng ra, sau đó thành bộ hồi quy (cùng nguyên tắc `docs/adr/0006-bo-giu-lai-doc-lap.md`).
-- **Được nhận:** §1, §2, §4.2, §5, §6, §7, §8, §9, §10 và §12.1 của tệp này; danh mục thực thể giả lập và dữ liệu hạt giống dạng dữ liệu; định nghĩa các điểm chèn lỗi F1–F8.
-- **Không nhận:** mã; pack thật; ADR-0011 (phần phương án); §11.2 (danh mục đột biến).
+- **Được nhận:** §1, §2, §3, §4.2, §4.4, §5, §6, §7, §8, §9, §10 và §12.1 của tệp này; danh mục thực thể giả lập và dữ liệu hạt giống dạng dữ liệu; định nghĩa các điểm chèn lỗi F1–F8.
+- **Không nhận:** mã; pack thật; ADR-0011 (phần phương án); §11.2 (danh mục đột biến). Vì vậy các mục được nhận không nêu mã đột biến (M1…M26 của §11.2); chỗ nào cần nhắc tới đột biến thì nói chung, không nêu mã.
 - **Khuôn ca:** `docs/CONVENTIONS.md` §5 với `entry_type: COMMAND`; điểm chèn lỗi ghi ở khoá `failure_injection`; ca nhiều lời gọi và ca đồng thời điền giá trị theo §12.1.
-- **Đóng băng:** soạn xong, băm và commit cam kết băm **trước** khi mã Phase 1 được viết. Quy ước ở §12.1 nằm trong phần được băm.
-- **Phủ:** mọi lớp ca ở §10, trừ A09 (chỉ ca phát triển); mỗi lớp đủ biến thể để không khớp đề theo ví dụ trong tệp này. Ca đồng thời (A02, A02b, A04b, ép bằng F7) thuộc diện **bắt buộc** của người soạn độc lập: người viết mã không được là người duy nhất soạn ca đua (`CLAUDE.md` §2.1). Ca nhiều người gọi (A05, A06) cũng do người soạn độc lập viết, theo §12.1.
+- **Đóng băng:** soạn xong, băm và commit cam kết băm **trước** khi mã Phase 1 được viết. Quy ước ở §12.1 và bảng `CommandResult` (§2.3, §2.4) nằm trong phần được băm.
+- **Phủ:** mọi lớp ca ở §10 mà khuôn §12.1 khai được, trừ A09 (chỉ ca phát triển): A01 đến A08 (kể cả A02b, A04b), A10 và A13 đến A23, tức các ca đi qua pipeline lệnh. Tám lớp còn lại (A11, A12, A24 đến A29: trường lạ ở thân HTTP, tệp pack, đếm model ở tầng ứng dụng, đường hỏi, quyền SQL, cửa HTTP, vết) cần thứ mà §12.1 chưa có, nên chưa thuộc bộ giữ lại độc lập: điểm chưa kiểm chứng U10. Mỗi lớp được phủ đủ biến thể để không khớp đề theo ví dụ trong tệp này. Ca đồng thời (A02, A02b, A04b, ép bằng F7) thuộc diện **bắt buộc** của người soạn độc lập: người viết mã không được là người duy nhất soạn ca đua (`CLAUDE.md` §2.1). Ca nhiều người gọi (A05, A06) cũng do người soạn độc lập viết, theo §12.1.
 
 ### 12.1 Khuôn ca cho ca nhiều lời gọi và ca đồng thời
 
-**Vì sao cần.** Khuôn ở `docs/CONVENTIONS.md` §5 chỉ có MỘT `input`, MỘT `permissions.principal` và MỘT khoá `failure_injection`. Ca A02, A02b, A04b cần N lần chạy song song (A02b: N máy khác nhau; A04b: N khoá lệnh khác nhau); ca A05 cần hai người gọi; ca A06 cần hai tenant. Khuôn chưa có chỗ khai những thứ đó. Để trống thì người viết mã phải tự quyết số lời gọi, ai gọi và kết quả nào là đúng, đúng điều mục này cấm.
+**Vì sao cần.** Khuôn ở `docs/CONVENTIONS.md` §5 chỉ có MỘT `input`, MỘT `permissions.principal`, MỘT khoá `failure_injection`, và để `expected_state`, `expected_output_properties` ở dạng văn xuôi. Ca A02, A02b, A04b cần N lần chạy song song (A02b: N máy khác nhau; A04b: N khoá lệnh khác nhau); ca A05 cần hai người gọi; ca A06 cần hai tenant; ca A04 cần khẳng định một bộ đếm của lớp bọc. Để trống hay để văn xuôi thì người viết mã phải tự quyết số lời gọi, ai gọi, kết quả nào là đúng và đếm cái gì, đúng điều mục này cấm; bộ chạy chung cũng sẽ tự dịch văn xuôi của người soạn ra phép kiểm, và tính độc lập mà mục này bảo vệ mất. Vì vậy mục này đặt **cú pháp máy đọc được** cho mọi giá trị mà bộ chạy cần.
 
-**Cách khai, không thêm khoá nào.** Giữ nguyên 23 khoá của §5, nên cổng hình dạng `evals.Validate` (`evals/cases.go`) không từ chối ca nào [CODE]. Mục này chỉ quy định cách điền giá trị khi `entry_type: COMMAND` và ca có nhiều lời gọi:
+**Cách khai, không thêm khoá nào.** Giữ nguyên 23 khoá của §5, với `entry_type: COMMAND` và `expected_route: TOOL`. `evals.Validate` (`evals/cases.go`) kiểm đủ 23 khoá, khoá lạ, mẫu `id`, `tenant`, `entry_type`, `category`, `severity`, `expected_route`, và **không** kiểm kiểu của `input`, `permissions`, `failure_injection`, `expected_state`, `expected_output_properties` [CODE]; nên không ca nào đúng §5 bị nó từ chối chỉ vì cách điền ở mục này. Cũng vì nó không kiểm các khoá ấy, bộ chạy chung gọi `evals.Validate` trên các ca rồi tự kiểm hình dạng theo mục này: ca sai hình dạng (khoá lạ, sai kiểu, `parallel` khác số lời gọi, tổng `results` khác số kết quả nhận được...) là ca ĐỎ, không bị bỏ qua. Giá trị là YAML thuần: bản đồ, danh sách, chuỗi, số nguyên, true / false, null. Chuỗi mà YAML dễ hiểu thành kiểu khác (ngày `2026-10-19`, số `0412`, và các từ `on`, `off`, `yes`, `no`, `y`, `n` mà YAML 1.1 đọc thành true / false) viết có nháy; bộ chạy chuẩn hoá mọi bản đồ lồng nhau về một kiểu trước khi đọc; số thập phân viết thành chuỗi (`"68"`).
+
+**Tệp ca.** YAML `{suite: lenh, cases: [<ca>, ...]}` (dạng mà công cụ cam kết băm bộ ca lệnh đọc); mỗi ca đúng 23 khoá của §5. Khoá `scenario` ghi mã lớp ca ở §10 (`A01`, `A02b`, ...) để bảng cổng báo theo lớp; `id` đúng mẫu `CON-T-NNN` của `evals.Validate` và duy nhất trong tệp. `evals.Load` chỉ đọc danh sách trần, không đọc dạng bọc [ĐO: `evals.Load` trên tệp bọc báo `cannot unmarshal !!map into []evals.Case`], nên bộ chạy đọc `cases` rồi gọi `evals.Validate` trên danh sách đó.
 
 | Khoá của §5 | Ca một lời gọi | Ca nhiều lời gọi |
 |---|---|---|
-| `input` | một mục yêu cầu: `command_id`, `subject_key`, `metric`, `day` | **danh sách** mục yêu cầu; mỗi mục có `id`, `principal`, `command_id`, `subject_key`, `metric`, `day`. Mục có thêm `repeat: n` nghĩa là n lời gọi y hệt (cùng khoá, cùng nội dung) |
-| `permissions` | `{principal: <vai>}` như §5 | `null`: người gọi nằm ở từng mục |
-| `principal` của một mục | không có | `{tenant, id, role, entity_scope}`; `tenant` bỏ trống là tenant của ca; hai mục cùng `id` là cùng một người gọi |
-| `failure_injection` | `{point: <F1…F6 hoặc F8>}` hoặc `null` | như ca một lời gọi, hoặc `{point: race_barrier, parallel: N}` (F7): N bằng số lời gọi sau khi mở `repeat`; hệ chỉ thả khi cả N đã tới rào |
-| `preconditions`, `sources` | như §5 | như §5; dữ liệu hạt giống của tenant thứ hai (A06) khai ở đây |
-| `expected_state` | trạng thái đếm được | số dòng đếm bằng kết nối riêng của harness: `tickets_open`, `ledger_rows`, và số dòng audit theo kết cục |
-| `expected_output_properties` | tính chất kết quả | **số lượng** kết quả theo loại, ví dụ "đúng một lần `DONE` với `replayed` = false; N−1 lần `DUPLICATE_OPEN_TICKET`"; **không** nói lời gọi nào thắng |
+| `input` | một bản đồ yêu cầu: `command_id`, `subject_key`, `metric`, `day` (chuỗi; khoá vắng là trường rỗng) | **danh sách** mục (bảng dưới). Mục có `repeat: n` nghĩa là n lời gọi y hệt (cùng khoá, cùng nội dung) |
+| `permissions` | `{principal: <vai>, entity_scope: <chuỗi>}`; bỏ `entity_scope` khi vai có phạm vi `all` (§4.2) | `null`: người gọi nằm ở từng mục |
+| `failure_injection` | `{point: <tên điểm>}` (trừ `race_barrier`) hoặc `null`. `<tên điểm>` là đúng một trong chín tên ở bảng §10: `before_begin`, `in_tx_audit_insert`, `commit_ack_lost`, `reply_lost`, `commit_delayed`, `readback_fail`, `readback_stale`, `race_barrier`, `trace_save_fail` | như ca một lời gọi, hoặc `{point: race_barrier, parallel: N}` (F7): N bằng số lời gọi sau khi mở `repeat`; hệ chỉ thả khi cả N đã tới rào |
+| `preconditions`, `sources` | như §5: ghi chú cho người đọc, bộ chạy không đọc | như vậy |
+| `expected_state` | bản đồ khoá đếm (bảng "Khoá của `expected_state`") | như vậy |
+| `expected_output_properties` | bản đồ khoá kết quả (bảng "Khoá của `expected_output_properties`") | như vậy |
 
-Thứ tự trong danh sách là thứ tự **khai**, không phải thứ tự đến: ở ca song song, thứ tự đến do lịch chạy quyết, nên ca không được dựa vào nó (§10, F7).
+**Mục của danh sách `input`** (ca nhiều lời gọi). Ca một lời gọi là trường hợp riêng của danh sách một mục.
+
+| Khoá của mục | Kiểu | Bắt buộc | Nghĩa |
+|---|---|---|---|
+| `id` | chuỗi | có | nhãn của mục, duy nhất trong ca; chỉ để đọc kết quả khi ca đỏ |
+| `principal` | `{id, role, entity_scope, tenant}` | có | `id`: nhãn người gọi, hai mục cùng `id` là cùng một người (phải cùng `role` và `entity_scope`); `role`: tên vai ở §4.2; `entity_scope`: chuỗi, bỏ khi vai có phạm vi `all`; `tenant`: tenant của người gọi, bỏ thì bằng `runtime` của mục |
+| `runtime` | chuỗi | không | tenant của runtime nhận lời gọi; bỏ thì là tenant của ca |
+| `command_id`, `subject_key`, `metric`, `day` | chuỗi | như §2.1 | trường của yêu cầu; khoá vắng là trường rỗng |
+| `repeat` | số nguyên ≥ 1 | không | số lời gọi y hệt liên tiếp; mặc định 1 |
+| `reload_before` | true / false | không | true: ngay trước lời gọi đầu của mục, harness gọi `Load` nạp lại đúng dữ liệu hạt giống của runtime (A18); `Load` lỗi thì ca ĐỎ. Không dùng với `race_barrier` |
+
+**Cách chạy** (MỘT bộ chạy cho mọi ca khai theo mục này; không rẽ nhánh theo mã ca). Bộ chạy cho tệp ca giữ lại chỉ bật bằng build tag riêng (đề xuất `giulai`), nên không nằm trong `go test ./...` thường (không sinh test bị bỏ qua); báo cáo của lần chạy ghi băm tệp ca và băm tệp thế giới bổ sung đã chạy:
+- **Thứ tự.** Ca không có `race_barrier` chạy **tuần tự đúng thứ tự khai**: lời gọi k+1 bắt đầu sau khi lời gọi k đã trả kết quả (hoặc đã bị F4 bỏ kết quả); `repeat: n` mở thành n lời gọi liên tiếp tại vị trí của mục. Ca có `race_barrier` chạy cả N lời gọi song song. Thứ tự trong danh sách là thứ tự **khai**, không phải thứ tự đến: ở ca song song, thứ tự đến do lịch chạy quyết, nên ca không được dựa vào nó (§10, F7).
+- **Điểm chèn lỗi (trừ F7) áp cho lời gọi ĐẦU TIÊN, theo thứ tự chạy, đi tới điểm đó, đúng MỘT lần**; các lời gọi sau chạy thường. Vì vậy ca "lỗi rồi gửi lại" (A19, A21 (a), A22) khai hai lời gọi y hệt (`repeat: 2`): lần đầu gặp lỗi, lần gửi lại chạy thường. F4 (`reply_lost`): bộ chạy **bỏ kết quả của lời gọi đầu** (bên gọi không nhận gì) rồi **dựng pipeline mới** trên cùng cơ sở dữ liệu (giả lập khởi động lại) **trước lời gọi thứ hai**; ca F4 có ít nhất hai lời gọi. F5 (`commit_delayed`): COMMIT bị giữ được thả **ngay sau khi lời gọi đó đã trả `UNKNOWN`, trước khi lời gọi kế tiếp bắt đầu** (cố định, để kết quả của lời gọi sau xác định); ca F5 không khẳng định bộ đếm.
+- **Bộ đếm của lớp bọc** thuộc harness, tích luỹ suốt ca, kể cả qua lần dựng pipeline mới của F4, và tách theo runtime.
+- **Runtime và tenant.** Tenant của ca và mỗi giá trị `runtime` là một runtime riêng, cùng một cơ sở dữ liệu; mỗi runtime nạp dữ liệu hạt giống của chính tenant của nó, và lời gọi đi vào runtime nêu ở `runtime` của mục. Principal có `tenant` khác `runtime` của mục là ca A10 (C1 từ chối); hai mục khác `runtime` là ca A06.
+- **Đồng hồ và dữ liệu.** "Hôm nay" của mọi tenant trong ca là ngày tham chiếu (`reference_date`) của bộ dữ liệu hạt giống mà người soạn nhận (§12), lúc 10:00 giờ tenant, cố định suốt ca; cùng nghĩa với `-now world` của `cmd/eais` (§2.6.4). Với `tenants/construction/win/world.yaml` hiện hành, "hôm nay" là 2026-10-20 và "hôm qua" là 2026-10-19 [REPO]. `world.yaml` hiện hành KHÔNG có đủ tính chất cho mọi lớp ca (ví dụ: tenant thứ hai chỉ có vế kho xuất, không có vế đo; thiếu cặp hai vế bằng nhau; thiếu số ước lượng ở vế kho xuất; thiếu cặp xung đột ngang thẩm quyền mà vế kia đủ). Vì vậy **người soạn độc lập viết thêm một tệp thế giới bổ sung** cùng định dạng với `world.yaml` (bản chép `world.yaml` cộng phần thêm: tenant, máy, bản ghi theo nguồn, có chú thích tính chất), đóng băng và băm **cùng** tệp ca. Bộ chạy dựng dữ liệu từ tệp bổ sung bằng bộ sinh `tenants/construction/win/gen` rồi nạp vào cơ sở dữ liệu riêng của lần chạy; bộ sinh không đọc được tệp bổ sung thì đó là lỗi của bộ chạy, không sửa tệp đã đóng băng (U11). BUILD (người viết mã) **không** viết tệp này vì biết đáp án. Ca chọn (máy, ngày) từ tệp bổ sung có tính chất mình cần; `preconditions` và `sources` chỉ ghi chú cho người đọc.
+
+**Khoá của `expected_state`.** Khoá nào có mặt thì được so, khoá vắng thì không được so. Số dòng và bộ đếm đều là số nguyên ≥ 0. Số dòng đếm bằng kết nối riêng của harness (§10, "Cách đếm"), tính cho tenant của ca.
+
+| Khoá | Kiểu | Đếm gì | Ví dụ |
+|---|---|---|---|
+| `tickets_open` | số nguyên | số dòng `discrepancy_tickets` có `status` = `OPEN` | `1` |
+| `ledger_rows` | số nguyên | số dòng sổ lệnh `commands` | `1` |
+| `audit` | danh sách `{outcome, count, reason_code, caller}` | mỗi mục: số dòng `audit_log` khớp mọi khoá nêu. `outcome` bắt buộc: `EXECUTED`, `REPLAYED`, `REFUSED`, `VERIFY_FAILED` hoặc `any`; `count` bắt buộc; `reason_code` (mã ở §2.4) và `caller` (`principal.id`) tuỳ chọn. Kết cục không nêu thì không được so | `[{outcome: EXECUTED, count: 1}, {outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, count: 1}]` |
+| `write_unit_calls` | số nguyên | bộ đếm (1) của lớp bọc: số lần pipeline gọi đơn vị ghi phiếu (§10) | `1` |
+| `audit_writes` | số nguyên | bộ đếm (2) của lớp bọc: số lần pipeline ghi audit riêng (§10) | `1` |
+| `other_tenants` | bản đồ tenant → bản đồ có đúng các khoá trên | khẳng định cho runtime của tenant khác tenant của ca (A06): cùng khoá, cùng nghĩa, tính cho tenant đó | `{def-build: {tickets_open: 1, ledger_rows: 1}}` |
+| `cross_tenant_rows` | số nguyên | với mỗi runtime của ca, harness đọc ba bảng bằng **vai ứng dụng** đã đặt GUC tenant của runtime đó và đếm dòng thuộc tenant khác; cộng mọi runtime (A06: `0`) | `0` |
+
+**Cấm khẳng định bộ đếm (3)** (đọc: tra sổ lệnh, tìm phiếu mở, đọc lại): không có khoá nào cho nó, và khoá lạ làm ca ĐỎ. Số lần đọc phụ thuộc cách cài (ví dụ gộp hai lần tra thành một), nên khẳng định nó biến ca thành kiểm tra cách cài thay vì kiểm tra hợp đồng (§10).
+
+**Khoá của `expected_output_properties`.** Khoá nào có mặt thì được so, khoá vắng thì không được so. "Kết quả nhận được" là kết quả của mọi lời gọi, trừ lời gọi bị F4 bỏ kết quả. Các khoá không nói lời gọi nào thắng.
+
+| Khoá | Kiểu | Khẳng định | Ví dụ |
+|---|---|---|---|
+| `results` | bản đồ loại → số nguyên | phân bố kết quả nhận được. Loại: `DONE` (`status` = `DONE`, kể cả phát lại) hoặc một `reason_code` của §2.4. Tổng các số bằng số kết quả nhận được; loại không nêu là 0 (nên "không `INTERNAL_ERROR`" là không nêu loại đó). Số cụ thể, không biểu thức: với `parallel: 4`, viết `DUPLICATE_OPEN_TICKET: 3`, không viết `N-1` | `{DONE: 1, DUPLICATE_OPEN_TICKET: 3}` |
+| `replayed_false` | số nguyên | số kết quả `DONE` có `replayed` = false | `1` |
+| `replayed_true` | số nguyên | số kết quả `DONE` có `replayed` = true | `3` |
+| `distinct_ticket_ids` | số nguyên | số mã phiếu khác nhau trong mọi kết quả có mang `ticket`; mỗi mã còn phải là mã một dòng của bảng phiếu của đúng tenant của lời gọi (đọc bằng kết nối riêng) | `1` |
+| `distinct_details` | số nguyên | số giá trị `detail` (§2.3) khác nhau trong mọi kết quả nhận được (A08: `1`) | `1` |
+| `invalid_fields` | danh sách chuỗi | hợp, không trùng, của `invalid_fields` (§2.3) trong mọi kết quả nhận được; so như tập, không xét thứ tự | `[day]` |
+| `ticket` | bản đồ lồng nhau theo dạng §2.5 | giá trị trường của `ticket` trên MỌI kết quả `DONE`: `status`, `subject_key`, `metric`, `day`, `diff`, `approx`, `left` và `right` (mỗi cái lồng `metric`, `value`, `unit`); trường nào nêu thì so, số thập phân là chuỗi | `{diff: "68", approx: false, left: {value: "3850"}}` |
+
+Năm ví dụ, mỗi ví dụ một hình dạng; mã máy, ngày và tên tenant chỉ để minh hoạ hình dạng. Các khoá còn lại của §5 điền như thường lệ.
+
+```yaml
+# 1. Một lời gọi (hình dạng của A07: vai thiếu tickets.create)
+input: {command_id: "6f1c0d52-0000-4000-8000-000000000101", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+permissions: {principal: site_engineer, entity_scope: PRJ-A}
+failure_injection: null
+expected_state:
+  tickets_open: 0
+  ledger_rows: 0
+  audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 1}]
+expected_output_properties:
+  results: {PERMISSION_DENIED: 1}
+```
+
+```yaml
+# 2. Hai lời gọi y hệt, tuần tự (repeat; hình dạng của A01)
+input:
+  - {id: send, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000102", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+permissions: null
+failure_injection: null
+expected_state:
+  tickets_open: 1
+  ledger_rows: 1
+  audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 1}]
+expected_output_properties:
+  results: {DONE: 2}
+  replayed_false: 1
+  replayed_true: 1
+  distinct_ticket_ids: 1
+```
+
+```yaml
+# 3. Ba lời gọi song song, ép đua bằng F7 (hình dạng của A02b: cùng khoá, khác máy)
+input:
+  - {id: a, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000103", subject_key: EX-01, metric: issue_vs_measured, day: "2026-10-19"}
+  - {id: b, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000103", subject_key: EX-02, metric: issue_vs_measured, day: "2026-10-19"}
+  - {id: c, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000103", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+permissions: null
+failure_injection: {point: race_barrier, parallel: 3}
+expected_state: {tickets_open: 1, ledger_rows: 1}
+expected_output_properties:
+  results: {DONE: 1, IDEMPOTENCY_KEY_REUSED: 2}
+  replayed_false: 1
+  replayed_true: 0
+```
+
+```yaml
+# 4. Hai người gọi cùng tenant, cùng khoá, cùng nội dung (A05)
+input:
+  - {id: first, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000104", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+  - {id: second, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000104", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+permissions: null
+failure_injection: null
+expected_state:
+  tickets_open: 1
+  ledger_rows: 1
+  audit:
+    - {outcome: EXECUTED, caller: p-1, count: 1}
+    - {outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, caller: p-2, count: 1}
+    - {outcome: REPLAYED, count: 0}
+  write_unit_calls: 1
+  audit_writes: 1
+expected_output_properties:
+  results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}
+  replayed_true: 0
+  distinct_ticket_ids: 1
+```
+
+```yaml
+# 5. Hai tenant dùng cùng khoá (A06)
+input:
+  - {id: t1, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000105", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+  - {id: t2, runtime: def-build, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000105", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+permissions: null
+failure_injection: null
+expected_state:
+  tickets_open: 1
+  ledger_rows: 1
+  other_tenants: {def-build: {tickets_open: 1, ledger_rows: 1}}
+  cross_tenant_rows: 0
+expected_output_properties:
+  results: {DONE: 2}
+  replayed_false: 2
+  replayed_true: 0
+  distinct_ticket_ids: 2
+```
 
 **Ai viết gì.**
 
 | Việc | Ai viết | Ghi chú |
 |---|---|---|
-| tệp ca: danh sách yêu cầu, người gọi, khoá, `parallel`, kỳ vọng | người soạn độc lập | không đọc mã, không đọc pack thật; kỳ vọng chỉ là số lượng và loại kết quả |
-| bộ chạy chung: đọc tệp ca, dựng N lời gọi song song, rào F7, đếm bằng kết nối riêng, so với kỳ vọng | người viết mã (BUILD) | MỘT bộ chạy cho mọi ca, không rẽ nhánh theo mã ca. Nó phải gắn vào lớp bọc lưu trữ và rào F7 của chính mã, nên người soạn độc lập (không đọc mã) không viết được |
-| kiểm bộ chạy | người soát chỉ đọc, cộng đột biến | M2 ⇒ A02b, M4 ⇒ A04b, M20 ⇒ A02, A02b, A04b phải đỏ: bộ chạy vô tình tuần tự hoá lời gọi thì các đột biến này sống sót và cổng đỏ (§11.1). F7 không đủ N lời gọi trong hạn thì ca đỏ (§10) |
+| tệp ca: danh sách yêu cầu, người gọi, khoá, `parallel`, kỳ vọng | người soạn độc lập | không đọc mã, không đọc pack thật; kỳ vọng chỉ khai bằng các khoá của `expected_state` và `expected_output_properties` ở trên: số lượng, loại kết quả, số dòng, bộ đếm (1) và (2); không khẳng định bộ đếm (3) |
+| bộ chạy chung: đọc tệp ca, gọi `evals.Validate`, kiểm hình dạng, dựng các runtime và N lời gọi song song, rào F7, đếm bằng kết nối riêng, so với kỳ vọng | người viết mã (BUILD) | MỘT bộ chạy cho mọi ca khai theo mục này, không rẽ nhánh theo mã ca. Nó phải gắn vào lớp bọc lưu trữ và rào F7 của chính mã, nên người soạn độc lập (không đọc mã) không viết được |
+| kiểm bộ chạy | người soát chỉ đọc, cộng đột biến (danh mục không giao cho người soạn) | các đột biến chống trùng phải làm ca đua đỏ: bộ chạy vô tình tuần tự hoá lời gọi thì chúng sống sót và cổng đỏ (§11.1). F7 không đủ N lời gọi trong hạn thì ca đỏ (§10) |
 
-**Đóng băng.** Quy ước ở mục này thuộc bộ ca đóng băng: băm gồm cả văn bản của §12.1; đổi quy ước sau khi đóng băng là đổi bộ ca, phải đóng băng lại kèm lý do. Nhờ vậy người viết mã không chỉnh được khuôn cho vừa bộ chạy của mình.
+**Đóng băng.** Quy ước ở mục này thuộc bộ ca đóng băng: băm gồm cả văn bản của §12.1 và của `CommandResult` (§2.3, §2.4), vì hai chỗ đó quy định tên khoá và giá trị mà ca khẳng định; đổi quy ước sau khi đóng băng là đổi bộ ca, phải đóng băng lại kèm lý do. Nhờ vậy người viết mã không chỉnh được khuôn cho vừa bộ chạy của mình.
 
 ---
 
 ## 13. Điều kiện mở mã và thứ tự chứng minh
 
 Chi tiết ở `docs/adr/0011-phase1-hanh-dong-co-kiem-soat.md` (mục "Chứng minh"). Tóm tắt điều kiện **trước khi có dòng mã đầu tiên**:
-1. H4 đã chạy một lần (D-RM-04 = A).
+1. H4 đã chạy một lần (D-RM-04 = A): **đã thoả**, 22/10 14:59 ở `57409f2` [REPO].
 2. Hợp đồng này đã qua soát độc lập và chủ dự án đã trả lời §14 (hoặc chấp nhận mặc định).
 3. Bộ giữ lại độc lập (§12) đã đóng băng và băm.
 4. ADR-0011 chuyển từ ĐỀ XUẤT sang CHỐT.
 
-Riêng **route lệnh** (§2.6.2) chỉ thêm được khi `cmd/eais` của làn 0 (khối M1) đã có trên `main`; pipeline lệnh, kho phiếu và migration không phụ thuộc điều đó.
+Riêng **route lệnh** (§2.6.2) chỉ thêm được khi `cmd/eais` của làn 0 (khối M1) đã có trên `main`: điều kiện này **đã thoả** (mục "Mốc đọc làn 0" ở đầu tệp). Pipeline lệnh, kho phiếu và migration không phụ thuộc làn 0, trừ `execution/commands/trace.go`: tệp đó dựng `traces.Record`, kiểu của làn 0 (`observability/traces`), nay đã có ở `main`.
 
 ---
 
@@ -760,6 +906,7 @@ Riêng **route lệnh** (§2.6.2) chỉ thêm được khi `cmd/eais` của làn
 | **Q-P1-6** | (khối M4) Luật vượt dung sai chạy bằng Principal `service` nào, vai và phạm vi nào? | chưa có vai nào, đóng mặc định: **bên kích hoạt tự động** của M4 chưa chạy được cho tới khi trả lời; lệnh do người gọi và kịch bản demo (§2.6.4) không bị chặn | cần người nghiệp vụ (D-RM-03) và chủ dự án; xem §1.4 |
 | **Q-P1-7** | Chấp nhận **C4b** (tách Idempotency làm hai nửa: tra sổ lệnh ngay sau quyền), tức lệch thứ tự `CLAUDE.md` §14 và `docs/ROADMAP-DAY-DU.md` §5 luồng L3? | có | lần gửi lại sau timeout nhận `DONE` phát lại thay vì `DUPLICATE_OPEN_TICKET` (ca A21). Không chọn: R5 phải tự phân biệt "phiếu của chính tôi" với "của người khác"; ca A01, A21 và đột biến M5 đổi theo (§3) |
 | **Q-P1-8** | (demo M4) Lượt "Tạo phiếu kiểm tra" của kịch bản demo là một **yêu cầu có cấu trúc** tới route lệnh riêng `POST /v1/commands/open_discrepancy_ticket` (a), hay là **câu chữ** gõ vào `/v1/ask` mà hệ nhận ra là lệnh (b)? | (a) | (a) đủ để làm M4 và demo, không đổi đường hỏi (I9), không cần C2 hay ngữ cảnh hội thoại. (b) cần hiểu lệnh từ chữ tự do và nối với "máy 03 hôm qua" của lượt trước: sửa `ask.go`, `router.go`, `intent.go` và đụng vòng S4 đã khoá, thuộc Phase 6. Chọn (b) thì ca A25 và mục "Không làm" của ADR-0011 đổi theo, và cần một ADR mới (§2.6.1) |
+| **Q-P1-9** | Mở rộng write-set của làn 4 (`docs/PROMPT-BUILD-EAIS.md` §9.2) cho Phase 1 thêm các chỗ ngoài `execution/`, migration và pack mà ADR-0011 ("Tệp ngoài `execution/`") liệt kê: `observability/traces/step.go`, một tệp mới ở `platform/pgstore/`, `cmd/eais/` (route lệnh và test), `scripts/dot-bien/`, và sửa nhỏ `policy.yaml`? | có, theo từng tệp đã liệt kê; điều phối ghi vào `docs/PROMPT-BUILD-EAIS.md` §9.2 và báo làn sở hữu, như Q-0A-12 của Phase 0a | mã Phase 1 chạm ngoài write-set của làn 4 (ADR-0011); không mở thì mỗi chỗ phải chờ làn sở hữu. `policy.yaml` vẫn phải phối hợp với làn 1 và các phiên đang sửa pack |
 
 Ghi chú về `tenants/construction/pack/templates.yaml:16-17`: mẫu câu hứa "đã chuyển người phụ trách". Phase 1 **không đụng** vào đó và **không** nối kết quả lệnh vào mẫu câu của luồng hỏi. Chỉ khi có phiếu đọc lại được và có người nhận (Phase 2) mới được sửa lời hứa.
 
@@ -777,4 +924,6 @@ Ghi chú về `tenants/construction/pack/templates.yaml:16-17`: mẫu câu hứa
 | U6 | Jira: chưa đối chiếu tài liệu REST chính thức; chưa thử thật | độ mạnh của câu 9 | đọc tài liệu Atlassian; thử trong môi trường thử | `CONG-QUANIT.md` câu 9 |
 | U7 | người nghiệp vụ thật chốt vai, ngưỡng, chính sách trùng | mọi kết luận giá trị | D-RM-03 | tuyên bố giá trị |
 | U8 | thiết kế một-giao-dịch chỉ đúng ở chế độ B; chế độ A (ghi sang hệ khác) cần thiết kế riêng cho "timeout sau khi ghi" | Phase 4b | ADR riêng khi tới 4b | Phase 4b |
-| U9 | vết lượt lệnh với bảng vết của làn 0: (1) `ValidStage` nhận `C0`…`C7`, `C4b` mà không làm hỏng chỗ nào khác; (2) `FormatTable` in đúng "BƯỚC LỆCH ĐẦU TIÊN" cho vết lệnh; (3) `eais trace diff` (`FirstDifferentStep` chỉ so các trường quyết định của luồng hỏi [CODE `observability/traces/record.go`, làn 0]) có nghĩa gì với hai lượt lệnh; (4) làn 0 còn đang sửa theo soát, nên các dòng trích có thể lệch | demo M4, ca A29 | thử trên mã làn 0 đã gộp, khi route lệnh được thêm | §2.6, §7.5 |
+| U9 | vết lượt lệnh với bảng vết của làn 0: (1) `ValidStage` nhận `C0`…`C7`, `C4b` mà không làm hỏng chỗ nào khác; (2) `FormatTable` in đúng "BƯỚC LỆCH ĐẦU TIÊN" cho vết lệnh; (3) `eais trace diff` (`FirstDifferentStep` chỉ so các trường quyết định của luồng hỏi [CODE `observability/traces/record.go`, làn 0]) có nghĩa gì với hai lượt lệnh; (4) làn 0 đã gộp và các dòng trích đã đối chiếu ở `9ed7a6a`, nhưng làn 0 còn đổi `cmd/eais`, nên các dòng trích có thể lệch về sau | demo M4, ca A29 | thử trên mã làn 0 đã gộp, khi route lệnh được thêm | §2.6, §7.5 |
+| U10 | khuôn §12.1 khai được các ca đi qua pipeline lệnh (A01 đến A08, A10, A13 đến A23) nhưng chưa khai được A11 (trường lạ ở thân HTTP), A12 (pack hỏng), A24 (đếm model ở tầng ứng dụng), A25 và A27 (đường hỏi), A26 (quyền SQL), A28 (cửa HTTP), A29 (vết): tám lớp cần cửa HTTP, tệp pack, kết nối SQL hay vết mà khuôn không có | bộ giữ lại độc lập chưa phủ tám lớp đó; chỉ ca phát triển (tầng 1) phủ | quyết trước khi đóng băng: mở rộng §12.1 (thêm dạng ca cho HTTP, SQL, vết) hay giữ tám lớp ở tầng 1 | phần độc lập của X2 (A11, A12), X6, X7, X9 |
+| U11 | bộ sinh `tenants/construction/win/gen` đọc được mọi tệp thế giới bổ sung đúng định dạng `world.yaml` (tenant, máy, bản ghi mới) [SUY] | bộ chạy dựng được dữ liệu hạt giống của bộ ca giữ lại | chạy bộ sinh trên tệp bổ sung ngay khi tệp đóng băng, chỉ in số bản ghi | bộ chạy ca giữ lại |

@@ -17,8 +17,9 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     đoán S4" được 84,8%); 4 ca lệch đều do vết thiếu phương án đã xét (`docs/bao-cao/2026-10-22-do-nguoi-soat-doc-vet.md`); R2-03 đang làm.
   - M3 **chưa RA** · H4 một lần ở `57409f2`, theo tầng ở `e698e30` · dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn)
     ⇒ chờ **D-AI-02**.
-  - M4 giấy (`f102238`, soát ĐẠT CÓ GHI CHÚ); trước mã: L3D-01…08 + bộ ca giữ lại độc lập Phase 1. Khi mã xong, dòng M4 ghi "lệnh tạo
-    phiếu có kiểm soát; chưa có bên kích hoạt tự động (Q-P1-6)".
+  - M4 giấy: sửa L3D-01…08, 11 (lượt 4 ĐẠT CÓ GHI CHÚ; điều phối áp đề xuất L3E khi gộp — commit chứa dòng này). Kế: người soạn độc lập
+    viết bộ ca giữ lại Phase 1 + tệp thế giới bổ sung, băm, commit cam kết → mã. Khi mã xong, dòng M4 ghi "lệnh tạo phiếu có kiểm soát; chưa
+    có bên kích hoạt tự động (Q-P1-6)".
   - M2 giấy (`5d69d24`); bản sửa F01–F03 ở nhánh máy (5 commit, chưa gộp): soát vòng 2 KHÔNG ĐẠT — 1 S2 (quyết định của người đưa bản HELD vì lý do khác sang ACCEPTED mà không chạy TR3 với bản đứng trước ⇒ cộng đôi im lặng) và 6 S3; sửa vòng 3 (vòng cuối theo §9.6).
   - M5 **chưa đạt**: bảng lệnh từng dòng ở `docs/bao-cao/CONG-TRUOC-AI.md` (22/10 17:3x) — S2, S3, S4 KHÔNG ĐẠT; L1, S7, S9 chưa có bộ ca
     độc lập; S6 và vế ≥ 90% của dòng Vết chưa đo; S5 đạt theo tầng có điều kiện; câu mở D-AI-03 (S7 trong hay ngoài MVP).
@@ -94,3 +95,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 17:3x | commit chứa dòng này | M5: bảng lệnh từng dòng CỔNG TRƯỚC AI (`docs/bao-cao/CONG-TRUOC-AI.md`) từ người kiểm toán chỉ đọc; câu mở D-AI-03 (S7 trong hay ngoài MVP) | Điều phối đo lại phần không PG: 374 test (kể cả test con) pass, 0 fail, 6 skip đều cần PG; số theo gói khớp lời khai | Trạng thái tổng CHƯA ĐẠT; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
 | 22/10 17:5x | commit chứa dòng này | Đo vế "người soát CHỈ ĐỌC VẾT chỉ đúng tầng sai đầu tiên ≥ 90%" (cổng ra M1 §5b, dòng Vết §9.3), lần 1 | 48 thẻ vết từ `eais serve` + `eais trace` (câu trả lời trùng winreport 48 / 48); người đọc mù khớp nhãn chuẩn 29 / 33 = 87,9% ở H1 + H3, 15 / 15 ở H4; "luôn đoán S4" 84,8% | KHÔNG ĐẠT; R2-03 (vết xuất phương án đã xét) đang làm, rồi đo lại có ca xanh đối chứng |
 | 22/10 17:5x | commit chứa dòng này | M5 dòng S6: `scripts/do-s6-so-dung.py` (đếm số đúng ở ca đúng route có kỳ vọng số) | 117 / H1 / H3 / H4: 266 ca, 256 số đúng; 10 ca sai số và 9 ca không nêu xung đột đều có tầng sai đầu tiên S4 (nhãn có phép thử) ⇒ S6 ĐẠT theo tầng, có điều kiện | Script từ chối (thoát 2) khi đầu ra winreport thiếu ca hay thiếu đối số |
+| 22/10 18:1x | commit chứa dòng này | M4: giấy Phase 1 sửa theo soát lượt 3 (L3D-01…06, 08, 11: khuôn ca máy đọc được, `detail` / `invalid_fields`, `fault` qua HTTP chỉ lớp lỗi, M26, trạng thái theo main, nơi đặt mã + Q-P1-9) và đề xuất của lượt 4 (L3E-01…04, 06, 08, 09, 12: tệp thế giới bổ sung do người soạn viết, lúc thả F5, không audit riêng cho kết cục hạ tầng, thứ tự R3, build tag cho bộ chạy giữ lại) | Soát lượt 4 ĐẠT CÓ GHI CHÚ (người soát tự viết 13 ca theo khuôn mới và chạy evals.Validate); điều phối: bảng 0 lệch, 0 ký tự lạ, 0 đường dẫn máy, cổng danh tính xanh | L3E-05, 07, 10, 11, 13 ghi nợ; L3D-07 đi cùng giấy M2 |

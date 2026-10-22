@@ -23,8 +23,8 @@ m $I '		if len(d.Terms) > 0 && !d.Weak && contracts.RouteKind(d.Route) != contra
 # m $I '		if len(d.Terms) > 0 && !d.Weak && contracts.RouteKind(d.Route) != contracts.RouteRAG {' '		if len(d.Terms) > 0 && !d.Weak {' 'S7 hỏi lại kể cả ý định tri thức'
 m $I '		if len(d.Terms) > 0 && !d.Weak && contracts.RouteKind(d.Route) != contracts.RouteRAG {' '		if !d.Weak && contracts.RouteKind(d.Route) != contracts.RouteRAG {' 'S8 hỏi lại kể cả ý định không đòi thuật ngữ (chào hỏi)'
 m $I '	if !slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return len(normalization.PhraseSpans(raw, m)) > 0 }) {' '	if false {' 'S9 a2 không đòi cụm xác nhận'
-# S10 — pack hiện có đúng một ý định yếu, khai chỉ số cho thuật ngữ của nó: tương đương trên pack cầu đường
-# m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) == 0 {' 'S10 a2 nhận ý định chung không có chỉ số cho thuật ngữ'
+# S10 — pack cầu đường tương đương (một ý định yếu, có khai chỉ số); bắt bằng pack tổng hợp TestYDinhChungKhongChiSoThiHoiLai
+m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) == 0 {' 'S10 a2 nhận ý định chung không có chỉ số cho thuật ngữ'
 m $I '			if d.MetricByTerm[term] == metric {' '			if true {' 'S11 mọi từ khoá số liệu đều là "của ý định chung" ("tiêu" của "tiêu thụ" thành giải thích được)'
 m $I '		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			continue
@@ -107,3 +107,4 @@ m $L 'mỡ bôi trơn, dầu ăn, dầu gội' 'mỡ bôi trơn, dầu gội' 'S
 m $L 'dầu ăn, dầu gội, dầu gió' 'dầu ăn, dầu gió' 'S46 bỏ bí danh "dầu gội"'
 m $L 'dầu gội, dầu gió, dầu thơm' 'dầu gội, dầu thơm' 'S47 bỏ bí danh "dầu gió"'
 m $L 'dầu gió, dầu thơm]' 'dầu gió]' 'S48 bỏ bí danh "dầu thơm"'
+m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) != 1 {' 'S49 ý định chung không khai chỉ số cho thuật ngữ vẫn được chọn (soát S4 vòng 3, phát hiện 4)'

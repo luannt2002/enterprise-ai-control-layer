@@ -282,8 +282,31 @@ func TestYDinhChungKhongCoThiHoiLaiKhongSap(t *testing.T) {
 	}
 	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}})
 	in := contracts.NormalizedInput{Raw: "EX-03 dầu đúng không", Spans: []contracts.Span{
-		{Kind: contracts.ValueTerm, Raw: "dầu", Start: 6, End: 10, Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		{Kind: contracts.ValueTerm, Raw: "dầu", Start: 6, End: 11, Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
 	r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{ent("EX-03", "equipment")}}, testNow)
+	if r.Intent.Name != "" || !slices.Equal(r.NeedMeaning, []string{"q"}) {
+		t.Errorf("muốn hỏi lại nghĩa số liệu [q], được intent=%q needMeaning=%v", r.Intent.Name, r.NeedMeaning)
+	}
+}
+
+// Ý định chung không khai chỉ số cho thuật ngữ của câu thì không được chọn để trả lời: nếu chọn, mảnh từ khoá của mọi ý định riêng không
+// chỉ số ("hao" của "hao hụt") thành "của ý định chung" và câu được trả lời theo một nghĩa chưa ai khai (soát S4 vòng 3, phát hiện 4).
+func TestYDinhChungKhongChiSoThiHoiLai(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	s, err := Compile([]Def{
+		{Name: "g", Route: "SQL_QUERY", Weak: true, Keywords: []string{"bao nhiêu"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+		{Name: "q", Route: "SQL_QUERY", Keywords: []string{"hao hụt"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}})
+	in := contracts.NormalizedInput{Raw: "EX-03 dầu hao đúng không", Spans: []contracts.Span{
+		{Kind: contracts.ValueTerm, Raw: "dầu", Start: 6, End: 11, Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+	e := ent("EX-03", "equipment")
+	e.Start, e.End = 0, 5 // vị trí tên trong câu: chỉ còn "hao" là chữ phải giải thích
+	r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{e}}, testNow)
 	if r.Intent.Name != "" || !slices.Equal(r.NeedMeaning, []string{"q"}) {
 		t.Errorf("muốn hỏi lại nghĩa số liệu [q], được intent=%q needMeaning=%v", r.Intent.Name, r.NeedMeaning)
 	}

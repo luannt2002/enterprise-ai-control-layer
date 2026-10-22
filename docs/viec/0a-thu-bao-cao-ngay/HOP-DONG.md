@@ -513,7 +513,7 @@ Mọi quyết định cần capability `reports.decide` và thực thể nằm t
 
 ### 6.3 Người nhận [ĐỀ XUẤT; Q-0A-6]
 
-`recipient` là vai kèm phạm vi, tính lúc tạo:
+`recipient` là vai kèm phạm vi, tính lúc tạo (và tính lại khi một quyết định đổi thực thể, §5.6 mục 3):
 1. `project_manager` có phạm vi chứa dự án của máy (dự án lấy từ danh mục thực thể: `entitiesFile.Equipment[].Project`, `ingest.go:50-57`);
 2. không xác định được máy: `director`.
 

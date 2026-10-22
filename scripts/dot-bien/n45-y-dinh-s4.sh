@@ -111,12 +111,14 @@ m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) != 1
 # Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
 # mang nghĩa khác không phải từ khoá (S4R-03).
 m $I '			if s.inRange(metric, sp.Value) {' '			if true {' 'S51 a2 che mọi số trần, kể cả ngoài miền chỉ số ("4 củ")'
-m $P '					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {' '					if false {' 'S50 không đổi đơn vị trước khi kiểm miền ("7 tấn" thành 7 trong miền)'
-m $P '						c, err := rt.Normalizer.Convert(v, def.Unit)
-						if err != nil {
-							return false' '						c, err := rt.Normalizer.Convert(v, def.Unit)
-						if err != nil {
-							return true' 'S52 lượng không đổi được đơn vị vẫn là giá trị của chỉ số'
+# S50, S52 — nhánh đổi đơn vị của ValueInRange không chạy trên pack cầu đường: a2 chỉ gọi nó cho số trần và lượng có đơn vị nhờ
+# thuật ngữ, mà đơn vị mặc định của "dầu" (L) trùng đơn vị chỉ số ⇒ tương đương trên pack này; giữ nhánh cho pack có đơn vị khác
+# m $P '					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {' '					if false {' 'S50 không đổi đơn vị trước khi kiểm miền ("7 tấn" thành 7 trong miền)'
+# m $P '						c, err := rt.Normalizer.Convert(v, def.Unit)
+# 						if err != nil {
+# 							return false' '						c, err := rt.Normalizer.Convert(v, def.Unit)
+# 						if err != nil {
+# 							return true' 'S52 lượng không đổi được đơn vị vẫn là giá trị của chỉ số'
 L2=tenants/construction/pack/intents.yaml
 m $L2 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhận xét, cấp bách]' 'S53 bỏ cụm ghép "ghi nhận" khỏi ignore_phrases'
 m $L2 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, cấp bách]' 'S54 bỏ cụm ghép "nhận xét" khỏi ignore_phrases'

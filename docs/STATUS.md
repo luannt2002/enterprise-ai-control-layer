@@ -8,7 +8,7 @@
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 
-> **H4, 21/10 14:48** (`docs/g7/holdout-h4/`): đóng băng bằng cam kết băm (`15f04f9`), CHƯA chạy (22/10 14:4x). Mã S4 đã ĐÓNG BĂNG ở `a665298` (soát vòng 3 xong); Soát khoá vòng 4 ĐẠT CÓ GHI CHÚ, cổng phán quyết KHOÁ HẲN; H4 chạy MỘT lần ngay sau commit này.
+> **H4, 22/10 14:59** (`docs/g7/holdout-h4/`): đóng băng bằng cam kết băm (`15f04f9`), chạy MỘT lần ở `57409f2` (mã S4 đóng băng ở `a665298`, cổng phán quyết khoá hẳn): **104/119 ở cả hai đường**, trạng thái HOÀN TẤT, phát lại 119/119 · 0 lệch, 0 canary. Theo lớp: representation 16/18, entity 16/16, ambiguity 13/14, semantic 13/14, source_conflict 12/15, permission 16/16, unsupported_answer 9/15, routing 9/11. G2' và G5' (phần ca) KHÔNG ĐẠT; G6' phần đo được ĐẠT. Đối chứng mốc `7d72e33` (chỉ chẩn đoán): 102/119 — 2 ca đỏ → xanh (744, 745), 0 ca xanh → đỏ; 15 ca đỏ đều đã đỏ ở mốc. Từ nay H4 là bộ HỒI QUY; kết luận mới chờ H5. Tầng sai đầu tiên của 15 ca đỏ: đang phân tích (ngưỡng S4 của brief §9.3).
 > - 119 ca, 82 ca có số; lớp routing 11 (< 13, chấm và báo đúng số, không độn).
 > - Theo D-OP-13, H4 chấm vòng sửa tầng ý định S4 (ADR-0010, ĐỀ XUẤT) và chỉ chạy MỘT lần sau khi mã S4 đóng băng. Lượt chính W-G7 dùng H5.
 >

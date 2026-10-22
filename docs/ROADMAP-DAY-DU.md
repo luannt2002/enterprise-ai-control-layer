@@ -298,6 +298,37 @@ chủ dự án quyết ở CHO-QUYET-DINH.md
 
 ---
 
+## 5b. MVP trước (D-MVP-00): phần chính phải ra trước mọi phase khác
+
+Chủ dự án chốt (22/10): **làm phần quan trọng, phần chính để ra MVP trước.** MVP lấy từ roadmap đầy đủ, **không thu nhỏ đích**. Nó là **lát dọc đầu tiên chạy được ở tầng doanh nghiệp**: một doanh nghiệp xây dựng ở chế độ B (tự lo), một chuỗi việc dầu từ đầu tới cuối, **không cần model trả tiền**.
+
+### 5b.1 MVP gồm 5 khối
+
+| Khối | Là gì | Phase / luồng | Cổng ra của khối |
+|---|---|---|---|
+| **M1. Ứng dụng chạy được + vết từng bước** | `cmd/eais` (HTTP ask / ingest / trace / healthz); một lệnh dựng từ checkout sạch; CI có PG; mọi lượt (kể cả lượt lỗi) có vết lưu bền, xem được bằng `eais trace` | P7 tối thiểu · L7, L9 | smoke E2E xanh từ checkout sạch; người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90% ca đỏ |
+| **M2. Thu báo cáo ngày đúng** (việc gốc của QuânIT) | tin Zalo / tệp → bản ghi có cờ (ước lượng ≈, đính chính, kế hoạch); cách ly hiện ra, có lý do; không cộng đôi; đọc số tất định | 0a · L1 | độ chính xác ≥ ngưỡng SLA trên bộ ca độc lập; các dòng L1, S2 của CỔNG TRƯỚC AI đạt |
+| **M3. Hỏi số liệu đúng nghĩa, đúng nguồn** | đóng Phase 0b: cổng phán quyết khoá, vòng S4, chạy H4 một lần | 0b · L2 | báo cáo H4; các dòng S3–S7, S9 của CỔNG TRƯỚC AI đạt |
+| **M4. Phát hiện chênh lệch → tạo đúng một phiếu kiểm tra** | lát mỏng của Phase 1: luật vượt dung sai kích hoạt; tạo phiếu có quyền, chống trùng, đọc lại, audit; ca âm (gửi đôi, thiếu quyền, timeout sau khi ghi) | 1 · L3 | ca âm đỏ đúng; đúng một phiếu cho mỗi chênh lệch. **Mã cần D-RM-04 = A** |
+| **M5. CỔNG TRƯỚC AI đạt** | mọi dòng có lệnh chứng minh (`docs/PROMPT-BUILD-EAIS.md` §9.3) | L8 | ghi "CỔNG TRƯỚC AI ĐẠT" |
+
+**MVP RA** = M1–M5 đều đạt. Lúc đó:
+- chủ dự án debug toàn chuỗi qua `eais trace`;
+- nếu có người nghiệp vụ thật (D-RM-03) thì người đó nghiệm thu; chưa có thì ghi "MVP trên dữ liệu giả lập".
+
+Chưa có D-RM-04 = A thì chỉ ra được **MVP thiếu M4**, và phải ghi rõ "thiếu M4".
+
+### 5b.2 Sau MVP mới làm
+
+- W-G7 và mọi lượt chi tiền model (đo giá trị của AI);
+- model hiểu ý định nếu S4 vẫn là sàn;
+- Phase 2 (workflow điều tra đầy đủ), Phase 3 (event đầy đủ);
+- Phase 4a–4d (tách tenant / ngành, CRM chế độ A, bốn kiểu doanh nghiệp, ngành thứ ba);
+- Phase 5, 8 ngoài phần tối thiểu của M1;
+- Phase 6, 7, 9, 10.
+
+Phần **giấy** của các phase này vẫn được làm khi còn tài nguyên, nhưng không được lấy người hay máy của các khối M1–M5.
+
 ## 6. Giai đoạn và phase
 
 Giữ **số phase của roadmap gốc 20/10**, cột cuối quy đổi sang V3. Trạng thái tính tại `d6afad7`.
@@ -386,7 +417,7 @@ Chưa có thì mọi phase vẫn chạy được trên dữ liệu giả lập, 
 
 ## 11. Ngay bây giờ
 
-Thứ tự chi tiết ở `docs/PROMPT-BUILD-EAIS.md` §4:
+Thứ tự chi tiết ở `docs/PROMPT-BUILD-EAIS.md` §9 (từ 22/10, ưu tiên MVP §5b); bản cũ ở §4:
 1. **Đổi tên lại** theo D-RM-02 (link git giữ nguyên).
 2. **Đóng Phase 0b:** R4-2…R4-4 của cổng phán quyết → vòng S4 theo ADR-0010 → chạy H4 một lần.
 3. Phép đo trước W-G7: canary hai tenant, cờ ước lượng.

@@ -105,6 +105,29 @@ func AmbiguousNumberWords(s string) bool {
 	return false
 }
 
+// HasThousandsWord báo s có từ chỉ hàng nghìn trở lên ("bốn ngàn", "hai triệu", "3 nghìn"): hàng lớn cho biết con số được nói theo hàng,
+// là một lượng như "4k". Số nhỏ đọc thành chữ ("mười chín", "hai chục", "bốn mươi ba") không có hàng đó — như số trần "19", nó có thể là
+// ngày, số hiệu. Cổng phán quyết (khoá ở ADR-0009) dùng hàm này: số không đơn vị chỉ "tự mang chiều đo" khi có hàng lớn hay hậu tố nhân.
+func HasThousandsWord(s string) bool {
+	for _, t := range tokenize(s) {
+		if w, ok := lookupNumberWord(t.text); ok && t.kind == tokWord && w.kind == vwScale {
+			return true
+		}
+	}
+	return false
+}
+
+// HasNumberWord báo s có từ chỉ số ("trăm", "chục", "mười", "nghìn"…). Hậu tố nhân tiếng lóng của pack ("k", "tr", "củ") không phải từ
+// chỉ số: "3k" không có, "3 trăm" có.
+func HasNumberWord(s string) bool {
+	for _, t := range tokenize(s) {
+		if _, ok := lookupNumberWord(t.text); ok && t.kind == tokWord {
+			return true
+		}
+	}
+	return false
+}
+
 // parseViNumberWords đọc dãy từ chỉ số bắt đầu từ token i.
 //
 // Trả về giá trị, chỉ số token kế tiếp, và hasScale = dãy có từ chỉ hàng (mươi, trăm,

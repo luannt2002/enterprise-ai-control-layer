@@ -87,6 +87,32 @@ func TestParseViNumberWords(t *testing.T) {
 
 // ADR-0009 Vòng 5: dãy số bằng chữ kết thúc bằng "<hàng> <một chữ số>", có thể kèm "rưỡi", là chưa đọc chắc (nói thường "một nghìn
 // hai" = 1.200, bộ đọc cho 1.002); dạng viết rõ hàng ("trăm", "linh", "lẻ", "mươi") hay "rưỡi" ngay sau hàng thì không.
+// HasThousandsWord: chỉ từ chỉ hàng nghìn trở lên (không phải "trăm", "mươi", "chục", hậu tố "k") — số nhỏ đọc thành chữ là số trần.
+func TestHasThousandsWord(t *testing.T) {
+	for _, c := range []struct {
+		in   string
+		want bool
+	}{
+		{"bốn ngàn", true}, {"hai triệu", true}, {"ba tỷ", true}, {"3 nghìn", true}, {"ba nghìn tám trăm", true},
+		{"mười chín", false}, {"hai chục", false}, {"bốn mươi ba", false}, {"ba trăm", false}, {"4k", false}, {"3850", false},
+	} {
+		if got := HasThousandsWord(c.in); got != c.want {
+			t.Errorf("HasThousandsWord(%q) = %v, muốn %v", c.in, got, c.want)
+		}
+	}
+}
+
+func TestHasNumberWord(t *testing.T) {
+	for _, c := range []struct {
+		in   string
+		want bool
+	}{{"3 trăm", true}, {"hai chục", true}, {"bốn ngàn", true}, {"3k", false}, {"4tr", false}, {"3850", false}} {
+		if got := HasNumberWord(c.in); got != c.want {
+			t.Errorf("HasNumberWord(%q) = %v, muốn %v", c.in, got, c.want)
+		}
+	}
+}
+
 func TestAmbiguousNumberWords(t *testing.T) {
 	for _, c := range []struct {
 		in   string

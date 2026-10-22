@@ -94,6 +94,18 @@ func TestVerdictGap(t *testing.T) {
 		// 4000 L") không phải của cụm trước (soát khoá vòng 2, phát hiện 2 và 3)
 		{q: "Dầu ERP 19-10, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
 		{q: "ERP, đội báo 4000 L, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
+		// tên của CHÍNH nguồn đã dùng cũng là ranh giới của cụm đứng trước ("ERP, phiếu xuất kho 3850 L": 3850 L là của phiếu xuất kho); số
+		// bằng chữ không có hàng nghìn / hậu tố nhân ("mười chín", "bốn mươi ba") là số trần như "19" — có thể là ngày, số hiệu (soát khoá
+		// vòng 3, S2-1 và S2-2); "bốn ngàn" có hàng nghìn: lượng của riêng cụm, giữ phán quyết
+		{q: "ERP, phiếu xuất kho 3850 L, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip"}},
+		{q: "ERP, phiếu kho 3850 L, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip"}}, // bí danh
+		{q: "Đội báo, ERP 3900 L, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "metric", used: []string{"erp"}},
+		{q: "ERP mười chín, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "residual", used: []string{"warehouse_slip"}},
+		{q: "ERP 3 trăm, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "residual", used: []string{"warehouse_slip"}}, // nhân "trăm": số nhỏ
+		{q: "Dầu ERP 3 trăm, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip"}},
+		{q: "Đội báo 3k, vậy EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", used: []string{"warehouse_slip"}}, // hậu tố tiếng lóng: giữ
+		{q: "Dầu ERP bốn mươi ba, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip"}},
+		{q: "Đội báo bốn ngàn, vậy EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", used: []string{"warehouse_slip"}},
 		// con số "của riêng" cụm ngữ cảnh chỉ là lượng cùng chiều đo: mốc "tuần 43", giờ "8h" không biến cụm thành sự kiện riêng (F2)
 		{q: "ERP 8h, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
 		{q: "Đội báo ngày 19/10 tuần 43, EX-03 được cấp 4000 L đúng không?", claimed: "4000", want: "metric"},

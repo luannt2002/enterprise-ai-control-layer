@@ -29,3 +29,7 @@ m $W 'case len(vs) == 1:' 'case false:' 'ND12 bảng không dấu bỏ mọi b�
 m $W 'if _, exists := base[f]; !exists && !slices.Contains(folded[f], v) {' 'if _, exists := base[f]; !exists {' 'ND13 hai từ cùng nghĩa cùng gấp ("một" / "mốt") bị coi là xung đột'
 # ND14 — `f != w` bỏ: từ không dấu gấp ra chính nó, đã có trong base nên nhánh exists loại — tương đương với mọi bảng
 # m $W 'if f := Fold(w); f != w {' 'if f := Fold(w); true {' 'ND14 từ không dấu cũng vào bảng gấp'
+# Soát khoá vòng 3 (S2-2): chỉ từ chỉ hàng nghìn trở lên làm số bằng chữ "tự mang chiều đo".
+m $W 'if w, ok := lookupNumberWord(t.text); ok && t.kind == tokWord && w.kind == vwScale {' 'if w, ok := lookupNumberWord(t.text); ok && t.kind == tokWord && (w.kind == vwScale || w.kind == vwHundred) {' 'ND15 "trăm" tính như hàng nghìn ("ba trăm" thành lượng)'
+m $W 'if w, ok := lookupNumberWord(t.text); ok && t.kind == tokWord && w.kind == vwScale {' 'if _, ok := lookupNumberWord(t.text); ok && t.kind == tokWord {' 'ND16 mọi chữ số đọc được đều tính như hàng nghìn ("mười chín" thành lượng)'
+m $W 'if _, ok := lookupNumberWord(t.text); ok && t.kind == tokWord {' 'if _, ok := lookupNumberWord(t.text); ok && t.kind == tokWord && false {' 'ND17 hậu tố "trăm" / "chục" thành hậu tố tiếng lóng ("3 trăm" thành lượng)'

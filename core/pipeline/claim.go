@@ -138,13 +138,15 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 		if _, period := normalization.PeriodQualifier(raw, sp.Start, sp.End); period {
 			return true
 		}
-		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) {
-			return true // số trần chỉ có đơn vị nhờ chữ "dầu" đứng cạnh ("Dầu ERP 19-10"): có thể là ngày, số hiệu — không chắc là lượng
+		if strings.Contains(sp.Rule, "unit_from_term") && !unitShown(contracts.Span{Kind: contracts.ValueNumber, Raw: sp.Raw, Rule: sp.Rule}) {
+			return true // số trần — chữ số hay chữ không có hàng nghìn — chỉ có đơn vị nhờ chữ "dầu" đứng cạnh ("Dầu ERP 19-10", "Dầu ERP bốn mươi
+			// ba"): có thể là ngày, số hiệu — không chắc là lượng
 		}
 		_, same := a.inMetricUnit(sp.Value, def)
 		return !same // lượng khác chiều đo ("8h", "2 ca", "5 người"); số trần và lượng cùng chiều đo được giữ
 	})
-	quals := slices.Concat(sources, metrics)
+	// tên của chính nguồn đã dùng không chặn, nhưng là RANH GIỚI: số đứng sau nó là của nó ("ERP, phiếu xuất kho 3850 L, …" — soát khoá vòng 3)
+	quals := slices.Concat(sources, metrics, a.usedSourceNames(used))
 	if len(contextOwners(raw, ctxNumbers, inName, sources, quals, lo)) > 0 {
 		return "source"
 	}
@@ -280,16 +282,19 @@ func sourceMentions(raw string, def sourceoftruth.MetricDef, used []string, lo i
 	return out, ""
 }
 
-// unitShown báo con số tự mang chiều đo: lượng có đơn vị (viết rõ, hoặc suy từ thuật ngữ vật tư đứng cạnh: "4k dầu"), hoặc số có chữ
-// ("4k", "bốn ngàn"). Số trần — kể cả có dấu chấm / phẩy ("3850", "3.850", "1,2") — không nói được nó là lít, khối hay số thứ tự, và
-// dấu chấm / phẩy còn mơ hồ giữa phần nghìn và phần thập phân.
+// unitShown báo con số tự mang chiều đo: lượng có đơn vị (viết rõ, hoặc suy từ thuật ngữ vật tư đứng cạnh: "4k dầu"), hoặc số có hậu tố
+// nhân / hàng nghìn trở lên ("4k", "bốn ngàn"). Số trần — kể cả có dấu chấm / phẩy ("3850", "3.850", "1,2") hay số nhỏ đọc thành chữ
+// ("mười chín", "hai chục": soát khoá vòng 3) — không nói được nó là lít, khối hay số thứ tự, ngày; dấu chấm / phẩy còn mơ hồ giữa phần
+// nghìn và phần thập phân.
 func unitShown(sp contracts.Span) bool {
 	if sp.Kind == contracts.ValueQuantity {
 		// đơn vị suy từ thuật ngữ + dấu chấm / phẩy là mơ hồ phần nghìn / thập phân ("dầu 1,2") — trừ khi nguyên văn KẾT THÚC bằng chữ
 		// ("3,85k", "3,85K", "1,2 nghìn"): hậu tố nhân ở cuối đã nói hàng của con số; chữ số sau hậu tố ("1,2k5") vẫn mơ hồ
 		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw)
 	}
-	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
+	// hàng nghìn trở lên viết bằng chữ ("bốn ngàn", "3 nghìn"), hay hậu tố nhân tiếng lóng của pack ("3k", "4tr"); nhân "trăm" / "chục"
+	// ("3 trăm") là số nhỏ như "ba trăm"
+	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))
 }
 
 // ownerRef là một thứ CÓ THỂ sở hữu con số trong câu: tên thực thể (ids khác rỗng) hay danh từ / thuật ngữ khác chính ý định ("dự án",
@@ -346,6 +351,20 @@ func (a *Ask) qualifierPhrases(idef intent.Def, used []string) (sources, metrics
 		}
 	}
 	return sources, metrics
+}
+
+// usedSourceNames trả tên / bí danh của các nguồn đã tạo con số trả lời.
+func (a *Ask) usedSourceNames(used []string) []string {
+	var out []string
+	for _, id := range a.RT.Metrics.MetricIDs() {
+		m, _ := a.RT.Metrics.Metric(id)
+		for _, src := range m.Sources {
+			if slices.Contains(used, src.Type) {
+				out = append(append(out, src.Label), src.Aliases...)
+			}
+		}
+	}
+	return out
 }
 
 // contextOwners trả các cụm qualifierPhrases ở ngữ cảnh [0, lo) mà KHÔNG có con số nào xen giữa chúng và phạm vi hỏi: chúng có thể là

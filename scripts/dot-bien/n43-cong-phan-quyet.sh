@@ -45,7 +45,7 @@ m $C 'return id == s.id || s.ancestors[id] })' 'return true })' 'CG23 cụm tên
 m $C '	if inFocus && !subjectInFocus {' '	if false && inFocus && !subjectInFocus {' 'CG24 mệnh đề hỏi nêu thực thể khác chủ thể vẫn phán quyết'
 m $C '		s.ancestors[p] = true' '		s.ancestors[p] = false' 'CG25 không tính cấp cha của chủ thể'
 m $C '			if !ok || !unitShown(sp) || def.InRange(v.Number) != nil {' '			if !ok || !unitShown(sp) {' 'CG26 con số ngoài miền vẫn phán quyết'
-m $C '	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)' '	return strings.ContainsFunc(sp.Raw, unicode.IsPrint)' 'CG27 số trần có dấu chấm / phẩy thành có đơn vị'
+m $C '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))' '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw)) || strings.ContainsAny(sp.Raw, ".,")' 'CG27 số trần có dấu chấm / phẩy thành có đơn vị'
 m $C '		if sp[0] >= end {' '		if true {' 'CG28 cụm xác nhận chồng nhau bị đếm hai lần'
 N=data/normalization/qualifier.go
 m $N '		if pw.kind == QualifierDay && wordIs(raw, ws, we, pw.word) {' '		if wordIs(raw, ws, we, pw.word) {' 'QW1 "tuần" / "tháng" trước một ngày thành từ chỉ ngày'
@@ -166,7 +166,9 @@ m $C 'if k >= 0 && !s.ownedBy(raw, os, k, numEnd) {
 	}' 'CG144 V5 numberOwned: thứ gần nhất chưa gắn thì vẫn coi là gắn'
 m $C 'if c.start >= lo && len(c.ids) > 1 && slices.Contains(c.ids, s.id)' 'if c.start >= lo && len(c.ids) >= 1 && slices.Contains(c.ids, s.id)' 'CG147 V5 numberOwned: tên đơn cũng phải qua aliasTied'
 m $C 'if normalization.AmbiguousNumberWords(sp.Raw) {' 'if false && normalization.AmbiguousNumberWords(sp.Raw) {' 'CG149 V5 K5 bỏ lời gọi AmbiguousNumberWords: số bằng chữ mơ hồ vẫn phán quyết'
-m $C 'for _, src := range m.Sources {' 'for _, src := range m.Sources[:1] {' 'CG152 V5 qualifierPhrases chỉ nguồn đầu của mỗi chỉ số (ERP, bảng tổng hợp không còn)'
+m $C 'for _, src := range m.Sources {
+			if len(used) == 1 && used[0] == src.Type {' 'for _, src := range m.Sources[:1] {
+			if len(used) == 1 && used[0] == src.Type {' 'CG152 V5 qualifierPhrases chỉ nguồn đầu của mỗi chỉ số (ERP, bảng tổng hợp không còn)'
 m $I '		if d.Weak {
 			out = append(out, d.Keywords...)' '		if !d.Weak {
 			out = append(out, d.Keywords...)' 'IK2 V5 WeakKeywords trả từ khoá ý định KHÔNG yếu'
@@ -236,9 +238,11 @@ m $C 'continue // tên đúng nguồn đã dùng' 'break // tên đúng nguồn 
 m $C '			if len(used) == 1 && used[0] == src.Type {' '			if len(used) == 1 || used[0] == src.Type {' 'CG196 V5 qualifierPhrases: một nguồn đã dùng thì mọi nguồn đều được bỏ'
 m $C 'MetricIDs() {
 		m, _ := a.RT.Metrics.Metric(id)
-		for _, src := range m.Sources {' 'MetricIDs()[:1] {
+		for _, src := range m.Sources {
+			if len(used) == 1 && used[0] == src.Type {' 'MetricIDs()[:1] {
 		m, _ := a.RT.Metrics.Metric(id)
-		for _, src := range m.Sources {' 'CG197 V5 qualifierPhrases: chỉ xét chỉ số đầu tiên của pack'
+		for _, src := range m.Sources {
+			if len(used) == 1 && used[0] == src.Type {' 'CG197 V5 qualifierPhrases: chỉ xét chỉ số đầu tiên của pack'
 m $C 'sources = append(sources, p)' 'metrics = append(metrics, p)' 'CG199 V5 qualifierPhrases: tên nguồn khác xếp vào danh sách chỉ số'
 m $C 'return sources, metrics' 'return metrics, sources' 'CG200 V5 qualifierPhrases: trả hai danh sách đổi chỗ'
 # Bước KHOÁ (brief BUILD §9.6, ADR-0009): topicQualifier, own và cụm ngữ cảnh làm chủ (extra) đã bỏ — các dòng CG155–CG188, CG202, CG203,
@@ -346,11 +350,20 @@ m $C '		return !same // lượng khác chiều đo' '		return false && !same // 
 m $W '			if group > 0 {
 				colloquial = true' '			if false {
 				colloquial = true' 'NW27 "mười hai trăm" không là nói tắt'
-m $C '		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) {' '		if strings.Contains(sp.Rule, "unit_from_term") && !strings.ContainsFunc(sp.Raw, unicode.IsLetter) && false {' 'KH10 số trần mang đơn vị nhờ "dầu" thành lượng riêng của cụm'
+m $C '		if strings.Contains(sp.Rule, "unit_from_term") && !unitShown(contracts.Span{Kind: contracts.ValueNumber, Raw: sp.Raw, Rule: sp.Rule}) {' '		if strings.Contains(sp.Rule, "unit_from_term") && !unitShown(contracts.Span{Kind: contracts.ValueNumber, Raw: sp.Raw, Rule: sp.Rule}) && false {' 'KH10 số trần mang đơn vị nhờ "dầu" thành lượng riêng của cụm'
 m $C '				if st >= sp[1] && st < end {' '				if false && st >= sp[1] && st < end {' 'KH11 số của cụm kế tiếp thành số riêng của cụm trước'
 m $C '			if sp[1] <= lo {
 				starts = append(starts, sp[0])' '			if false {
 				starts = append(starts, sp[0])' 'KH12 không biết đầu các cụm ở ngữ cảnh'
-m $C '	quals := slices.Concat(sources, metrics)' '	quals := slices.Concat(sources)' 'KH13 ranh giới chỉ tính cụm nguồn, bỏ cụm chỉ số'
+m $C '	quals := slices.Concat(sources, metrics, a.usedSourceNames(used))' '	quals := slices.Concat(sources, a.usedSourceNames(used))' 'KH13 ranh giới chỉ tính cụm nguồn, bỏ cụm chỉ số'
 # X3 — bỏ slices.Clone ở ctxNumbers: DeleteFunc sửa mảng in.Spans tại chỗ (owners đọc in.Spans sau đó); bộ test hiện có không bắt — giữ Clone
 # m $C 'ctxNumbers := slices.DeleteFunc(slices.Clone(in.Spans), func' 'ctxNumbers := slices.DeleteFunc(in.Spans, func' 'X3 ctxNumbers sửa in.Spans tại chỗ'
+# Soát khoá vòng 3 (S2-1, S2-2; sai chiều ⇒ mở lại theo §9.6): tên nguồn đã dùng là ranh giới; số không đơn vị chỉ "tự mang chiều đo" khi có
+# hậu tố nhân hay hàng nghìn trở lên.
+m $C '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))' '	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)' 'KH14 số nhỏ đọc thành chữ ("mười chín") thành có chiều đo'
+m $C '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))' '	return strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw)' 'KH15 số bằng chữ có hàng nghìn ("bốn ngàn") thành số trần'
+m $C '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))' '	return normalization.HasThousandsWord(sp.Raw)' 'KH16 số có hậu tố nhân tiếng lóng ("3k") thành số trần'
+m $C '!unitShown(contracts.Span{Kind: contracts.ValueNumber, Raw: sp.Raw, Rule: sp.Rule}) {' '!strings.ContainsFunc(sp.Raw, unicode.IsLetter) {' 'KH17 số bằng chữ không hàng nghìn mang đơn vị nhờ "dầu" thành lượng riêng của cụm ("Dầu ERP bốn mươi ba")'
+m $C '	quals := slices.Concat(sources, metrics, a.usedSourceNames(used))' '	quals := slices.Concat(sources, metrics)' 'KH18 tên nguồn đã dùng không là ranh giới ("ERP, phiếu xuất kho 3850 L")'
+m $C '				out = append(append(out, src.Label), src.Aliases...)' '				out = append(out, src.Label)' 'KH19 ranh giới bỏ bí danh nguồn đã dùng ("ERP, phiếu kho 3850 L")'
+m $C '	return normalization.HasThousandsWord(sp.Raw) || (strings.Contains(sp.Rule, "+multiplier") && !normalization.HasNumberWord(sp.Raw))' '	return normalization.HasThousandsWord(sp.Raw) || strings.Contains(sp.Rule, "+multiplier")' 'KH20 nhân "trăm" / "chục" ("ERP 3 trăm") thành có chiều đo'

@@ -12,6 +12,9 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/db"
 )
 
+// migrateLockKey là khoá tư vấn (pg_advisory_lock) mà Migrate giữ suốt lúc chạy: "EAISMIGR" viết thành số.
+const migrateLockKey int64 = 0x454149534d494752
+
 // Migrate áp các migration chưa áp, theo thứ tự tên tệp, mỗi tệp một giao dịch, ghi vào
 // schema_migrations. Chạy bằng vai QUẢN TRỊ (tạo vai eais_app, bật RLS), không bằng eais_app.
 func Migrate(ctx context.Context, adminDSN string) error {
@@ -20,6 +23,12 @@ func Migrate(ctx context.Context, adminDSN string) error {
 		return contracts.Label(contracts.Infra("postgres"), err)
 	}
 	defer conn.Close(ctx)
+	// Các Migrate chạy CÙNG LÚC (go test chạy song song nhiều gói đều gọi Migrate; nhiều bản app khởi động một lượt) phải xếp hàng:
+	// không có khoá thì hai phiên cùng CREATE TABLE trên database trống và một phiên chết với "duplicate key value violates unique
+	// constraint pg_type_typname_nsp_index". Khoá mức phiên, nhả khi đóng kết nối.
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrateLockKey); err != nil {
+		return contracts.Label(contracts.Infra("postgres"), err)
+	}
 	if _, err := conn.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return contracts.Label(contracts.Infra("postgres"), err)

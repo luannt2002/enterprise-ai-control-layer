@@ -211,7 +211,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		why = why.WithholdQuoted()
 	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
-	d.Why = why.Compact(maxWhyLines)
+	d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
 	return Outcome{
 		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),

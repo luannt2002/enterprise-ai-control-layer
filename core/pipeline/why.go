@@ -52,10 +52,12 @@ func refKeys(refs []contracts.EntityRef) []string {
 }
 
 // maxListed là số khoá tối đa in trong MỘT danh sách của dòng giải thích (còn lại in "và N … khác"); maxWhyLines là trần số ý mỗi danh sách
-// (Reasons / Rejected) của một chặng, áp sau khi các dòng giống nhau đã gộp: câu dài hay bí danh nhiều ứng viên không làm vết phình theo.
+// (Reasons / Rejected) của một chặng, áp sau khi các dòng giống nhau đã gộp; maxWhyLineRunes là trần số ký tự của MỘT dòng (dòng dài hơn bị
+// cắt kèm chữ báo): câu dài, bí danh nhiều ứng viên hay nhiều thực thể khác nhau không làm vết phình theo.
 const (
-	maxListed   = 6
-	maxWhyLines = 40
+	maxListed       = 6
+	maxWhyLines     = 40
+	maxWhyLineRunes = 1500
 )
 
 // distinct bỏ khoá trùng, giữ thứ tự gặp đầu tiên.
@@ -112,6 +114,21 @@ func groupChecks(checks []contracts.RouteCheck) []checkGroup {
 			continue
 		}
 		out = append(out, checkGroup{c, 1})
+	}
+	return out
+}
+
+// ladderOf là thang bậc kiểm hiển thị: các bậc "qua" LIÊN TIẾP cùng tên (và cùng route) gộp một bậc kèm tổng số lần, dù dữ kiện của từng bậc khác nhau
+// (mỗi thực thể một dữ kiện): câu nêu hàng trăm thực thể khác nhau không làm dòng thang bậc dài theo. Dòng thang bậc chỉ ghi "qua" cho bậc không
+// áp dụng; dữ kiện từng bậc nằm ở dòng phương án bị loại (có trần số ý). Bậc đã chặn / đã chọn không gộp với ai.
+func ladderOf(groups []checkGroup) []checkGroup {
+	var out []checkGroup
+	for _, g := range groups {
+		if last := len(out) - 1; last >= 0 && !g.check.Fired && !out[last].check.Fired && out[last].check.Rule == g.check.Rule && out[last].check.Route == g.check.Route {
+			out[last].n += g.n
+			continue
+		}
+		out = append(out, g)
 	}
 	return out
 }
@@ -173,7 +190,7 @@ func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar 
 		}
 		n.Reason("gỡ mơ hồ cho khe %s bằng %s: trước lọc %s → sau lọc %s → %s", nar.Slot, by, candidateCount(nar.Before), afterText(nar.After), result)
 		if dropped := len(nar.Before) - len(nar.After); dropped > 0 {
-			n.Reject("%d ứng viên bị loại khi gỡ mơ hồ: %s (vết không kể từng ứng viên)", dropped, dropWhy)
+			n.Reject("%d ứng viên bị loại khi gỡ mơ hồ: %s (vết không nêu trạng thái phạm vi của từng ứng viên)", dropped, dropWhy)
 		}
 	}
 	if ci.used {
@@ -191,7 +208,7 @@ func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar 
 			}
 		}
 		for _, why := range reasons {
-			n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết không kể từng ứng viên)", len(byWhy[why]), why)
+			n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết không nêu trạng thái phạm vi của từng ứng viên)", len(byWhy[why]), why)
 		}
 		if ci.suppressed != "" {
 			n.Reason("không kể ứng viên thực thể trong câu hỏi lại: %s", ci.suppressed)
@@ -235,8 +252,9 @@ func (a *Ask) explainRoute(routed, plan contracts.RoutePlan) traces.Notes {
 	n.Reason("%s", routed.Reason)
 	if len(routed.Checked) > 0 {
 		groups := groupChecks(routed.Checked)
-		steps := make([]string, 0, len(groups))
-		for i, g := range groups {
+		ladder := ladderOf(groups)
+		steps := make([]string, 0, len(ladder))
+		for i, g := range ladder {
 			// bậc không áp dụng chỉ ghi "qua": dữ kiện của nó nằm ở dòng phương án bị loại tương ứng (không in hai lần)
 			step := fmt.Sprintf("%d) %s: qua", i+1, g.check.Rule)
 			if g.check.Fired {
@@ -317,7 +335,7 @@ func (a *Ask) noteMetricContext(why *traces.Why, prefix string, result sourceoft
 		case e.Kind == contracts.EvidenceQuestion:
 			vals := make([]string, len(e.Values))
 			for i, v := range e.Values {
-				vals[i] = valueText(v)
+				vals[i] = contracts.Quote(valueText(v))
 			}
 			n.Reason("%s%s: con số do người hỏi nêu (%s) — nguồn là chính câu hỏi, không phải số liệu", prefix, e.ID, strings.Join(vals, ", "))
 		case e.ID == "count:conflicts":
@@ -415,7 +433,7 @@ func (a *Ask) noteGate(why *traces.Why, g gate) {
 	default:
 		inputs := fmt.Sprintf("đầu vào của cổng: chủ thể %s · kỳ đọc được %d · cụm xác nhận %d · câu có dấu %v · nguồn đã tạo nên con số %s · con số xác nhận %s %s",
 			g.subject, len(readPeriods(g.in)), markerCount(g.in.Raw, a.RT.ConfirmMarkers), normalization.HasDiacritic(g.in.Raw),
-			strings.Join(g.used, "|"), displayNumber(g.claimed.Number), a.unitLabel(g.claimed.Unit))
+			strings.Join(g.used, "|"), contracts.Quote(displayNumber(g.claimed.Number)), a.unitLabel(g.claimed.Unit))
 		if g.withheld != "" {
 			n.Reason("cổng phán quyết: không phán quyết — chiều %q chưa giải được: %s", g.withheld, gapMeaning[g.withheld])
 			n.Reason("%s", inputs)
@@ -430,7 +448,7 @@ func (a *Ask) noteGate(why *traces.Why, g gate) {
 		if g.tmpl == "confirm_no" {
 			other = "confirm_yes"
 		}
-		n.Reason("so sánh bằng tuyệt đối số người hỏi %s với số có thẩm quyền %s → %s", displayNumber(g.claimed.Number), displayNumber(g.total.Number), word(g.tmpl))
+		n.Reason("so sánh bằng tuyệt đối số người hỏi %s với số có thẩm quyền %s → %s", contracts.Quote(displayNumber(g.claimed.Number)), displayNumber(g.total.Number), word(g.tmpl))
 		n.Reject("phán quyết %s: bị loại — kết quả so sánh bằng tuyệt đối chọn %s", word(other), g.tmpl)
 		n.Reject("không phán quyết (confirm_withheld): bị loại — cổng không thiếu chiều nào")
 	}

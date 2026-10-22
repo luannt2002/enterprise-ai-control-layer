@@ -45,7 +45,7 @@ func TestWhyCompactGopDongGiongNhauVaCatDanhSach(t *testing.T) {
 	n.Reason("cụm “máy 03” khớp 2 thực thể")
 	n.Reject("loại 1")
 	n.Reject("loại 1")
-	got := Why{Resolve: n}.Compact(10).Resolve
+	got := Why{Resolve: n}.Compact(10, 1000).Resolve
 	if want := []string{"cụm “máy 03” khớp 2 thực thể (×4)", "dòng riêng"}; !slices.Equal(got.Reasons, want) {
 		t.Errorf("Reasons: %q, muốn %q", got.Reasons, want)
 	}
@@ -57,12 +57,12 @@ func TestWhyCompactGopDongGiongNhauVaCatDanhSach(t *testing.T) {
 	for i := range 7 {
 		many.Reason("ý %d", i)
 	}
-	c := Why{Context: many}.Compact(5).Context
+	c := Why{Context: many}.Compact(5, 1000).Context
 	if len(c.Reasons) != 6 || c.Reasons[4] != "ý 4" || c.Reasons[5] != "… và 2 ý khác không in (trần 5 ý mỗi danh sách)" {
 		t.Errorf("trần số ý: %q", c.Reasons)
 	}
 	// danh sách rỗng giữ rỗng (Notes không ghi vẫn là "chưa ghi", không thành "đã ghi")
-	if e := (Why{}).Compact(5); e.Route.Recorded() || e.Route.Reasons != nil || e.Route.Rejected != nil {
+	if e := (Why{}).Compact(5, 1000); e.Route.Recorded() || e.Route.Reasons != nil || e.Route.Rejected != nil {
 		t.Errorf("Notes rỗng phải giữ rỗng: %+v", e.Route)
 	}
 	// Compact không sửa bản gốc
@@ -95,5 +95,38 @@ func TestWhyWithholdQuotedChiThayChuCuaNguoiHoi(t *testing.T) {
 	}
 	if !strings.Contains(w.Intent.Reasons[0], "đuôi bí mật") {
 		t.Errorf("WithholdQuoted không được sửa bản gốc: %q", w.Intent.Reasons)
+	}
+}
+
+// N3 (soát vòng 2): trần theo ĐỘ DÀI từng dòng, không chỉ số dòng. Dòng dài hơn trần bị cắt ở đúng số KÝ TỰ (không cắt giữa một ký tự nhiều byte)
+// kèm chữ báo đã cắt; dòng không vượt trần giữ nguyên; các dòng giống hệt nhau vẫn gộp (×N) trước khi cắt.
+func TestWhyCompactCatDongDai(t *testing.T) {
+	long := strings.Repeat("ệ", 50)
+	var n Notes
+	n.Reason("ngắn")
+	n.Reason("%s", long)
+	n.Reason("%s", long)
+	n.Reason("%s", long+"đuôi khác")
+	n.Reject("%s", long)
+	w := Why{Route: n}.Compact(10, 20)
+	cut := strings.Repeat("ệ", 20) + "… (cắt: dòng dài quá 20 ký tự)"
+	if want := []string{"ngắn", cut + " (×2)", cut}; !slices.Equal(w.Route.Reasons, want) {
+		t.Errorf("Reasons: %q, muốn %q", w.Route.Reasons, want)
+	}
+	if want := []string{cut}; !slices.Equal(w.Route.Rejected, want) {
+		t.Errorf("Rejected: %q, muốn %q", w.Route.Rejected, want)
+	}
+	// đúng bằng trần: giữ nguyên, không có chữ báo cắt
+	eq := Why{Route: Notes{Reasons: []string{strings.Repeat("ệ", 20)}}}.Compact(10, 20)
+	if want := []string{strings.Repeat("ệ", 20)}; !slices.Equal(eq.Route.Reasons, want) {
+		t.Errorf("dòng đúng bằng trần: %q", eq.Route.Reasons)
+	}
+	// maxRunes <= 0: không cắt theo độ dài
+	if un := (Why{Route: Notes{Reasons: []string{long}}}).Compact(10, 0); !slices.Equal(un.Route.Reasons, []string{long}) {
+		t.Errorf("maxRunes = 0 phải giữ nguyên dòng: %q", un.Route.Reasons)
+	}
+	// bản gốc không bị sửa
+	if len([]rune(n.Reasons[1])) != 50 {
+		t.Errorf("Compact sửa Notes gốc: %d ký tự", len([]rune(n.Reasons[1])))
 	}
 }

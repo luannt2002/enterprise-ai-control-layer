@@ -13,7 +13,9 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 	"github.com/luannt2002/enterprise-ai-control-layer/simulations/fixtures"
 )
 
@@ -94,8 +96,8 @@ func TestExplainResolveKhongKeTrangThaiPhamViTungUngVien(t *testing.T) {
 		t.Errorf("lý do:\n%q\nmuốn:\n%q", n.Reasons, want)
 	}
 	if want := []string{
-		"1 ứng viên bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
-		"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
+		"1 ứng viên bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)",
+		"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)",
 	}; !slices.Equal(n.Rejected, want) {
 		t.Errorf("loại:\n%q\nmuốn:\n%q", n.Rejected, want)
 	}
@@ -105,7 +107,7 @@ func TestExplainResolveKhongKeTrangThaiPhamViTungUngVien(t *testing.T) {
 	}
 	// gỡ theo dự án nói đúng lý do loại
 	p := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByProject, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, clarifyInfo{}, true)
-	if want := []string{"1 ứng viên bị loại khi gỡ mơ hồ: không thuộc dự án đã nêu trong câu (vết không kể từng ứng viên)"}; !slices.Equal(p.Rejected, want) {
+	if want := []string{"1 ứng viên bị loại khi gỡ mơ hồ: không thuộc dự án đã nêu trong câu (vết không nêu trạng thái phạm vi của từng ứng viên)"}; !slices.Equal(p.Rejected, want) {
 		t.Errorf("gỡ theo dự án: %q", p.Rejected)
 	}
 	// khoá trùng (một thực thể là ứng viên của hai cụm mơ hồ) được nói ra: số đếm khớp với bước "đúng một ứng viên" của router
@@ -121,8 +123,8 @@ func TestExplainResolveKhongKeTrangThaiPhamViTungUngVien(t *testing.T) {
 	ex8, ex9 := contracts.EntityRef{ID: "EX-08", Key: "EX-08"}, contracts.EntityRef{ID: "EX-09", Key: "EX-09"}
 	two := explainResolve(in, contracts.Resolution{}, contracts.Narrowing{}, clarifyInfo{used: true, hidden: []hiddenCandidate{
 		{dz, "ngoài phạm vi dữ liệu của người hỏi"}, {ex8, "không tra được tổ tiên trong danh mục (đóng mặc định)"}, {ex9, "không tra được tổ tiên trong danh mục (đóng mặc định)"}}}, true)
-	if want := []string{"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)",
-		"2 ứng viên bị loại khỏi câu hỏi lại: không tra được tổ tiên trong danh mục (đóng mặc định) (vết không kể từng ứng viên)"}; !slices.Equal(two.Rejected, want) {
+	if want := []string{"1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)",
+		"2 ứng viên bị loại khỏi câu hỏi lại: không tra được tổ tiên trong danh mục (đóng mặc định) (vết không nêu trạng thái phạm vi của từng ứng viên)"}; !slices.Equal(two.Rejected, want) {
 		t.Errorf("hai lý do: %q", two.Rejected)
 	}
 	// bí danh có 42 ứng viên: danh sách bị cắt, số thực thể vẫn đúng
@@ -243,5 +245,135 @@ func TestExplainRouteGhiDeVaRouteKhaiBiChan(t *testing.T) {
 		return r == "SQL_QUERY (route khai của ý định fuel_issued): không đi — thiếu capability metrics.read"
 	}) {
 		t.Errorf("route khai bị chặn: %q", n.Rejected)
+	}
+}
+
+// N3 (soát vòng 2): các bậc "qua" LIÊN TIẾP cùng tên gộp một bậc kèm số lần dù dữ kiện khác nhau (mỗi thực thể một dữ kiện): câu nêu hàng trăm
+// thực thể khác nhau không làm dòng thang bậc dài theo. Dữ kiện từng bậc vẫn nằm ở dòng phương án bị loại (đã có trần số ý). Bậc đã chặn và bậc
+// "qua" cách nhau bởi bậc khác không gộp.
+func TestExplainRouteGopBacQuaLienTiepKhacDuKien(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &Ask{RT: rt}
+	scope := func(key string) contracts.RouteCheck {
+		return contracts.RouteCheck{Rule: "phạm vi dữ liệu (câu hỏi nghĩa số liệu)", Route: contracts.RouteReject, Detail: key + ": trong phạm vi"}
+	}
+	other := contracts.RouteCheck{Rule: "capability của ý định", Route: contracts.RouteReject, Detail: "metrics.read: có (vai director)"}
+	fired := contracts.RouteCheck{Rule: "phạm vi dữ liệu (câu hỏi nghĩa số liệu)", Route: contracts.RouteReject, Fired: true, Detail: "DZ-03: ngoài phạm vi"}
+	routed := contracts.RoutePlan{Route: contracts.RouteReject, Reason: "chặn", Checked: []contracts.RouteCheck{scope("EX-01"), scope("EX-02"), scope("EX-03"), other, scope("EX-04"), scope("EX-05"), fired}}
+	n := a.explainRoute(routed, routed)
+	want := "đã kiểm theo thứ tự: 1) phạm vi dữ liệu (câu hỏi nghĩa số liệu): qua (×3) · 2) capability của ý định: qua · 3) phạm vi dữ liệu (câu hỏi nghĩa số liệu): qua (×2) · " +
+		"4) phạm vi dữ liệu (câu hỏi nghĩa số liệu) — DZ-03: ngoài phạm vi → chọn REJECT"
+	if len(n.Reasons) != 2 || n.Reasons[1] != want {
+		t.Errorf("thang bậc:\n  được: %q\n  muốn: %q", n.Reasons, want)
+	}
+	// mỗi dữ kiện khác nhau vẫn có dòng phương án bị loại riêng (trần số ý do Compact lo)
+	if len(n.Rejected) != 6 || n.Rejected[0] != "REJECT (phạm vi dữ liệu (câu hỏi nghĩa số liệu)): không áp dụng — EX-01: trong phạm vi" {
+		t.Errorf("phương án bị loại: %q", n.Rejected)
+	}
+	// hai bậc "qua" cùng tên nhưng khác route không gộp; bậc đã chọn không gộp với bậc "qua" liền sau dù cùng tên và cùng route
+	passA1 := contracts.RouteCheck{Rule: "bậc A", Route: contracts.RouteReject, Detail: "d1"}
+	passA2 := contracts.RouteCheck{Rule: "bậc A", Route: contracts.RouteClarification, Detail: "d2"}
+	pickedB := contracts.RouteCheck{Rule: "bậc B", Route: contracts.RouteSQLQuery, Fired: true, Detail: "d3"}
+	passB := contracts.RouteCheck{Rule: "bậc B", Route: contracts.RouteSQLQuery, Detail: "d4"}
+	sep := a.explainRoute(contracts.RoutePlan{Route: contracts.RouteSQLQuery, Reason: "r", Checked: []contracts.RouteCheck{passA1, passA2, pickedB, passB}}, contracts.RoutePlan{Route: contracts.RouteSQLQuery, Reason: "r"})
+	if got, want := sep.Reasons[1], "đã kiểm theo thứ tự: 1) bậc A: qua · 2) bậc A: qua · 3) bậc B — d3 → chọn SQL_QUERY · 4) bậc B: qua"; got != want {
+		t.Errorf("bậc khác route / bậc đã chọn không gộp: %q, muốn %q", got, want)
+	}
+	// 280 bậc khác dữ kiện: vẫn MỘT bậc kèm số lần, dòng ngắn
+	var many []contracts.RouteCheck
+	for i := range 280 {
+		many = append(many, scope(fmt.Sprintf("MX-%03d", i%140+1))) // mỗi dữ kiện lặp hai lần (không liền nhau): bậc giống hệt gộp trước, rồi các bậc "qua" liền nhau gộp tiếp, cộng dồn số lần
+	}
+	m := a.explainRoute(contracts.RoutePlan{Route: contracts.RouteClarification, Reason: "r", Checked: many}, contracts.RoutePlan{Route: contracts.RouteClarification, Reason: "r"})
+	if got, want := m.Reasons[1], "đã kiểm theo thứ tự: 1) phạm vi dữ liệu (câu hỏi nghĩa số liệu): qua (×280)"; got != want {
+		t.Errorf("280 bậc: %q, muốn %q", got, want)
+	}
+}
+
+// N1 (S1, soát vòng 2): con số của người hỏi là chữ lấy từ câu — ở cả ba dòng nó đi vào (đầu vào của cổng, phép so sánh, bằng chứng của người hỏi
+// ở S7) nó đi qua contracts.Quote, kể cả khi bị định dạng lại ("48.291.637"), nên Why.WithholdQuoted che được khi câu mang bí mật. Dựng thẳng đầu
+// vào của noteGate / noteMetricContext vì lượt thật có chữ bí mật luôn dừng ở chiều "residual" trước khi tới hai dòng sau.
+func TestSoCuaNguoiHoiQuaQuoteOCaBaDong(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &Ask{RT: rt}
+	claimed := contracts.Value{Kind: contracts.ValueQuantity, Number: "48291637", Unit: "L"}
+	total := contracts.Value{Kind: contracts.ValueQuantity, Number: "3850", Unit: "L"}
+	var why traces.Why
+	a.noteGate(&why, gate{in: contracts.NormalizedInput{Raw: "EX-03 hôm nay được cấp 48291637 L đúng không?"}, metric: "issued_fuel", base: true, confirming: true, confirm: true,
+		tmpl: "confirm_no", claimed: claimed, total: &total, subject: "EX-03", used: []string{"warehouse_slip"}})
+	pkg := contracts.ContextPackage{Evidence: []contracts.Evidence{{ID: "question", Kind: contracts.EvidenceQuestion, Values: []contracts.Value{claimed}}}}
+	a.noteMetricContext(&why, "", sourceoftruth.Result{}, pkg, "EX-03", 1)
+
+	wantInputs := "đầu vào của cổng: chủ thể EX-03 · kỳ đọc được 0 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận “48.291.637” L"
+	wantCompare := `so sánh bằng tuyệt đối số người hỏi “48.291.637” với số có thẩm quyền 3.850 → "Không." (confirm_no)`
+	wantQuestion := "question: con số do người hỏi nêu (“48291637L”) — nguồn là chính câu hỏi, không phải số liệu"
+	if !slices.Contains(why.Validate.Reasons, wantInputs) || !slices.Contains(why.Validate.Reasons, wantCompare) || !slices.Contains(why.Context.Reasons, wantQuestion) {
+		t.Fatalf("ba dòng có số của người hỏi phải đặt số trong cặp “…”:\n%s\n%s", strings.Join(why.Validate.Reasons, "\n"), strings.Join(why.Context.Reasons, "\n"))
+	}
+	// câu mang bí mật nhận ra được: mọi đoạn trong cặp “…” bị che, không còn chữ số nào của người hỏi (dạng thô lẫn dạng định dạng lại)
+	masked := why.WithholdQuoted()
+	for _, line := range slices.Concat(masked.Validate.Reasons, masked.Context.Reasons) {
+		if d := strings.NewReplacer(".", "", ",", "").Replace(line); strings.Contains(d, "48291637") {
+			t.Errorf("còn con số của người hỏi sau khi che: %q", line)
+		}
+	}
+	if want := strings.Replace(wantInputs, "“48.291.637”", "“đã che”", 1); !slices.Contains(masked.Validate.Reasons, want) {
+		t.Errorf("dòng đầu vào của cổng sau khi che:\n%s", strings.Join(masked.Validate.Reasons, "\n"))
+	}
+}
+
+// N2 (soát vòng 2: X6): lời giải nghĩa của TỪNG chiều khoá nguyên chữ — đổi lời của chiều này thành lời của chiều khác (hay sửa một chữ) là test đỏ.
+// TestGapMeaningDuMaChieu chỉ đòi mỗi mã có lời giải nghĩa; test này đòi lời đó đúng với chiều.
+func TestGapMeaningNguyenChu(t *testing.T) {
+	want := map[string]string{
+		"metric":   "chỉ số không do người hỏi nêu rõ (ý định chung theo quy ước của pack), hay có cụm chỉ số / lượng khác ở ngữ cảnh có thể là chỉ số của con số",
+		"period":   "mốc thời gian: câu không nêu mốc (kỳ mặc định của pack) hoặc nêu nhiều mốc",
+		"accent":   "câu không dấu: bộ chuẩn hoá khớp bỏ dấu nên nhiều chữ trùng nhau",
+		"marker":   "nhiều cụm xác nhận là nhiều claim, một phán quyết không trả lời đủ",
+		"subject":  "chủ thể của con số chưa giải: có tên khác chủ thể, bí danh mơ hồ chưa có bằng chứng dương, hay con số chưa gắn vào chủ thể",
+		"value":    "con số xác nhận chưa đọc chắc: có số khác, thiếu đơn vị, ngoài miền của chỉ số, đọc bằng chữ mơ hồ hay nhắc lại sau mệnh đề khác",
+		"source":   "nguồn: tên nguồn trong câu không khớp nguồn đã tạo nên con số trả lời, hay có cụm nguồn khác ở ngữ cảnh",
+		"residual": "phần chữ hay ký hiệu chưa được giải thích (từ lạ, '~', '>', '%', '/')",
+	}
+	if len(gapMeaning) != len(want) {
+		t.Errorf("gapMeaning có %d chiều, muốn %d", len(gapMeaning), len(want))
+	}
+	for code, w := range want {
+		if got := gapMeaning[code]; got != w {
+			t.Errorf("chiều %q:\n  được: %q\n  muốn: %q", code, got, w)
+		}
+	}
+}
+
+// S7 của route số liệu kể cả bằng chứng đi kèm thêm sau truy vấn: con số của người hỏi, số chỗ lệch không kê ra, chỉ số khác cùng kỳ — từng dòng khoá nguyên văn
+// (đếm chỗ lệch chỉ xuất hiện khi một tổng có hơn 3 chỗ lệch, seed không có ca như thế nên dựng thẳng đầu vào).
+func TestNoteMetricContextBangChungDiKemThemSauTruyVan(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &Ask{RT: rt}
+	pkg := contracts.ContextPackage{Evidence: []contracts.Evidence{
+		{ID: "question", Kind: contracts.EvidenceQuestion, Values: []contracts.Value{{Number: "4123", Unit: "L"}}},
+		{ID: "count:conflicts", Kind: contracts.EvidenceCalculation, Values: []contracts.Value{{Number: "5"}}},
+		{ID: "calc:billed_fuel", Kind: contracts.EvidenceCalculation},
+	}}
+	var why traces.Why
+	a.noteMetricContext(&why, "", sourceoftruth.Result{}, pkg, "EX-03", 2)
+	want := []string{
+		"gói ngữ cảnh: 3 bằng chứng (0 dữ liệu nguồn, 0 bằng chứng khác của truy vấn, 3 bằng chứng đi kèm thêm sau truy vấn)",
+		"question: con số do người hỏi nêu (“4123L”) — nguồn là chính câu hỏi, không phải số liệu",
+		"count:conflicts: đếm số chỗ lệch không kê ra trong câu",
+		"calc:billed_fuel: chỉ số khác cùng kỳ, kê thêm (không phải chỉ số được hỏi)",
+		"quyền: phạm vi dữ liệu đã kiểm ở S5 cho thực thể gốc EX-03; truy vấn chạy trên 2 thực thể (gốc và con cháu), không lọc bằng chứng theo quyền sau truy vấn",
+	}
+	if !slices.Equal(why.Context.Reasons, want) {
+		t.Errorf("S7:\n  được: %q\n  muốn: %q", why.Context.Reasons, want)
 	}
 }

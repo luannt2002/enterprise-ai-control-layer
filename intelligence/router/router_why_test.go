@@ -140,3 +140,79 @@ func TestNarrowGhiUngVienTruocVaSauKhiLoc(t *testing.T) {
 		t.Errorf("không có ứng viên thì không có lần gỡ nào: %+v", plan.Narrowed)
 	}
 }
+
+// N2 (soát vòng 2: X27–X30): dữ kiện của từng bậc kiểm khoá nguyên chữ — capability của vế so sánh (có / thiếu), tên vế so sánh, tên ý định tri thức
+// của HYBRID, và ngoài / trong phạm vi của câu hỏi nghĩa số liệu.
+func TestRouteDuKienBacSoSanhHybridVaPhamViNghiaSoLieu(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []intent.SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}}
+	set, err := intent.Compile([]intent.Def{
+		{Name: "q", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Capability: "metrics.read", Template: "metric_total", Slots: slots},
+		{Name: "c", Route: "SQL_QUERY", Keywords: []string{"báo"}, Capability: "reports.read", Template: "metric_total", Slots: slots},
+		{Name: "k", Route: "RAG", Keywords: []string{"quy trình"}, Capability: "documents.read", Template: "sop"},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pol := Policy{Roles: map[string]RoleDef{
+		"full":    {Capabilities: []string{"metrics.read", "reports.read", "documents.read"}, Scope: "all"},
+		"partial": {Capabilities: []string{"metrics.read"}, Scope: "all"},
+		"eng":     {Capabilities: []string{"metrics.read"}, Scope: "attribute"},
+	}}
+	lineage := func(e contracts.EntityRef) []string { return []string{e.Key} }
+	ex := contracts.EntityRef{ID: "EX-03", Key: "EX-03", Type: "equipment"}
+	filled := contracts.Intent{Name: "q", Slots: map[string]contracts.Slot{"subject": {Name: "subject", Entity: &ex}}}
+	check := func(p contracts.RoutePlan, rule string) contracts.RouteCheck {
+		t.Helper()
+		for _, c := range p.Checked {
+			if c.Rule == rule {
+				return c
+			}
+		}
+		t.Fatalf("không có bậc %q trong %v", rule, rules(p))
+		return contracts.RouteCheck{}
+	}
+	route := func(role string, cls intent.Result) contracts.RoutePlan {
+		return Route(set, cls, contracts.NormalizedInput{}, contracts.Principal{Roles: []string{role}}, pol, Settings{}, lineage)
+	}
+
+	// vế so sánh thiếu capability: bậc chặn nói thiếu capability nào, route REJECT; đủ capability: bậc nói "có" và bậc so sánh nêu tên vế
+	deny := route("partial", intent.Result{Intent: filled, Compare: "c"})
+	if c := check(deny, "capability của vế so sánh"); !c.Fired || c.Detail != "reports.read: thiếu" || deny.Route != contracts.RouteReject || deny.Reason != "thiếu capability reports.read cho vế so sánh" {
+		t.Errorf("vế so sánh thiếu capability: %+v, route %s, lý do %q", c, deny.Route, deny.Reason)
+	}
+	cmp := route("full", intent.Result{Intent: filled, Compare: "c"})
+	if c := check(cmp, "capability của vế so sánh"); c.Fired || c.Detail != "reports.read: có" {
+		t.Errorf("vế so sánh đủ capability: %+v", c)
+	}
+	if c := check(cmp, "câu so sánh hai nghĩa"); !c.Fired || c.Detail != "c" || c.Route != contracts.RouteCalculation || cmp.Route != contracts.RouteCalculation || cmp.Reason != "ý định q khớp luật, so với c" {
+		t.Errorf("bậc so sánh phải nêu tên vế sau: %+v, route %s, lý do %q", c, cmp.Route, cmp.Reason)
+	}
+	if c := check(route("full", intent.Result{Intent: filled}), "câu so sánh hai nghĩa"); c.Fired || c.Detail != "không có vế so sánh" {
+		t.Errorf("không so sánh: %+v", c)
+	}
+
+	// HYBRID: phần tri thức cần capability riêng (có / thiếu) và bậc ghép nêu TÊN ý định tri thức
+	hyb := route("full", intent.Result{Intent: filled, Knowledge: "k"})
+	if c := check(hyb, "capability của phần tri thức"); c.Fired || c.Detail != "documents.read: có" {
+		t.Errorf("capability phần tri thức đủ: %+v", c)
+	}
+	if c := check(hyb, "ý định tri thức khớp kèm"); !c.Fired || c.Detail != "k" || c.Route != contracts.RouteHybrid || hyb.Route != contracts.RouteHybrid || hyb.Reason != "ý định q khớp luật + tri thức k" {
+		t.Errorf("bậc HYBRID phải nêu tên ý định tri thức: %+v, route %s, lý do %q", c, hyb.Route, hyb.Reason)
+	}
+	if c := check(route("partial", intent.Result{Intent: filled, Knowledge: "k"}), "capability của phần tri thức"); !c.Fired || c.Detail != "documents.read: thiếu" {
+		t.Errorf("capability phần tri thức thiếu: %+v", c)
+	}
+
+	// câu hỏi nghĩa số liệu: bậc phạm vi nói đúng ngoài / trong phạm vi của từng thực thể được nhắc
+	eng := contracts.Principal{Roles: []string{"eng"}, Attributes: map[string]string{"entity_scope": "EX-03"}}
+	in := Route(set, intent.Result{NeedMeaning: []string{"q"}, Mentioned: []contracts.EntityRef{ex}}, contracts.NormalizedInput{}, eng, pol, Settings{}, lineage)
+	if c := check(in, "phạm vi dữ liệu (câu hỏi nghĩa số liệu)"); c.Fired || c.Detail != "EX-03: trong phạm vi" || in.Route != contracts.RouteClarification {
+		t.Errorf("trong phạm vi: %+v, route %s", c, in.Route)
+	}
+	other := contracts.Principal{Roles: []string{"eng"}, Attributes: map[string]string{"entity_scope": "PRJ-B"}}
+	out := Route(set, intent.Result{NeedMeaning: []string{"q"}, Mentioned: []contracts.EntityRef{ex}}, contracts.NormalizedInput{}, other, pol, Settings{}, lineage)
+	if c := check(out, "phạm vi dữ liệu (câu hỏi nghĩa số liệu)"); !c.Fired || c.Detail != "EX-03: ngoài phạm vi" || out.Route != contracts.RouteReject {
+		t.Errorf("ngoài phạm vi: %+v, route %s", c, out.Route)
+	}
+}

@@ -110,7 +110,7 @@ func TestVetDuS4YDinhDaXet(t *testing.T) {
 
 	// từ khoá khớp mà câu không có vật tư: khớp một phần, vết nói thiếu thuật ngữ nào
 	part := stepOf(t, steps(t, director, "Hôm nay nhận bao nhiêu?"), "S4")
-	wantAll(t, "S4 khớp một phần", strings.Join(part.Rejected, "\n"), "fuel_issued: khớp một phần — từ khoá nhận khớp nhưng câu thiếu thuật ngữ diesel_fuel")
+	wantAll(t, "S4 khớp một phần", strings.Join(part.Rejected, "\n"), "fuel_issued: khớp một phần — từ khoá “nhận” khớp nhưng câu thiếu thuật ngữ diesel_fuel")
 
 	// ý định chung (D-OP-15 a2): không từ khoá riêng nào khớp mà câu vẫn đủ thực thể + thuật ngữ + cụm xác nhận
 	gen := stepOf(t, steps(t, director, "Dầu xuất hôm nay của EX-03 là 3850 L đúng không?"), "S4")

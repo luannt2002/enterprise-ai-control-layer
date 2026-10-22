@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"slices"
 	"time"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
@@ -96,10 +97,12 @@ func (w Why) WithholdQuoted() Why {
 	})
 }
 
-// Compact gộp các ý GIỐNG HỆT nhau thành một ý kèm "(×N)" (câu dài nhắc lại một cụm nhiều lần không in lặp từng lần) rồi cắt mỗi danh sách còn
-// tối đa limit ý, ý cuối nói còn bao nhiêu ý không in: phần giải thích có trần, không phình theo độ dài câu hỏi.
-func (w Why) Compact(limit int) Why {
-	return w.apply(func(lines []string) []string { return compactLines(lines, limit) })
+// Compact gộp các ý GIỐNG HỆT nhau thành một ý kèm "(×N)" (câu dài nhắc lại một cụm nhiều lần không in lặp từng lần), cắt mỗi ý dài hơn maxRunes
+// ký tự (kèm chữ báo đã cắt), rồi cắt mỗi danh sách còn tối đa limit ý, ý cuối nói còn bao nhiêu ý không in: phần giải thích có trần cả theo số ý
+// lẫn theo độ dài từng ý, không phình theo độ dài câu hỏi hay số thực thể khác nhau trong câu. maxRunes <= 0 là không cắt theo độ dài.
+// Gọi SAU Why.WithholdQuoted: cắt dòng có thể làm mất dấu “ ” đóng của một đoạn chữ của người hỏi.
+func (w Why) Compact(limit, maxRunes int) Why {
+	return w.apply(func(lines []string) []string { return compactLines(lines, limit, maxRunes) })
 }
 
 func (w Why) apply(f func([]string) []string) Why {
@@ -109,7 +112,7 @@ func (w Why) apply(f func([]string) []string) Why {
 	return w
 }
 
-func compactLines(lines []string, limit int) []string {
+func compactLines(lines []string, limit, maxRunes int) []string {
 	if len(lines) == 0 {
 		return lines
 	}
@@ -126,12 +129,22 @@ func compactLines(lines []string, limit int) []string {
 			out = append(out, fmt.Sprintf("… và %d ý khác không in (trần %d ý mỗi danh sách)", len(order)-limit, limit))
 			break
 		}
-		if c := count[l]; c > 1 {
+		c := count[l]
+		l = clipRunes(l, maxRunes)
+		if c > 1 {
 			l += fmt.Sprintf(" (×%d)", c)
 		}
 		out = append(out, l)
 	}
 	return out
+}
+
+// clipRunes cắt dòng dài hơn max ký tự (đếm theo ký tự, không cắt giữa một ký tự nhiều byte) và nói rõ đã cắt; max <= 0 là không cắt.
+func clipRunes(l string, max int) string {
+	if max <= 0 || utf8.RuneCountInString(l) <= max {
+		return l
+	}
+	return string([]rune(l)[:max]) + fmt.Sprintf("… (cắt: dòng dài quá %d ký tự)", max)
 }
 
 // Diff trả tên các chặng mà hai bản ghi quyết định khác nhau (rỗng = khớp hoàn toàn).

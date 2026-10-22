@@ -317,7 +317,7 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		if counts[i] == 0 {
 			continue
 		}
-		kw := strings.Join(phrases[i], ", ")
+		kw := quoteAll(phrases[i])
 		switch {
 		case hasTerm(d, in) || (implicit != "" && requires(d, implicit)):
 			matched = append(matched, d)
@@ -599,7 +599,8 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 			if len(ps) == 1 { // kỳ duy nhất (kỳ hẹp, nếu câu viết lồng nhiều kỳ)
 				v := ps[0].Value
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: ps[0].Raw}
-				w.reason("khe %s ← %s (mốc %s trong câu)", sd.Name, v.Text, contracts.Quote(ps[0].Raw))
+				// giá trị mốc đã chuẩn hoá (ISO) cũng là chữ lấy từ câu của người hỏi: cũng qua Quote để câu mang bí mật dạng ngày không để lọt nó
+				w.reason("khe %s ← %s (mốc %s trong câu)", sd.Name, contracts.Quote(v.Text), contracts.Quote(ps[0].Raw))
 				continue
 			}
 			if v, ok := defaultPeriod(sd.Default, now); ok {
@@ -857,10 +858,20 @@ func hitsText(defs []Def, counts []int, phrases [][]string) string {
 	var out []string
 	for i, d := range defs {
 		if counts[i] > 0 {
-			out = append(out, fmt.Sprintf("%s [%s]", d.Name, strings.Join(phrases[i], ", ")))
+			out = append(out, fmt.Sprintf("%s [%s]", d.Name, quoteAll(phrases[i])))
 		}
 	}
 	return strings.Join(out, " · ")
+}
+
+// quoteAll đặt từng đoạn chữ NGUYÊN VĂN của người hỏi (cụm từ khoá khớp trong câu) vào cặp “…” rồi nối bằng ", ": mọi chữ lấy từ câu đều qua
+// contracts.Quote để Why.WithholdQuoted che được khi câu mang bí mật.
+func quoteAll(phrases []string) string {
+	quoted := make([]string, len(phrases))
+	for i, p := range phrases {
+		quoted[i] = contracts.Quote(p)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 // defNames là tên các ý định, nối bằng ", ".

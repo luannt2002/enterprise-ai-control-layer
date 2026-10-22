@@ -60,8 +60,8 @@ func TestVetDuChatCauNhieuMenhDe(t *testing.T) {
 	wantList(t, "S3", w.Resolve.Reasons, "cụm “EX-03” (khoá so khớp “ex 3”) khớp EX-03 (Máy xúc EX-03, loại equipment)")
 	wantList(t, "S4", w.Intent.Reasons,
 		"từ khoá lấy trong mệnh đề hỏi “vậy EX-03 được cấp 4k dầu đúng không” (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)",
-		"từ khoá khớp (luật khớp dài nhất): fuel_issued [được cấp]",
-		"khớp đủ: fuel_issued (ưu tiên 20, từ khoá được cấp, câu có thuật ngữ diesel_fuel)",
+		"từ khoá khớp (luật khớp dài nhất): fuel_issued [“được cấp”]",
+		"khớp đủ: fuel_issued (ưu tiên 20, từ khoá “được cấp”, câu có thuật ngữ diesel_fuel)",
 		"chọn fuel_issued: ý định duy nhất khớp đủ",
 		"khe subject ← EX-03 (thực thể rõ đầu tiên đúng loại)",
 		"khe period ← 2026-10-19 (câu không nêu mốc: mặc định today của pack)",
@@ -73,7 +73,7 @@ func TestVetDuChatCauNhieuMenhDe(t *testing.T) {
 	// kỳ đọc được 0: câu không nêu mốc nên cổng giữ phán quyết ở chiều "period" — và đầu vào của cổng nói đúng số đó
 	wantList(t, "S9 lý do", w.Validate.Reasons,
 		`cổng phán quyết: không phán quyết — chiều "period" chưa giải được: mốc thời gian: câu không nêu mốc (kỳ mặc định của pack) hoặc nêu nhiều mốc`,
-		"đầu vào của cổng: chủ thể EX-03 · kỳ đọc được 0 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận 4.000 L",
+		"đầu vào của cổng: chủ thể EX-03 · kỳ đọc được 0 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận “4.000” L",
 		"chỉ trả số kèm câu giữ phán quyết (confirm_withheld)")
 	wantList(t, "S9 loại", w.Validate.Rejected,
 		`phán quyết "Đúng." (confirm_yes): bị loại — chiều "period" chưa giải`,
@@ -85,8 +85,8 @@ func TestVetDuChatXacNhanKhong(t *testing.T) {
 	w := whyOfTurn(t, realAsk(t), person("director", ""), "EX-03 hôm nay được cấp 4000 L đúng không?")
 	wantList(t, "S9 lý do", w.Validate.Reasons,
 		"cổng phán quyết: được phán quyết — mọi chiều của claim (chủ thể, chỉ số, kỳ, giá trị và đơn vị, nguồn) đã giải bằng bằng chứng dương trong câu và mọi chữ của câu được giải thích",
-		"đầu vào của cổng: chủ thể EX-03 · kỳ đọc được 1 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận 4.000 L",
-		`so sánh bằng tuyệt đối số người hỏi 4.000 với số có thẩm quyền 3.850 → "Không." (confirm_no)`)
+		"đầu vào của cổng: chủ thể EX-03 · kỳ đọc được 1 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận “4.000” L",
+		`so sánh bằng tuyệt đối số người hỏi “4.000” với số có thẩm quyền 3.850 → "Không." (confirm_no)`)
 	wantList(t, "S9 loại", w.Validate.Rejected,
 		`phán quyết "Đúng." (confirm_yes): bị loại — kết quả so sánh bằng tuyệt đối chọn confirm_no`,
 		"không phán quyết (confirm_withheld): bị loại — cổng không thiếu chiều nào")
@@ -95,7 +95,7 @@ func TestVetDuChatXacNhanKhong(t *testing.T) {
 		"nguồn warehouse_slip (thẩm quyền 1): 1 bằng chứng — tạo nên con số chính",
 		"nguồn erp (thẩm quyền 2): 1 bằng chứng — không tạo nên con số chính (nguồn thẩm quyền thấp hơn, hoặc lệch)",
 		"calc:issued_fuel: phép tính của con số chính (sum(fact:f03))",
-		"question: con số do người hỏi nêu (4000L) — nguồn là chính câu hỏi, không phải số liệu",
+		"question: con số do người hỏi nêu (“4000L”) — nguồn là chính câu hỏi, không phải số liệu",
 		"calc:billed_fuel: chỉ số khác cùng kỳ, kê thêm (không phải chỉ số được hỏi)",
 		"calc:measured_consumption: chỉ số khác cùng kỳ, kê thêm (không phải chỉ số được hỏi)",
 		"calc:reported_fuel: chỉ số khác cùng kỳ, kê thêm (không phải chỉ số được hỏi)",
@@ -107,8 +107,8 @@ func TestVetDuChatXacNhanKhong(t *testing.T) {
 // Xác nhận ĐÚNG ("Đúng.") trên một dự án: phán quyết bị loại là "Không.", và số thực thể truy vấn là số của dự án cùng con cháu (3), không phải 1.
 func TestVetDuChatXacNhanDungTrenDuAn(t *testing.T) {
 	w := whyOfTurn(t, realAsk(t), person("director", ""), "Dự án A hôm nay được cấp 5050 L đúng không?")
-	wantLine(t, "S9", w.Validate.Reasons, `so sánh bằng tuyệt đối số người hỏi 5.050 với số có thẩm quyền 5.050 → "Đúng." (confirm_yes)`)
-	wantLine(t, "S9 đầu vào", w.Validate.Reasons, "đầu vào của cổng: chủ thể PRJ-A · kỳ đọc được 1 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận 5.050 L")
+	wantLine(t, "S9", w.Validate.Reasons, `so sánh bằng tuyệt đối số người hỏi “5.050” với số có thẩm quyền 5.050 → "Đúng." (confirm_yes)`)
+	wantLine(t, "S9 đầu vào", w.Validate.Reasons, "đầu vào của cổng: chủ thể PRJ-A · kỳ đọc được 1 · cụm xác nhận 1 · câu có dấu true · nguồn đã tạo nên con số warehouse_slip · con số xác nhận “5.050” L")
 	wantLine(t, "S9 loại", w.Validate.Rejected, `phán quyết "Không." (confirm_no): bị loại — kết quả so sánh bằng tuyệt đối chọn confirm_yes`)
 	wantLine(t, "S7 quyền", w.Context.Reasons, "quyền: phạm vi dữ liệu đã kiểm ở S5 cho thực thể gốc PRJ-A; truy vấn chạy trên 3 thực thể (gốc và con cháu), không lọc bằng chứng theo quyền sau truy vấn")
 	wantLine(t, "S7 nguồn", w.Context.Reasons, "nguồn warehouse_slip (thẩm quyền 1): 2 bằng chứng — tạo nên con số chính")
@@ -163,7 +163,7 @@ func TestVetDuChatYDinhHieuNgamVaBiBo(t *testing.T) {
 	director := person("director", "")
 	imp := whyOfTurn(t, realAsk(t), director, "EX-03 hôm nay được cấp bao nhiêu?")
 	wantLine(t, "hiểu ngầm", imp.Intent.Reasons, "thuật ngữ hiểu ngầm diesel_fuel (câu nhắc thực thể mà không nói vật tư và không có đại lượng đo được nào khác — chính sách của pack)")
-	wantLine(t, "khớp đủ nhờ hiểu ngầm", imp.Intent.Reasons, "khớp đủ: fuel_issued (ưu tiên 20, từ khoá được cấp, thuật ngữ hiểu ngầm diesel_fuel)")
+	wantLine(t, "khớp đủ nhờ hiểu ngầm", imp.Intent.Reasons, "khớp đủ: fuel_issued (ưu tiên 20, từ khoá “được cấp”, thuật ngữ hiểu ngầm diesel_fuel)")
 	wantLine(t, "chỉ số hiểu ngầm", imp.Intent.Reasons, "chỉ số issued_fuel (theo thuật ngữ diesel_fuel (hiểu ngầm) của ý định fuel_issued)")
 	wantLine(t, "luật", imp.Intent.Reasons, "luật intent:rules+default_term:diesel_fuel")
 	wantList(t, "ý định yếu bị loại", imp.Intent.Rejected, "fuel_generic: khớp đủ nhưng bị loại — ưu tiên 10 thấp hơn fuel_issued (20)")
@@ -202,7 +202,7 @@ func TestVetDuChatCauHoiLaiCuaKySu(t *testing.T) {
 		"cụm “RL-02” (khoá so khớp “rl 2”) khớp RL-02",
 		"cụm “máy 03” (khoá so khớp “may 3”) khớp 2 thực thể: DZ-03, EX-03 — không chọn bừa",
 		"ứng viên của câu hỏi lại: trước lọc phạm vi 3 ứng viên → sau lọc 2 ứng viên [RL-02, EX-03]")
-	wantList(t, "S3 loại", w.Resolve.Rejected, "1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không kể từng ứng viên)")
+	wantList(t, "S3 loại", w.Resolve.Rejected, "1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)")
 	wantLine(t, "nguồn RL-02", w.Intent.Reasons, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm: thực thể rõ “rl 2” ở S3, S4 gộp vào danh sách vì khe subject chỉ nhận một thực thể mà câu nêu 3")
 	wantLine(t, "nguồn EX-03", w.Intent.Reasons, "ứng viên hỏi lại EX-03 ← S3: ứng viên của cụm mơ hồ “may 3”, S4 giữ trong danh sách vì khe subject chỉ nhận một thực thể mà câu nêu 3")
 }

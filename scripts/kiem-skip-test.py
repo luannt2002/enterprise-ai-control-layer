@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Cổng "không test nào bị SKIP" cho CI có PG.
+"""Cổng "không test nào bị SKIP hay FAIL" cho CI có PG.
 
 Đọc luồng `go test -json` (từ tệp hoặc stdin), in danh sách test bị bỏ qua kèm lý do, và thoát 1 nếu có test nào bị SKIP mà
 không nằm trong danh sách cho phép. Lý do: ở CI đã có PG và mọi công cụ, một test SKIP nghĩa là một thứ chưa được kiểm mà
 báo cáo vẫn xanh — "bỏ qua" không phải "đạt".
 
+Cổng cũng đỏ khi luồng có test hoặc gói FAIL. Đây là lớp thứ hai: lớp thứ nhất là mã thoát của `go test` (bước CI đặt pipefail để
+`| tee` không nuốt nó), nhưng luồng JSON vẫn kể lại test hỏng kể cả khi ai đó làm mất lớp thứ nhất — cổng không được báo "XANH"
+cho một luồng mà chính nó cho thấy có test hỏng. Gói không dịch được chỉ có sự kiện fail mức gói (không có Test) nên được đếm riêng.
+
 Dùng:
     go test -count=1 -json ./... > test.json            # thoát khác 0 nếu có test đỏ
-    python3 -I scripts/kiem-skip-test.py test.json      # thoát 1 nếu có test SKIP
+    python3 -I scripts/kiem-skip-test.py test.json      # thoát 1 nếu có test SKIP hoặc FAIL
     python3 -I scripts/kiem-skip-test.py --cho-phep scripts/skip-cho-phep.txt test.json
 
 Danh sách cho phép (tuỳ chọn): mỗi dòng "<gói> <TênTest> # lý do"; dòng trống và dòng bắt đầu bằng # bị bỏ qua. Mục không còn
-khớp test nào bị SKIP cũng làm cổng đỏ (danh sách thừa che lỗi sau này). Chỉ test có tên (Test != "") được tính; gói không có
-tệp test (Action skip ở mức gói) không phải test bị bỏ qua.
+khớp test nào bị SKIP cũng làm cổng đỏ (danh sách thừa che lỗi sau này). Chỉ test có tên (Test != "") được tính là test bị bỏ qua;
+gói không có tệp test (Action skip ở mức gói) không phải test bị bỏ qua. Danh sách cho phép chỉ áp cho SKIP, không bao giờ cho FAIL.
 
-Mã thoát: 0 sạch · 1 có SKIP ngoài danh sách (hoặc mục cho phép thừa) · 2 lỗi dùng / không đọc được đầu vào.
+Mã thoát: 0 sạch · 1 có SKIP ngoài danh sách, mục cho phép thừa, hoặc có test / gói FAIL · 2 lỗi dùng / không đọc được đầu vào.
 """
 import argparse
 import json
@@ -29,9 +33,11 @@ def doc(path):
 
 
 def phan_tich(luong):
-    """Trả (số test theo kết cục, danh sách SKIP [(gói, test, lý do)], số dòng không phải JSON)."""
+    """Trả (số test theo kết cục, danh sách SKIP [(gói, test, lý do)], test FAIL [(gói, test)], gói FAIL, số dòng không phải JSON)."""
     ket_cuc = defaultdict(int)
     skip = []
+    test_hong = []
+    goi_hong = []
     dau_ra = defaultdict(list)  # (gói, test) → các dòng output, để lấy lý do
     khong_json = 0
     for dong in luong:
@@ -45,11 +51,15 @@ def phan_tich(luong):
             continue
         goi, ten, hanh_dong = ev.get("Package", ""), ev.get("Test", ""), ev.get("Action", "")
         if not ten:
+            if hanh_dong == "fail" and goi and goi not in goi_hong:  # gói hỏng: test FAIL, hoặc không dịch được (không có sự kiện mức test)
+                goi_hong.append(goi)
             continue
         if hanh_dong == "output":
             dau_ra[(goi, ten)].append(ev.get("Output", "").rstrip("\n"))
         elif hanh_dong in ("pass", "fail", "skip"):
             ket_cuc[hanh_dong] += 1
+            if hanh_dong == "fail":
+                test_hong.append((goi, ten))
             if hanh_dong == "skip":
                 ly_do = ""
                 for o in dau_ra[(goi, ten)]:
@@ -59,7 +69,7 @@ def phan_tich(luong):
                 if not ly_do:
                     ly_do = "(không có lý do trong đầu ra)"
                 skip.append((goi, ten, ly_do))
-    return ket_cuc, skip, khong_json
+    return ket_cuc, skip, test_hong, goi_hong, khong_json
 
 
 def doc_cho_phep(path):
@@ -83,7 +93,7 @@ def main():
     args = ap.parse_args()
     try:
         with doc(args.dau_vao) as f:
-            ket_cuc, skip, khong_json = phan_tich(f)
+            ket_cuc, skip, test_hong, goi_hong, khong_json = phan_tich(f)
     except OSError as e:
         print(f"không đọc được đầu vào: {e}", file=sys.stderr)
         return 2
@@ -100,10 +110,17 @@ def main():
         print(f"  {nhan}: {goi} {ten}: {ly_do}")
     for goi, ten in thua:
         print(f"  THỪA: {goi} {ten} có trong danh sách cho phép mà không bị SKIP — bỏ mục", file=sys.stderr)
-    if ngoai or thua:
-        print(f"ĐỎ: {len(ngoai)} test SKIP ngoài danh sách cho phép, {len(thua)} mục cho phép thừa", file=sys.stderr)
+    for goi, ten in test_hong:
+        print(f"  FAIL: {goi} {ten}")
+    tt = {g for g, _ in test_hong}
+    for goi in goi_hong:
+        if goi not in tt:  # gói hỏng mà không có test nào FAIL: không dịch được, hoặc chết giữa chừng
+            print(f"  FAIL (gói): {goi} — hỏng mà không có test nào báo fail (không dịch được, hoặc tiến trình test chết)")
+    if ngoai or thua or test_hong or goi_hong:
+        print(f"ĐỎ: {len(ngoai)} test SKIP ngoài danh sách cho phép, {len(thua)} mục cho phép thừa, {len(test_hong)} test FAIL, "
+              f"{len(goi_hong)} gói FAIL", file=sys.stderr)
         return 1
-    print("XANH: không test nào bị SKIP ngoài danh sách cho phép")
+    print("XANH: không test nào bị SKIP ngoài danh sách cho phép, không test hay gói nào FAIL")
     return 0
 
 

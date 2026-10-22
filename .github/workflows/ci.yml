@@ -52,11 +52,15 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Cài poppler-utils (pdftotext, bộ nạp đọc PDF)
+      # poppler-utils: pdftotext cho bộ nạp PDF. fonts-dejavu-core: test của data/ingestion dựng PDF thử bằng DejaVuSans.ttf và TỰ BỎ QUA nếu
+      # thiếu nó; cổng bên dưới cấm SKIP nên thiếu font sẽ làm CI đỏ ngay lần chạy đầu. poppler-utils KHÔNG kéo theo gói font này (đã tra
+      # apt-cache depends trên Ubuntu), nên cài tường minh thay vì trông chờ ảnh runner có sẵn.
+      - name: Cài poppler-utils (pdftotext) và fonts-dejavu-core (phông dựng PDF thử)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils
+          sudo apt-get install -y --no-install-recommends poppler-utils fonts-dejavu-core
           pdftotext -v
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 
       - name: go vet
         run: go vet ./...
@@ -70,10 +74,15 @@ jobs:
             exit 1
           fi
 
+      # `go test … | tee` đi qua một đường ống: KHÔNG có pipefail thì mã thoát của cả đường ống là của tee (luôn 0) và test hỏng vẫn ra CI xanh.
+      # Vì vậy bước tự đặt `set -eo pipefail` thay vì dựa vào cấu hình ngầm của runner (cmd/eais/ci_test.go chạy đúng đoạn lệnh này với một
+      # `go` giả hỏng). Lớp thứ hai: scripts/kiem-skip-test.py cũng đỏ khi luồng JSON có test hay gói FAIL.
       - name: go test -count=1 -json ./... (có PG)
-        run: go test -count=1 -json ./... | tee test.json
+        run: |
+          set -eo pipefail
+          go test -count=1 -json ./... | tee test.json
 
-      - name: Không test nào bị SKIP
+      - name: Không test nào bị SKIP hay FAIL
         run: python3 -I scripts/kiem-skip-test.py test.json
 
       - name: Cổng danh tính và cổng kiến trúc

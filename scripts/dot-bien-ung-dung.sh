@@ -130,6 +130,16 @@ m .github/workflows/ci.yml 'python3 -I scripts/kiem-skip-test.py test.json' 'tru
 m .github/workflows/ci.yml 'permissions:
   contents: read' 'permissions:
   contents: write' 'CI7 CI có quyền ghi'
+m .github/workflows/ci.yml '    defaults:
+      run:
+        shell: bash
+' '' 'CI8 workflow bỏ ghim shell: bash (set -o pipefail là của bash)'
+m .github/workflows/ci.yml '          set -eo pipefail
+          go test -count=1 -json ./... | tee test.json' '          go test -count=1 -json ./... | tee test.json' 'CI9 bước go test nuốt mã lỗi (đường ống | tee không có pipefail)'
+m .github/workflows/ci.yml 'go test -count=1 -json ./... | tee test.json' 'go test -count=1 -json ./... | tee test.json || true' 'CI10 bước go test có || true'
+m scripts/kiem-skip-test.py 'if ngoai or thua or test_hong or goi_hong:' 'if ngoai or thua:' 'CI11 cổng không đỏ khi luồng có test / gói FAIL'
+m scripts/kiem-skip-test.py 'if hanh_dong == "fail" and goi and goi not in goi_hong:' 'if False:' 'CI12 gói không dịch được (chỉ có fail mức gói) không bị đếm'
+m .github/workflows/ci.yml 'poppler-utils fonts-dejavu-core' 'poppler-utils' 'CI13 CI không cài phông DejaVu (test dựng PDF thử tự SKIP)'
 
 # --- smoke E2E bằng curl: cổng này cũng phải đỏ được ---
 ms $S 'dec.DisallowUnknownFields()' '_ = 0' 'SM1 smoke: thân mang tenant được nhận'

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,6 +44,10 @@ const (
 		`{"Action":"output","Package":"p","Test":"TestA","Output":"    a_test.go:12: chưa có EAIS_PG_DSN\n"}` + "\n" +
 		`{"Action":"skip","Package":"p","Test":"TestA","Elapsed":0}` + "\n"
 	evPkgSkip = `{"Action":"skip","Package":"p/khongcotest"}` + "\n" // gói không có tệp test: KHÔNG phải test bị bỏ qua
+	evFail    = `{"Action":"run","Package":"p","Test":"TestC"}` + "\n" +
+		`{"Action":"output","Package":"p","Test":"TestC","Output":"    c_test.go:7: lệch\n"}` + "\n" +
+		`{"Action":"fail","Package":"p","Test":"TestC","Elapsed":0}` + "\n"
+	evPkgFail = `{"Action":"fail","Package":"q","Elapsed":0,"FailedBuild":"q"}` + "\n" // gói không dịch được: không có sự kiện mức test nào
 )
 
 func TestKiemSkipScript(t *testing.T) {
@@ -54,6 +59,16 @@ func TestKiemSkipScript(t *testing.T) {
 	code, out, errb := runSkipGate(t, evPass+evSkip)
 	if code != 1 || !strings.Contains(out, "SKIP: p TestA: chưa có EAIS_PG_DSN") || !strings.Contains(errb, "1 test SKIP ngoài danh sách") {
 		t.Errorf("có test SKIP: %d\n%s%s\nmuốn 1 và nêu TestA kèm lý do", code, out, errb)
+	}
+	// ĐỎ: test FAIL (không SKIP) cũng phải làm cổng đỏ — lớp thứ hai sau pipefail của bước go test: nếu ai đó làm bước đó nuốt mã lỗi,
+	// luồng JSON vẫn kể lại test hỏng. Gói không dịch được chỉ có sự kiện mức gói (không có Test) nên cũng phải đỏ.
+	code, out, errb = runSkipGate(t, evPass+evFail)
+	if code != 1 || !strings.Contains(out, "FAIL: p TestC") || !strings.Contains(errb, "1 test FAIL") {
+		t.Errorf("có test FAIL: %d\n%s%s\nmuốn 1 và nêu TestC", code, out, errb)
+	}
+	code, out, errb = runSkipGate(t, evPass+evPkgFail)
+	if code != 1 || !strings.Contains(out, "FAIL (gói): q") || !strings.Contains(errb, "1 gói FAIL") {
+		t.Errorf("có gói FAIL (không dịch được): %d\n%s%s\nmuốn 1 và nêu gói q", code, out, errb)
 	}
 	// danh sách cho phép: khớp thì xanh, mục không còn khớp thì đỏ (danh sách thừa che lỗi sau này)
 	allow := filepath.Join(t.TempDir(), "cho-phep.txt")
@@ -73,30 +88,45 @@ func TestKiemSkipScript(t *testing.T) {
 	}
 }
 
-// Workflow CI nhất quán với phần còn lại của repo: cùng ảnh PG ghim digest với deploy/docker-compose.yml, đủ các bước cổng, action ghim
-// theo tag đầy đủ hoặc SHA, quyền chỉ đọc, không bí mật, DSN không mang mật khẩu.
-func TestWorkflowCI(t *testing.T) {
+type ciStep struct {
+	Name string `yaml:"name"`
+	Uses string `yaml:"uses"`
+	Run  string `yaml:"run"`
+}
+
+type ciWorkflow struct {
+	Permissions map[string]string `yaml:"permissions"`
+	Jobs        map[string]struct {
+		Services map[string]struct {
+			Image string `yaml:"image"`
+		} `yaml:"services"`
+		Env      map[string]string `yaml:"env"`
+		Defaults struct {
+			Run struct {
+				Shell string `yaml:"shell"`
+			} `yaml:"run"`
+		} `yaml:"defaults"`
+		Steps []ciStep `yaml:"steps"`
+	} `yaml:"jobs"`
+}
+
+func loadCI(t *testing.T) (ciWorkflow, []byte) {
+	t.Helper()
 	raw, err := os.ReadFile(repoPath(".github/workflows/ci.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wf struct {
-		Permissions map[string]string `yaml:"permissions"`
-		Jobs        map[string]struct {
-			Services map[string]struct {
-				Image string `yaml:"image"`
-			} `yaml:"services"`
-			Env   map[string]string `yaml:"env"`
-			Steps []struct {
-				Name string `yaml:"name"`
-				Uses string `yaml:"uses"`
-				Run  string `yaml:"run"`
-			} `yaml:"steps"`
-		} `yaml:"jobs"`
-	}
+	var wf ciWorkflow
 	if err := yaml.Unmarshal(raw, &wf); err != nil {
 		t.Fatalf("ci.yml không phải YAML hợp lệ: %v", err)
 	}
+	return wf, raw
+}
+
+// Workflow CI nhất quán với phần còn lại của repo: cùng ảnh PG ghim digest với deploy/docker-compose.yml, đủ các bước cổng, action ghim
+// theo tag đầy đủ hoặc SHA, quyền chỉ đọc, không bí mật, DSN không mang mật khẩu.
+func TestWorkflowCI(t *testing.T) {
+	wf, raw := loadCI(t)
 	job, ok := wf.Jobs["kiem"]
 	if !ok {
 		t.Fatal("ci.yml thiếu job kiem")
@@ -123,6 +153,10 @@ func TestWorkflowCI(t *testing.T) {
 	if wf.Permissions["contents"] != "read" || len(wf.Permissions) != 1 {
 		t.Errorf("permissions = %v, muốn chỉ contents: read", wf.Permissions)
 	}
+	// Bước go test dùng `set -o pipefail` — tính năng của bash, không phải của sh — nên workflow phải ghim shell: bash.
+	if job.Defaults.Run.Shell != "bash" {
+		t.Errorf("defaults.run.shell = %q, muốn bash (bước go test dùng pipefail của bash)", job.Defaults.Run.Shell)
+	}
 	pinned := regexp.MustCompile(`^[\w.-]+/[\w.-]+@(v\d+\.\d+\.\d+|[0-9a-f]{40})$`)
 	var runs []string
 	for _, s := range job.Steps {
@@ -132,7 +166,7 @@ func TestWorkflowCI(t *testing.T) {
 		runs = append(runs, s.Run)
 	}
 	all := strings.Join(runs, "\n")
-	for _, must := range []string{"go vet ./...", "gofmt -l", "go test -count=1 -json ./...", "scripts/kiem-skip-test.py", "TestDanhTinh", "scripts/chay-thu.sh", "poppler-utils"} {
+	for _, must := range []string{"go vet ./...", "gofmt -l", "go test -count=1 -json ./...", "scripts/kiem-skip-test.py", "TestDanhTinh", "scripts/chay-thu.sh", "poppler-utils", "fonts-dejavu-core"} {
 		if !strings.Contains(all, must) {
 			t.Errorf("ci.yml thiếu bước chạy %q", must)
 		}
@@ -144,5 +178,66 @@ func TestWorkflowCI(t *testing.T) {
 	}
 	if strings.Contains(string(raw), "secrets.") {
 		t.Error("ci.yml tham chiếu secrets.* — CI này không được cần bí mật nào")
+	}
+}
+
+// runCIStep chạy ĐÚNG đoạn lệnh của một bước ci.yml dưới bash TRẦN (không -e, không pipefail: runner có thể thêm cờ nhưng đoạn lệnh phải
+// tự đủ) với một `go` giả thoát bằng goExit. Trả mã thoát của đoạn lệnh và nội dung test.json mà bước ghi ra (nếu có).
+func runCIStep(t *testing.T, script string, goExit int) (int, string) {
+	t.Helper()
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fakeGo := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' '{\"Action\":\"output\",\"Package\":\"p\",\"Test\":\"TestX\",\"Output\":\"x\"}'\nexit %d\n", goExit)
+	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(fakeGo), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sp := filepath.Join(dir, "step.sh")
+	if err := os.WriteFile(sp, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("bash", "--noprofile", "--norc", sp)
+	cmd.Dir = dir
+	cmd.Env = []string{"PATH=" + bin + ":/usr/bin:/bin", "HOME=" + dir}
+	err := cmd.Run()
+	code := 0
+	if ee, ok := err.(*exec.ExitError); ok {
+		code = ee.ExitCode()
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	out, _ := os.ReadFile(filepath.Join(dir, "test.json"))
+	return code, string(out)
+}
+
+// "Test hỏng thì CI đỏ" là tính chất của CHÍNH bước go test trong ci.yml, không phải của cấu hình ngầm của runner: bước đó đi qua một
+// đường ống (| tee test.json) nên không có pipefail thì mã thoát cả đường ống là của tee (0) và test hỏng vẫn ra xanh. Ở đây bước được
+// chạy thật với một `go` giả hỏng / không hỏng.
+func TestCIBuocGoTestDoKhiGoTestHong(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Fatalf("cần bash để chạy bước CI: %v", err)
+	}
+	wf, _ := loadCI(t)
+	var step *ciStep
+	for i, s := range wf.Jobs["kiem"].Steps {
+		if strings.Contains(s.Run, "go test -count=1 -json ./...") {
+			step = &wf.Jobs["kiem"].Steps[i]
+		}
+	}
+	if step == nil {
+		t.Fatal("ci.yml không có bước chạy go test -count=1 -json ./...")
+	}
+	if code, _ := runCIStep(t, step.Run, 1); code == 0 {
+		t.Error("go test thoát 1 mà bước go test của CI thoát 0 — test hỏng sẽ ra CI xanh (thiếu pipefail, hoặc có || true)")
+	}
+	if code, out := runCIStep(t, step.Run, 0); code != 0 || !strings.Contains(out, `"Test":"TestX"`) {
+		t.Errorf("go test thoát 0: bước thoát %d, test.json %q — muốn 0 và test.json mang đúng luồng go test", code, out)
+	}
+	// đối chứng của chính phép thử: bỏ các dòng `set …` thì đường ống nuốt mã lỗi (bước thoát 0) — phép thử này phân biệt được hai trường hợp
+	noSet := regexp.MustCompile(`(?m)^\s*set .*$`).ReplaceAllString(step.Run, "")
+	if code, _ := runCIStep(t, noSet, 1); code != 0 {
+		t.Errorf("đối chứng: bỏ pipefail mà bước vẫn thoát %d — phép thử không phân biệt được bước có / không nuốt mã lỗi", code)
 	}
 }

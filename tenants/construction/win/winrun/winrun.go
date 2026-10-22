@@ -1,5 +1,5 @@
 // Package winrun đo WIN MVP trên một bộ dữ liệu do bộ sinh xuất ra (docs/04-core-mvp.md §6):
-//   - G1: so manifest của bộ sinh với kết quả bộ nạp, từng khoá (quan sát hay cách ly, đúng giá trị);
+//   - G1: so manifest của bộ sinh với kết quả bộ nạp, từng khoá (quan sát hay cách ly, đúng giá trị, đúng cờ ước lượng);
 //   - bộ ca WIN: chạy từng ca qua luồng hỏi thật, chấm bằng kỳ vọng nhị phân.
 //
 // Dùng chung cho lệnh winreport (in báo cáo) và test ratchet (chặn hồi quy trong `go test`).
@@ -69,8 +69,13 @@ type manifest struct {
 		On       string `json:"on"`
 		ValueL   string `json:"value_l"`
 		Reason   string `json:"reason"`
+		Approx   bool   `json:"approx"` // người nhập ghi "khoảng", "≈", "2k": quan sát phải mang cờ ước lượng (K1)
 	} `json:"records"`
 }
+
+// G1ApproxMark là cụm nhận ra vấn đề G1 do lệch cờ ước lượng (không phải lệch thực thể, chỉ số, nguồn,
+// ngày hay số). Test ratchet dùng nó để tách các lệch cờ đã biết khỏi mọi lệch khác.
+const G1ApproxMark = "cờ ước lượng"
 
 type world struct {
 	ReferenceDate string `yaml:"reference_date"`
@@ -299,9 +304,14 @@ func checkG1(path, tenantID string, res ingestion.Result) (int, []string, error)
 				problems = append(problems, fmt.Sprintf("%s: muốn quan sát, %s", r.Key, why))
 				continue
 			}
-			if o.Entity != r.Entity || o.Metric != r.Semantic || o.Source != r.Source || o.On.Format("2006-01-02") != r.On || !decimal.Equal(o.Value.Number, r.ValueL) {
+			switch {
+			case o.Entity != r.Entity || o.Metric != r.Semantic || o.Source != r.Source || o.On.Format("2006-01-02") != r.On || !decimal.Equal(o.Value.Number, r.ValueL):
 				problems = append(problems, fmt.Sprintf("%s: được %s/%s/%s/%s/%s, muốn %s/%s/%s/%s/%s", r.Key,
 					o.Entity, o.Metric, o.Source, o.On.Format("2006-01-02"), o.Value.Number, r.Entity, r.Semantic, r.Source, r.On, r.ValueL))
+			case o.Value.Approx != r.Approx:
+				// mỗi bản ghi lệch chỉ ra MỘT vấn đề (báo cáo trừ "N/M khớp" theo số vấn đề): lệch trường chính
+				// báo trước, cờ ước lượng chỉ báo khi các trường chính đã khớp.
+				problems = append(problems, fmt.Sprintf("%s: %s được %v, muốn %v", r.Key, G1ApproxMark, o.Value.Approx, r.Approx))
 			}
 		case "quarantine":
 			q, ok := quar[r.Key]

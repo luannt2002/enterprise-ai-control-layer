@@ -1,0 +1,9 @@
+# Khoá manifest mà G1 báo LỆCH CỜ ƯỚC LƯỢNG (approx) trên dữ liệu seed 42: lệch ĐÃ BIẾT, chưa sửa (đo 22/10/2026,
+# lane 2). Mỗi dòng: khoá, rồi nguyên nhân. Dòng bắt đầu bằng # là chú thích.
+#
+# Ratchet chỉ đi xuống (TestWinRatchet): khoá MỚI lệch cờ thì test đỏ; khoá đã hết lệch thì test nhắc xoá khỏi tệp.
+# Tệp này KHÔNG phải lời phân xử "bộ nạp hay manifest đúng": đó là việc của chủ dự án / lane dữ liệu (K1 trong
+# docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md). Đừng sửa bộ chuẩn hoá hay bộ sinh chỉ để làm tệp này rỗng.
+messages.jsonl#R-001      "máy 03 sáng 2k": manifest ghi approx=true, bộ nạp ra approx=false (hậu tố k không phải dấu ước lượng)
+messages.jsonl#R-002      "chiều thêm 2k": như R-001
+reports/2026-10-19.pdf#1  PDF "Machine 03 ≈ 4 m³" (R-003): manifest ghi approx=true, bộ nạp ra approx=false (≈ không được nhận)

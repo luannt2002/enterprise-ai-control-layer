@@ -72,3 +72,54 @@ func TestCheckG1BatDuocLech(t *testing.T) {
 		}
 	}
 }
+
+// Manifest của bộ sinh có trường approx (người nhập ghi "khoảng", "≈", "2k"): G1 phải so cờ này với quan sát
+// của bộ nạp, cả hai chiều, và mỗi bản ghi lệch chỉ ra MỘT vấn đề (số "N/M bản ghi khớp" của báo cáo trừ
+// theo số vấn đề). Trước đây checkG1 bỏ qua trường này nên "2k" ra approx=false vẫn tính là khớp
+// (K1, docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md).
+func TestCheckG1SoCoUocLuong(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "manifest.json")
+	if err := os.WriteFile(path, []byte(`{"records":[
+ {"tenant":"a","key":"ka","expect":"observation","entity":"EX-03","semantic":"reported_fuel","source":"chat_message","on":"2026-10-19","value_l":"2000","approx":true},
+ {"tenant":"a","key":"kb","expect":"observation","entity":"EX-03","semantic":"issued_fuel","source":"warehouse_slip","on":"2026-10-19","value_l":"3850"}
+]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	on, err := time.Parse("2006-01-02", "2026-10-19")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := func(approxA, approxB bool) ingestion.Result {
+		obs := func(key, metric, source, value string, approx bool) ingestion.Observation {
+			return ingestion.Observation{Key: key, Tenant: "a", Entity: "EX-03", Metric: metric, Source: source, On: on,
+				Value: contracts.Value{Kind: contracts.ValueQuantity, Number: value, Unit: "L", Approx: approx}}
+		}
+		return ingestion.Result{Observations: []ingestion.Observation{
+			obs("ka", "reported_fuel", "chat_message", "2000", approxA),
+			obs("kb", "issued_fuel", "warehouse_slip", "3850", approxB),
+		}}
+	}
+	for _, c := range []struct {
+		name string
+		res  ingestion.Result
+		want string // chuỗi phải có trong vấn đề duy nhất; rỗng = không có vấn đề nào
+	}{
+		{"cờ khớp ở cả hai bản ghi", res(true, false), ""},
+		{"manifest approx mà quan sát không", res(false, false), "ka: cờ ước lượng được false, muốn true"},
+		{"quan sát approx mà manifest không", res(true, true), "kb: cờ ước lượng được true, muốn false"},
+	} {
+		total, problems, err := checkG1(path, "a", c.res)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if total != 2 {
+			t.Errorf("%s: total = %d, muốn 2", c.name, total)
+		}
+		switch {
+		case c.want == "" && len(problems) != 0:
+			t.Errorf("%s: muốn 0 vấn đề, được %v", c.name, problems)
+		case c.want != "" && (len(problems) != 1 || !strings.Contains(problems[0], c.want)):
+			t.Errorf("%s: muốn đúng 1 vấn đề chứa %q, được %v", c.name, c.want, problems)
+		}
+	}
+}

@@ -29,12 +29,24 @@ func TestWinRatchet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, p := range r.G1Problems {
+	// G1: lệch cờ ước lượng đã biết (g1-approx-known.txt) không làm đỏ; mọi lệch khác và khoá lệch cờ MỚI thì đỏ.
+	known, err := loadKnownApprox("../g1-approx-known.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unexpected, seen := g1Unexpected(r.G1Problems, known)
+	for i, p := range unexpected {
 		if i == 10 {
 			break
 		}
 		t.Errorf("G1: %s", p)
 	}
+	for k := range known {
+		if !seen[k] {
+			t.Logf("G1: %s đã hết lệch cờ ước lượng — xoá khỏi g1-approx-known.txt", k)
+		}
+	}
+	t.Logf("G1: %d lệch cờ ước lượng đã biết (g1-approx-known.txt)", len(seen))
 	// G1 metamorphic (docs/04 mục 6): mỗi bản ghi biến thể có ≥ 4 biểu diễn, và mọi biểu diễn ra cùng
 	// một quan sát chuẩn.
 	if len(r.Variants) < 2 {
@@ -128,4 +140,57 @@ func TestWinTrenPG(t *testing.T) {
 		}
 	}
 	t.Logf("đường PG: %s", onPG.Report.Summary())
+}
+
+// loadKnownApprox đọc g1-approx-known.txt: mỗi dòng không rỗng, không bắt đầu bằng #, trường đầu là một khoá manifest.
+func loadKnownApprox(path string) (map[string]bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	out := map[string]bool{}
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		if line := strings.TrimSpace(sc.Text()); line != "" && !strings.HasPrefix(line, "#") {
+			out[strings.Fields(line)[0]] = true
+		}
+	}
+	return out, sc.Err()
+}
+
+// g1Unexpected tách các vấn đề G1 thành: không ngờ tới (đỏ) và khoá lệch cờ ước lượng đã biết (seen). Chỉ vấn đề
+// CỜ của khoá có trong danh sách mới được bỏ qua: khoá đã biết mà lệch thêm trường khác, hay khoá mới lệch cờ, vẫn đỏ.
+func g1Unexpected(problems []string, known map[string]bool) (unexpected []string, seen map[string]bool) {
+	seen = map[string]bool{}
+	for _, p := range problems {
+		key, rest, _ := strings.Cut(p, ": ")
+		if known[key] && strings.HasPrefix(rest, winrun.G1ApproxMark) {
+			seen[key] = true
+			continue
+		}
+		unexpected = append(unexpected, p)
+	}
+	return unexpected, seen
+}
+
+// TestG1KnownApproxChanDuoc: cổng danh sách lệch đã biết phải THỰC SỰ chặn (CLAUDE.md §1): chỉ lệch cờ của
+// khoá có trong danh sách được bỏ qua.
+func TestG1KnownApproxChanDuoc(t *testing.T) {
+	known := map[string]bool{"k1": true}
+	for _, c := range []struct {
+		name       string
+		problem    string
+		wantPassed bool // true: bị bỏ qua (đã biết); false: phải đỏ
+	}{
+		{"cờ lệch của khoá đã biết", "k1: " + winrun.G1ApproxMark + " được false, muốn true", true},
+		{"cờ lệch của khoá MỚI", "k9: " + winrun.G1ApproxMark + " được false, muốn true", false},
+		{"khoá đã biết nhưng lệch số", "k1: được EX-03/issued_fuel/erp/2026-10-19/3851, muốn EX-03/issued_fuel/erp/2026-10-19/3850", false},
+		{"khoá đã biết nhưng bị cách ly thiếu", "k1: muốn quan sát, không có", false},
+	} {
+		unexpected, seen := g1Unexpected([]string{c.problem}, known)
+		if passed := len(unexpected) == 0 && seen["k1"]; passed != c.wantPassed {
+			t.Errorf("%s: bị bỏ qua = %v, muốn %v (unexpected=%v)", c.name, passed, c.wantPassed, unexpected)
+		}
+	}
 }

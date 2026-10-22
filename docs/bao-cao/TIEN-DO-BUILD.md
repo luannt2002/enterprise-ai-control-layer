@@ -6,40 +6,37 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 22/10/2026 14:4x · **HEAD:** `f8b295e` (cộng commit chứa tệp này). Chủ dự án xin push phần đã làm để đọc.
-- **Xong từ lần trước:**
-  - soát S4 vòng 3 (vòng cuối theo §9.6): KHÔNG ĐẠT có điều kiện, 0 S1, không lỗi thuộc ngoại lệ ⇒ **mã S4 ĐÓNG BĂNG ở `a665298`**; nợ ghi ở
-    ADR-0010 (F6' số tiền xa "dầu", S4R-03, hai thực thể khác loại…); thêm test cho nửa "chỉ số rỗng" (`f8b295e`, không đổi mã);
-  - soát khoá vòng 3: bản sửa vòng 2 tự nó đạt, nhưng còn 2 lỗ SAI CHIỀU có từ trước ⇒ mở lại theo ngoại lệ §9.6, sửa `be91cd0`;
-  - làn 3: giấy Phase 1 lên main (`2b80a38`).
-- **Đang làm (lệnh ca MVP ALL-IN):**
-  - **M1 RA** (22/10 15:5x): M1 · `41bc3cf` (22 commit làn 0, cherry-pick lên main) · lệnh chứng minh: `scripts/chay-thu.sh` từ clone sạch
-    (smoke E2E 21 / 21, cả nhánh PG có sẵn lẫn nhánh tự dựng PG), `go test -count=1 -json ./...` có PG (601 pass, 0 skip; theo tên 0 đổi /
-    0 mất), winreport 117 / H1 / H3 / H4 hai đường (0 dòng khác), `eais trace <id>` (lượt thường + lượt lỗi), CI GitHub run 39750100276
-    (success: PG, cấm SKIP, cổng danh tính, smoke) · kết quả: **ĐẠT** mọi mục cổng ra của lệnh ca. Chi tiết bản gộp: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz;
-    principal từ token, không lấy tenant từ thân), vết từng bước S0–S10 lưu bền theo tenant (migration 0003, RLS), `eais trace <id>`,
-    một lệnh `scripts/chay-thu.sh`, CI có PG cấm SKIP. Soát độc lập: U0.1 hai vòng, U0.2 hai vòng → ĐẠT CÓ GHI CHÚ. CI trên GitHub: lần chạy
-    đầu XANH;
-  - **H4 theo tầng (xong):** S4 sai đầu tiên ở 10 / 119 = 8,4% (> 5%), 3 câu sai nghĩa không nhãn ⇒ dòng S4 KHÔNG ĐẠT ⇒ **M3 chưa RA,
-    chờ D-AI-02** (CHO, khuyến nghị: sửa tiếp bằng luật C3 / C4 / C5 / N1 rồi chấm trên bộ giữ lại mới);
-  - M4: giấy Phase 1 sửa xong 4 ghi chú L3C-01…04 + kịch bản demo (commit chứa dòng này; soát ĐẠT CÓ GHI CHÚ). Trước khi mở mã M4:
-    sửa 8 ghi chú S3 L3D-01…08 và soạn + băm + commit bộ ca giữ lại độc lập của Phase 1 (HOP-DONG §13, L3D-10); nợ S4 sau H4: soát hai vòng KHÔNG ĐẠT, mã để ở nhánh máy
-    `lead/no-s4-sau-h4`, chờ D-OP-18 + vòng cuối (ADR-0010);
-- **Tiếp theo:**
-  1. Soát khoá vòng 4 kết luận (chỉ sửa tiếp nếu còn phán quyết sai chiều).
-  2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai` đã tạo; băm tệp ca khớp bản đóng băng) → báo cáo theo tầng sai đầu
-     tiên, có đối chứng mốc `7d72e33` → H4 thành bộ hồi quy.
-  3. Gộp làn 0, làn 3 (Phase 0a) sau soát; sửa 4 ghi chú S3 của giấy Phase 1 trước khi mở mã Phase 1.
+- **Cập nhật lúc:** 22/10/2026 17:0x, mốc chốt ca ngày 22/10 (chủ dự án dặn làm tiếp, không dừng) · **HEAD:** commit chứa dòng này (mã giống
+  `41bc3cf`; sau đó chỉ đổi tài liệu).
+- **MVP chưa RA:** mới M1 qua cổng ra, theo cổng ra do lệnh ca đặt. M3 chờ D-AI-02; M2, M4 mới là giấy; M5 chưa đạt. Trên dữ liệu giả lập,
+  chưa có người nghiệp vụ duyệt (D-RM-03).
+  - M1 **RA theo cổng ra của lệnh ca** · `41bc3cf` · `scripts/chay-thu.sh` (smoke 21/21 ở máy và trên CI từ checkout sạch), `go test
+    -count=1 -json ./...` có PG, `eais trace -tenant <t> <id>` (lượt thường và lượt lỗi), CI GitHub run 39750100276 · ĐẠT các mục: 4 route,
+    principal từ token, một lệnh, CI có PG, vết lưu bền, 117 / H1 / H3 không đổi. Vế "người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90%
+    ca đỏ" của cổng ra M1 ở `docs/ROADMAP-DAY-DU.md` §5b: CHƯA ĐO.
+  - M3 **chưa RA** · H4 một lần ở `57409f2`, theo tầng ở `e698e30` · dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn)
+    ⇒ chờ **D-AI-02**.
+  - M4 giấy (`f102238`, soát ĐẠT CÓ GHI CHÚ); trước mã: L3D-01…08 + bộ ca giữ lại độc lập Phase 1. Khi mã xong, dòng M4 ghi "lệnh tạo
+    phiếu có kiểm soát; chưa có bên kích hoạt tự động (Q-P1-6)".
+  - M2 giấy (`5d69d24`); bản sửa F01–F03 ở nhánh máy (5 commit, chưa gộp): soát vòng 2 KHÔNG ĐẠT — 1 S2 (quyết định của người đưa bản HELD vì lý do khác sang ACCEPTED mà không chạy TR3 với bản đứng trước ⇒ cộng đôi im lặng) và 6 S3; sửa vòng 3 (vòng cuối theo §9.6).
+  - M5 **chưa đạt**: dòng S4 KHÔNG ĐẠT; các dòng khác chưa đủ bảng lệnh theo §9.3.
+- **Đang làm:** theo lệnh ca: M4 (sửa L3D → bộ ca giữ lại Phase 1 → mã), M2 (sửa giấy vòng 3), M5 (bảng lệnh §9.3).
+- **Xong từ lần trước (cả ca 22/10):** cổng phán quyết KHOÁ HẲN (`59557c2`); S4 đóng băng `a665298`; H4 chạy một lần (104/119 hai đường;
+  mốc 102/119); M1 RA theo lệnh ca; giấy Phase 1 (sửa L3C-01…04 + demo), giấy Phase 0a; nợ S4 sau H4: hai vòng soát KHÔNG ĐẠT ⇒ không gộp,
+  câu mở D-OP-18. Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
+- **Tiếp theo:** (1) chủ dự án quyết D-AI-02, D-OP-18, D-OP-16, D-OP-17; (2) M4: L3D-01…08 → bộ ca giữ lại Phase 1 → mã; (3) M2: sửa giấy
+  vòng 3 → soát → gộp → bộ ca độc lập → mã; (4) M5: bảng lệnh từng dòng §9.3, đo vế ≥ 90% của dòng vết.
 - **Bị chặn:**
-  - mã Giai đoạn II (COMMAND / WORKFLOW / EVENT, gồm M4 tạo phiếu): mở ngay sau khi chạy xong H4 (D-RM-04 = A);
+  - M3 và dòng S4 của M5: D-AI-02;
+  - vòng cuối của nợ S4 sau H4: D-OP-18 (mã ở nhánh máy, chưa push);
+  - D-OP-16, D-OP-17: chờ chủ dự án, không chặn việc nào; mặc định đang chạy: D-OP-16 (a), D-OP-17 giữ "2k" như cũ;
   - dữ liệu / người nghiệp vụ thật: không có (D-RM-03) — mọi kết luận ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
-  - W-G7 trả tiền: chưa cấp;
-  - D-OP-16, D-OP-17: chờ chủ dự án (mặc định đang chạy: (a), coi "2k" như cũ).
-- **Test** (`f8b295e`, container `eais-pg`): `go vet ./...` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 ./...` có PG: 479 pass, so theo tên với
-  `a665298`: 0 đổi, 0 mất, 3 test mới; winreport 117 / H1 / H3 hai đường: 0 dòng khác (117/117, H1 92/104, H3 113/134).
-- **Handoff / prompt đang mở:** `docs/PROMPT-BUILD-EAIS.md` §9 (bảy làn, MVP trước); PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn
-  Q2–Q7, Q9–Q13, Phụ lục C.
-- **Ca ngày 22/10** 09:00 → 17:00 (cron của phiên). Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
+  - W-G7 trả tiền: chưa cấp.
+- **Test** (cổng cuối ở `47a4a15`, container `eais-pg`): `go vet ./...` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 -json ./...` có PG: 601 test
+  (kể cả test con) pass, 0 skip, so theo tên với cổng M1 0 đổi / 0 mất / 0 mới; winreport: bộ 117 117/117 (đường bộ nhớ), H1 92/104, H3
+  113/134, H4 104/119 (hai đường) — 0 dòng nội dung khác so với cổng M1; CI GitHub ở `47a4a15` run 39755113290 success.
+- **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN (M2, M3 chờ D-AI-02, M4, M5 còn mở); `docs/PROMPT-BUILD-EAIS.md` §9; PROMPT-DOI-TEN Việc 3
+  còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C.
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -89,3 +86,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 15:5x | commit chứa dòng này | **M1 RA** | CI GitHub run 39750100276 (`41bc3cf`): success — vet, gofmt, go test có PG (service postgres:17 ghim digest), cấm SKIP / FAIL, cổng danh tính, smoke E2E một lệnh; cộng các số đo ở máy của dòng 15:4x | Ghi chú S3 R2-01…04 của soát U0.2 xếp hàng, không chặn M1 |
 | 22/10 16:1x | commit chứa dòng này | M4 bước 1: giấy Phase 1 sửa L3C-01…04 + demo (lượt "Tạo phiếu kiểm tra" vào bằng route lệnh riêng `POST /v1/commands/open_discrepancy_ticket` của `cmd/eais`, vết lệnh C0–C7; mã lệnh đặt ở `execution/commands`, `core/` không chạm tệp nào; câu Q-P1-8 mặc định (a)) | Soát độc lập ĐẠT CÓ GHI CHÚ (0 S1 / S2; 8 ghi chú S3 L3D-01…08); quét 0 đường dẫn máy, 0 ký tự lạ; cổng danh tính xanh | Điều phối cập nhật các câu trạng thái H4 đã cũ (L3D-06) khi gộp. Chờ trước mã M4: L3D-01…08, bộ ca giữ lại độc lập Phase 1 (L3D-10) |
 | 22/10 16:2x | commit chứa dòng này | Nợ S4 sau H4: hai vòng sửa, hai vòng soát độc lập KHÔNG ĐẠT ⇒ không gộp; ghi bài học + trạng thái ở ADR-0010; câu mở **D-OP-18** | Vòng 2 đo: test có PG 602 pass (theo tên 0 đổi / 0 mất), 117 / H1 / H3 / H4 0 dòng, corpus 0 phán quyết mới; F6' đóng | Mã ở nhánh máy `lead/no-s4-sau-h4` (3 commit WIP); vòng 3 là vòng cuối (§9.6) |
+| 22/10 17:0x | commit chứa dòng này | Mốc chốt ca ngày 22/10: cổng cuối, báo cáo ca, STATUS, CHANGELOG (chủ dự án dặn làm tiếp) | `go vet` 0; `gofmt -l` 0; test có PG 601 test (kể cả test con) pass / 0 skip (theo tên 0 đổi / 0 mất so cổng M1); bộ 117 (đường bộ nhớ) và H1 / H3 / H4 (hai đường) 0 dòng nội dung khác so cổng M1; CI run 39755113290 success | MVP chưa RA: M1 RA theo lệnh ca (vế ≥ 90% của §5b chưa đo); M3 chờ D-AI-02; M2, M4 giấy; M5 chưa đạt. Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |

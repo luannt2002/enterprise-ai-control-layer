@@ -6,6 +6,24 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 22/10/2026 cuối chiều — cổng phán quyết KHOÁ HẲN; H4; M1 RA theo lệnh ca; giấy Phase 1, Phase 0a
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA**: mới M1 qua cổng ra (theo cổng ra của lệnh ca); M3 chờ
+D-AI-02; M2, M4 mới là giấy; M5 chưa đạt.
+
+- **Cổng phán quyết** sửa theo soát khoá vòng 3 (`be91cd0`, mở lại theo ngoại lệ "sai chiều" của §9.6); soát vòng 4 ĐẠT CÓ GHI CHÚ; **KHOÁ HẲN**
+  (`59557c2`): không nhận thêm luật, lỗ mới ghi nợ, giữ fail-closed; còn nợ S3 ở ADR-0009.
+- **H4 chạy MỘT lần** (`57409f2`; mã S4 đóng băng `a665298`): 104 / 119 ở cả hai đường, phát lại 119 / 119; mốc `7d72e33` 102 / 119 (2 đỏ → xanh,
+  0 xanh → đỏ). Theo tầng sai đầu tiên (`e698e30`): S4 10 / 119 = 8,4%, 3 câu sai nghĩa không nhãn ⇒ dòng S4 của CỔNG TRƯỚC AI KHÔNG ĐẠT,
+  M3 chưa RA, câu mở **D-AI-02**. Từ nay H4 là bộ hồi quy.
+- **M1 RA theo cổng ra của lệnh ca** (làn 0, 22 commit → `41bc3cf`; vế "người soát chỉ đọc vết ≥ 90%" của §5b chưa đo): `cmd/eais` (ask / ingest / trace / healthz, principal từ token), vết S0–S10 lưu bền theo tenant
+  (migration 0003, RLS), `eais trace`, một lệnh `scripts/chay-thu.sh`, CI có PG cấm SKIP (lần đầu xanh).
+- Giấy (ĐỀ XUẤT, chưa áp mã): Phase 1 tạo phiếu kiểm tra chênh lệch (ADR-0011; sửa L3C-01…04 + kịch bản demo `f102238`), Phase 0a thu báo cáo
+  ngày (ADR-0012, `5d69d24`).
+- Nợ S4 sau H4: hai vòng sửa, hai vòng soát KHÔNG ĐẠT ⇒ không gộp; bài học + câu mở **D-OP-18** ở ADR-0010 (`47a4a15`).
+- Bằng chứng cổng cuối (`47a4a15`): vet 0, gofmt 0, test có PG 601 test (kể cả test con) pass / 0 skip (so cổng M1 theo tên: 0 đổi, 0 mất,
+  0 mới); bộ 117 (đường bộ nhớ) và H1 / H3 / H4 (hai đường): 0 dòng nội dung khác so cổng M1; CI run 39755113290 success.
+
 ### 22/10/2026 chiều — KHOÁ cổng phán quyết; D-OP-14; vòng sửa S4
 
 - **R5-4, R5-5** (`962ae9c`): đề mục có thêm "dầu" / từ khoá chính ý định / tên đúng nguồn, và "Phiếu kho," khi nguồn đã dùng là ERP, không còn phán quyết sai chiều.

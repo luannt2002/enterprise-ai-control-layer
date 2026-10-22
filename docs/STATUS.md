@@ -1,10 +1,28 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 22/10/2026 14:4x, ca ngày 22/10 (báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`; tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt ca tối 21/10; 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
+> Cập nhật: 22/10/2026 17:0x, chốt ca ngày 22/10 (báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`; tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: 22/10 14:4x giữa ca; chốt ca tối 21/10; 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
-> **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "Việc hiện hành" ở mục Việc tiếp theo.
+> **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
+
+## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 RA theo cổng ra của lệnh ca 22/10, M3 chờ D-AI-02
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Bảng lệnh và kết quả: báo cáo ca 22/10 mục 1, mục 5.
+
+- **M1 RA theo cổng ra của lệnh ca 22/10** (`41bc3cf`; cổng: 4 route, principal từ token, một lệnh từ checkout sạch, CI có PG, vết lưu bền
+  kể cả lượt lỗi, 117 / H1 / H3 không đổi). Vế còn lại của cổng ra M1 ở §5b (người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90% ca
+  đỏ): **CHƯA ĐO**. Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz; principal từ token, không lấy tenant từ
+  thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`, kể cả lượt lỗi; một lệnh
+  `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21); CI GitHub có PG, cấm SKIP (run 39750100276 xanh).
+- **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`: không nhận thêm luật, lỗ mới ghi nợ, giữ fail-closed; còn nợ S3 ở ADR-0009); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu
+  sai nghĩa không nhãn) ⇒ chờ **D-AI-02**.
+- **M4, M2**: giấy (ADR-0011, ADR-0012, hợp đồng việc, cổng QuânIT; soát độc lập ĐẠT CÓ GHI CHÚ); chưa mở mã. Bản sửa F01–F03 của giấy M2 ở
+  nhánh máy: soát vòng 2 KHÔNG ĐẠT, sửa vòng 3.
+- **M5 chưa đạt**: dòng S4 KHÔNG ĐẠT; các dòng khác chưa đủ bảng lệnh theo brief BUILD §9.3.
+- Nợ S4 sau H4: hai vòng soát KHÔNG ĐẠT ⇒ mã chưa lên main; câu mở **D-OP-18** (ADR-0010).
+- Cổng cuối (`47a4a15`): test có PG 601 test (kể cả test con) pass, 0 skip (so cổng M1 theo tên: 0 đổi, 0 mất, 0 mới); bộ 117 117/117
+  (đường bộ nhớ); H1 92/104, H3 113/134, H4 104/119 (hai đường); CI GitHub run 39755113290 success.
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 
@@ -209,7 +227,7 @@ Kiểm claim ở S9 không còn là "kiểm có mặt" đơn thuần. `BindClaim
 
 ## Việc tiếp theo (20/10 — đã thay)
 
-> **Việc hiện hành (tối 21/10).** Thứ tự theo `docs/PROMPT-BUILD-EAIS.md` §4, `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md` và D-OP-13:
+> **Việc hiện hành (tối 21/10)** — lịch sử, đã thay bởi khối "MVP" 22/10 ở đầu tệp. Thứ tự theo `docs/PROMPT-BUILD-EAIS.md` §4, `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md` và D-OP-13:
 > 1. đổi tên lại EAIS (D-RM-02): XONG — `945777c` … `cdf7d84`; soát độc lập 3 góc: 0 S1, 3 S2 đã sửa;
 > 2. viết lại luồng theo tên mới (`docs/ROADMAP-DAY-DU.md`, `docs/01-architecture.md` theo 7 mặt phẳng + L0–L10, `CLAUDE.md` §9): XONG — `52c9399`, `34240a9`, `bff56c4`, `9da639c`, `903623d`; tệp phản hồi đổi tên `1ccac76`;
 > 3. đóng Phase 0b: R4-2…R4-4, R5-1, R5-2 XONG (Vòng 5); còn R5-4, R5-5 → vòng sửa S4 theo ADR-0010 (điều tra xong 22/10; D-OP-15 chờ) → chạy H4 MỘT lần;

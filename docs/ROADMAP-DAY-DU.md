@@ -248,6 +248,7 @@ tài liệu → đọc / OCR → chia đoạn → chỉ mục → truy xuất (l
 - **Hiện có:** chỉ mục từ khoá trong bộ nhớ, mỗi dòng một đoạn; ACL theo vai (`pgstore.go:163`, `rag.go:134`) [CODE].
 - **Thiếu:** ACL theo phạm vi thực thể; phiên bản tài liệu; bảng / OCR.
 - **Phase:** 6 (khi lỗi đo được đòi).
+- **Chi tiết:** `docs/ROADMAP-RAG.md` gồm mindset, 4 luồng, phân vai và các nấc RAG-0…RAG-8. Theo D-RAG-00, phần này làm sau MVP.
 
 ### L7. Kiểm soát
 

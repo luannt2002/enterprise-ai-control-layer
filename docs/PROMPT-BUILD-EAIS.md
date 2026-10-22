@@ -224,6 +224,7 @@ Ra **MVP** trước mọi việc khác. MVP gồm 5 khối:
 - Người và máy dành cho M1–M5 trước.
 - Làn 5, làn 6 và mọi việc ngoài MVP (`ROADMAP-DAY-DU.md` §5b.2) chỉ chạy khi còn tài nguyên.
 - Không chi tiền model trước khi MVP ra.
+- RAG: `docs/ROADMAP-RAG.md` là tài liệu tham khảo (D-RAG-00). Không mở mã RAG trước khi MVP ra. Làn giấy còn chỗ thì được làm giấy RAG-0 (tệp đó, §9).
 
 ### 9.2 Bảy làn
 

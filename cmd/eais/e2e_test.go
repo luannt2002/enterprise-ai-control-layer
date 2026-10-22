@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
@@ -246,5 +248,59 @@ func TestServeDevChayThat(t *testing.T) {
 		if !strings.Contains(logs.String(), want) {
 			t.Errorf("log của serve thiếu %q:\n%s", want, logs.String())
 		}
+	}
+}
+
+// freshPG tạo một database trống trong cùng cụm PG và trả DSN quản trị / ứng dụng trỏ vào nó; dọn khi test xong.
+func freshPG(t *testing.T, admin, app string) (string, string) {
+	t.Helper()
+	au, err1 := url.Parse(admin)
+	pu, err2 := url.Parse(app)
+	if err1 != nil || err2 != nil || au.User == nil || pu.User == nil {
+		t.Skipf("DSN không ở dạng URL có tên vai — không dựng được database trống: %v %v", err1, err2)
+	}
+	name := fmt.Sprintf("eais_cmd_%d_%d", os.Getpid(), time.Now().UnixNano()%1_000_000)
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if _, err := conn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+name+" WITH (FORCE)"); err != nil {
+			t.Errorf("dọn database %s: %v", name, err)
+		}
+		conn.Close(context.Background())
+	})
+	au.Path, pu.Path = "/"+name, "/"+name
+	return au.String(), pu.String()
+}
+
+// Kho chưa migrate thì serve và ingest TỪ CHỐI chạy và nói đúng việc cần làm (không phục vụ rồi mất vết ở lượt đầu); sau `eais migrate`
+// thì chạy được.
+func TestKhoChuaMigrateTuChoiKhoiDong(t *testing.T) {
+	_, _ = openPG(t) // bỏ qua nếu không có PG; migrate DB mặc định để các test khác dùng
+	admin, app := pgstore.EnvDSN()
+	fa, fp := freshPG(t, admin, app)
+	t.Setenv("EAIS_PG_ADMIN_DSN", fa)
+	t.Setenv("EAIS_PG_DSN", fp)
+	tn := uniqTenant("e2e-fresh")
+	packDir, dataRoot := tenantFixtures(t, tn)
+
+	code, _, errs := runCLI("ingest", "-pack", packDir, "-data", dataRoot)
+	if code != 1 || !strings.Contains(errs, "eais migrate") || !strings.Contains(errs, "bảng decision_records chưa có") {
+		t.Errorf("ingest trên DB chưa migrate = %d %q, muốn 1 và lời nhắc chạy eais migrate", code, errs)
+	}
+	code, _, errs = runCLI("serve", "-dev", "-addr", "127.0.0.1:0", "-pack", packDir, "-world", repoPath("tenants/construction/win/world.yaml"), "-data", dataRoot)
+	if code != 1 || !strings.Contains(errs, "eais migrate") {
+		t.Errorf("serve trên DB chưa migrate = %d %q, muốn 1 và lời nhắc chạy eais migrate", code, errs)
+	}
+	if code, out, errs := runCLI("migrate"); code != 0 {
+		t.Fatalf("migrate = %d %s%s", code, out, errs)
+	}
+	if code, out, errs := runCLI("ingest", "-pack", packDir, "-data", dataRoot); code != 0 || !strings.Contains(out, "NẠP "+tn) {
+		t.Errorf("ingest sau migrate = %d %s%s", code, out, errs)
 	}
 }

@@ -207,14 +207,9 @@ func serveDev(ctx context.Context, cfg config, addr string, principals map[strin
 	}
 	srv := newServer(a, principals, log)
 	srv.hostGuard = true
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenLoopback(addr)
 	if err != nil {
 		fmt.Fprintln(stderr, "serve:", err)
-		return 1
-	}
-	if tcp, ok := ln.Addr().(*net.TCPAddr); !ok || !tcp.IP.IsLoopback() { // địa chỉ thực sự gắn, không chỉ chuỗi đưa vào
-		ln.Close()
-		fmt.Fprintf(stderr, "serve: địa chỉ thực sự gắn %s không phải loopback — từ chối\n", ln.Addr())
 		return 2
 	}
 	log.Warn("CHẾ ĐỘ DEV — CHỈ DEV: token dev là thông tin công khai (dev-<tenant>-<principal>), chỉ nghe loopback, không dùng ngoài máy dev",
@@ -239,4 +234,18 @@ func serveDev(ctx context.Context, cfg config, addr string, principals map[strin
 	log.Info("tổng kết", "unauthenticated", c.Unauthenticated.Load(), "trace_save_failed", c.TraceSaveFailed.Load(), "usage_save_failed", c.UsageSaveFailed.Load(),
 		"ingest_denied", c.IngestDenied.Load(), "host_rejected", c.HostRejected.Load())
 	return 0
+}
+
+// listenLoopback mở cổng nghe rồi kiểm địa chỉ THỰC SỰ được gắn (không chỉ chuỗi đưa vào: "localhost" có thể phân giải ra địa chỉ khác
+// loopback): không phải loopback thì đóng ngay và từ chối.
+func listenLoopback(addr string) (net.Listener, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	if tcp, ok := ln.Addr().(*net.TCPAddr); !ok || !tcp.IP.IsLoopback() {
+		ln.Close()
+		return nil, fmt.Errorf("địa chỉ thực sự gắn %s không phải loopback — từ chối", ln.Addr())
+	}
+	return ln, nil
 }

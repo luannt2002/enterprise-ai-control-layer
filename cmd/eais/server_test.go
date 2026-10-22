@@ -338,6 +338,20 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 			t.Errorf("IngestDenied = %d, muốn 4", got)
 		}
 
+		// dữ liệu đổi TRONG LÚC nạp (sau khi đã đọc nguồn): phiên bản ghi vào vết sẽ không phải của thứ đã nạp ⇒ lỗi, KHÔNG nạp
+		e.app.afterRead = func() {
+			os.WriteFile(filepath.Join(e.dataRoot, e.tenantA, "doi-giua-chung.txt"), []byte("x"), 0o644)
+		}
+		r0 := e.post("/v1/ingest", tokDirector, map[string]string{})
+		e.app.afterRead = nil
+		os.Remove(filepath.Join(e.dataRoot, e.tenantA, "doi-giua-chung.txt"))
+		if r0.status != http.StatusConflict || !strings.Contains(string(r0.body), "đổi trong lúc nạp") {
+			t.Errorf("dữ liệu đổi giữa chừng: %d %s, muốn 409 'đổi trong lúc nạp'", r0.status, r0.body)
+		}
+		if rows(e.load.LoadID) != e.load.Quarantined {
+			t.Errorf("nạp hỏng giữa chừng làm đổi bản ghi cách ly của lần nạp trước")
+		}
+
 		// đổi dữ liệu: thêm một tệp vào thư mục nguồn ⇒ phiên bản dữ liệu khác ⇒ mã lần nạp khác
 		if err := os.WriteFile(filepath.Join(e.dataRoot, e.tenantA, "ghi-chu.txt"), []byte("thêm một tệp"), 0o644); err != nil {
 			t.Fatal(err)
@@ -523,13 +537,19 @@ func TestLuuVetThuLaiThanhCong(t *testing.T) {
 	}
 }
 
-// Lỗi KHÔNG tạm thời (xung đột nội dung) thì không thử lại — thử lại một xung đột chỉ che nó.
+// Lỗi KHÔNG tạm thời thì không thử lại — thử lại một xung đột chỉ che nó. Mã trả về: xung đột nội dung 409; bản ghi do chính server dựng mà
+// bị từ chối vì đầu vào / chính sách là lỗi của server nên 500, không đổ cho client bằng 400 / 403.
 func TestLuuVetLoiKhongThuLai(t *testing.T) {
-	e, ms := memEnv(t)
-	ms.saveDecisionErrs = []error{contracts.Errorf(contracts.FaultData, "trace_id đã có bản ghi với nội dung khác; không ghi đè")}
-	r := e.ask(tokDirector, qSQL)
-	if r.status != http.StatusConflict || len(ms.saveAttempts) != 1 {
-		t.Fatalf("xung đột nội dung: %d, %d lần thử — muốn 409 và đúng 1 lần", r.status, len(ms.saveAttempts))
+	for _, c := range []struct {
+		fault  string
+		status int
+	}{{contracts.FaultData, http.StatusConflict}, {contracts.FaultInput, 500}, {contracts.FaultPolicy, 500}, {contracts.FaultCode, 500}} {
+		e, ms := memEnv(t)
+		ms.saveDecisionErrs = []error{contracts.Errorf(c.fault, "lỗi chèn")}
+		r := e.ask(tokDirector, qSQL)
+		if r.status != c.status || len(ms.saveAttempts) != 1 || strings.Contains(string(r.body), `"answer"`) {
+			t.Errorf("lỗi lưu vết nhãn %s: %d, %d lần thử — muốn %d và đúng 1 lần, không có câu trả lời", c.fault, r.status, len(ms.saveAttempts), c.status)
+		}
 	}
 }
 
@@ -570,7 +590,7 @@ func TestLoiHaTangGiuaLuotCoVet(t *testing.T) {
 	e.app.setAsk(e.app.dataVersionNow())
 	r := e.ask(tokDirector, qSQL)
 	eb := decodeAs[errBody](t, r)
-	if r.status != http.StatusServiceUnavailable || eb.TraceID == "" || strings.Contains(string(r.body), "s3cretpw") {
+	if r.status != http.StatusServiceUnavailable || eb.TraceID == "" || strings.Contains(string(r.body), "s3cretpw") || strings.Contains(string(r.body), "connection refused") {
 		t.Fatalf("lỗi hạ tầng giữa lượt: %d %s", r.status, r.body)
 	}
 	rec := e.getTrace(tokDirector, eb.TraceID).Record

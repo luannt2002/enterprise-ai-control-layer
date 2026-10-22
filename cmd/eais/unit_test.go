@@ -277,3 +277,18 @@ func TestRunDungSai(t *testing.T) {
 		}
 	}
 }
+
+// listenLoopback kiểm địa chỉ THỰC SỰ gắn: mở cổng ở mọi giao diện thì bị từ chối và cổng được trả lại; loopback thì nhận.
+func TestListenLoopback(t *testing.T) {
+	ln, err := listenLoopback("127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("loopback bị từ chối: %v", err)
+	}
+	ln.Close()
+	if ln, err := listenLoopback("0.0.0.0:0"); err == nil || !strings.Contains(err.Error(), "không phải loopback") {
+		if ln != nil {
+			ln.Close()
+		}
+		t.Fatalf("0.0.0.0:0 phải bị từ chối, được %v", err)
+	}
+}

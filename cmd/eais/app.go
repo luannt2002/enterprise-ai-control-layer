@@ -65,6 +65,8 @@ type app struct {
 	clock    func() time.Time // nil = đồng hồ của tenant
 	model    *meteredModel
 	log      *slog.Logger
+	// afterRead chỉ để test: chạy sau khi bộ nạp đã đọc hết nguồn, trước khi băm lại thư mục (chèn thay đổi dữ liệu giữa chừng).
+	afterRead func()
 	// ask là luồng hỏi đang phục vụ. Deps của Ask là giá trị (DataVersion nằm trong đó) nên nạp lại dữ liệu không sửa tại chỗ — sẽ là
 	// data race với các lượt đang chạy — mà dựng Ask mới rồi thế con trỏ; lượt đang chạy dùng nốt bản cũ.
 	ask atomic.Pointer[pipeline.Ask]
@@ -260,6 +262,9 @@ func (a *app) ingest(ctx context.Context) (ingestReport, error) {
 	docs, err := rag.LoadMarkdown(filepath.Join(dir, "docs"), tenantID)
 	if err != nil {
 		return ingestReport{}, err
+	}
+	if a.afterRead != nil {
+		a.afterRead()
 	}
 	after, err := dataVersion(dir)
 	if err != nil {

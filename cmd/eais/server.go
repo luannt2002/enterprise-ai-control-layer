@@ -209,7 +209,11 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 		UnaccountedMs: out.UnaccountedMs, Plan: out.Plan, Response: out.Response})
 	if err := s.persist(r.Context(), pr, rec, acc); err != nil {
 		fault, _ := traces.SanitizeError(err)
-		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: "không lưu được vết của lượt; không giao câu trả lời", Fault: fault})
+		status := contracts.HTTPStatus(err)
+		if fault == contracts.FaultInput || fault == contracts.FaultPolicy { // bản ghi do CHÍNH server dựng bị từ chối: lỗi của server, không phải của client
+			status = http.StatusInternalServerError
+		}
+		writeJSON(w, status, errBody{Error: "không lưu được vết của lượt; không giao câu trả lời", Fault: fault})
 		return
 	}
 	w.Header().Set("X-Trace-Id", out.Response.TraceID)
@@ -361,7 +365,11 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request, pr contracts.Pri
 	if err != nil {
 		fault, msg := traces.SanitizeError(err)
 		s.log.Error("nạp lại dữ liệu thất bại", "tenant", pr.TenantID, "principal", pr.ID, "fault", fault, "lỗi", msg)
-		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: publicMessage(fault, msg), Fault: fault})
+		public := publicMessage(fault, msg)
+		if fault == contracts.FaultData { // người gọi đã là vai toàn quyền và xung đột dữ liệu là thứ họ phải xử lý: nói rõ
+			public = msg
+		}
+		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: public, Fault: fault})
 		return
 	}
 	s.log.Info("đã nạp lại dữ liệu", "tenant", pr.TenantID, "principal", pr.ID, "load_id", rep.LoadID, "observations", rep.Observations,

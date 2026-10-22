@@ -12,9 +12,12 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     ADR-0010 (F6' số tiền xa "dầu", S4R-03, hai thực thể khác loại…); thêm test cho nửa "chỉ số rỗng" (`f8b295e`, không đổi mã);
   - soát khoá vòng 3: bản sửa vòng 2 tự nó đạt, nhưng còn 2 lỗ SAI CHIỀU có từ trước ⇒ mở lại theo ngoại lệ §9.6, sửa `be91cd0`;
   - làn 3: giấy Phase 1 lên main (`2b80a38`).
-- **Đang làm (lệnh ca MVP ALL-IN):** H4 ĐÃ CHẠY MỘT LẦN — 104/119 hai đường (mốc `7d72e33`: 102/119; 2 đỏ → xanh, 0 xanh → đỏ); phân tích
-  tầng sai đầu tiên của 15 ca đỏ (người phân tích + người kiểm chéo); M4: sửa 4 ghi chú L3C-01…04 của giấy Phase 1 (tác giả → người soát); làn 0 (M1: `cmd/eais` + vết) đang soát U0.2 trên nhánh riêng; giấy Phase 0a
-  của làn 3 đã lên main (commit chứa dòng này; 3 ghi chú S3 chờ sửa trước khi mở mã Phase 0a).
+- **Đang làm (lệnh ca MVP ALL-IN):**
+  - **M1 (làn 0) gộp lên main** (commit chứa dòng này): `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz;
+    principal từ token, không lấy tenant từ thân), vết từng bước S0–S10 lưu bền theo tenant (migration 0003, RLS), `eais trace <id>`,
+    một lệnh `scripts/chay-thu.sh`, CI có PG cấm SKIP. Soát độc lập: U0.1 hai vòng, U0.2 hai vòng → ĐẠT CÓ GHI CHÚ. CI trên GitHub: chờ
+    lần chạy đầu sau push này;
+  - phân tích tầng sai đầu tiên của 15 ca đỏ H4; M4: sửa 4 ghi chú L3C-01…04 của giấy Phase 1; nợ S4 sau H4 (ở máy, đang soát);
 - **Tiếp theo:**
   1. Soát khoá vòng 4 kết luận (chỉ sửa tiếp nếu còn phán quyết sai chiều).
   2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai` đã tạo; băm tệp ca khớp bản đóng băng) → báo cáo theo tầng sai đầu
@@ -74,3 +77,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 14:5x | commit chứa dòng này | LÀN 3: giấy Phase 0a (M2, thu báo cáo ngày) — ADR-0012 (ĐỀ XUẤT, chưa áp mã), hợp đồng việc, cổng QuânIT 9 câu (`docs/viec/0a-thu-bao-cao-ngay/`) | Soát độc lập ĐẠT CÓ GHI CHÚ. Quét: 0 đường dẫn máy, 0 tên cũ, 0 ký tự lạ; cổng danh tính xanh | Chỉ giấy. Ghi chú S3 chờ sửa: F01 (DUPLICATE vừa là dòng vừa không), F02 (TR3 phụ thuộc thứ tự đến, chưa chống đua), F03 (3 / 11 dòng cổng chưa có đột biến bắt buộc đỏ); 12 câu Q-0A chưa vào CHO |
 | 22/10 15:0x | commit chứa dòng này + commit công bố tệp ca H4 | Soát khoá vòng 4 ĐẠT CÓ GHI CHÚ ⇒ cổng phán quyết KHOÁ HẲN (lệnh ca MVP ALL-IN: không vòng 5); công bố `docs/g7/holdout-h4/h4.yaml` (băm khớp bản đóng băng `15f04f9`) ngay trước lần chạy duy nhất | Người soát thứ năm: lưới 260.411 câu qua hai nhị phân: 0 phán quyết mới, 0 đổi chiều; n43 / n44 11 dòng mới bị bắt | Nợ S3 ghi ở ADR-0009 |
 | 22/10 15:0x | `fe48bda`, `dc07e1b` + commit chứa dòng này | **H4 chạy MỘT lần** ở `57409f2` (`scripts/chay-giu-lai.sh`, database `eais_giu_lai`) + đối chứng mốc `7d72e33` | Trạng thái HOÀN TẤT; 104/119 cả hai đường; phát lại 119/119, 0 lệch; G2' / G5' KHÔNG ĐẠT, G6' phần đo được ĐẠT; mốc 102/119; 2 đỏ → xanh, 0 xanh → đỏ | Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt; tầng sai đầu tiên đang phân tích |
+| 22/10 15:4x | 22 commit làn 0 (`b88b23b` … `9ed7a6a` trên nhánh, cherry-pick lên main) + commit chứa dòng này | **M1: ứng dụng + vết từng bước** (làn 0) | Cổng ở bản tích hợp: vet 0; gofmt 0; test có PG 601 pass, 0 fail, 0 skip — so theo tên 0 đổi / 0 mất, 122 mới; `scripts/kiem-skip-test.py` XANH; 117 / H1 / H3 / H4 hai đường 0 dòng khác; một lệnh từ clone sạch (`scripts/chay-thu.sh`): PG có sẵn 1 s, tự dựng PG bằng compose 4 s — smoke E2E 21 đạt / 0 hỏng cả hai; `eais trace <id>` in bảng S0–S10 cho lượt thường và lượt lỗi, tenant sai thì không thấy | Ghi chú S3 của soát U0.2 vòng 2: R2-01 data_version của vết có thể chưa từng nạp; R2-02 code_version "(devel)" khi dựng trong worktree; R2-03 5/11 bước chưa có lý do / phương án bị loại (cần móc ở core/pipeline — M5 dòng vết); R2-04 một lệnh với mặc định dùng lại và ghi đè container eais-pg đang chạy |

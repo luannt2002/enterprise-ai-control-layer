@@ -17,8 +17,10 @@
 # của pack (seed 42) vào PG đó — nên chỉ trỏ vào PG của riêng bạn. Dòng `ms` nghe ở SMOKE_ADDR (mặc định 127.0.0.1:28085). Hai kịch bản
 # `sc` dựng thứ riêng của chúng: SQUAT_ADDR (127.0.0.1:28086) là cổng bị một server giả chiếm; kịch bản pgkeep dựng một PG tạm tên
 # KEEP_NAME (eais-giu-pg) ở cổng KEEP_PORT (25449), chạy server ở KEEP_ADDR (127.0.0.1:28087), rồi gỡ đúng PG tạm đó; kịch bản pgrefuse
-# cũng dựng PG tạm KEEP_NAME ở KEEP_PORT (do CHÍNH scripts/chay-thu.sh dựng ở lần 1, server ở cổng hệ điều hành chọn) rồi gỡ nó; riêng
-# một pha của nó chạy script với cùng KEEP_NAME nhưng một cổng TRỐNG khác do hệ điều hành chọn (script đúng thì không dựng gì ở cổng đó).
+# cũng dựng PG tạm KEEP_NAME ở KEEP_PORT (do CHÍNH scripts/chay-thu.sh dựng ở lần 1, server ở cổng hệ điều hành chọn) rồi gỡ nó; các pha từ
+# chối của nó chạy script ở các cổng TRỐNG khác do hệ điều hành chọn (script đúng thì không dựng gì ở đó), có pha đổi thêm tên container
+# (KEEP_NAME-b, cùng dự án KEEP_NAME) hay dự án compose (KEEP_NAME-p, cho phép thử PG tạm dừng): hai thứ này chỉ được tạo khi script sai, và
+# kịch bản gỡ cả hai dự án khi xong. KEEP_NAME phải là tên chưa có container hay dự án compose nào (kể cả hai tên phụ).
 # Mỗi kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
@@ -111,33 +113,51 @@ scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước + EAIS_REUSE_
 	[ -n "$running" ] || why+="container $KEEP_NAME đã bị GỠ dù chạy từ trước; "
 	[ -z "$why" ]
 }
-scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ script tự dựng PG (xong còn chạy) · lần 2 mặc định (PG đang chạy; rồi chỉ đổi cổng sang một cổng trống, R3-01; rồi PG tạm dừng) ⇒ TỪ CHỐI, thoát 2, KHÔNG ghi gì, container KHÔNG bị dựng lại · lần 3 EAIS_REUSE_PG=1 ⇒ dùng lại; cuối cùng gỡ đúng PG tạm
-	local out1 out2 out2c out2p out3 rc1 rc2 rc2c rc2p rc3 mark2 mark2c mark2p running id1 id2c port2
+free_port() { python3 -I -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])' 2>/dev/null; } # cổng loopback trống do hệ điều hành chọn; rỗng nếu không chọn được
+scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ script tự dựng PG (xong còn chạy) · lần 2 PG đang chạy ⇒ TỪ CHỐI, thoát 2, KHÔNG ghi gì, container KHÔNG bị dựng lại: mặc định; chỉ đổi cổng (R3-01); cùng dự án, tên và cổng KHÁC (R4-01); PG tạm dừng + cổng trống khác, ở dự án khác cùng tên rồi ở cùng dự án khác tên (R4-02) · lần 3 EAIS_REUSE_PG=1 ⇒ dùng lại; cuối cùng gỡ đúng PG tạm
+	local out1 out2 out2c out2d out2n out2q out3 rc1 rc2 rc2c rc2d rc2n rc2q rc3 ports=() p
+	local mark2 mark2c mark2d mark2p running id1 id2c id2d id2p made_other other=${KEEP_NAME}-b proj_other=${KEEP_NAME}-p port2 port3 port4 port5
 	local run=(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN -u EAIS_REUSE_PG -u EAIS_PG_DOWN EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_PG_CONTAINER=$KEEP_NAME
 		EAIS_PG_PORT=$KEEP_PORT EAIS_ADDR=127.0.0.1:0)
 	psql_keep() { docker exec "$KEEP_NAME" psql -U postgres -d eais -Atc "$1" 2>/dev/null; }
-	if [ -n "$(docker ps -aq --filter "name=^/${KEEP_NAME}\$")" ]; then why="đã có container $KEEP_NAME — đặt KEEP_NAME khác"; return 1; fi
-	# Cổng TRỐNG thứ hai cho pha "chỉ đổi cổng", chọn trước khi dựng gì: giá trị rỗng mà lọt vào script thì EAIS_PG_PORT rỗng = cổng mặc định 25432 của PG thật.
-	port2=$(python3 -I -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])' 2>/dev/null)
-	case $port2 in '' | *[!0-9]*) why="không chọn được cổng trống thứ hai (python3)"; return 1 ;; esac
+	if [ -n "$(docker ps -aq --filter "name=^/${KEEP_NAME}\$")$(docker ps -aq --filter "name=^/${other}\$")$(docker ps -aq --filter "label=com.docker.compose.project=$KEEP_NAME")$(docker ps -aq --filter "label=com.docker.compose.project=$proj_other")" ]; then
+		why="đã có container hay dự án compose $KEEP_NAME / $other / $proj_other — đặt KEEP_NAME khác"; return 1
+	fi
+	# Bốn cổng TRỐNG cho các pha từ chối, chọn trước khi dựng gì: giá trị rỗng mà lọt vào script thì EAIS_PG_PORT rỗng = cổng mặc định 25432 của PG thật.
+	for p in 1 2 3 4; do ports+=("$(free_port)"); done
+	for p in "${ports[@]}"; do case $p in '' | *[!0-9]*) why="không chọn được cổng trống (python3)"; return 1 ;; esac; done
+	port2=${ports[0]} port3=${ports[1]} port4=${ports[2]} port5=${ports[3]}
 	out1=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc1=$?
 	# Dấu hiệu "dữ liệu của người khác": sửa một fact của tenant đã nạp. Script nào ghi đè PG này sẽ nạp lại giá trị seed và làm dấu hiệu mất.
 	psql_keep "update facts set value = 999999 where tenant_id = 'abc-infra' and id = (select min(id) from facts where tenant_id = 'abc-infra')" >/dev/null
 	out2=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2=$?
 	mark2=$(psql_keep "select count(*) from facts where value = 999999")
-	# R3-01: cùng dự án, cùng tên container, chỉ đổi cổng sang một cổng TRỐNG. Cổng trống nên phép thăm dò cổng không bắt được: hàng rào DUY NHẤT là bộ lọc
-	# tên container của `docker ps`. Hỏng nó thì script chạy `docker compose up` cùng dự án với cổng khác và compose TẠO LẠI container (mất dữ liệu tmpfs).
+	# R3-01: cùng dự án, cùng tên container, chỉ đổi cổng sang một cổng TRỐNG. Cổng trống nên phép thăm dò cổng không bắt được: hàng rào là bộ lọc
+	# tên container của `docker ps` (và cả dấu hiệu dự án). Hỏng chúng thì script chạy `docker compose up` cùng dự án với cổng khác và compose TẠO LẠI container.
 	id1=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
 	out2c=$(timeout 90 "${run[@]}" EAIS_PG_PORT=$port2 scripts/chay-thu.sh 2>&1); rc2c=$?
 	id2c=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
 	mark2c=$(psql_keep "select count(*) from facts where value = 999999")
+	# R4-01: cùng dự án nhưng tên container VÀ cổng khác. Tên khác (không có container $other) và cổng trống nên hai dấu hiệu cũ đều báo trống: hàng rào
+	# DUY NHẤT là dấu hiệu "dự án đã có container". Hỏng nó thì compose up thấy service đổi container_name / ports và TẠO LẠI container (mất dữ liệu tmpfs).
+	out2d=$(timeout 90 "${run[@]}" EAIS_PG_CONTAINER=$other EAIS_PG_PORT=$port3 scripts/chay-thu.sh 2>&1); rc2d=$?
+	id2d=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
+	made_other=$(docker ps -aq --filter "name=^/${other}\$")
+	mark2d=$(psql_keep "select count(*) from facts where value = 999999")
+	# R4-02: container TẠM DỪNG (vẫn giữ dữ liệu trong bộ nhớ) và cổng trống KHÁC, nên tín hiệu cổng không che được tín hiệu container. Hai pha, mỗi pha chỉ một
+	# dấu hiệu còn lại: (n) dự án KHÁC, cùng tên container ⇒ chỉ phép kiểm tên bắt được (thêm `--filter status=running` vào nó thì bỏ sót paused, MS7);
+	# (q) cùng dự án, tên container khác ⇒ chỉ dấu hiệu dự án bắt được. Phải mở tạm dừng trước khi đọc dữ liệu (docker exec không chạy được trên container paused).
 	docker pause "$KEEP_NAME" >/dev/null 2>&1
-	out2p=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2p=$?
+	out2n=$(timeout 90 "${run[@]}" EAIS_COMPOSE_PROJECT=$proj_other EAIS_PG_PORT=$port4 scripts/chay-thu.sh 2>&1); rc2n=$?
+	out2q=$(timeout 90 "${run[@]}" EAIS_PG_CONTAINER=$other EAIS_PG_PORT=$port5 scripts/chay-thu.sh 2>&1); rc2q=$?
 	docker unpause "$KEEP_NAME" >/dev/null 2>&1
+	id2p=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
 	mark2p=$(psql_keep "select count(*) from facts where value = 999999")
 	out3=$(timeout 90 "${run[@]}" EAIS_REUSE_PG=1 scripts/chay-thu.sh 2>&1); rc3=$?
 	running=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
+	docker unpause "$KEEP_NAME" >/dev/null 2>&1
 	EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$KEEP_NAME" -f deploy/docker-compose.yml down >/dev/null 2>&1
+	EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$proj_other" -f deploy/docker-compose.yml down >/dev/null 2>&1 # chỉ có gì để gỡ nếu script sai và đã tạo thứ gì ở dự án phụ
 	why=''
 	[ "$rc1" -eq 0 ] || why+="lần 1 (chỗ trống) thoát $rc1 ($(tail -2 <<<"$out1" | tr '\n' ' ')); "
 	[ "$rc2" -eq 2 ] || why+="lần 2 (PG đang chạy, mặc định) thoát $rc2 thay vì 2; "
@@ -147,8 +167,17 @@ scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ scri
 	grep -q "container $KEEP_NAME ĐÃ chạy từ trước" <<<"$out2c" || why+="lần 2 chỉ đổi cổng không từ chối vì container (bộ lọc tên container hỏng?); "
 	{ [ -n "$id1" ] && [ "$id1" = "$id2c" ]; } || why+="lần 2 chỉ đổi cổng đã DỰNG LẠI container (mã ${id1:-không có} thành ${id2c:-không còn}); "
 	[ "$mark2c" = 1 ] || why+="lần 2 chỉ đổi cổng đã GHI vào PG (dấu hiệu mất); "
-	[ "$rc2p" -eq 2 ] || why+="lần 2 với container tạm dừng thoát $rc2p thay vì 2 (bỏ sót container paused?); "
-	[ "$mark2p" = 1 ] || why+="lần 2 với container tạm dừng đã GHI vào PG; "
+	[ "$rc2d" -eq 2 ] || why+="lần 2 cùng dự án, tên $other và cổng $port3 KHÁC thoát $rc2d thay vì 2 (thiếu dấu hiệu dự án: compose up cùng dự án tạo lại PG đang chạy?); "
+	grep -q "dự án compose $KEEP_NAME ĐÃ có container" <<<"$out2d" || why+="lần 2 cùng dự án khác tên và cổng không từ chối vì dự án; "
+	{ [ -n "$id1" ] && [ "$id1" = "$id2d" ]; } || why+="lần 2 cùng dự án khác tên và cổng đã DỰNG LẠI container (mã ${id1:-không có} thành ${id2d:-không còn}); "
+	[ -z "$made_other" ] || why+="lần 2 cùng dự án khác tên đã TẠO container $other; "
+	[ "$mark2d" = 1 ] || why+="lần 2 cùng dự án khác tên và cổng đã GHI vào PG (dấu hiệu mất); "
+	[ "$rc2n" -eq 2 ] || why+="lần 2 với container tạm dừng, dự án khác cùng tên, cổng trống $port4 thoát $rc2n thay vì 2 (phép kiểm tên bỏ sót container paused?); "
+	grep -q "container $KEEP_NAME ĐÃ chạy từ trước" <<<"$out2n" || why+="lần 2 với container tạm dừng (dự án khác) không từ chối vì container; "
+	[ "$rc2q" -eq 2 ] || why+="lần 2 với container tạm dừng, cùng dự án khác tên $other, cổng trống $port5 thoát $rc2q thay vì 2 (dấu hiệu dự án bỏ sót container paused?); "
+	grep -q "dự án compose $KEEP_NAME ĐÃ có container" <<<"$out2q" || why+="lần 2 với container tạm dừng (cùng dự án) không từ chối vì dự án; "
+	{ [ -n "$id1" ] && [ "$id1" = "$id2p" ]; } || why+="sau các pha tạm dừng container đã bị DỰNG LẠI hay mất (mã ${id1:-không có} thành ${id2p:-không còn}); "
+	[ "$mark2p" = 1 ] || why+="các pha tạm dừng đã GHI vào PG (dấu hiệu mất); "
 	[ "$rc3" -eq 0 ] || why+="lần 3 (EAIS_REUSE_PG=1) thoát $rc3 ($(tail -2 <<<"$out3" | tr '\n' ' ')); "
 	grep -q 'dùng lại' <<<"$out3" || why+="lần 3 không báo là dùng lại; "
 	[ -n "$running" ] || why+="PG tạm đã bị gỡ trước khi phép thử gỡ; "
@@ -315,6 +344,13 @@ m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CON
 m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/eais-khac\$"' 'FILTER-2 test: bộ lọc tên container lọc nhầm tên khác'
 # R3-03: chỉ đúng "1" là lời xác nhận dùng lại (0, true vẫn bị từ chối).
 m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif [ -n "${EAIS_REUSE_PG:-}" ]; then' 'REUSE-1 test: EAIS_REUSE_PG đặt giá trị bất kỳ (cả 0, true) bị coi là cố ý dùng lại'
+# R4-01: cùng dự án, tên container VÀ cổng khác thì chỉ dấu hiệu "dự án đã có container" chặn được (compose up cùng dự án tạo lại PG đang chạy). docker giả của test lọc theo nhãn dự án và trạng thái.
+m scripts/chay-thu.sh '&& [ -n "$peers" ]; then' '&& false; then' 'PROJ-1 test: bỏ dấu hiệu dự án đã có container'
+m scripts/chay-thu.sh '--filter "label=com.docker.compose.project=$PROJECT"' '--filter "label=com.docker.compose.project"' 'PROJ-2 test: lọc nhãn dự án mà bỏ giá trị (mọi dự án compose đều chặn)'
+m scripts/chay-thu.sh '--filter "label=com.docker.compose.project=$PROJECT"' '--filter "label=com.docker.compose.project=$PROJECT" --filter status=running' 'PROJ-3 test: dấu hiệu dự án chỉ nhìn container đang chạy (bỏ sót paused)'
+m scripts/chay-thu.sh 'docker ps --filter "label=com.docker.compose.project=$PROJECT"' 'docker ps -a --filter "label=com.docker.compose.project=$PROJECT"' 'PROJ-4 test: dấu hiệu dự án tính cả container đã dừng hẳn (chặn lần chạy lại hợp lệ)'
+# R4-02: container tạm dừng (paused) vẫn giữ dữ liệu; thêm --filter status=running cạnh bộ lọc tên làm script bỏ sót nó. Test cũ không có trạng thái paused nên MS7 từng sống sót.
+m scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}\$" --filter status=running' 'MS7 test: bộ lọc tên container chỉ thấy container đang chạy (bỏ sót paused)'
 
 # --- phiên bản mã của vết và của mã lần nạp (R2-02): hàm chọn (version.go), bước ghi đè ở server, script nhúng -ldflags, workflow CI ---
 V=cmd/eais/version.go
@@ -354,6 +390,9 @@ sc scen_pgrefuse 'RP7 PG đã chạy sẵn (lần 1 do script dựng): mặc đ�
 sc scen_pgrefuse 'RP8 script bỏ cổng từ chối: dùng lại PG đang chạy dù không đặt EAIS_REUSE_PG' scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif true; then'
 sc scen_pgrefuse 'FILTER-1 kịch bản: bộ lọc tên container không bao giờ khớp, chỉ đổi cổng thì compose dựng lại PG đang chạy' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}x\$"'
 sc scen_pgrefuse 'FILTER-2 kịch bản: bộ lọc tên container lọc nhầm tên khác' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/eais-khac\$"'
+sc scen_pgrefuse 'PROJ-1 kịch bản: bỏ dấu hiệu dự án, cùng dự án khác tên và cổng thì compose dựng lại PG đang chạy' scripts/chay-thu.sh '&& [ -n "$peers" ]; then' '&& false; then'
+sc scen_pgrefuse 'PROJ-3 kịch bản: dấu hiệu dự án chỉ nhìn container đang chạy, PG tạm dừng cùng dự án bị bỏ sót' scripts/chay-thu.sh '--filter "label=com.docker.compose.project=$PROJECT"' '--filter "label=com.docker.compose.project=$PROJECT" --filter status=running'
+sc scen_pgrefuse 'MS7 kịch bản: bộ lọc tên container chỉ thấy container đang chạy, PG tạm dừng bị bỏ sót' scripts/chay-thu.sh '--filter "name=^/${CONTAINER}\$"' '--filter "name=^/${CONTAINER}\$" --filter status=running'
 
 echo "TỔNG: $bat bị bắt, $song sống sót, $khac lỗi khác; $dat kịch bản nguyên bản đạt"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

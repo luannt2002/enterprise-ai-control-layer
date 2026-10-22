@@ -5,26 +5,28 @@
 #
 # CẢNH BÁO: script GHI vào PG mà nó dùng — migrate rồi nạp THAY toàn bộ dữ liệu của tenant trong pack construction. Vì vậy với giá trị
 # mặc định nó chỉ chạy trên PG do CHÍNH nó dựng: thấy container EAIS_PG_CONTAINER đang chạy, hoặc cổng 127.0.0.1:EAIS_PG_PORT đã có
-# tiến trình nghe, thì TỪ CHỐI (thoát 2, chưa ghi gì) và in hướng dẫn — kể cả khi đó là PG còn sót lại của lần chạy trước. Cố ý dùng lại
-# PG đó: EAIS_REUSE_PG=1. Đã đặt cả EAIS_PG_ADMIN_DSN và EAIS_PG_DSN thì script dùng đúng PG ấy mà không hỏi (CI, PG của bạn): hai biến
-# đó chính là lời xác nhận, nên đừng để chúng trong shell nếu không muốn script ghi vào PG đó.
+# tiến trình nghe, hoặc dự án compose EAIS_COMPOSE_PROJECT đã có container nào đang chạy / tạm dừng (dù tên và cổng khác: docker compose up cùng
+# dự án TẠO LẠI container đó và dữ liệu của nó mất), thì TỪ CHỐI (thoát 2, chưa ghi gì) và in hướng dẫn — kể cả khi đó là PG còn sót lại của lần
+# chạy trước. Chạy cạnh PG đang có: đổi CẢ BA (tên container, cổng, dự án). Cố ý dùng lại PG đó: EAIS_REUSE_PG=1. Đã đặt cả EAIS_PG_ADMIN_DSN
+# và EAIS_PG_DSN thì script dùng đúng PG ấy mà không hỏi (CI, PG của bạn): hai biến đó chính là lời xác nhận, nên đừng để chúng trong shell
+# nếu không muốn script ghi vào PG đó.
 #
 # Cần: Go (theo go.mod), Docker (chỉ khi chưa có PG), curl, python3, pdftotext (poppler-utils). Không gọi model, không mạng ra ngoài
 # ngoài việc tải module Go / ảnh Docker đã ghim. Mọi dữ liệu là giả lập.
 #
 # Cấu hình bằng biến môi trường (mặc định như deploy/docker-compose.yml):
 #   EAIS_PG_ADMIN_DSN + EAIS_PG_DSN  đã đặt cả hai thì dùng PG đó (CI, PG sẵn có) và KHÔNG chạm Docker
-#   EAIS_COMPOSE_PROJECT   tên dự án compose              (eais)
+#   EAIS_COMPOSE_PROJECT   tên dự án compose              (eais); container nào của dự án này đang chạy / tạm dừng cũng chặn script
 #   EAIS_PG_CONTAINER      tên container PG               (eais-pg)
 #   EAIS_PG_PORT           cổng PG trên 127.0.0.1         (25432)
-#   EAIS_REUSE_PG=1        CỐ Ý dùng lại PG đang chạy ở container / cổng trên (mặc định: từ chối); PG dùng lại không bao giờ bị gỡ
+#   EAIS_REUSE_PG=1        CỐ Ý dùng lại PG đang chạy ở container / cổng / dự án trên (mặc định: từ chối); PG dùng lại không bao giờ bị gỡ
 #   EAIS_CODE_VERSION      phiên bản mã nhúng vào binary (-ldflags -X main.buildVersion=…; chỉ chữ, số, . + _ -); mặc định là mã git của cây
 #                          (git rev-parse HEAD, thêm "+dirty" khi cây có sửa chưa commit hoặc tệp mới chưa theo dõi). CI đặt = github.sha
 #   EAIS_ADDR              địa chỉ nghe của server        (127.0.0.1:0 = hệ điều hành chọn cổng trống, script đọc cổng thật từ
 #                          dòng "đang nghe http://…" của server; serve -dev chỉ nhận loopback)
 #   EAIS_WORK              thư mục làm việc (binary, dữ liệu, log); mặc định mktemp -d, xoá khi xong nếu do script tạo
 #   EAIS_PG_DOWN=1         gỡ PG khi xong NẾU CHÍNH script này đã dựng nó (mặc định giữ lại để soi tay; lần chạy sau khi PG đó còn chạy sẽ
-#                          bị từ chối — gỡ trước, đổi tên / cổng, hoặc đặt EAIS_REUSE_PG=1)
+#                          bị từ chối — gỡ trước, đổi cả tên / cổng / dự án, hoặc đặt EAIS_REUSE_PG=1)
 #   EAIS_SMOKE             lệnh smoke thay cho scripts/smoke-e2e.sh, nhận địa chỉ http://… làm đối số (cho phép thử của chính script này)
 #
 # An toàn: script chỉ gỡ container mà CHÍNH nó dựng (và chỉ khi EAIS_PG_DOWN=1); PG dùng lại nhờ EAIS_REUSE_PG=1 hay nhờ DSN có sẵn không
@@ -80,14 +82,23 @@ case $code_version in
 	;;
 esac
 
-# pg_chiem in ra (một dòng) cái đang chiếm chỗ mà script sắp dựng PG của nó; rỗng nếu chỗ đó trống. Hai dấu hiệu: container tên $CONTAINER
-# đang chạy, hoặc có tiến trình nghe ở 127.0.0.1:$PORT. Hỏi docker KHÔNG lọc theo trạng thái: `--filter status=running` bỏ sót container
-# đang tạm dừng (paused) hay đang khởi động lại, mà container tạm dừng vẫn giữ cổng. Cổng thử bằng một lần kết nối TCP (không gửi gì).
+# pg_chiem in ra (một dòng) cái đang chiếm chỗ mà script sắp dựng PG của nó; rỗng nếu chỗ đó trống. Ba dấu hiệu, theo thứ tự: (1) container tên
+# $CONTAINER đang chạy; (2) có tiến trình nghe ở 127.0.0.1:$PORT; (3) dự án compose $PROJECT đã có container nào (tên gì cũng được) đang chạy hoặc
+# tạm dừng (R4-01). Hai dấu hiệu đầu chỉ nhìn tên và cổng: cùng dự án mà tên container VÀ cổng khác thì cả hai báo trống, nhưng `docker compose up`
+# cùng dự án thấy service đổi container_name và ports nên TẠO LẠI container cũ — PG đang chạy bị gỡ, dữ liệu tmpfs mất. Dự án mặc định (eais) trùng
+# deploy/docker-compose.yml nên người chỉ đổi tên và cổng mà quên dự án sẽ gỡ nhầm đúng eais-pg. Hỏi docker KHÔNG lọc theo trạng thái:
+# `--filter status=running` bỏ sót container đang tạm dừng (paused) hay đang khởi động lại, mà container tạm dừng vẫn giữ cổng và dữ liệu trong
+# bộ nhớ. Container đã DỪNG hẳn (exited) của dự án cố ý KHÔNG tính: dữ liệu PG nằm trên tmpfs nên mất ngay khi container dừng, compose dựng lại nó
+# không làm mất gì, còn từ chối sẽ chặn lần chạy lại hợp lệ sau `docker stop` mà không bảo vệ được gì; `docker ps` mặc định (không -a) không liệt
+# kê container đã dừng. Cổng thử bằng một lần kết nối TCP (không gửi gì).
 pg_chiem() {
+	local peers nl=$'\n'
 	if [ -n "$(docker ps -q --filter "name=^/${CONTAINER}\$" 2>/dev/null)" ]; then
 		echo "container $CONTAINER ĐÃ chạy từ trước"
 	elif (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
 		echo "cổng 127.0.0.1:$PORT ĐÃ có tiến trình nghe"
+	elif peers=$(docker ps --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' 2>/dev/null) && [ -n "$peers" ]; then
+		echo "dự án compose $PROJECT ĐÃ có container chạy từ trước (${peers//$nl/, })"
 	fi
 }
 
@@ -105,10 +116,11 @@ else
 		cat >&2 <<EOF
 TỪ CHỐI: $busy.
 Script này migrate rồi nạp THAY toàn bộ dữ liệu của tenant trong pack construction (seed 42) vào PG nó dùng. Nếu PG đang chạy đó là của
-việc khác (đang đo, đang giữ dữ liệu) thì dữ liệu ấy bị ghi đè — nên script không tự dùng lại. Chọn một:
-  1. PG riêng, không đụng PG đang chạy: đổi tên container, cổng và dự án compose, ví dụ
+việc khác (đang đo, đang giữ dữ liệu) thì dữ liệu ấy bị ghi đè — nên script không tự dùng lại. Cùng dự án compose mà khác tên container hay cổng
+cũng không cứu được: docker compose up TẠO LẠI container đang chạy của dự án và dữ liệu của nó mất. Chọn một:
+  1. PG riêng, không đụng PG đang chạy: đổi CẢ BA — tên container, cổng và dự án compose (EAIS_COMPOSE_PROJECT, đang là "$PROJECT"), ví dụ
        EAIS_PG_CONTAINER=eais-thu EAIS_PG_PORT=25441 EAIS_COMPOSE_PROJECT=eais-thu scripts/chay-thu.sh
-  2. CỐ Ý dùng lại và ghi đè PG đang chạy (chỉ khi chắc nó là của bạn):
+  2. CỐ Ý dùng lại và ghi đè PG đang chạy ở 127.0.0.1:$PORT (chỉ khi chắc nó là của bạn; PG ở cổng khác thì đặt EAIS_PG_PORT đúng cổng đó):
        EAIS_REUSE_PG=1 scripts/chay-thu.sh
 EOF
 		exit 2

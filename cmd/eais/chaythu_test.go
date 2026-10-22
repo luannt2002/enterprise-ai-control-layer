@@ -12,8 +12,9 @@ import (
 )
 
 // Test của scripts/chay-thu.sh (một lệnh: PG → migrate → nạp → serve → smoke). Script được chạy THẬT dưới bash, nhưng `docker` và `go` là
-// hai chương trình GIẢ đứng đầu PATH: không container nào bị đụng, không gì được dịch. `docker ps` giả báo có container đang chạy hay
-// không theo ý test và — như docker thật — CHỈ thấy nó khi lời gọi lọc ĐÚNG theo tên container đó (--filter name=^/<tên>$); mọi lời gọi
+// hai chương trình GIẢ đứng đầu PATH: không container nào bị đụng, không gì được dịch. `docker ps` giả có một danh sách container (tên, nhãn
+// dự án compose, trạng thái) do test dựng và lọc như docker thật: theo tên (--filter name=^/<tên>$), theo nhãn dự án (--filter
+// label=com.docker.compose.project=<dự án>) và theo trạng thái (--filter status=…); không có -a thì không thấy container đã dừng hẳn. Mọi lời gọi
 // docker / go được ghi lại để test khẳng định script ĐÃ và CHƯA làm gì. `go` giả thoát 42 nên script dừng
 // ngay ở bước dịch binary — đủ để biết nó đã vượt cổng PG hay chưa mà không dựng gì thật.
 
@@ -31,6 +32,24 @@ func (r chayThuResult) called(sub string) bool {
 		}
 	}
 	return false
+}
+
+// composeCalls trả các lời gọi `docker compose …` (dựng / gỡ PG) mà script đã thực hiện. KHÔNG đếm `docker ps --filter
+// label=com.docker.compose.project=…`: dòng đó chứa chữ "compose" nhưng chỉ là phép HỎI, không dựng hay gỡ gì.
+func (r chayThuResult) composeCalls() []string {
+	var out []string
+	for _, c := range r.calls {
+		if strings.HasPrefix(c, "docker compose ") {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// fakeContainer là một container mà docker giả "đang có". project rỗng = container không mang nhãn compose (dựng tay bằng docker run).
+// status như cột STATE của docker: running | paused | exited. id ghi dạng 12 ký tự hex như `docker ps -q`.
+type fakeContainer struct {
+	id, name, project, status string
 }
 
 // defaultPGContainer là tên container PG mặc định của script (khi EAIS_PG_CONTAINER không đặt) và của deploy/docker-compose.yml.
@@ -51,8 +70,10 @@ func pgContainerName(env []string) string {
 	return name
 }
 
-// runChayThu chạy scripts/chay-thu.sh. dockerRunning = `docker ps` giả báo container tên EAIS_PG_CONTAINER (trong env; không đặt thì tên
-// mặc định) đang chạy — và chỉ khi lời gọi lọc đúng theo tên đó. env là các biến thêm (KEY=VALUE);
+// runChayThu chạy scripts/chay-thu.sh. dockerRunning = docker giả có một container đang chạy tên EAIS_PG_CONTAINER (trong env; không đặt thì tên
+// mặc định). Container đó KHÔNG mang nhãn dự án compose (như PG dựng tay) để dấu hiệu "tên container" đứng MỘT MÌNH: nếu nó mang nhãn dự án của
+// script thì dấu hiệu "dự án" (R4-01) cũng đòi từ chối và che lỗi của phép kiểm tên (cùng cơ chế R3-01 / R4-02); ca cần container có nhãn dùng
+// runChayThuDocker. env là các biến thêm (KEY=VALUE);
 // KHÔNG kế thừa biến EAIS_* của môi trường thật (kể cả DSN): mỗi ca tự nêu cái nó cần. Cổng PG mặc định của ca là một cổng đang TRỐNG chứ
 // không phải 25432: script thăm dò cổng bằng một lần kết nối thật, nên cổng mặc định mà trên máy có PG của việc khác thì (1) ca "container
 // đang chạy" bị từ chối nhờ cổng chứ không nhờ container, che lỗi của phép kiểm container, (2) test chạm vào PG của người khác.
@@ -63,6 +84,16 @@ func runChayThu(t *testing.T, dockerRunning bool, env ...string) chayThuResult {
 
 // runChayThuScript như runChayThu nhưng chạy script ở đường dẫn cho trước (test phiên bản mã chạy bản sao trong một kho git tạm).
 func runChayThuScript(t *testing.T, script string, dockerRunning bool, env ...string) chayThuResult {
+	t.Helper()
+	var containers []fakeContainer
+	if dockerRunning {
+		containers = []fakeContainer{{id: "0123456789ab", name: pgContainerName(env), status: "running"}}
+	}
+	return runChayThuDocker(t, script, containers, env...)
+}
+
+// runChayThuDocker chạy script với docker giả đang có đúng danh sách containers (nil = không có container nào).
+func runChayThuDocker(t *testing.T, script string, containers []fakeContainer, env ...string) chayThuResult {
 	t.Helper()
 	if _, err := exec.LookPath("bash"); err != nil {
 		t.Fatalf("cần bash để chạy scripts/chay-thu.sh: %v", err)
@@ -79,15 +110,43 @@ func runChayThuScript(t *testing.T, script string, dockerRunning bool, env ...st
 			t.Fatal(err)
 		}
 	}
-	// docker giả: ghi lời gọi (kèm hai biến mà compose đọc). `docker ps` chỉ in mã container khi test bảo "đang chạy" (FAKE_RUNNING = tên
-	// container) VÀ có một đối số lọc đúng bằng name=^/<tên>$ (sau --filter, hoặc dạng --filter=…). Bộ lọc sai tên, không bao giờ khớp hay
-	// không lọc theo tên thì không thấy gì: nếu docker giả in mã cho mọi lời gọi thì test không phân biệt được bộ lọc đúng với bộ lọc hỏng (R3-01).
+	// docker giả: ghi lời gọi (kèm hai biến mà compose đọc). `docker ps` chọn trong FAKE_CONTAINERS (mỗi dòng "<mã> <tên> <dự án|-> <trạng thái>")
+	// đúng như docker thật: --filter name=^/<tên>$ (khớp đúng tên, nên bộ lọc sai tên / không bao giờ khớp không thấy gì), --filter
+	// label=com.docker.compose.project[=<dự án>], --filter status=<trạng thái>; không có -a và không lọc status thì chỉ thấy container đang
+	// chạy / tạm dừng / khởi động lại (container đã dừng hẳn thì ẩn). In mã (hay tên khi có --format). Nếu docker giả in mã cho mọi lời gọi thì
+	// test không phân biệt được bộ lọc đúng với bộ lọc hỏng (R3-01), và nếu không hiểu status thì thêm `--filter status=running` không làm gì đỏ (R4-02).
 	stub("docker", `echo "docker $* [EAIS_PG_CONTAINER=${EAIS_PG_CONTAINER-} EAIS_PG_PORT=${EAIS_PG_PORT-}]" >> "$FAKE_CALLS"
-if [ "$1" = ps ] && [ -n "${FAKE_RUNNING-}" ]; then
-	prev=
+if [ "$1" = ps ]; then
+	all='' name='' label='' status='' fmt='' prev=''
 	for a in "$@"; do
-		if [ "$a" = "--filter=name=^/${FAKE_RUNNING}\$" ] || { [ "$prev" = --filter ] && [ "$a" = "name=^/${FAKE_RUNNING}\$" ]; }; then echo 0123456789ab; fi
+		f=''
+		case $a in
+		-a | --all | -aq | -qa) all=1 ;;
+		--format=*) fmt=${a#--format=} ;;
+		--filter=*) f=${a#--filter=} ;;
+		*) if [ "$prev" = --filter ]; then f=$a; elif [ "$prev" = --format ]; then fmt=$a; fi ;;
+		esac
+		case $f in
+		name=*) name=${f#name=} ;;
+		label=*) label=${f#label=} ;;
+		status=*) status=${f#status=} ;;
+		esac
 		prev=$a
+	done
+	printf '%s\n' "${FAKE_CONTAINERS-}" | while read -r id cname cproj cstat; do
+		[ -n "$id" ] || continue
+		if [ -z "$all" ] && [ -z "$status" ]; then
+			case $cstat in running | paused | restarting) ;; *) continue ;; esac
+		fi
+		[ -z "$status" ] || [ "$status" = "$cstat" ] || continue
+		[ -z "$name" ] || [ "$name" = "^/$cname\$" ] || continue
+		case $label in
+		'') ;;
+		com.docker.compose.project=*) [ "${label#com.docker.compose.project=}" = "$cproj" ] || continue ;;
+		com.docker.compose.project) [ "$cproj" != - ] || continue ;;
+		*) continue ;;
+		esac
+		if [ -n "$fmt" ]; then echo "$cname"; else echo "$id"; fi
 	done
 fi
 exit 0
@@ -96,12 +155,18 @@ exit 0
 	stub("go", `{ printf 'go'; for a in "$@"; do printf ' [%s]' "$a"; done; echo; } >> "$FAKE_CALLS"
 exit 42
 `)
+	var fake []string
+	for _, c := range containers {
+		project := c.project
+		if project == "" {
+			project = "-"
+		}
+		fake = append(fake, c.id+" "+c.name+" "+project+" "+c.status)
+	}
 	cmd := exec.Command("bash", "--noprofile", "--norc", script)
 	cmd.Env = append([]string{"PATH=" + bin + ":" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME"), "FAKE_CALLS=" + callsPath,
+		"FAKE_CONTAINERS=" + strings.Join(fake, "\n"),
 		"EAIS_WORK=" + filepath.Join(dir, "work"), "EAIS_PG_PORT=" + freePort(t)}, env...) // biến đứng sau thắng: env của ca đè được cổng mặc định
-	if dockerRunning {
-		cmd.Env = append(cmd.Env, "FAKE_RUNNING="+pgContainerName(env))
-	}
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	err := cmd.Run()
@@ -156,7 +221,7 @@ func TestChayThuTuChoiContainerDangChay(t *testing.T) {
 			t.Errorf("lời từ chối thiếu %q:\n%s", want, r.out)
 		}
 	}
-	if r.called("go ") || r.called("compose") {
+	if r.called("go ") || len(r.composeCalls()) > 0 {
 		t.Errorf("script từ chối mà vẫn làm việc (migrate / nạp ghi vào PG của người khác nằm sau các lời gọi này): %q", r.calls)
 	}
 }
@@ -168,7 +233,7 @@ func TestChayThuTuChoiCongBan(t *testing.T) {
 	if r.code != 2 || !strings.Contains(r.out, "TỪ CHỐI") || !strings.Contains(r.out, "127.0.0.1:"+port) {
 		t.Errorf("cổng %s đã bị giữ: script thoát %d, muốn 2 và nêu cổng:\n%s", port, r.code, r.out)
 	}
-	if r.called("go ") || r.called("compose") {
+	if r.called("go ") || len(r.composeCalls()) > 0 {
 		t.Errorf("script từ chối mà vẫn làm việc: %q", r.calls)
 	}
 }
@@ -196,7 +261,7 @@ func TestChayThuTuChoiCungTenContainerChiDoiCong(t *testing.T) {
 			if want := "container " + pgContainerName(env) + " ĐÃ chạy từ trước"; !strings.Contains(r.out, "TỪ CHỐI") || !strings.Contains(r.out, want) {
 				t.Errorf("lời từ chối phải nêu %q (tín hiệu container, không phải cổng):\n%s", want, r.out)
 			}
-			if r.called("go ") || r.called("compose") {
+			if r.called("go ") || len(r.composeCalls()) > 0 {
 				t.Errorf("script từ chối mà vẫn làm việc (compose up cùng dự án khác cổng sẽ TẠO LẠI container đang chạy): %q", r.calls)
 			}
 		})
@@ -221,7 +286,7 @@ func TestChayThuReusePGChiNhanDungMot(t *testing.T) {
 				if r.code != 2 || !strings.Contains(r.out, "TỪ CHỐI") {
 					t.Errorf("EAIS_REUSE_PG=%s: script thoát %d, muốn 2 (chỉ \"1\" mới là dùng lại)\n%s", val, r.code, r.out)
 				}
-				if strings.Contains(r.out, "dùng lại, sẽ không gỡ nó") || r.called("go ") || r.called("compose") {
+				if strings.Contains(r.out, "dùng lại, sẽ không gỡ nó") || r.called("go ") || len(r.composeCalls()) > 0 {
 					t.Errorf("EAIS_REUSE_PG=%s mà script vẫn dùng lại / làm việc trên PG đang chạy: %q\n%s", val, r.calls, r.out)
 				}
 			})
@@ -248,10 +313,116 @@ func TestChayThuDungLaiKhiCoY(t *testing.T) {
 			if !strings.Contains(r.out, "dùng lại, sẽ không gỡ nó") {
 				t.Errorf("script không nói rõ là dùng lại và sẽ không gỡ:\n%s", r.out)
 			}
-			if r.called("compose") {
+			if len(r.composeCalls()) > 0 {
 				t.Errorf("script gọi compose (dựng hay gỡ) trên PG mà nó không dựng: %q", r.calls)
 			}
 		})
+	}
+}
+
+// R4-01: cùng dự án compose, tên container KHÁC và cổng KHÁC (trống). Phép kiểm tên container và phép thăm dò cổng đều báo trống, nhưng
+// `docker compose up` cùng dự án thấy service đổi tên container và cổng nên TẠO LẠI container cũ: PG đang chạy bị gỡ, dữ liệu tmpfs mất. Dự án
+// mặc định (eais) trùng deploy/docker-compose.yml, nên người chỉ đổi EAIS_PG_CONTAINER và EAIS_PG_PORT mà quên EAIS_COMPOSE_PROJECT sẽ gỡ nhầm
+// đúng eais-pg đang chạy. Container giả của ca có tên khác và không giữ cổng nào, nên dấu hiệu "dự án đã có container" là hàng rào DUY NHẤT.
+// Container tạm dừng (paused) vẫn giữ dữ liệu trong bộ nhớ nên cũng phải chặn. Mỗi ca còn có một container của dự án khác: không được tính.
+func TestChayThuTuChoiCungDuAnKhacTenKhacCong(t *testing.T) {
+	cases := []struct {
+		name    string
+		env     []string // ngoài cổng (trống thật, do runChayThuDocker chọn)
+		project string   // dự án mà lời từ chối phải nêu
+		peer    fakeContainer
+	}{
+		{"dự án mặc định, chỉ đổi tên và cổng", []string{"EAIS_PG_CONTAINER=thu-pg"}, "eais", fakeContainer{"0123456789ab", "eais-pg", "eais", "running"}},
+		{"dự án đặt tay", []string{"EAIS_PG_CONTAINER=thu-pg-b", "EAIS_COMPOSE_PROJECT=thu-proj"}, "thu-proj", fakeContainer{"0123456789ab", "thu-pg-a", "thu-proj", "running"}},
+		{"container của dự án đang tạm dừng", []string{"EAIS_PG_CONTAINER=thu-pg-b", "EAIS_COMPOSE_PROJECT=thu-proj"}, "thu-proj", fakeContainer{"0123456789ab", "thu-pg-a", "thu-proj", "paused"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			other := fakeContainer{"ba98765432ab", "khac-pg", "khac-proj", "running"}
+			r := runChayThuDocker(t, repoPath("scripts/chay-thu.sh"), []fakeContainer{other, c.peer}, c.env...)
+			if r.code != 2 {
+				t.Errorf("dự án %q đã có container %q (%s), tên và cổng của ca khác: script thoát %d, muốn 2 (từ chối)\n%s", c.project, c.peer.name, c.peer.status, r.code, r.out)
+			}
+			for _, want := range []string{"TỪ CHỐI", "dự án compose " + c.project, c.peer.name, "EAIS_COMPOSE_PROJECT", "EAIS_REUSE_PG=1"} {
+				if !strings.Contains(r.out, want) {
+					t.Errorf("lời từ chối thiếu %q:\n%s", want, r.out)
+				}
+			}
+			if strings.Contains(r.out, other.name) {
+				t.Errorf("lời từ chối nêu cả container của dự án KHÁC %q:\n%s", other.name, r.out)
+			}
+			if r.called("go ") || len(r.composeCalls()) > 0 {
+				t.Errorf("script từ chối mà vẫn làm việc (compose up cùng dự án sẽ TẠO LẠI container đang chạy): %q", r.calls)
+			}
+		})
+	}
+}
+
+// Container của dự án compose KHÁC (hay dựng tay, không nhãn) không phải của ta: không từ chối, script dựng PG riêng bằng compose đúng dự án
+// của nó rồi đi tiếp tới bước dịch và gỡ đúng cái đó khi EAIS_PG_DOWN=1. Chặn kiểu sửa "từ chối khi có container compose bất kỳ" (lọc nhãn mà bỏ
+// giá trị dự án): khi đó không ai chạy được hai bản PG cạnh nhau, đúng điều README hứa.
+func TestChayThuDuAnKhacHanThiDiTiep(t *testing.T) {
+	port := freePort(t)
+	others := []fakeContainer{
+		{"0123456789ab", "eais-pg", "eais", "running"},     // PG của dự án eais: thứ KHÔNG được đụng
+		{"ba98765432ab", "khac-pg", "khac-proj", "paused"}, // dự án khác, tạm dừng
+		{"1111111111ab", "tay-pg", "", "running"},          // dựng tay, không nhãn
+	}
+	r := runChayThuDocker(t, repoPath("scripts/chay-thu.sh"), others, "EAIS_PG_CONTAINER=thu-pg", "EAIS_PG_PORT="+port, "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_PG_DOWN=1")
+	up := "docker compose -p thu-proj -f deploy/docker-compose.yml up -d --wait [EAIS_PG_CONTAINER=thu-pg EAIS_PG_PORT=" + port + "]"
+	down := "docker compose -p thu-proj -f deploy/docker-compose.yml down [EAIS_PG_CONTAINER=thu-pg EAIS_PG_PORT=" + port + "]"
+	if got := r.composeCalls(); len(got) != 2 || got[0] != up || got[1] != down {
+		t.Errorf("dự án khác hẳn: lời gọi compose = %q, muốn đúng [%q, %q]\n%s", got, up, down, r.out)
+	}
+	if r.code == 2 || strings.Contains(r.out, "TỪ CHỐI: ") || !r.called("go [build]") { // "TỪ CHỐI: " là đầu lời từ chối; lời nhắc cuối script cũng có chữ "TỪ CHỐI" nên không dùng làm dấu
+		t.Errorf("container của dự án khác mà script từ chối / không đi tiếp tới bước dịch: %q\n%s", r.calls, r.out)
+	}
+}
+
+// Quyết định có chủ ý: container của dự án đã DỪNG hẳn (exited) KHÔNG chặn. PG chạy trên tmpfs nên dữ liệu mất ngay khi container dừng: compose dựng
+// lại (hay khởi động lại) nó không làm mất gì, còn từ chối sẽ chặn lần chạy lại hợp lệ sau `docker stop` mà không bảo vệ được gì. `docker ps` mặc
+// định (không -a) không liệt kê container đã dừng; test này canh việc script không thêm -a (hay status=exited) vào phép hỏi.
+func TestChayThuContainerDungHanCuaDuAnKhongChan(t *testing.T) {
+	stopped := []fakeContainer{{"0123456789ab", "thu-pg-a", "thu-proj", "exited"}}
+	r := runChayThuDocker(t, repoPath("scripts/chay-thu.sh"), stopped, "EAIS_PG_CONTAINER=thu-pg-b", "EAIS_COMPOSE_PROJECT=thu-proj")
+	if r.code == 2 || strings.Contains(r.out, "TỪ CHỐI: ") {
+		t.Errorf("container đã dừng hẳn của cùng dự án mà script từ chối (dữ liệu tmpfs đã mất, không còn gì để bảo vệ): thoát %d\n%s", r.code, r.out)
+	}
+	if len(r.composeCalls()) != 1 || !r.called("go [build]") {
+		t.Errorf("container đã dừng hẳn: muốn script dựng PG (1 lời gọi compose up) rồi đi tiếp tới bước dịch; lời gọi %q\n%s", r.calls, r.out)
+	}
+}
+
+// R4-02: container tên đó đang TẠM DỪNG (paused) và cổng của ca là một cổng TRỐNG. Container tạm dừng vẫn giữ dữ liệu trong bộ nhớ nên vẫn phải
+// chặn. Cổng trống và container không mang nhãn dự án nên hàng rào DUY NHẤT là bộ lọc tên của `docker ps`: thêm `--filter status=running` cạnh
+// nó (bỏ sót container paused, đúng điều chú thích trong script cấm) làm test đỏ.
+func TestChayThuTuChoiContainerTamDungCongTrong(t *testing.T) {
+	paused := []fakeContainer{{"0123456789ab", defaultPGContainer, "", "paused"}}
+	r := runChayThuDocker(t, repoPath("scripts/chay-thu.sh"), paused)
+	if r.code != 2 {
+		t.Errorf("container %q đang tạm dừng, cổng trống: script thoát %d, muốn 2 (từ chối)\n%s", defaultPGContainer, r.code, r.out)
+	}
+	if want := "container " + defaultPGContainer + " ĐÃ chạy từ trước"; !strings.Contains(r.out, "TỪ CHỐI") || !strings.Contains(r.out, want) {
+		t.Errorf("lời từ chối phải nêu %q (tín hiệu container, không phải cổng):\n%s", want, r.out)
+	}
+	if r.called("go ") || len(r.composeCalls()) > 0 {
+		t.Errorf("script từ chối mà vẫn làm việc: %q", r.calls)
+	}
+}
+
+// EAIS_REUSE_PG=1 cũng là lời xác nhận ở dấu hiệu "dự án đã có container": script đi tiếp (tới bước dịch), không dựng PG, và KHÔNG gỡ gì kể cả khi
+// đặt EAIS_PG_DOWN=1 (không một lời gọi compose nào, dựng hay gỡ).
+func TestChayThuDungLaiCungDuAnKhiCoY(t *testing.T) {
+	peer := []fakeContainer{{"0123456789ab", "thu-pg-a", "thu-proj", "running"}}
+	r := runChayThuDocker(t, repoPath("scripts/chay-thu.sh"), peer, "EAIS_PG_CONTAINER=thu-pg-b", "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_REUSE_PG=1", "EAIS_PG_DOWN=1")
+	if !r.called("go [build]") {
+		t.Errorf("EAIS_REUSE_PG=1 mà script không đi tiếp tới bước dịch: thoát %d, lời gọi %q\n%s", r.code, r.calls, r.out)
+	}
+	if !strings.Contains(r.out, "dùng lại, sẽ không gỡ nó") {
+		t.Errorf("script không nói rõ là dùng lại và sẽ không gỡ:\n%s", r.out)
+	}
+	if got := r.composeCalls(); len(got) > 0 {
+		t.Errorf("script gọi compose (dựng hay gỡ) trên PG mà nó không dựng: %q", got)
 	}
 }
 
@@ -262,12 +433,7 @@ func TestChayThuChoTrongThiTuDung(t *testing.T) {
 	r := runChayThu(t, false, "EAIS_PG_CONTAINER=thu-pg", "EAIS_PG_PORT="+port, "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_PG_DOWN=1")
 	up := "docker compose -p thu-proj -f deploy/docker-compose.yml up -d --wait [EAIS_PG_CONTAINER=thu-pg EAIS_PG_PORT=" + port + "]"
 	down := "docker compose -p thu-proj -f deploy/docker-compose.yml down [EAIS_PG_CONTAINER=thu-pg EAIS_PG_PORT=" + port + "]"
-	var got []string
-	for _, c := range r.calls {
-		if strings.Contains(c, "compose") {
-			got = append(got, c)
-		}
-	}
+	got := r.composeCalls()
 	if len(got) != 2 || got[0] != up || got[1] != down {
 		t.Errorf("chỗ trống: lời gọi compose = %q, muốn đúng [%q, %q]\n%s", got, up, down, r.out)
 	}

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Danh mục đột biến của kho vết bền (làn 0, đơn vị U0.1): migration 0003, platform/pgstore/vet.go, observability/traces.
+# Danh mục đột biến của kho vết bền (làn 0, đơn vị U0.1): migration 0003, platform/pgstore/vet.go, observability/traces; và (R2-03) phần
+# GIẢI THÍCH của vết: core/pipeline/why.go, intelligence/router, intelligence/intent, cách observability/traces ghép chúng vào bước.
 # Mỗi dòng: m <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>. Kỳ vọng: mọi dòng in "BỊ BẮT" (rc=0); cuối cùng in tổng và thoát 0 chỉ khi
 # không đột biến nào sống sót. Mã đổi thì chuỗi gốc có thể không còn khớp (mutate.sh báo "xuất hiện 0 lần", rc=2): sửa chuỗi theo mã
 # mới rồi chạy lại — đừng xoá dòng cho xanh.
@@ -114,6 +115,42 @@ RX_Q=$'(?:(")[^"]*"?|(\')[^\']*\'?|[^\\s"\',;&]+)'
 m $S "$RX_Q" $'(?:(")[^\\s"\',;&]+|(\')[^\\s"\',;&]+|[^\\s"\',;&]+)' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
 m $S "$RX_Q" $'(?:(")[^"]*"|(\')[^\']*\'|[^\\s"\',;&]+)' 'TV27 nháy không đóng không được che'
 m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie / Set-Cookie'
+
+# ---- R2-03: giải thích của vết (đầu vào quyết định, phương án đã xét, lý do bị loại). Test bắt đột biến nằm ở observability/traces (vết
+# dựng từ lượt THẬT), core/pipeline (why_test.go), intelligence/router và intelligence/intent. Đột biến chỉ đổi phần ghi giải thích hoặc
+# cách hiển thị; không đột biến nào đổi quyết định của luồng hỏi (cái đó do bộ ca WIN và test của từng gói canh).
+export PKGS="./observability/traces/ ./core/pipeline/ ./intelligence/intent/ ./intelligence/router/"
+W=core/pipeline/why.go RT=intelligence/router/router.go IN=intelligence/intent/intent.go D=observability/traces/decision.go
+m $W 'line := fmt.Sprintf("%s:%s ← %s", sp.Kind, sp.Raw, sp.Rule)' 'line := fmt.Sprintf("%s:%s ← %s", sp.Kind, sp.Raw, "")' 'WV1 luật sinh từng đoạn (Span.Rule) không được ghi'
+m $W 'for _, amb := range in.Ambiguities {' 'for _, amb := range in.Ambiguities[:0] {' 'WV2 cách đọc khác của chỗ mơ hồ không được kể'
+m $W 'for _, raw := range in.InvalidDates {' 'for _, raw := range in.InvalidDates[:0] {' 'WV3 ngày hỏng không được kể là bị bỏ'
+m $W 'if nar.Slot != "" {' 'if false && nar.Slot != "" {' 'WV4 lần router lọc ứng viên bằng phạm vi không được kể'
+m $W 'if !slices.Contains(nar.After, k) {' 'if false {' 'WV5 ứng viên bị loại khi gỡ mơ hồ không được kể'
+m $W 'from = "do S4 gộp thêm"' 'from = "S3"' 'WV6 thực thể do S4 gộp thêm bị kể là của S3'
+m $W 'ok && def.Route != "" && contracts.RouteKind(def.Route) != routed.Route {' 'ok && false && def.Route != "" && contracts.RouteKind(def.Route) != routed.Route {' 'WV7 route khai của ý định bị chặn không được kể'
+m $W 'if plan.Route != routed.Route {' 'if false && plan.Route != routed.Route {' 'WV8 việc luồng hỏi ghi đè route không được kể'
+m $W 'case slices.Contains(result.UsedSources, src):' 'case !slices.Contains(result.UsedSources, src):' 'WV9 vai của nguồn (tạo nên con số / không) bị đảo'
+m $W 'for _, o := range c.Others {' 'for _, o := range c.Others[:0] {' 'WV10 nguồn bị loại vì thẩm quyền không được kể ở S7'
+m $W 'if g.withheld != "" {' 'if g.withheld == "" {' 'WV11 cổng phán quyết: phán quyết và giữ phán quyết bị đảo'
+m $W 'other := "confirm_no"' 'other := "confirm_yes"' 'WV12 phán quyết bị loại kể trùng phán quyết đã chọn'
+m $W 'if o.ID != c.ID {' 'if false {' 'WV13 mọi ứng viên bị gán nguồn của ứng viên đầu tiên'
+m $W 'if ci.suppressed != "" {' 'if false && ci.suppressed != "" {' 'WV14 không nói vì sao câu hỏi lại không kể ứng viên'
+m $RT 'defer func() { plan.Checked, plan.Narrowed = checked, narrowed }()' 'defer func() { plan.Narrowed = narrowed }()' 'RV1 các bậc kiểm của router không được ghi'
+m $RT 'nar.Chosen = ref.Key' 'nar.Chosen = ""' 'RV2 thực thể được chọn khi gỡ mơ hồ không được ghi'
+m $RT 'nar.By = contracts.NarrowByScope' 'nar.By = contracts.NarrowByProject' 'RV3 cách gỡ mơ hồ (phạm vi / dự án) ghi sai'
+m $RT 'check("route khai của ý định", plan.Route, true, def.Name+" → "+def.Route)' 'check("route khai của ý định", plan.Route, false, def.Name+" → "+def.Route)' 'RV4 bậc chọn route không được đánh dấu là bậc đã chọn'
+m $RT 's.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi"' 's.Entity.Key+": trong phạm vi của người hỏi"' 'RV5 dữ kiện phạm vi luôn nói "trong phạm vi"'
+m $IN 'w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot)' 'w.Origins = originsOf(res, nil, nil, clashSlot)' 'IV1 nguồn của ứng viên hỏi lại không được ghi'
+m $IN 'w.reason("khớp đủ: %s (ưu tiên %d, từ khoá %s, %s)", d.Name, d.Priority, kw, via)' 'w.reason("khớp đủ: %s (ưu tiên %d, từ khoá %s, %s)", d.Name, d.Priority+1, kw, via)' 'IV2 ưu tiên của ý định khớp đủ ghi sai'
+m $IN 'w.reject("%s: khớp một phần — từ khoá %s khớp nhưng câu thiếu thuật ngữ %s", d.Name, kw, strings.Join(d.Terms, "|"))' 'w.reject("%s: khớp một phần — từ khoá %s khớp nhưng câu thiếu thuật ngữ %s", d.Name, kw, "")' 'IV3 khớp một phần không nói thiếu thuật ngữ nào'
+m $IN 'case d.Weak:' 'case false:' 'IV4 ý định yếu bị loại mà không nói là ý định yếu'
+m $IN 'case d.Priority != top.Priority:' 'case d.Priority == top.Priority:' 'IV5 ý định bị loại vì ưu tiên thấp hơn lại bị kể là ít cụm từ khoá hơn'
+m $IN 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority)' 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority+1)' 'IV6 lý do chọn ý định ghi sai ưu tiên'
+m observability/traces/step.go 'if n := d.Why.Route; n.Recorded() {' 'if n := d.Why.Route; false && n.Recorded() {' 'TV28 giải thích của S5 do luồng hỏi ghi bị bỏ, quay về chỗ trống'
+m observability/traces/step.go 's.Reason += "; " + joinReasons(n)' 's.Reason += ""' 'TV29 cổng phán quyết không được nối vào lý do của S9'
+m $D 'func (n Notes) Recorded() bool { return len(n.Reasons) > 0 }' 'func (n Notes) Recorded() bool { return len(n.Reasons) > 99 }' 'TV30 chặng đã ghi giải thích bị coi là chưa ghi'
+m observability/traces/record.go 'd.Why = Why{}' '_ = d' 'TV31 bản ghi bền giữ giải thích hai lần (Decision và Steps)'
+# ---- hết R2-03
 
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"

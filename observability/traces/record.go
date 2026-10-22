@@ -27,9 +27,15 @@ type Record struct {
 }
 
 // NewRecord dựng bản ghi của một lượt hỏi đã chạy xong (Handle không lỗi).
+//
+// Decision.Why chỉ là đường chuyển giải thích từ luồng hỏi tới BuildSteps: Steps đã mang đúng các dòng đó (Reason, Rejected) nên bản ghi
+// bền KHÔNG giữ nó lần thứ hai (nửa kích thước JSON và nửa chi phí làm sạch của phần giải thích).
 func NewRecord(t Turn) Record {
+	d := t.Decision
+	steps := BuildSteps(t)
+	d.Why = Why{}
 	return Record{
-		Decision: t.Decision, Steps: BuildSteps(t), Spans: append([]Span{}, t.Spans...),
+		Decision: d, Steps: steps, Spans: append([]Span{}, t.Spans...),
 		TotalMs: t.TotalMs, UnaccountedMs: t.UnaccountedMs,
 	}
 }

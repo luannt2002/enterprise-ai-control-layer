@@ -81,6 +81,7 @@ type Outcome struct {
 func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.AskRequest) (Outcome, error) {
 	tr := traces.New(nil)
 	now := a.now()
+	var why traces.Why // giải thích từng chặng của vết (why.go): chỉ ghi lại đã quyết gì và vì sao, không điều khiển gì
 
 	// S0 — kiểm đầu vào
 	if err := validateRequest(req); err != nil {
@@ -130,6 +131,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// Không đọc được danh mục thì không kết luận được quyền — lỗi hạ tầng, không mở toang.
 		return Outcome{}, lineageErr
 	}
+	routed := plan // kế hoạch NGUYÊN VĂN của router, trước khi luồng hỏi có thể ghi đè (chỉ để giải thích vết)
 	// Câu hỏi lại giải thích thêm khi câu nêu nhiều mốc thời gian / ngày hỏng, và khi câu xác nhận nêu nhiều con số
 	// khác nhau: không xác nhận con số nào thay người hỏi (P5).
 	notes := a.unclearNotes(cls.Unclear, now.Location())
@@ -156,14 +158,18 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		Route: plan.Route, Outcome: plan.Outcome, Intent: plan.Intent.Name, PackVersion: a.RT.PackVersion, TraceID: uuid.NewString(),
 	}
 	vars := map[string]string{"reason": plan.Reason}
+	var ci clarifyInfo // cách dựng danh sách ứng viên của câu hỏi lại (chỉ để giải thích vết)
 
 	// Từ đây chỉ dùng plan.Intent: ý định SAU khi router đã kiểm quyền và gỡ mơ hồ.
 	switch plan.Route {
 	case contracts.RouteClarification:
-		visible := a.visibleCandidates(ctx, pr, append(slices.Clone(cls.Candidates), cls.Unclear.Entities...))
+		asked := append(slices.Clone(cls.Candidates), cls.Unclear.Entities...)
+		visible, hidden := a.visibleCandidates(ctx, pr, asked)
+		ci = clarifyInfo{used: true, before: asked, shown: visible, hidden: hidden}
 		if rival || doubt {
 			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
 			visible = nil
+			ci.shown, ci.suppressed = nil, "câu hỏi lại về con số hay mốc thời gian, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"
 		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
@@ -175,19 +181,19 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		resp.Answer = a.render(plan.Template, vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
-		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars); err != nil {
+		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars, &why); err != nil {
 			return Outcome{}, err
 		}
 		// HYBRID: số liệu từ fact (đã kiểm) + phần quy trình từ tài liệu. Phần số liệu không ra
 		// được câu trả lời thì không nối thêm tài liệu vào.
 		if plan.Route == contracts.RouteHybrid && resp.Outcome == contracts.OutcomeResolved {
 			kdef, _ := a.RT.Intents.Def(cls.Knowledge)
-			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true); err != nil {
+			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true, &why); err != nil {
 				return Outcome{}, err
 			}
 		}
 	case contracts.RouteRAG:
-		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false); err != nil {
+		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false, &why); err != nil {
 			return Outcome{}, err
 		}
 	default:
@@ -195,8 +201,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
+	why.Normalize = explainNormalize(in)
+	why.Resolve = explainResolve(in, res, routed.Narrowed, ci)
+	why.Intent = explainIntent(cls, ci)
+	why.Route = a.explainRoute(routed, plan)
+	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
+	d.Why = why
 	return Outcome{
-		Response: resp, Plan: plan, Decision: a.decision(pr, now, req.Text, in, res, plan.Intent, resp),
+		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),
 	}, nil
 }
@@ -313,7 +325,7 @@ func (a *Ask) Replay(ctx context.Context, d traces.Decision) ([]string, error) {
 // answerMetric chạy S6–S9 cho câu hỏi số liệu: truy vấn nguồn sự thật, dựng câu bằng mẫu,
 // rồi kiểm số trong câu với bằng chứng.
 func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time, plan *contracts.RoutePlan,
-	in contracts.NormalizedInput, names []mention, it contracts.Intent, resp *contracts.AskResponse, vars map[string]string) error {
+	in contracts.NormalizedInput, names []mention, it contracts.Intent, resp *contracts.AskResponse, vars map[string]string, why *traces.Why) error {
 
 	entitySlot, metric := firstEntitySlot(it), it.Slots["metric"].Text
 	ids, err := entityresolution.Expand(ctx, a.Deps.Directory, entitySlot.Entity.ID)
@@ -341,6 +353,12 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	// S7 — gói bằng chứng
 	pkg := contracts.ContextPackage{Evidence: result.Evidence, Conflicts: result.Conflicts}
 	resp.Conflicts = result.Conflicts
+	prefix := ""
+	if plan.Route == contracts.RouteHybrid {
+		prefix = "số liệu: "
+	}
+	// S7 ghi lúc trả về, khi gói ngữ cảnh đã là gói CUỐI (có thể đã thêm số của người hỏi và các chỉ số khác cùng kỳ)
+	defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
 	for _, e := range result.Evidence {
 		resp.Citations = append(resp.Citations, contracts.Citation{EvidenceID: e.ID, Source: e.Source})
 	}
@@ -458,6 +476,9 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		pkg.Evidence = append(pkg.Evidence, ev...)
 		claims = append(claims, otherClaims...)
 	}
+	_, base := a.RT.Metrics.Metric(metric)
+	a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
+		tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
 	// S8 — dựng câu bằng mẫu của tenant (route số liệu không gọi model)
 	text := a.render(tmpl, vars)
 	if withheld != "" {
@@ -487,7 +508,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 // nào lấy từ tài liệu. hybrid = phần quy trình nối sau câu số liệu đã RESOLVED: phần này hỏng thì
 // chỉ bỏ phần này kèm ghi chú, không làm hỏng phần số liệu đã kiểm.
 func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Time, pr contracts.Principal,
-	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool) error {
+	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool, why *traces.Why) error {
 
 	fail := func(name string, outcome contracts.Outcome, violations []contracts.Violation) {
 		if hybrid {
@@ -517,6 +538,11 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	if err != nil {
 		return err
 	}
+	prefix := ""
+	if hybrid {
+		prefix = "tri thức: "
+	}
+	noteRetrieved(why, prefix, ev, knowledgeK)
 	if len(ev) == 0 {
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
@@ -540,10 +566,12 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		return append(v, validation.ForbidUnitWords(draft.Text, a.factUnitWords())...), nil
 	})
 	if len(violations) > 0 {
+		why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn nào được trích dẫn", prefix)
 		fail("fallback_unverified", contracts.OutcomeSystemFailure, violations)
 		return nil
 	}
 	cited := citations(draft, ev)
+	noteCited(why, prefix, ev, cited)
 	resp.Citations = append(resp.Citations, cited...)
 	vars := map[string]string{"title": cited[0].Source.Name, "procedure": draft.Text}
 	if hybrid {
@@ -1183,15 +1211,21 @@ func (a *Ask) conflictItems(conflicts []contracts.Conflict) ([]string, []contrac
 
 // visibleCandidates chỉ giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi — câu hỏi lại không
 // được làm lộ tên thiết bị ngoài phạm vi. Không tra được tổ tiên thì bỏ ứng viên (đóng mặc định).
-func (a *Ask) visibleCandidates(ctx context.Context, pr contracts.Principal, cands []contracts.EntityRef) []contracts.EntityRef {
+func (a *Ask) visibleCandidates(ctx context.Context, pr contracts.Principal, cands []contracts.EntityRef) ([]contracts.EntityRef, []hiddenCandidate) {
 	var out []contracts.EntityRef
+	var hidden []hiddenCandidate // ứng viên bị loại kèm lý do — chỉ để giải thích vết
 	for _, c := range cands {
 		keys, err := entityresolution.Lineage(ctx, a.Deps.Directory, c.ID)
-		if err == nil && a.RT.Policy.InScope(pr, keys) {
+		switch {
+		case err != nil:
+			hidden = append(hidden, hiddenCandidate{c, "không tra được tổ tiên trong danh mục (đóng mặc định)"})
+		case !a.RT.Policy.InScope(pr, keys):
+			hidden = append(hidden, hiddenCandidate{c, "ngoài phạm vi dữ liệu của người hỏi"})
+		default:
 			out = append(out, c)
 		}
 	}
-	return out
+	return out, hidden
 }
 
 // clarificationDetails dựng phần "thiếu gì" và "ứng viên" cho câu hỏi lại; notes là các câu giải thích thêm (nhiều mốc

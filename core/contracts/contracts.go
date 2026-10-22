@@ -286,6 +286,34 @@ type RoutePlan struct {
 	Reason   string `json:"reason"`
 	// Outcome do router quyết khi kết thúc sớm (hỏi lại, từ chối); rỗng = chặng thực thi quyết.
 	Outcome Outcome `json:"outcome,omitempty"`
+	// Checked: các bậc kiểm router đã đi qua theo thứ tự, kể cả bậc đã chặn — đường quyết định ghi đúng lúc quyết định (R2-03), chỉ để
+	// giải thích: không bậc nào đọc lại nó để quyết.
+	Checked []RouteCheck `json:"checked,omitempty"`
+	// Narrowed: lần router gỡ bí danh mơ hồ bằng ngữ cảnh (dự án đã nêu, phạm vi dữ liệu của người hỏi). Slot rỗng = không gỡ lần nào.
+	Narrowed Narrowing `json:"narrowed,omitzero"`
+}
+
+// RouteCheck là MỘT bậc kiểm của router (RoutePlan.Checked). Bậc nào chưa được xét vì bậc trước đã chặn thì không có mặt.
+type RouteCheck struct {
+	Rule   string    `json:"rule"`             // tên bậc kiểm: "nhiều ý định cùng khớp", "capability của ý định", "phạm vi dữ liệu"…
+	Route  RouteKind `json:"route"`            // route mà bậc này chọn khi nó chặn (hay khi nó áp dụng)
+	Fired  bool      `json:"fired"`            // bậc này đã chặn / áp dụng — quyết định route
+	Detail string    `json:"detail,omitempty"` // dữ kiện đã kiểm và kết quả của nó
+}
+
+// Cách router gỡ bí danh mơ hồ (Narrowing.By).
+const (
+	NarrowByProject = "project" // khe đã điền bằng một dự án: giữ ứng viên thuộc dự án đó
+	NarrowByScope   = "scope"   // khe còn thiếu: giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi
+)
+
+// Narrowing ghi một lần router gỡ bí danh mơ hồ: ứng viên TRƯỚC và SAU khi lọc, và thực thể được chọn.
+type Narrowing struct {
+	Slot   string   `json:"slot"`
+	By     string   `json:"by"`
+	Before []string `json:"before"`           // khoá các ứng viên của cụm mơ hồ trước khi lọc (không trùng, theo thứ tự gặp)
+	After  []string `json:"after"`            // khoá các ứng viên còn lại sau khi lọc
+	Chosen string   `json:"chosen,omitempty"` // khoá thực thể được chọn; rỗng = lọc xong vẫn không gỡ được
 }
 
 // Outcome là kết quả CÓ KIỂU của một lượt hỏi (docs/04 §4): client đọc trường này, không đoán

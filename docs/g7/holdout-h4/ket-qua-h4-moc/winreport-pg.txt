@@ -1,0 +1,263 @@
+ĐƯỜNG DỮ LIỆU: PostgreSQL (RLS theo tenant của Principal) · tổng thời gian chạy 855ms
+NẠP abc-infra: 2702 quan sát, 37 cách ly (22.207078ms)
+G1: 2736/2739 bản ghi khớp manifest
+G1 metamorphic: map[R-001:4 R-004:4] biểu diễn theo bản ghi, 0 lệch
+  ✗ messages.jsonl#R-001: cờ ước lượng được false, muốn true
+  ✗ messages.jsonl#R-002: cờ ước lượng được false, muốn true
+  ✗ reports/2026-10-19.pdf#1: cờ ước lượng được false, muốn true
+
+BỘ CA WIN (119 ca)
+representation        16/18 
+entity                16/16 
+ambiguity             11/14 
+semantic              13/14 
+source_conflict       12/15 
+permission            16/16 
+unsupported_answer     9/15 
+routing                9/11 
+TỔNG                 102/119
+
+CA ĐỎ:
+  ĐẠT WIN-I-701 [representation] 
+      → "Dầu kho xuất của Máy xúc EX-07 ngày 19/10/2026: 1.500 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-702 [representation] 
+      → "Không. Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 3.850 L, không phải 4.000 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Các số khác cùng kỳ: dầu theo hoá đơn 4.100 L; dầu tiêu thụ đo được 3.782 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-703 [representation] 
+      → "Đúng. Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Các số khác cùng kỳ: dầu theo hoá đơn 4.100 L; dầu tiêu thụ đo được 3.782 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-704 [representation] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 20/10/2026: 2.000 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐỎ  WIN-I-705 [representation] thiếu "Không."
+      → "Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026: 1.200 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-706 [representation] 
+      → "Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026: 1.200 L."
+  ĐẠT WIN-I-707 [representation] 
+      → "Dầu đội báo của Lu rung RL-02 ngày 19/10/2026: 1.200 L. Trong tổng có số liệu ước lượng."
+  ĐẠT WIN-I-708 [representation] 
+      → "Dầu đội báo của Máy xúc EX-03 ngày 19/10/2026: 4.000 L."
+  ĐẠT WIN-I-709 [representation] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-710 [representation] 
+      → "Đúng. Dầu kho xuất của Lu rung RL-07 ngày 19/10/2026 theo nguồn có thẩm quyền là 900 L. Nguồn khác lệch số: ERP 911 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-711 [representation] 
+      → "Không. Dầu kho xuất của Máy xúc EX-03 ngày 15/09/2026 theo nguồn có thẩm quyền là 3.500 L, không phải 3.600 L."
+  ĐẠT WIN-I-712 [representation] 
+      → "Dầu kho xuất của Cầu A từ 01/09/2026 đến 30/09/2026: 5.400 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-713 [representation] 
+      → "Không. Dầu kho xuất của Thiết bị nền FX-019 ngày 01/10/2026 theo nguồn có thẩm quyền là 1.750 L, không phải 2.000 L. Các số khác cùng kỳ: dầu tiêu thụ đo được 1.715 L."
+  ĐẠT WIN-I-714 [representation] 
+      → "Dầu kho xuất của Thiết bị nền FX-017 ngày 12/10/2026: 1.500 L. Nguồn khác lệch số: ERP 1.518 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-715 [representation] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐỎ  WIN-I-716 [representation] route = REJECT, muốn SQL_QUERY; outcome = OUT_OF_SCOPE, muốn RESOLVED; thiếu số 3.850 trong câu trả lời; xung đột lộ ra = false, muốn true; thiếu trích dẫn warehouse_slip
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-717 [representation] 
+      → "Đúng. Dầu kho xuất của Thiết bị nền FX-012 ngày 13/10/2026 theo nguồn có thẩm quyền là 1.950 L. Các số khác cùng kỳ: dầu tiêu thụ đo được 1.914 L."
+  ĐẠT WIN-I-718 [representation] 
+      → "Chưa có dữ liệu Dầu kho xuất của Máy xúc EX-03 ngày 18/10/2026."
+  ĐẠT WIN-I-719 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-720 [entity] 
+      → "Dầu tiêu thụ đo được của Máy xúc EX-03 ngày 19/10/2026: 3.782 L."
+  ĐẠT WIN-I-721 [entity] 
+      → "Dầu đội báo của Máy xúc EX-03 ngày 19/10/2026: 4.000 L."
+  ĐẠT WIN-I-722 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 20/10/2026: 2.000 L."
+  ĐẠT WIN-I-723 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-724 [entity] 
+      → "Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026: 1.200 L."
+  ĐẠT WIN-I-725 [entity] 
+      → "Dầu kho xuất của Lu rung RL-07 ngày 19/10/2026: 900 L. Nguồn khác lệch số: ERP 911 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-726 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-07 ngày 19/10/2026: 1.500 L."
+  ĐẠT WIN-I-727 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-07 ngày 19/10/2026: 1.500 L."
+  ĐẠT WIN-I-728 [entity] 
+      → "Dầu kho xuất của Lu rung RL-07 ngày 19/10/2026: 900 L. Nguồn khác lệch số: ERP 911 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-729 [entity] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-730 [entity] 
+      → "Dầu kho xuất của Cầu A từ 01/09/2026 đến 30/09/2026: 5.400 L."
+  ĐẠT WIN-I-731 [entity] 
+      → "Dầu kho xuất của Cầu A ngày 20/10/2026: 2.000 L."
+  ĐẠT WIN-I-732 [entity] 
+      → "Chưa có dữ liệu Dầu kho xuất của Đường B từ 01/09/2026 đến 30/09/2026."
+  ĐẠT WIN-I-733 [entity] 
+      → "Dầu tiêu thụ đo được của Thiết bị nền FX-009 ngày 12/10/2026: 357 L."
+  ĐẠT WIN-I-734 [entity] 
+      → "Dầu kho xuất của Thiết bị nền FX-006 ngày 15/10/2026: 424 L."
+  ĐẠT WIN-I-736 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐẠT WIN-I-737 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐẠT WIN-I-738 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐẠT WIN-I-739 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐỎ  WIN-I-740 [ambiguity] ứng viên = [], muốn [EX-07 RL-07]
+      → "Bạn muốn hỏi dầu đội báo hay dầu tiêu thụ đo được?"
+  ĐẠT WIN-I-741 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐẠT WIN-I-742 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án."
+  ĐẠT WIN-I-743 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án."
+  ĐỎ  WIN-I-744 [ambiguity] route = REJECT, muốn CLARIFICATION; outcome = OUT_OF_SCOPE, muốn CLARIFICATION_REQUIRED
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐỎ  WIN-I-745 [ambiguity] route = REJECT, muốn CLARIFICATION; outcome = OUT_OF_SCOPE, muốn CLARIFICATION_REQUIRED
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-748 [ambiguity] 
+      → "Bạn muốn hỏi dầu kho xuất hay dầu tiêu thụ đo được?"
+  ĐẠT WIN-I-749 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án."
+  ĐẠT WIN-I-750 [ambiguity] 
+      → "Bạn cho biết thêm máy hoặc dự án. Có thể là: Máy xúc EX-07 (EX-07), Lu rung RL-07 (RL-07)."
+  ĐẠT WIN-I-751 [ambiguity] 
+      → "Bạn muốn hỏi dầu kho xuất hay dầu đội báo?"
+  ĐẠT WIN-I-752 [semantic] 
+      → "Dầu kho xuất của Máy xúc EX-07 ngày 22/09/2026: 800 L."
+  ĐẠT WIN-I-753 [semantic] 
+      → "Dầu tiêu thụ đo được của Máy xúc EX-03 ngày 19/10/2026: 3.782 L."
+  ĐẠT WIN-I-754 [semantic] 
+      → "Dầu tiêu thụ đo được của Máy xúc EX-07 ngày 19/10/2026: 1.490 L."
+  ĐẠT WIN-I-755 [semantic] 
+      → "Dầu đội báo của Máy xúc EX-03 ngày 19/10/2026: 4.000 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-756 [semantic] 
+      → "Dầu theo hoá đơn của Máy xúc EX-03 ngày 19/10/2026: 4.100 L."
+  ĐẠT WIN-I-757 [semantic] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026 chênh 68 L so với dầu tiêu thụ đo được (3.850 L so với 3.782 L). Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐỎ  WIN-I-758 [semantic] thiếu số 150 trong câu trả lời; thiếu trích dẫn site_report_form
+      → "Chênh lệch dầu kho xuất và dầu tiêu thụ đo được của Máy xúc EX-03 ngày 19/10/2026: 68 L."
+  ĐẠT WIN-I-759 [semantic] 
+      → "Dầu theo hoá đơn của Máy xúc EX-03 ngày 19/10/2026 chênh 250 L so với dầu kho xuất (4.100 L so với 3.850 L). Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-760 [semantic] 
+      → "Không. Dầu tiêu thụ đo được của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 3.782 L, không phải 3.850 L. Các số khác cùng kỳ: dầu theo hoá đơn 4.100 L; dầu kho xuất 3.850 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-762 [semantic] 
+      → "Đúng. Dầu tiêu thụ đo được của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 3.782 L. Các số khác cùng kỳ: dầu theo hoá đơn 4.100 L; dầu kho xuất 3.850 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-765 [source_conflict] 
+      → "Dầu kho xuất của Thiết bị nền FX-003 ngày 01/10/2026: 548 L. Nguồn khác lệch số: ERP 559 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-766 [semantic] 
+      → "Chưa có dữ liệu Dầu theo hoá đơn của Máy xúc EX-03 ngày 20/10/2026."
+  ĐẠT WIN-I-767 [semantic] 
+      → "Dầu kho xuất của Cầu A ngày 19/10/2026: 6.550 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-768 [semantic] 
+      → "Dầu kho xuất của Cầu A từ 01/10/2026 đến 31/10/2026: 8.550 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-769 [semantic] 
+      → "Đúng. Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Các số khác cùng kỳ: dầu theo hoá đơn 4.100 L; dầu tiêu thụ đo được 3.782 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-801 [source_conflict] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-802 [source_conflict] 
+      → "Dầu kho xuất của Thiết bị nền FX-004 ngày 30/09/2026: 1.443 L. Nguồn khác lệch số: ERP 1.454 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-803 [source_conflict] 
+      → "Dầu kho xuất của Thiết bị nền FX-007 ngày 02/10/2026: 924 L."
+  ĐẠT WIN-I-805 [source_conflict] 
+      → "Không. Dầu kho xuất của Lu rung RL-07 ngày 19/10/2026 theo nguồn có thẩm quyền là 900 L, không phải 911 L. Nguồn khác lệch số: ERP 911 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐỎ  WIN-I-806 [source_conflict] route = REJECT, muốn SQL_QUERY; outcome = OUT_OF_SCOPE, muốn RESOLVED; thiếu số 840 trong câu trả lời; thiếu "Không."; xung đột lộ ra = false, muốn true
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-807 [source_conflict] 
+      → "Số liệu Dầu kho xuất của Máy ủi DZ-05 ngày 19/10/2026 đang có hai nguồn ngang thẩm quyền mâu thuẫn nên chưa đưa ra con số; đã chuyển người phụ trách đối soát."
+  ĐỎ  WIN-I-808 [source_conflict] thiếu "Không."
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐỎ  WIN-I-810 [source_conflict] route = CLARIFICATION, muốn SQL_QUERY; outcome = CLARIFICATION_REQUIRED, muốn RESOLVED; thiếu số 3.782 trong câu trả lời; thiếu trích dẫn fuel_sensor
+      → "Bạn muốn hỏi dầu kho xuất hay dầu tiêu thụ đo được?"
+  ĐẠT WIN-I-811 [source_conflict] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 20/10/2026: 2.000 L."
+  ĐẠT WIN-I-813 [source_conflict] 
+      → "Dầu kho xuất của Thiết bị nền FX-001 ngày 02/10/2026: 1.734 L. Nguồn khác lệch số: ERP 1.754 L; đã dùng nguồn có thẩm quyền cao nhất. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-814 [source_conflict] 
+      → "Dầu kho xuất của Thiết bị nền FX-013 ngày 18/10/2026: 835 L."
+  ĐẠT WIN-I-815 [source_conflict] 
+      → "Đúng. Dầu đội báo của Lu rung RL-02 ngày 19/10/2026 theo nguồn có thẩm quyền là 1.200 L. Trong tổng có số liệu ước lượng. Các số khác cùng kỳ: dầu kho xuất 1.200 L."
+  ĐẠT WIN-I-816 [source_conflict] 
+      → "Đúng. Dầu kho xuất của Thiết bị nền FX-009 ngày 12/10/2026 theo nguồn có thẩm quyền là 413 L. Các số khác cùng kỳ: dầu tiêu thụ đo được 357 L."
+  ĐẠT WIN-I-817 [source_conflict] 
+      → "Đúng. Dầu tiêu thụ đo được của Thiết bị nền FX-003 ngày 02/10/2026 theo nguồn có thẩm quyền là 950 L. Các số khác cùng kỳ: dầu kho xuất 1.008 L."
+  ĐẠT WIN-I-818 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-819 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-820 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-821 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-822 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-823 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-824 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-825 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-826 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-827 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-828 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐẠT WIN-I-829 [permission] 
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-830 [permission] 
+      → "Dầu kho xuất của Lu rung RL-07 ngày 19/10/2026: 900 L. Nguồn khác lệch số: ERP 911 L; đã dùng nguồn có thẩm quyền cao nhất."
+  ĐẠT WIN-I-831 [permission] 
+      → "Trích văn bản quy trình (Quy trình xử lý chênh lệch nhiên liệu): 3. Kỹ sư công trường kiểm tra nhật ký vận hành máy và xác nhận số giờ máy trong 2 ngày làm việc."
+  ĐẠT WIN-I-833 [permission] 
+      → "Dầu kho xuất của Máy xúc EX-07 ngày 19/10/2026 chênh 10 L so với dầu tiêu thụ đo được (1.500 L so với 1.490 L)."
+  ĐẠT WIN-I-834 [permission] 
+      → "Bạn không có quyền xem dữ liệu này."
+  ĐỎ  WIN-I-835 [unsupported_answer] thiếu "Không."
+      → "Dầu kho xuất của Cầu A ngày 19/10/2026: 6.550 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-836 [unsupported_answer] 
+      → "Không. Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026 theo nguồn có thẩm quyền là 1.200 L, không phải 900 L. Các số khác cùng kỳ: dầu đội báo 1.200 L (ước lượng)."
+  ĐỎ  WIN-I-837 [unsupported_answer] thiếu "Không."
+      → "Dầu kho xuất của Máy xúc EX-03 ngày 19/10/2026: 3.850 L. Nguồn khác lệch số: ERP 3.900 L; đã dùng nguồn có thẩm quyền cao nhất. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐỎ  WIN-I-838 [unsupported_answer] thiếu "Không."
+      → "Dầu đội báo của Máy xúc EX-03 ngày 19/10/2026: 4.000 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐẠT WIN-I-839 [unsupported_answer] 
+      → "Không. Dầu theo hoá đơn của Máy xúc EX-03 ngày 19/10/2026 theo nguồn có thẩm quyền là 4.100 L, không phải 3.850 L. Các số khác cùng kỳ: dầu kho xuất 3.850 L; dầu tiêu thụ đo được 3.782 L; dầu đội báo 4.000 L."
+  ĐẠT WIN-I-840 [unsupported_answer] 
+      → "Không. Dầu kho xuất của Máy xúc EX-03 ngày 20/10/2026 theo nguồn có thẩm quyền là 2.000 L, không phải 3.850 L."
+  ĐỎ  WIN-I-841 [unsupported_answer] route = REJECT, muốn SQL_QUERY; outcome = OUT_OF_SCOPE, muốn RESOLVED; thiếu số 1.100 trong câu trả lời; thiếu "Không."
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-842 [unsupported_answer] 
+      → "Chưa có dữ liệu Dầu kho xuất của Lu rung RL-07 ngày 18/10/2026."
+  ĐẠT WIN-I-843 [unsupported_answer] 
+      → "Không. Dầu kho xuất của Thiết bị nền FX-002 ngày 06/10/2026 theo nguồn có thẩm quyền là 1.566 L, không phải 1.600 L. Các số khác cùng kỳ: dầu tiêu thụ đo được 1.552 L."
+  ĐẠT WIN-I-844 [unsupported_answer] 
+      → "Không. Dầu kho xuất của Máy xúc EX-07 ngày 19/10/2026 theo nguồn có thẩm quyền là 1.500 L, không phải 1,5 L. Các số khác cùng kỳ: dầu tiêu thụ đo được 1.490 L."
+  ĐẠT WIN-I-845 [unsupported_answer] 
+      → "Đúng. Dầu kho xuất của Thiết bị nền FX-013 ngày 09/10/2026 theo nguồn có thẩm quyền là 1.310 L. Nguồn khác lệch số: ERP 1.330 L; đã dùng nguồn có thẩm quyền cao nhất. Các số khác cùng kỳ: dầu tiêu thụ đo được 1.267 L."
+  ĐẠT WIN-I-846 [unsupported_answer] 
+      → "Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026: 1.200 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐỎ  WIN-I-847 [unsupported_answer] thiếu số 3.850 trong câu trả lời; thiếu "Không."; xung đột lộ ra = false, muốn true
+      → "Dầu theo hoá đơn của Máy xúc EX-03 ngày 19/10/2026: 4.100 L. Chưa kết luận đúng hay sai cho con số trong câu hỏi vì câu có phần hệ chưa kiểm được."
+  ĐỎ  WIN-I-848 [unsupported_answer] route = REJECT, muốn SQL_QUERY; outcome = OUT_OF_SCOPE, muốn RESOLVED; thiếu số 3.850 trong câu trả lời; thiếu "Không."; xung đột lộ ra = false, muốn true
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-849 [unsupported_answer] 
+      → "Chưa có dữ liệu Dầu theo hoá đơn của Máy xúc EX-07 ngày 19/10/2026."
+  ĐẠT WIN-I-852 [routing] 
+      → "Dầu kho xuất của Lu rung RL-02 ngày 19/10/2026: 1.200 L."
+  ĐỎ  WIN-I-854 [routing] route = SQL_QUERY, muốn CALCULATION; thiếu số 18 trong câu trả lời; thiếu trích dẫn warehouse_slip
+      → "Dầu tiêu thụ đo được của Thiết bị nền FX-024 ngày 01/10/2026: 683 L."
+  ĐẠT WIN-I-855 [routing] 
+      → "Chênh lệch dầu kho xuất và dầu tiêu thụ đo được của Thiết bị nền FX-022 ngày 12/10/2026: 58 L."
+  ĐẠT WIN-I-857 [routing] 
+      → "Trích văn bản quy trình (Quy trình xử lý chênh lệch nhiên liệu): 1. Khi lượng xuất kho và lượng tiêu thụ đo được của một máy lệch nhau quá dung sai trong một ngày, tổ trưởng kho lập biên bản đối soát trong vòng 24 giờ."
+  ĐẠT WIN-I-858 [routing] 
+      → "Chênh lệch dầu kho xuất và dầu tiêu thụ đo được của Thiết bị nền FX-006 ngày 15/10/2026: 16 L. Trích văn bản quy trình (Quy trình xử lý chênh lệch nhiên liệu): 1. Khi lượng xuất kho và lượng tiêu thụ đo được của một máy lệch nhau quá dung sai trong một ngày, tổ trưởng kho lập biên bản đối soát trong vòng 24 giờ."
+  ĐẠT WIN-I-859 [routing] 
+      → "Chênh lệch dầu kho xuất và dầu tiêu thụ đo được của Máy xúc EX-07 ngày 19/10/2026: 10 L. Trích văn bản quy trình (Quy trình xử lý chênh lệch nhiên liệu): 3. Kỹ sư công trường kiểm tra nhật ký vận hành máy và xác nhận số giờ máy trong 2 ngày làm việc."
+  ĐỎ  WIN-I-862 [routing] route = REJECT, muốn CLARIFICATION; outcome = OUT_OF_SCOPE, muốn CLARIFICATION_REQUIRED
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-865 [routing] 
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-866 [routing] 
+      → "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
+  ĐẠT WIN-I-867 [routing] 
+      → "Số liệu Dầu kho xuất của Máy ủi DZ-05 ngày 19/10/2026 đang có hai nguồn ngang thẩm quyền mâu thuẫn nên chưa đưa ra con số; đã chuyển người phụ trách đối soát."
+  ĐẠT WIN-I-868 [routing] 
+      → "Chưa có dữ liệu Dầu kho xuất của Máy xúc EX-07 ngày 20/10/2026."
+
+G6 PHÁT LẠI: 119 câu đã giao có bản ghi quyết định, 0 lệch khi phát lại
+phiên bản dữ liệu (sha256 manifest): 31172355392f7092fb01bced39fd7ce18c04be765bdd27c316442f2bf9adb055
+bộ ca h4.yaml sha256 7fc5a4859b6913ad311a084bb36abc32deda8bc890d8d5fecff2d8199958150d
+exit status 1

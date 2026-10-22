@@ -6,6 +6,14 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 22/10/2026 sáng — cổng phán quyết Vòng 5; điều tra S4; câu mở D-OP-15
+
+- **Cổng phán quyết Vòng 5** (`03c2c54`, `489c98a`; ADR-0009 Vòng 5): thứ gần nhất đứng trước con số xác nhận phải gắn vào chủ thể; bí danh mơ hồ cần bằng chứng dương; tên nguồn / chỉ số khác ở ngữ cảnh (đứng ngay trước con số, hay đề mục thuần ở đầu câu) là nguồn / chỉ số của chính claim; số bằng chữ kết thúc "<hàng> <một chữ số>" (kèm "rưỡi") không phán quyết. Đóng R4-2…R4-4, R5-1 (gồm R2-4), R5-2.
+- Bằng chứng: test đỏ trước ở mỗi vòng; test có PG 459/0/0 (455 cũ giữ nguyên theo tên); 713.097 câu: 0 đổi chiều, 0 phán quyết mới; 117 / H1 / H3 hai đường 0 dòng khác; danh mục đột biến n43 thêm CG153–CG204, NW12–NW20, 210 / 210 bị bắt; ba vòng soát độc lập (vòng 1, 2 KHÔNG ĐẠT vì tồn dư, đã sửa; vòng 3 xác nhận dòng vá cuối, còn R5-4, R5-5).
+- Cái giá: câu "ranh giới" (viết liền, đồng vị phẩy, bí danh chen giữa) mất phán quyết theo fail-closed; hệ vẫn trả số.
+- `intent.Set.WeakKeywords`, `normalization.AmbiguousNumberWords` mới; bộ đọc số không đổi (chờ D-OP-14).
+- Điều tra vòng sửa S4 (ADR-0010): câu mở D-OP-15 (bất biến (a): hỏi lại hay trả lời theo ý định chung).
+
 ### 21/10/2026 tối, muộn — đo lại R4, K1–K5 của audit ROADMAP, câu mở D-OP-14
 
 - Không đổi mã.

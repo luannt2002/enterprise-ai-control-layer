@@ -100,7 +100,7 @@ Người soát D soát lại T2.1 (~0,77 triệu câu): 21 / 21 câu vòng 1 đ�
 | R2-1 | CAO | một cụm xác nhận, HAI phát biểu cùng con số ("EX-03 … 3850 L, dự án A 3850 L, đúng không?" — dự án A thật là 5.050 L) ⇒ "Đúng." | ĐÓNG MỘT PHẦN (xem Vòng 3): con số xác nhận nhắc lại chỉ là cùng claim khi đứng liền kề (chỉ cách khoảng trắng / ngoặc); dạng gương — tên đứng SAU lần nhắc lại — còn mở |
 | R2-2 | TB-CAO | mệnh đề hỏi chỉ nêu cấp cha ("…, dự án A đúng không?"), luật "phạm vi hỏi có tên thì phải có chủ thể" dùng phạm vi đã lùi về đầu câu | ĐÓNG MỘT PHẦN (xem Vòng 3): luật chủ thể dùng đầu mệnh đề chứa cụm xác nhận; dòng vá này gây hồi quy S1, đã sửa ở T2.3; biến thể dấu câu còn mở |
 | R2-3 | TB | lượng có dấu chấm / phẩy mà đơn vị chỉ suy từ thuật ngữ ("dầu 1,2") | ĐÃ ĐÓNG: không tính là có đơn vị (cái giá: "dầu 3.850" mất phán quyết); T2.3 trả lại phán quyết khi nguyên văn có chữ ("3,85k") |
-| R2-4 | THẤP-TB | tên nguồn ở mệnh đề NGỮ CẢNH không chứa lượng ("Phiếu kho, RL-02 … đúng không?") không đối chiếu nguồn đã dùng | ghi lại, chưa làm |
+| R2-4 | THẤP-TB | tên nguồn ở mệnh đề NGỮ CẢNH không chứa lượng ("Phiếu kho, RL-02 … đúng không?") không đối chiếu nguồn đã dùng | ĐÃ SỬA phần chính ở Vòng 5 (R5-1: đề mục thuần cùng câu, cụm ở ngữ cảnh đứng ngay trước con số); phần còn lại ghi ở cái giá của Vòng 5 |
 | R2-5 | TB | máy và dự án cùng nêu, nối bằng dấu rời ("Lu 02 : Dự án A …") — hệ chọn máy làm chủ thể | ghi lại: quyết định thiết kế (chủ thể = thực thể cụ thể nhất) |
 | R2-6…R2-9 | THẤP | bí danh mơ hồ có ứng viên là cấp cha; từ chỉ ngày trước span tháng / tuần; tên sai dấu vẫn khớp; "3,850 lít" đọc là nghìn | ghi lại |
 
@@ -141,9 +141,9 @@ Hai người soát, mỗi người một worktree, chạy câu thật:
 | Mã | Mức | Phát hiện | Xử lý |
 |---|---|---|---|
 | R4-1 | S2, HỒI QUY của T2.3 | Ngoại lệ "có chữ" (R3-2) mở phán quyết cho số nhân hỏng có chữ số sau hậu tố: "dầu 1,2k5" bị đọc 1.700 rồi ra "Không."; "dầu 3,5k35" ra "Đúng." (24/40 câu thử) | **ĐÃ SỬA (`936d090`):** chỉ hết mơ hồ khi nguyên văn KẾT THÚC bằng chữ ("3,85k", "3,85K", "1,2 nghìn") |
-| R4-2 | **S1, có từ T2.1** | Tên cấp cha đứng TRƯỚC con số, ở mệnh đề khác hoặc sau dấu ngăn lạ, vẫn bị phán quyết theo máy:<br>- "EX-03 hôm nay được cấp 3850 L. Dự án A, 5050 L đúng không?" → "Không." (claim về dự án A là ĐÚNG);<br>- "EX-03: dự án A hôm nay được cấp 3850 L đúng không?" → "Đúng."; tương tự với " - ", "(", "[", xuống dòng, phẩy không khoảng trắng | **CÒN MỞ.** Luật thử của người soát: cấp cha chỉ được chấp nhận khi là định ngữ "của" đứng liền sau một lần nhắc chủ thể. Đã chạy thử: 5 gói test xanh, bộ 117 / H1 / H3 0 dòng khác |
-| R4-3 | **S1, có từ T2.1** | Danh từ chung "dự án", "công trình" ở mệnh đề ngữ cảnh được che như thuật ngữ, nên con số ở mệnh đề hỏi bị gán cho chủ thể đầu: "EX-03 … 3850 L. Dự án, 5050 L đúng không?" → "Không." | **CÒN MỞ.** Ở ngữ cảnh chỉ che thuật ngữ vật tư của ý định số liệu; hoặc coi "dự án" đứng một mình là tên chưa giải |
-| R4-4 | S2, có từ T2.1 | Bí danh mơ hồ "máy 03" có chủ thể trong ứng viên được coi là CHÍNH chủ thể kể cả khi tách câu: "EX-03 … 3850 L. Máy 03 được cấp 3000 L, đúng không?" → "Không." (3.000 L là số của DZ-03) | **CÒN MỞ.** Luật thử: bí danh mơ hồ chỉ là chủ thể khi không có ngắt mệnh đề / câu giữa nó và lần nhắc rõ gần nhất của chủ thể. Đã chạy thử: 5 gói xanh, 117 / H1 / H3 0 dòng khác |
+| R4-2 | **S1, có từ T2.1** | Tên cấp cha đứng TRƯỚC con số, ở mệnh đề khác hoặc sau dấu ngăn lạ, vẫn bị phán quyết theo máy:<br>- "EX-03 hôm nay được cấp 3850 L. Dự án A, 5050 L đúng không?" → "Không." (claim về dự án A là ĐÚNG);<br>- "EX-03: dự án A hôm nay được cấp 3850 L đúng không?" → "Đúng."; tương tự với " - ", "(", "[", xuống dòng, phẩy không khoảng trắng | **ĐÃ SỬA (Vòng 5, `03c2c54`, `489c98a`)** — luật "thứ gần nhất trước con số", xem Vòng 5. Lúc ghi Vòng 4: Luật thử của người soát: cấp cha chỉ được chấp nhận khi là định ngữ "của" đứng liền sau một lần nhắc chủ thể. Đã chạy thử: 5 gói test xanh, bộ 117 / H1 / H3 0 dòng khác |
+| R4-3 | **S1, có từ T2.1** | Danh từ chung "dự án", "công trình" ở mệnh đề ngữ cảnh được che như thuật ngữ, nên con số ở mệnh đề hỏi bị gán cho chủ thể đầu: "EX-03 … 3850 L. Dự án, 5050 L đúng không?" → "Không." | **ĐÃ SỬA (Vòng 5, `03c2c54`, `489c98a`).** Lúc ghi Vòng 4: Ở ngữ cảnh chỉ che thuật ngữ vật tư của ý định số liệu; hoặc coi "dự án" đứng một mình là tên chưa giải |
+| R4-4 | S2, có từ T2.1 | Bí danh mơ hồ "máy 03" có chủ thể trong ứng viên được coi là CHÍNH chủ thể kể cả khi tách câu: "EX-03 … 3850 L. Máy 03 được cấp 3000 L, đúng không?" → "Không." (3.000 L là số của DZ-03) | **ĐÃ SỬA (Vòng 5, `03c2c54`, `489c98a`)** — luật bí danh có bằng chứng dương, xem Vòng 5. Lúc ghi Vòng 4: Luật thử: bí danh mơ hồ chỉ là chủ thể khi không có ngắt mệnh đề / câu giữa nó và lần nhắc rõ gần nhất của chủ thể. Đã chạy thử: 5 gói xanh, 117 / H1 / H3 0 dòng khác |
 | R4-5 | INFO | Cái giá của E3 rộng hơn ví dụ đã ghi: mất cả "Hôm nay cấp 3850 L cho EX-03 của dự án A đúng không?" (số đứng trước chủ thể + định ngữ cấp cha); trên 20.000 câu fuzz: 1.084 câu mất phán quyết, 0 đổi chiều, 0 câu phán quyết thêm | Ghi nhận. Luật của R4-2 có thể trả lại phán quyết cho dạng "của" liền sau chủ thể |
 | R4-6 | S3 / S4 | Thiếu đối chứng dương và ca đơn vị cho E3; đột biến IsLetter → IsLower sống; khối không phán quyết của SoatLan3 không kiểm Outcome | **ĐÃ SỬA (`936d090`):** đối chứng "(máy xúc EX-03)", "máy 03" sau số ⇒ "Đúng."; 2 ca TestVerdictGap want "subject"; kiểm Outcome; n43 CG43–CG46 ⇒ 53 / 53 |
 
@@ -152,3 +152,58 @@ Hai người soát, mỗi người một worktree, chạy câu thật:
 - 15.840 câu rõ nghĩa có cấp cha cạnh chủ thể không bị đóng oan câu nào.
 
 **Thứ tự kế tiếp:** đóng R4-2, R4-3, R4-4 bằng test đỏ trước, đo lại bộ 117 / H1 / H3, rồi soát độc lập, **trước khi chạy H4** (H4 có ca xác nhận).
+
+### Vòng 5 (22/10 sáng: đóng R4-2…R4-4, R5-1 và câu đổi chiều của số bằng chữ) — mã `03c2c54`, `489c98a`
+
+Đầu vào:
+- bản thử V5 của lượt thiết kế 21/10 (dừng lúc chốt ca), đo lại và soát mã độc lập tối 21/10;
+- hai lỗ S1 mới tìm ra tối 21/10: R5-1 (bản soát mã) và R5-2 (phản hồi audit ROADMAP K5, `docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md`).
+
+| Mã | Mức | Phát hiện | Xử lý |
+|---|---|---|---|
+| R5-1 | **S1, có từ T2.1** (gồm R2-4) | Tên nguồn, từ khoá chỉ số khác hay từ chỉ lượng ở ngữ cảnh là nguồn / chỉ số của chính claim mà không được đối chiếu: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?" → "Không." dù ERP ghi 3.900 L; "ERP, EX-03 hôm nay được cấp 3900 L đúng không?" → "Không."; "… Định mức, 5000 L …" → "Không."; "Đội báo, EX-03 hôm nay được cấp 3850 L đúng không?" → "Đúng." (đội báo 4.000 L). Dấu phẩy làm cụm đó rơi vào ngữ cảnh, nơi được chứa tên nguồn bất kỳ | **ĐÃ SỬA (Vòng 5):** luật 2 và luật 3 dưới đây |
+| R5-2 | **S1** | Số bằng chữ kết thúc bằng "<hàng> <một chữ số>" (có thể kèm "rưỡi") bị đọc như hàng đơn vị: "một nghìn hai" → 1.002 (nói thường 1.200), "ba nghìn tám rưỡi" → 3.008,5 (nói thường 3.850). "Hôm qua đội báo lu 02 một nghìn hai lít dầu đúng không?" → "Không." dù đội báo đúng 1.200 L | **ĐÃ SỬA ở cổng (Vòng 5):** dạng này không phán quyết. Bộ đọc giữ nguyên: sửa nó đổi cả tầng nạp, chờ D-OP-14 |
+| R5-3 | S2, lỗ của V5 | Bí danh sau con số cùng ngày viết bằng số: "EX-03 ngày 19/10 được cấp 3850 L máy 03 đúng không?" mất phán quyết (cùng câu với "hôm nay" thì giữ), trái đối chứng đã ghim ở R4-6 | **ĐÃ SỬA (Vòng 5):** "/", "-", ":" giữa hai chữ số không phải dấu ngắt |
+
+**Luật (Vòng 5):**
+1. Thứ gần nhất đứng TRƯỚC con số xác nhận đầu tiên phải gắn vào chủ thể: chính chủ thể nhắc rõ; bí danh mơ hồ có bằng chứng dương (luật 4); hoặc định ngữ nối vào thứ liền trước, mà thứ đó đã gắn, bằng đúng chữ "của" hay ngoặc trần ("EX-03 của dự án A", "EX-03 (dự án A)"). Không có thứ nào đứng trước thì phần sau con số do E3 kiểm.
+2. Thứ có thể sở hữu con số: tên thực thể; thuật ngữ khác thuật ngữ của chính ý định ("dự án", "nhân công"); và ở ngữ cảnh, khi không có con số nào xen giữa nó và phạm vi hỏi, các "cụm nguồn / chỉ số khác": tên nguồn khác nguồn đã tạo con số trả lời, từ khoá của ý định số liệu khác, từ chỉ lượng. Không tính từ khoá của chính ý định, từ khoá của ý định yếu ("bao nhiêu") và tên đúng nguồn đã dùng.
+3. Đề mục thuần: đoạn từ đầu câu chứa phạm vi hỏi tới phạm vi hỏi chỉ gồm cụm nguồn / chỉ số khác (cùng từ trung tính, mốc thời gian kể cả "ngày" / "hôm" đứng trước mốc số, dấu ngăn) thì đó là nguồn / chỉ số của chính claim ⇒ không phán quyết ("ERP, EX-03 …", "Đội báo, EX-03 …"). Đoạn có chữ khác ("Bao nhiêu định mức, vậy EX-03 …", "Theo ERP, …") không phải đề mục. Bản luật rộng hơn ("mọi cụm ở ngữ cảnh không kèm số") đã thử và bỏ: nó chặn oan "Bao nhiêu định mức, vậy EX-03 hôm nay được cấp 3850 L đúng không?" (đối chứng của Vòng 2).
+4. Bí danh mơ hồ chứa chủ thể chỉ là chủ thể khi câu cho bằng chứng dương: không có lần nhắc rõ nào; đứng một mình trong ngoặc, không ngắt mệnh đề khỏi lần nhắc rõ; đứng sau con số mà đoạn từ lần nhắc rõ tới nó chỉ có chữ, số, khoảng trắng và dấu nằm giữa hai chữ số; hoặc dạng "bí danh (lần nhắc rõ)".
+5. Con số xác nhận viết bằng chữ, kết thúc bằng "<hàng> <một chữ số>" (có thể kèm "rưỡi"), không phán quyết.
+
+**Năm dạng xử lý theo mặc định fail-closed (§2), chưa ghim bằng test, chủ dự án đảo được:**
+
+| Dạng | Ví dụ | Hành vi |
+|---|---|---|
+| viết liền chủ thể + cấp cha | "EX-03 dự án A hôm nay được cấp 3850 L đúng không?" | không phán quyết |
+| đồng vị phẩy | "EX-03, dự án A, hôm nay được cấp 3850 L, đúng không?" | không phán quyết (R3-4 đã coi là lỗ) |
+| bí danh chen giữa, không ngắt | "EX-03 hôm nay Máy 03 được cấp 3850 L đúng không?" | không phán quyết (chặt hơn luật thử của R4-4) |
+| cấp cha trong ngoặc trần | "EX-03 (dự án A) hôm nay được cấp 3850 L đúng không?" | phán quyết (lỏng hơn luật thử của R4-2) |
+| bí danh rồi lần nhắc rõ trong ngoặc | "Máy 03 (EX-03) hôm nay được cấp 3850 L đúng không?" | phán quyết |
+
+**Đo:**
+- Test đỏ trước, trên HEAD `ffb1efb`: `TestCongPhanQuyetVong5` đỏ đúng 20 ca âm (15 R4, 3 R5-1, 2 R5-2), 0 ca dương; `TestVerdictGap` đỏ 5 dòng mới.
+- Lần sửa đầu làm đỏ một test cũ (`TestCauXacNhanMotConSoVanTraLoi`: "EX-03 hôm nay đội báo 3k, vậy được cấp 4000 L đúng không?" mất "Không.") ⇒ thêm điều kiện "không con số nào xen giữa" vào luật 2; câu đó nay được ghim.
+- Test có PG ở mã cuối 459 / 0 / 0: 455 test cũ giữ nguyên kết quả theo tên, 4 test mới.
+- Bộ 117 / H1 / H3, đường bộ nhớ và PostgreSQL: 0 dòng khác so với trước Vòng 5; số ca có phán quyết không đổi (15 / 5 / 16).
+- Bộ câu tổng hợp 122.429 câu (dựng lại từ lượt thiết kế, khớp md5): đóng 25.669 / 25.669 phán quyết ở câu chưa giải (R4-2 12.941, trong đó 7.168 sai chiều; R4-3 3.656; R4-4 9.072); câu rõ nghĩa mất 0 (132 theo nhãn gốc: đúng dạng bí danh chen giữa ở bảng trên); 0 đổi chiều, 0 phán quyết mới. Fuzz 77.062 câu: đóng 10.774 / 10.774, mất 0.
+- Tổng mọi bộ có sẵn (736.784 câu, gồm 20.000 câu của người soát E3 và 30.000 câu nhiễu): 0 đổi chiều, 0 phán quyết mới so với trước Vòng 5. So với bản thử V5: khác 79 câu, toàn dạng ngày + bí danh sau số, đều lấy lại đúng phán quyết cũ.
+- R5-1 và R5-2 không có câu nào trong các bộ có sẵn: kiểm bằng test, 40 câu viết tay và lưới 453 câu sinh từ seed (đóng 8 / 8 câu R5-1 và 60 / 60 câu R5-2 có phán quyết; 137 câu đối chứng giữ nguyên). Mức mất phán quyết của hai luật này trên câu tự nhiên ở quy mô lớn: CHƯA ĐO.
+- Điểm S3 còn lại: aliasTied chọn lần nhắc rõ gần bí danh nhất theo khoảng cách byte, nên câu nhắc chủ thể hai lần ("… EX-03 ngày 19/10 3,85k máy 03 được cấp EX-03 …") có thể mất phán quyết tuỳ độ dài chữ ở giữa (1 câu trong 20.000; không đổi chiều).
+- Soát độc lập ba vòng, mỗi vòng một người soát khác, chỉ đọc, thử câu trong worktree riêng:
+  - vòng 1 (bản đầu): KHÔNG ĐẠT vì tồn dư, không hồi quy — "<hàng> <chữ số> rưỡi" (S1), đề mục nguồn ở đầu câu R2-4 (S2), thiếu test (S2), ADR chưa có (S3);
+  - vòng 2: KHÔNG ĐẠT vì tồn dư — đề mục có "ngày dd/mm" không được coi là đề mục (S2), 4 đột biến sống ở luật đề mục (S2);
+  - vòng 3 (kiểm dòng vá "ngày" do người soát vòng 2 đề xuất): dòng vá ĐÚNG, chỉ đóng thêm (204 câu × 3 cây: 0 phán quyết mới, 0 đổi chiều); KHÔNG ĐẠT vì còn hai lỗ cùng họ, có từ trước (R5-4, R5-5 dưới đây).
+- Đột biến (`scripts/dot-bien/n43-cong-phan-quyet.sh`, thêm CG153–CG204 và NW12–NW20): ở mã cuối, 210 / 210 dòng chạy bị bắt, 0 sống, 0 không biên dịch. Các đột biến tương đương hay chờ quyết ghi thành dòng chú thích kèm lý do và số đo. Ba đột biến cũ (CG24, CG30, CG35) sống từ khi có luật "thứ gần nhất trước con số", vì luật này bao trùm phép kiểm chủ thể cũ: CG24 nay bị bắt ở mức đơn vị (`TestSubjectGapPhamViHoi`), CG30 / CG35 ghi chờ quyết (giữ làm phòng thủ chiều sâu hay xoá phép kiểm thừa).
+
+**Còn mở, phải đóng TRƯỚC H4 (cùng họ R5-1, có từ trước Vòng 5, tìm ra ở vòng soát 3):**
+- R5-4: đề mục có thêm chữ mà phép kiểm chính vẫn giải thích — thuật ngữ vật tư ("dầu"), từ khoá của chính ý định ("kho xuất"), tên đúng nguồn đã dùng — thì không còn "thuần" nên vẫn phán quyết: "Dầu ERP, EX-03 hôm nay được cấp 3900 L đúng không?" → "Không." (ERP ghi 3.900 L); "Dầu đội báo, EX-03 hôm nay được cấp 3850 L đúng không?" → "Đúng." (đội báo 4.000 L); "Phiếu xuất kho, ERP, EX-03 … 3850 L" → "Đúng.".
+- R5-5: bí danh "phiếu kho" trùng từ khoá của chính ý định nên không bị coi là nguồn khác khi nguồn đã dùng là ERP: "Phiếu kho, EX-03 hôm nay được cấp 3900 L đúng không?" → "Đúng." dù phiếu kho không có bản ghi.
+
+**Cái giá chấp nhận và điểm còn mở khác (đều S3, không đổi chiều):**
+- Đề mục chỉ xét trong cùng câu: đề mục đứng thành câu hay dòng riêng ("ERP. EX-03 hôm nay được cấp 3900 L đúng không?") vẫn được phán quyết như trước Vòng 5.
+- aliasTied chọn lần nhắc rõ gần bí danh nhất theo khoảng cách byte: câu nhắc chủ thể hai lần có thể mất phán quyết tuỳ độ dài chữ ở giữa.
+- Chờ quyết chính sách (đột biến ghi "CHỜ QUYẾT" trong danh mục): R2-6 (bí danh mơ hồ có ứng viên là cấp cha sau "của": "EX-03 của chương trình mới …" vẫn phán quyết); lần nhắc rõ nào quyết bí danh khi cả hai phía đều có.
+
+**Thứ tự kế tiếp:** đóng R5-4, R5-5 (test đỏ trước, bản vá của người soát vòng 3 phải qua một người soát khác) → vòng sửa tầng ý định S4 theo ADR-0010 (bước điều tra xong 22/10; câu D-OP-15 về bất biến (a) chờ chủ dự án) → đóng băng mã S4 → chạy H4 MỘT lần.

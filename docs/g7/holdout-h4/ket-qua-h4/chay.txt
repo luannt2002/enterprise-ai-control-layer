@@ -1,0 +1,19 @@
+revision: 57409f2965d46c4c4575b77681cccea6ab59e27c
+mã (cây git không tính docs/): 7f0d1cbc596cb521ed4bfb51ad2ab972df868455cd8563087505a71645ecdfdb
+commit HEAD: 2026-10-22T14:59:02+07:00
+origin/main: 57409f2965d46c4c4575b77681cccea6ab59e27c
+commit tệp ca: 57409f2 2026-10-22T14:59:02+07:00
+sha256 tệp ca: 7fc5a4859b6913ad311a084bb36abc32deda8bc890d8d5fecff2d8199958150d  docs/g7/holdout-h4/h4.yaml
+sha256 holdout-manifest.json: 4d8473ac17fabead82053124e80c0ff075f3de9fb10ee497f0993d2dd31b41eb
+sha256 công cụ: bang-cong-h1.py edc2344411106f065090364d25da648cd9bbd45fae82d37dcde5419ed578a1ca; chay-giu-lai.sh 4700324164288b397d2f5e787a4ef6208f5b313588d3d195578c12b12d9dc4ee
+database PG: eais_giu_lai
+go: go version go1.26.4 linux/amd64
+bắt đầu: 2026-10-22T14:59:34+07:00
+sha256 manifest dữ liệu: 31172355392f7092fb01bced39fd7ce18c04be765bdd27c316442f2bf9adb055
+lệnh bo-nho: go run ./tenants/construction/win/winreport -data <tạm> -cases docs/g7/holdout-h4/h4.yaml -v 
+mã thoát bo-nho: 1 (0 mọi ca đạt · 1 có ca trượt hoặc phát lại lệch · khác: hỏng hạ tầng)
+lệnh pg: go run ./tenants/construction/win/winreport -data <tạm> -cases docs/g7/holdout-h4/h4.yaml -v -pg
+mã thoát pg: 1 (0 mọi ca đạt · 1 có ca trượt hoặc phát lại lệch · khác: hỏng hạ tầng)
+kết thúc: 2026-10-22T14:59:35+07:00
+mã thoát bang-cong-h1: 0
+trạng thái: HOÀN TẤT

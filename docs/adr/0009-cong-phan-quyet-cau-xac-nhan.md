@@ -287,7 +287,15 @@ chiều; vá từng dạng thì họ lỗi chưa đóng (bốn vòng soát, vòn
     đóng); đột biến n43 187 / 187, n44 16 / 16.
   - Ghi nợ (không sai chiều): "X triệu Y trăm" ("một triệu hai trăm" đọc 1.000.200, chỉ chặn nhờ miền chỉ số); CG67 chỉ có test đơn vị; bỏ
     `slices.Clone` ở ctxNumbers nhiều khả năng là đột biến tương đương.
-- Soát độc lập vòng 4 (ngoại lệ sai chiều) cho `be91cd0`: đang chạy lúc push này (chủ dự án xin push phần đã làm).
+- Soát độc lập vòng 4 (ngoại lệ sai chiều, người soát thứ năm) cho `be91cd0`: **ĐẠT CÓ GHI CHÚ** — S2-1, S2-2 đã đóng (mọi tên nguồn đã dùng
+  thành ranh giới, kể cả bộ fact tự dựng cho bảng tổng hợp / báo cáo ngày / hoá đơn / cảm biến; số nhỏ bằng chữ và nhân "trăm" / "chục" hết
+  phán quyết ở mọi dạng); 0 S1, 0 S2; chỉ bớt phán quyết (đọc mã + lưới 260.411 câu duy nhất qua hai nhị phân: 0 phán quyết mới, 0 đổi
+  chiều); ca dương R-1 giữ nguyên. Cái giá mới: "được cấp 39 trăm", "ba k" và số nhỏ bằng chữ ở ngữ cảnh ("ERP hai mươi, …") mất phán quyết.
+- Ghi nợ (S3, có từ trước, không sai chiều theo hợp đồng R-1): số gán theo vị trí cho cụm chưa có số qua chữ trung tính / từ khoá ý định /
+  "bao nhiêu" ("ERP, xuất kho 3850 L, …" → "Đúng.", đọc được như số của ERP — cùng cấu trúc ca dương R-1); tên nguồn đã dùng đứng SAU số
+  ("ERP: 3850 L (phiếu xuất kho), …"). S4: biến thể chính tả tên nguồn ("hóa đơn" / "hoá đơn") chỉ có ở từ khoá, không là ranh giới.
+
+**KHOÁ HẲN (lệnh ca MVP ALL-IN của chủ dự án, 22/10):** không mở vòng 5. Lỗ mới cùng họ chỉ ghi nợ, giữ fail-closed.
 
 **KHOÁ:** từ mã này cổng phán quyết không nhận thêm luật. Lỗ mới cùng họ: ghi nợ, giữ fail-closed (không phán quyết); chỉ mở lại khi
 gặp phán quyết sai chiều (brief §9.6).

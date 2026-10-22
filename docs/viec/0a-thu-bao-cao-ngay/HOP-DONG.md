@@ -780,8 +780,8 @@ Mỗi dòng cần: bộ ca độc lập, lệnh, kết quả, ca âm (`docs/PROM
 | DB19 | đính chính tự áp, không chờ người | GA3 (LC14) |
 | DB20 | `unit_key` rỗng khi thiếu `record_id` (như hôm nay) | GA1 (LC70) |
 | DB21 | tin sửa ghi đè quyết định của người | GA9 (LC60) |
-| DB22 | cách ly hết: mọi đơn vị đọc được lượng đều thành `QUARANTINED` hoặc `HELD` với lý do hợp lệ và người nhận | GA6 (phủ nhận tự động: các ca tự nhiên kỳ vọng `ACCEPTED`) |
-| DB23 | nhận hết: mọi đơn vị đọc được lượng đều thành `ACCEPTED` loại `OCCURRED`, bỏ qua luật loại tin, ngày, quyền và chống trùng | GA6 (sai im lặng S1 = 0: các ca tự nhiên và ca bơm kỳ vọng không-nhận) |
+| DB22 | cách ly hết: mọi đơn vị đọc được lượng đều thành `QUARANTINED` hoặc `HELD` với lý do hợp lệ và người nhận | GA6 (phủ nhận tự động: các ca tự nhiên và ca bơm kỳ vọng `ACCEPTED`, ví dụ LC11, LC26) |
+| DB23 | nhận hết: mọi đơn vị đọc được lượng đều thành `ACCEPTED` loại `OCCURRED`, bỏ qua luật loại tin, ngày, quyền và chống trùng | GA6 (sai im lặng S1 = 0: các ca tự nhiên và ca bơm kỳ vọng không-nhận, ví dụ LC12, LC38, LC44) |
 | DB24 | bỏ ghi vết một bước của tầng nạp (ví dụ `L1.entity`), hoặc ghi vết không có lý do và phương án bị loại | GA10 (mọi ca đọc vết từng đơn vị, ví dụ LC01) |
 | DB25 | đường form / bot bỏ chống trùng (bấm gửi hai lần ra hai bản ghi) | GA11 (LC76) |
 | DB26 | bỏ khoá tuần tự hoá TR3 (bản đột biến cài điểm dừng giữa lúc đọc nhóm và lúc ghi để đua xảy ra chắc chắn, không dựa vào lịch chạy) | GA4 (LC74) |

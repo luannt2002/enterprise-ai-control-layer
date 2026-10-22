@@ -2,13 +2,14 @@
 
 > **Trạng thái: GIẤY, chưa có mã.**
 > - Mã Phase 0a (khối M2 của MVP) chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong").
-> - H4 đã khoá (`15f04f9`) và CHƯA chạy tại mốc đọc mã (`docs/STATUS.md`) [REPO].
+> - H4 đã khoá (`15f04f9`); tại mốc đọc mã `2b80a38` thì CHƯA chạy, và đã chạy MỘT lần ngày 22/10 sau đó (`docs/STATUS.md`, dòng "H4, 22/10 14:59") [REPO]: điều kiện này đã đạt.
+> - Soát: vòng 1 (người soát ≠ người viết) kết luận **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO]. Bản này hạ chữ ở mục 5, điều kiện 4 theo F03 và khớp M1 đã lên main; **chưa soát lại sau khi sửa**.
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc bác từng câu chấm;
 > - phiên BUILD: làm theo `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` và `docs/adr/0012-phase0a-thu-bao-cao-ngay.md` khi mã được mở.
 >
-> **Ngày:** 22/10/2026. **Mốc đọc mã:** `2b80a38` (origin/main). Tra một dòng trích bằng `git show 2b80a38:<tệp>`. Bản nháp đầu đọc ở `7d72e33`; từ đó, D-OP-14 đã sửa bộ đọc số bằng chữ (HT-6, HT-7 hết). Làn 1 còn sửa "≈" (HT-1); khi gộp, các số [ĐO] về cờ "≈" có thể đổi: đo lại trước khi dựa vào.
+> **Ngày:** 22/10/2026. **Mốc đọc mã:** `2b80a38` (origin/main). Tra một dòng trích bằng `git show 2b80a38:<tệp>`. Bản nháp đầu đọc ở `7d72e33`; từ đó, D-OP-14 đã sửa bộ đọc số bằng chữ (HT-6, HT-7 hết). Làn 1 còn sửa "≈" (HT-1); khi gộp, các số [ĐO] về cờ "≈" có thể đổi: đo lại trước khi dựa vào. Phần M1 (làn 0, đã lên main) đọc thêm ở `41bc3cf` (`HOP-DONG.md` §1.4).
 >
 > **Nhãn bằng chứng:**
 > - [ĐO]: người viết tự chạy lệnh, đo ở `7d72e33` rồi đo lại ở `2b80a38` (test thăm dò tạm, không commit; mô tả ở `HOP-DONG.md` §1.3.3);
@@ -38,13 +39,13 @@
   - không chặn việc viết giấy, và không chặn mã khi H4 đã chạy;
   - mọi kết luận về Phase 0a ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
   - không tuyên bố Phase 0a "đáng giá": phép đo giá trị chưa có số nền (câu 1).
-- **Cổng gốc** (`docs/ROADMAP-DAY-DU.md` §4.2): xem §5. Điều kiện 1 (phase tiên quyết) **chưa đạt** vì H4 chưa chạy.
+- **Cổng gốc** (`docs/ROADMAP-DAY-DU.md` §4.2): xem §5. Điều kiện 1 (phase tiên quyết) **đã đạt**: H4 chạy xong ngày 22/10 (`docs/STATUS.md`). Điều kiện 4 (ca âm chứng minh cổng đỏ được) **chưa chứng minh**: mới viết trên giấy, chưa đột biến nào chạy.
 
 ---
 
 ## 1. Việc được chấm
 
-> Một đội hiện trường báo cáo lượng dầu của từng máy trong ngày, bằng tin nhắn nhóm (Zalo) hoặc bằng tệp (Excel, PDF; ảnh chưa đọc được). EAIS biến **mỗi đơn vị đầu vào** thành đúng một trong bốn kết cục có lý do (nhận · chờ xác nhận · cách ly · trùng). Bản ghi được nhận mang **cờ loại** (đã xảy ra · ước lượng · đính chính · kế hoạch). Con số đọc ra là tất định và không bị cộng đôi.
+> Một đội hiện trường báo cáo lượng dầu của từng máy trong ngày, bằng tin nhắn nhóm (Zalo) hoặc bằng tệp (Excel, PDF; ảnh chưa đọc được). EAIS biến **mỗi lần giao một đơn vị đầu vào** thành đúng một trong bốn kết cục có lý do (nhận · chờ xác nhận · cách ly · trùng); trùng chỉ để lại một dòng ở sổ lần giao, không tạo bản ghi (`HOP-DONG.md` §3.8). Bản ghi được nhận mang **cờ loại** (đã xảy ra · ước lượng · đính chính · kế hoạch). Con số đọc ra là tất định và không bị cộng đôi.
 
 - **Nguồn của việc:**
   - `docs/ROADMAP-DAY-DU.md` §5b (khối M2 của MVP: "Thu báo cáo ngày đúng") và §6 (dòng Phase 0a);
@@ -120,7 +121,7 @@
     7. (HT-7) số bằng chữ không dấu không tất định ("hai muoi": 14 lần ra 10 L, 6 lần ra 20 L trong 20 tiến trình ở `7d72e33`): **đã sửa** ở `2b80a38` (20/20 lần ra 20 L) [ĐO];
     8. (HT-8) khoá bản ghi trùng khi tin thiếu hoặc trùng `record_id` [ĐO];
     9. (HT-9) dòng PDF không khớp mẫu bị bỏ im lặng (`data/ingestion/readers.go:165-177`; `docs/ROADMAP.md` §0.4 mục 12) [CODE, REPO];
-    10. (HT-10) cách ly chỉ nằm trong RAM, không người nhận (`docs/01-architecture.md` §4, hàng "cách ly") [REPO].
+    10. (HT-10) cách ly chỉ nằm trong RAM, không người nhận (`docs/01-architecture.md` §4, hàng "cách ly") [REPO]; M1 đã lưu bền khoá, nguồn, lý do, chi tiết của cách ly theo lần nạp, còn thiếu người nhận, trạng thái, xuất (`HOP-DONG.md` §1.3.2) [CODE].
   - **(b) Chuẩn hoá đầu vào trước khi đọc chữ tự do.** Đã cân nhắc trên giấy: nhánh form / bot dùng chung hợp đồng đầu ra, có bản chiếu cặp để đo hai đường trên cùng ngữ nghĩa (`HOP-DONG.md` §13). Chưa đo.
 - **Bằng chứng / nguồn.** Mười lỗi ở trên; ca G1 hiện ghim 3 lệch cờ ước lượng trên 2.739 bản ghi seed (`tenants/construction/win/g1-approx-known.txt`, `docs/STATUS.md:62`) [REPO].
 - **Qua cổng? ◐.** Đã đánh giá và đã cân nhắc chuẩn hoá đầu vào. Chưa có cổng kiểm mức sẵn sàng của dữ liệu; lỗi im lặng còn mở; chưa đo so sánh hai nhánh.
@@ -242,10 +243,10 @@
 
 | # | Điều kiện | Trạng thái | Nguồn |
 |---|---|---|---|
-| 1 | Phase tiên quyết đã đạt | **Chưa.** Mã 0a mở sau H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4); H4 đã khoá, chưa chạy. Điều kiện kỹ thuật thêm: hợp đồng đơn vị nạp của làn 0 (`POST /v1/ingest`, §9.2 làn 0). D-OP-14 (bộ đọc số, làn 1) đã vào main (`7e1d8ca`, `017495c`) | `docs/STATUS.md`; `docs/CHO-QUYET-DINH.md` mục 0 (D-OP-14, D-RM-04) |
+| 1 | Phase tiên quyết đã đạt | **Đạt.** Mã 0a mở sau H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4); H4 đã chạy MỘT lần ngày 22/10 (`docs/STATUS.md`). Điều kiện kỹ thuật thêm: M1 (làn 0) đã lên main ở `41bc3cf` với `POST /v1/ingest` (principal từ token, nạp lại thư mục đã cấu hình); đường nạp từng đơn vị là việc của M2 (`HOP-DONG.md` §1.4, §14.1). D-OP-14 (bộ đọc số, làn 1) đã vào main (`7e1d8ca`, `017495c`) | `docs/STATUS.md`; `docs/CHO-QUYET-DINH.md` mục 0 (D-OP-14, D-RM-04) |
 | 2 | Có lỗi đo được hoặc ca nghiệp vụ đòi năng lực mới | **Có.** K1–K5 và `docs/ROADMAP.md` §0.4 mục 1, 3, 12, 15, 16, 17; CON-F-014 (S1); thêm các lỗi người viết đo ở `2b80a38` (`HOP-DONG.md` §1.3) | mục 3 câu 2, câu 3 |
 | 3 | Trả lời được "ai sở hữu?" | Trả lời đủ 10 mặt ở `HOP-DONG.md` §8 (giấy) | `docs/05-master-roadmap.md:30` |
-| 4 | Cổng ra nhị phân, có ca âm chứng minh cổng đỏ được | Viết ở `HOP-DONG.md` §10 (lớp ca âm), §11 (cổng ra, đột biến) (giấy; chưa chạy) | `docs/ROADMAP-DAY-DU.md` §6 |
+| 4 | Cổng ra nhị phân, có ca âm chứng minh cổng đỏ được | **Chưa chứng minh.** Trên giấy: `HOP-DONG.md` §11.1 có 11 dòng GA, mỗi dòng có ít nhất một đột biến bắt buộc đỏ (28 đột biến ở §11.3), hai bảng §11.1 và §11.3 đối xứng, mọi lớp ca âm ở §10 thuộc một dòng GA. Chưa bộ ca độc lập nào được soạn và chưa đột biến nào chạy, nên "cổng đỏ được" mới là điều phải chứng minh ở bước đột biến (`HOP-DONG.md` §14.2), chưa phải điều đã chứng minh | `docs/ROADMAP-DAY-DU.md` §6 |
 
 ---
 

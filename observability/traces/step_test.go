@@ -2,6 +2,9 @@ package traces_test
 
 import (
 	"errors"
+	"maps"
+	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -185,11 +188,17 @@ func TestBuildStepsHoiLai(t *testing.T) {
 	}
 }
 
-// Kiểm trượt: S9 lệch, lý do là chính các vi phạm, câu nháp bị loại còn là chỗ trống ghi rõ (Draft chưa xuất).
+// Kiểm trượt: S9 lệch, lý do là chính các vi phạm, câu nháp bị loại còn là chỗ trống ghi rõ (Draft chưa xuất). Lượt dựng đúng hình thật
+// của route RAG khi kiểm trượt: span retrieve → generate → validate, và pipeline bỏ trích dẫn (xem TestSoHaiLuotThatKiemTruotChiS9 cho
+// lượt chạy thật). Bước lệch đầu tiên phải là S9 — chặng truy vấn S6 vẫn bình thường.
 func TestBuildStepsKiemTruot(t *testing.T) {
 	turn := sampleTurn()
 	turn.Decision.Route, turn.Decision.Verdict, turn.Decision.Outcome = "RAG", "false|fallback|NUM_NOT_IN_EVIDENCE", "SYSTEM_FAILURE"
+	turn.Decision.Evidence = nil
 	turn.Plan.Route = contracts.RouteRAG
+	turn.Response.Conflicts, turn.Response.Citations = nil, nil
+	turn.Spans = []traces.Span{{Name: "normalize", Ms: 1}, {Name: "resolve", Ms: 2}, {Name: "intent", Ms: 3}, {Name: "route", Ms: 4},
+		{Name: "retrieve", Ms: 5}, {Name: "generate", Ms: 6}, {Name: "validate", Ms: 7}}
 	turn.Response.Verdict = contracts.Verdict{Pass: false, Action: contracts.ActionFallback, Violations: []contracts.Violation{
 		{Validator: "numbers", Code: "NUM_NOT_IN_EVIDENCE", Severity: contracts.SeverityS1, Detail: "5.000 không có trong bằng chứng"}}}
 	steps := traces.BuildSteps(turn)
@@ -205,6 +214,12 @@ func TestBuildStepsKiemTruot(t *testing.T) {
 	}
 	if s10 := stepOf(t, steps, "S10"); s10.Status != traces.StatusDeviant {
 		t.Errorf("S10 outcome SYSTEM_FAILURE phải lệch: %+v", s10)
+	}
+	if s6 := stepOf(t, steps, "S6"); s6.Status != traces.StatusOK {
+		t.Errorf("truy vấn xong bình thường, chỉ kiểm trượt: S6 phải ok, được %+v", s6)
+	}
+	if got := firstDeviant(steps); got != "S9" {
+		t.Errorf("bước lệch đầu tiên là %s, muốn S9", got)
 	}
 }
 
@@ -263,5 +278,52 @@ func TestRecordValidate(t *testing.T) {
 		if r.Validate() == nil {
 			t.Errorf("%s: Validate phải từ chối", name)
 		}
+	}
+}
+
+// R1-05. Mỗi tên span mà pipeline ghi gắn vào ĐÚNG MỘT bước, thời gian không rơi và không đếm đôi. Danh sách tên lấy THẲNG từ mã
+// nguồn của pipeline (traces.Measure(tr, "tên", …)) nên span mới thêm vào pipeline mà chưa có chỗ gắn là test đỏ — không dựa vào
+// việc một lượt thật có đi qua chặng đó hay không (lượt thật đo dưới 1 ms nên không so được tổng ms).
+func TestBuildStepsMoiTenSpanGanDungMotBuoc(t *testing.T) {
+	src, err := os.ReadFile("../../core/pipeline/ask.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, m := range regexp.MustCompile(`traces\.Measure2?\(tr, "([a-z_]+)"|\btr\.Do\("([a-z_]+)"`).FindAllStringSubmatch(string(src), -1) {
+		seen[m[1]+m[2]] = true
+	}
+	if len(seen) < 8 {
+		t.Fatalf("tiền đề: chỉ tìm thấy %d tên span trong ask.go (muốn ≥ 8: normalize, resolve, intent, route, execute, retrieve, generate, validate): %v", len(seen), seen)
+	}
+	turn := sampleTurn()
+	turn.Spans = nil
+	var want int64
+	for i, name := range slices.Sorted(maps.Keys(seen)) {
+		if _, ok := traces.SpanStage(name); !ok {
+			t.Errorf("pipeline ghi span %q mà BuildSteps không gắn vào bước nào", name)
+		}
+		ms := int64(10 * (i + 1)) // khác 0 và khác nhau: gắn nhầm hay đếm đôi đều làm tổng lệch
+		turn.Spans = append(turn.Spans, traces.Span{Name: name, Ms: ms})
+		want += ms
+	}
+	var got int64
+	for _, s := range traces.BuildSteps(turn) {
+		got += s.Ms
+	}
+	if got != want {
+		t.Errorf("tổng ms các bước %d ≠ tổng ms span %d: có span rơi hoặc bị đếm đôi (%v)", got, want, turn.Spans)
+	}
+	// ca âm: tên lạ không gắn vào bước nào (kiểm tra có thể đỏ), và thời gian của nó không len vào bước khác
+	if stage, ok := traces.SpanStage("span-la"); ok {
+		t.Errorf("tên span lạ không được gắn vào bước nào, được %s", stage)
+	}
+	turn.Spans = append(turn.Spans, traces.Span{Name: "span-la", Ms: 1000})
+	got = 0
+	for _, s := range traces.BuildSteps(turn) {
+		got += s.Ms
+	}
+	if got != want {
+		t.Errorf("thời gian của span lạ không được cộng vào bước nào: tổng %d, muốn %d", got, want)
 	}
 }

@@ -92,14 +92,27 @@ type FirstDiff struct {
 	A, B  string // giá trị hai bên ở dạng chuỗi để in
 }
 
-// FirstDifferentStep so hai bản ghi của CÙNG một câu (thường ở hai mốc mã) và trả bước đầu tiên theo thứ tự S2→S9 mà kết quả
-// đã ghi khác nhau; ok = false khi khớp hoàn toàn. Dựa trên Diff, ánh xạ tên chặng sang bước: normalize→S2, resolve→S3,
-// intent→S4, route→S5, outcome→S6, evidence→S7, answer→S8, verdict→S9.
+// firstDiffOrder là thứ tự XÉT của FirstDifferentStep (tên chặng của Diff → bước). KHÔNG theo số bước: S9 đứng trước S6, S7 và S8.
+// Lý do: kiểm trượt ở S9 ghi đè cả ba thứ đó — pipeline đổi outcome sang SYSTEM_FAILURE, bỏ trích dẫn và thay câu bằng mẫu thay thế
+// ([CODE] core/pipeline/ask.go, nhánh "len(violations) > 0" của answerMetric và answerKnowledge) — nên khi verdict khác thì outcome,
+// bằng chứng và câu khác chỉ là hệ quả. Xét outcome trước verdict thì mọi hồi quy ở S8 / S9 (model bịa nguồn, validator đổi) đều bị
+// chỉ nhầm vào S6 trong khi chặng truy vấn y hệt ở hai bên (R1-01).
+var firstDiffOrder = []struct{ name, stage string }{
+	{"normalize", StageNormalize}, {"resolve", StageResolve}, {"intent", StageIntent}, {"route", StageRoute},
+	{"verdict", StageValidate},
+	{"outcome", StageExecute}, {"evidence", StageContext}, {"answer", StageGenerate},
+}
+
+// FirstDifferentStep so hai bản ghi của CÙNG một câu (thường ở hai mốc mã) và trả bước đầu tiên mà kết quả đã ghi khác nhau; ok =
+// false khi khớp hoàn toàn. Dựa trên Diff, theo thứ tự xét S2, S3, S4, S5, S9, S6, S7, S8 (firstDiffOrder): normalize→S2,
+// resolve→S3, intent→S4, route→S5, verdict→S9, outcome→S6, evidence→S7, answer→S8.
 //
-// Hai quy ước, để "bước đầu tiên" không chỉ nhầm:
-//   - câu trả lời cuối là sản phẩm của S8, nhưng S9 có thể thay nó bằng câu thay thế khi kiểm trượt. Hai bản ghi khác verdict thì
-//     lỗi bắt đầu từ S9 (câu khác chỉ là hệ quả); chỉ khi verdict giữ nguyên mà câu khác thì mới tính S8. Bản nháp của S8 chưa
-//     được ghi riêng nên không so được trực tiếp;
+// Quy ước, để "bước đầu tiên" không chỉ nhầm:
+//   - hai bản ghi khác verdict thì lỗi bắt đầu từ S9; outcome, bằng chứng, câu khác chỉ là hệ quả của kiểm trượt (xem firstDiffOrder).
+//     Chỉ khi verdict giữ nguyên mà outcome khác thì mới tính S6, bằng chứng khác thì S7, câu khác thì S8. Bản nháp của S8 chưa được
+//     ghi riêng nên không so được trực tiếp;
+//   - giới hạn đã biết: dữ liệu truy vấn đổi mà kéo theo kiểm trượt vẫn chỉ S9 — kết quả truy vấn của S6 chưa xuất khỏi Handle (xem
+//     NotRecorded) nên không phân biệt được với "S6 y hệt, model bịa". Muốn biết S6 có đổi thật, so Steps của hai bên;
 //   - hai lượt khác nhau ở chỗ lỗi (một bên lỗi, một bên không, hoặc nhãn fault khác) thì trả S? trước mọi thứ: lượt lỗi không có
 //     Decision từ luồng hỏi, so các chặng còn lại sẽ chỉ ra những khác biệt giả.
 func FirstDifferentStep(a, b Record) (FirstDiff, bool) {
@@ -107,22 +120,10 @@ func FirstDifferentStep(a, b Record) (FirstDiff, bool) {
 		return FirstDiff{Stage: StageUnknown, Name: "fault", A: a.Fault, B: b.Fault}, true
 	}
 	changed := Diff(a.Decision, b.Decision)
-	pick := func(stage, name string) (FirstDiff, bool) {
-		return FirstDiff{Stage: stage, Name: name, A: fieldText(a.Decision, name), B: fieldText(b.Decision, name)}, true
-	}
-	for _, c := range []struct{ name, stage string }{
-		{"normalize", StageNormalize}, {"resolve", StageResolve}, {"intent", StageIntent},
-		{"route", StageRoute}, {"outcome", StageExecute}, {"evidence", StageContext},
-	} {
+	for _, c := range firstDiffOrder {
 		if slices.Contains(changed, c.name) {
-			return pick(c.stage, c.name)
+			return FirstDiff{Stage: c.stage, Name: c.name, A: fieldText(a.Decision, c.name), B: fieldText(b.Decision, c.name)}, true
 		}
-	}
-	switch verdictChanged, answerChanged := slices.Contains(changed, "verdict"), slices.Contains(changed, "answer"); {
-	case verdictChanged:
-		return pick(StageValidate, "verdict")
-	case answerChanged:
-		return pick(StageGenerate, "answer")
 	}
 	return FirstDiff{}, false
 }

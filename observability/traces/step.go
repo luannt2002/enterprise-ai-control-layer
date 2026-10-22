@@ -117,12 +117,36 @@ type Turn struct {
 	Response      contracts.AskResponse
 }
 
+// stageSpans là bảng "bước → tên span của pipeline": MỘT nguồn sự thật cho BuildSteps (thời gian của bước) và cho test. Span mà
+// pipeline thêm sau này mà chưa có tên ở đây thì không gắn vào bước nào (thời gian vẫn nằm nguyên trong Record.Spans);
+// TestBuocTuLuotThat bắt chuyện đó bằng SpanStage trên mọi span của lượt thật.
+var stageSpans = map[string][]string{
+	StageNormalize: {"normalize"}, StageResolve: {"resolve"}, StageIntent: {"intent"}, StageRoute: {"route"},
+	StageExecute: {"execute", "retrieve"}, StageGenerate: {"generate"}, StageValidate: {"validate"},
+}
+
+// SpanStage trả bước mà BuildSteps gắn span mang tên name vào; ok = false khi tên span lạ (không bước nào nhận).
+func SpanStage(name string) (stage string, ok bool) {
+	for st, names := range stageSpans {
+		if slices.Contains(names, name) {
+			return st, true
+		}
+	}
+	return "", false
+}
+
 // BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Thứ gì luồng hỏi chưa xuất ra
 // (luật sinh từng đoạn chuẩn hoá, ứng viên bị loại, bản nháp của model, bằng chứng bị loại khỏi ngữ cảnh…) thì Reason /
 // Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của route (không có span tương ứng) có Status skipped.
-// Thời gian của bước lấy từ span cùng chặng: normalize→S2, resolve→S3, intent→S4, route→S5, execute và retrieve→S6, generate→S8,
-// validate→S9 (tổng khi một tên span xuất hiện nhiều lần, ví dụ route HYBRID); span lạ không gắn vào bước nào nhưng vẫn nằm
-// nguyên trong Record.Spans.
+// Thời gian của bước lấy từ span cùng chặng theo bảng stageSpans: normalize→S2, resolve→S3, intent→S4, route→S5, execute và
+// retrieve→S6, generate→S8, validate→S9 (tổng khi một tên span xuất hiện nhiều lần, ví dụ route HYBRID); span lạ không gắn vào bước
+// nào nhưng vẫn nằm nguyên trong Record.Spans.
+//
+// Hai chỗ suy ra TỪ SPAN VÀ OUTCOME (không bịa, chỉ đọc những gì Handle đã xuất):
+//   - S8 chỉ là "model diễn đạt" khi có span generate. Route cần model mà không có span generate là lượt kết thúc sớm (câu hỏi đòi
+//     lượng nghiệp vụ, truy xuất rỗng, phần số liệu không ra dữ liệu…): model chưa được gọi, vết không được nói ngược lại;
+//   - S6 là bước lệch khi truy vấn chạy xong mà outcome là INSUFFICIENT_EVIDENCE (nguyên nhân nằm ở truy vấn, S10 chỉ là hệ quả), và
+//     khi HYBRID có truy xuất mà không có generate (phần tri thức không ra đoạn nào, outcome vẫn RESOLVED).
 func BuildSteps(t Turn) []Step {
 	d, plan, resp := t.Decision, t.Plan, t.Response
 	spanMs := map[string]int64{}
@@ -134,10 +158,10 @@ func BuildSteps(t Turn) []Step {
 	executed := has("execute") || has("retrieve")
 
 	steps := make([]Step, 0, 11)
-	add := func(stage, name string, fill func(s *Step), spans ...string) {
+	add := func(stage, name string, fill func(s *Step)) {
 		s := Step{TraceID: d.TraceID, Seq: len(steps), Stage: stage, Name: name, Status: StatusOK,
 			PackVersion: d.PackVersion, CodeVersion: d.CodeVersion, DataVersion: d.DataVersion}
-		for _, n := range spans {
+		for _, n := range stageSpans[stage] {
 			if ms, ok := spanMs[n]; ok {
 				s.Ms, s.Timed = s.Ms+ms, true
 			}
@@ -173,7 +197,7 @@ func BuildSteps(t Turn) []Step {
 		if slices.ContainsFunc(d.Normalized, func(x string) bool { return strings.HasSuffix(x, "=invalid") }) {
 			s.Status = StatusDeviant // có ngày hỏng: không đoán im lặng
 		}
-	}, "normalize")
+	})
 	add(StageResolve, "resolve", func(s *Step) {
 		s.Input = slices.Clone(d.Normalized)
 		s.Output = slices.Clone(d.Entities)
@@ -189,7 +213,7 @@ func BuildSteps(t Turn) []Step {
 		if ambiguous > 0 {
 			s.Status = StatusDeviant
 		}
-	}, "resolve")
+	})
 	add(StageIntent, "intent", func(s *Step) {
 		s.Input = slices.Clone(d.Entities)
 		s.Output = append([]string{"intent=" + d.Intent}, d.Slots...)
@@ -205,7 +229,7 @@ func BuildSteps(t Turn) []Step {
 		if d.Intent == "" || slices.ContainsFunc(d.Slots, func(x string) bool { return strings.HasSuffix(x, "=?") }) {
 			s.Status = StatusDeviant // chưa có ý định, hoặc còn khe bắt buộc thiếu
 		}
-	}, "intent")
+	})
 	add(StageRoute, "route", func(s *Step) {
 		s.Input = []string{"intent=" + d.Intent}
 		s.Output = []string{"route=" + d.Route}
@@ -222,7 +246,7 @@ func BuildSteps(t Turn) []Step {
 		case contracts.RouteClarification, contracts.RouteReject, contracts.RouteHumanEscalation:
 			s.Status = StatusDeviant // kết thúc sớm: hỏi lại, từ chối hoặc chuyển người
 		}
-	}, "route")
+	})
 	add(StageExecute, "execute", func(s *Step) {
 		if !executed {
 			skip(s, "không có span execute / retrieve: route "+d.Route+" không truy vấn nguồn")
@@ -233,28 +257,42 @@ func BuildSteps(t Turn) []Step {
 		if len(resp.Conflicts) == 0 {
 			s.Reason = notRecorded("kết quả truy vấn (sourceoftruth.Result) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("nguồn / bằng chứng bị loại lúc truy vấn chưa xuất khỏi Handle")}
-			return
-		}
-		s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
-		var reasons []string
-		for _, c := range resp.Conflicts {
-			chosen := "chưa chọn, chờ người duyệt"
-			if c.ChosenID != "" {
-				chosen = "chọn " + c.ChosenID
-			}
-			s.Output = append(s.Output, fmt.Sprintf("xung đột %s: %s theo %s", c.Key, chosen, c.Policy))
-			reasons = append(reasons, c.Key+": "+c.Reason)
-			for _, id := range c.EvidenceIDs {
-				if id != c.ChosenID {
-					s.Rejected = append(s.Rejected, fmt.Sprintf("bằng chứng %s (xung đột %s)", id, c.Key))
+		} else {
+			s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
+			var reasons []string
+			for _, c := range resp.Conflicts {
+				chosen := "chưa chọn, chờ người duyệt"
+				if c.ChosenID != "" {
+					chosen = "chọn " + c.ChosenID
+				}
+				s.Output = append(s.Output, fmt.Sprintf("xung đột %s: %s theo %s", c.Key, chosen, c.Policy))
+				reasons = append(reasons, c.Key+": "+c.Reason)
+				for _, id := range c.EvidenceIDs {
+					if id != c.ChosenID {
+						s.Rejected = append(s.Rejected, fmt.Sprintf("bằng chứng %s (xung đột %s)", id, c.Key))
+					}
+				}
+				for _, o := range c.Others {
+					s.Rejected = append(s.Rejected, fmt.Sprintf("nguồn %s = %s %s (xung đột %s)", o.SourceType, o.Number, o.Unit, c.Key))
 				}
 			}
-			for _, o := range c.Others {
-				s.Rejected = append(s.Rejected, fmt.Sprintf("nguồn %s = %s %s (xung đột %s)", o.SourceType, o.Number, o.Unit, c.Key))
-			}
+			s.Reason = strings.Join(reasons, "; ")
 		}
-		s.Reason = strings.Join(reasons, "; ")
-	}, "execute", "retrieve")
+		// Truy vấn chạy xong mà không đủ dữ liệu để trả lời: nguyên nhân của outcome INSUFFICIENT_EVIDENCE nằm Ở ĐÂY, S10 chỉ là hệ
+		// quả — bước lệch đầu tiên của vết phải là chặng đã gây ra nó (R1-03). Khi luồng hỏi xuất sourceoftruth.Result thì ghi hẳn
+		// "truy vấn không trả dữ liệu" thay cho suy ra từ outcome (làn 1).
+		if d.Outcome == string(contracts.OutcomeInsufficientEvidence) {
+			s.Status = StatusDeviant
+			s.Decision = "đã truy vấn nguồn nhưng không đủ dữ liệu để trả lời"
+			s.Output = append(s.Output, fmt.Sprintf("không đủ dữ liệu: outcome %s, %d bằng chứng được trích dẫn", d.Outcome, len(d.Evidence)))
+		}
+		// HYBRID: phần tri thức nối sau câu số liệu đã xong. Có truy xuất mà không có span generate nghĩa là truy xuất không trả đoạn
+		// nào người hỏi được đọc — phần quy trình bị bỏ khỏi câu mà outcome vẫn RESOLVED, nên chỉ chặng này cho thấy.
+		if route == contracts.RouteHybrid && has("retrieve") && !has("generate") {
+			s.Status = StatusDeviant
+			s.Output = append(s.Output, "tri thức: truy xuất không trả đoạn nào người hỏi được đọc; phần quy trình không được nối vào câu")
+		}
+	})
 	add(StageContext, "context", func(s *Step) {
 		if !executed {
 			skip(s, "không có chặng truy vấn nên không dựng ngữ cảnh")
@@ -272,15 +310,22 @@ func BuildSteps(t Turn) []Step {
 		switch {
 		case !route.Valid():
 			skip(s, "route trống hoặc không hợp lệ nên không có cách dựng câu")
-		case route.NeedsModel():
+		case route.NeedsModel() && has("generate"):
 			s.Decision = "model diễn đạt"
 			s.Reason = notRecorded("model, bản nháp và usage (contracts.Draft) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("bản nháp bị loại chưa xuất khỏi Handle")}
+		case route.NeedsModel():
+			// route cần model mà pipeline không gọi Model.Generate (không có span generate): lượt kết thúc sớm — câu hỏi đòi lượng nghiệp
+			// vụ, truy xuất rỗng, phần số liệu không ra dữ liệu… Vết không được kể là model đã diễn đạt (R1-02): P10 dựa vào chặng MODEL
+			// để chọn đúng miền lỗi, đừng đổi model khi lỗi nằm ở dữ liệu.
+			s.Status, s.Decision = StatusSkipped, "model chưa được gọi"
+			s.Reason = "route " + d.Route + " cần model nhưng không có span generate: lượt kết thúc sớm với outcome " + d.Outcome +
+				", câu dựng bằng mẫu của tenant; " + notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
 		default:
 			s.Decision = "mẫu câu của tenant " + plan.Template
 			s.Reason = "route " + d.Route + " không cần model (RouteKind.NeedsModel = false): dựng bằng mẫu câu, không gọi model"
 		}
-	}, "generate")
+	})
 	add(StageValidate, "validate", func(s *Step) {
 		s.Output = []string{"verdict=" + d.Verdict}
 		if !has("validate") {
@@ -303,7 +348,7 @@ func BuildSteps(t Turn) []Step {
 		if !resp.Verdict.Pass || resp.Verdict.Action == contracts.ActionFallback || resp.Verdict.Action == contracts.ActionEscalate {
 			s.Status = StatusDeviant
 		}
-	}, "validate")
+	})
 	add(StageRespond, "respond", func(s *Step) {
 		s.Input = []string{"verdict=" + d.Verdict}
 		s.Output = []string{d.Answer}

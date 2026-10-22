@@ -32,6 +32,16 @@ func TestFirstDifferentStep(t *testing.T) {
 		{"chỉ câu trả lời khác (verdict giữ nguyên) là S8", with(func(d *traces.Decision) { d.Answer = "câu khác" }), "S8", "answer", true},
 		{"chỉ verdict khác", with(func(d *traces.Decision) { d.Verdict = "false|fallback|X" }), "S9", "verdict", true},
 		{"verdict và câu cùng khác thì lỗi bắt đầu từ S9", with(func(d *traces.Decision) { d.Verdict, d.Answer = "false|fallback|X", "mẫu thay thế" }), "S9", "verdict", true},
+		// R1-01: kiểm trượt (S9) ghi đè outcome, bằng chứng và câu — ba thứ đó khác chỉ là hệ quả, lỗi bắt đầu từ S9
+		{"verdict thắng outcome", with(func(d *traces.Decision) { d.Verdict, d.Outcome = "false|fallback|X", "SYSTEM_FAILURE" }), "S9", "verdict", true},
+		{"verdict thắng bằng chứng", with(func(d *traces.Decision) { d.Verdict, d.Evidence = "false|fallback|X", nil }), "S9", "verdict", true},
+		{"verdict thắng cả outcome, bằng chứng và câu", with(func(d *traces.Decision) {
+			d.Verdict, d.Outcome, d.Evidence, d.Answer = "false|fallback|X", "SYSTEM_FAILURE", nil, "mẫu thay thế"
+		}), "S9", "verdict", true},
+		{"route vẫn thắng verdict", with(func(d *traces.Decision) {
+			d.Route, d.Verdict, d.Outcome = "REJECT", "false|fallback|X", "SYSTEM_FAILURE"
+		}), "S5", "route", true},
+		{"outcome và bằng chứng khác mà verdict giữ nguyên thì vẫn là S6", with(func(d *traces.Decision) { d.Outcome, d.Evidence = "INSUFFICIENT_EVIDENCE", nil }), "S6", "outcome", true},
 		{"chặng sớm thắng chặng muộn", with(func(d *traces.Decision) { d.Route, d.Answer, d.Verdict = "REJECT", "x", "y" }), "S5", "route", true},
 		{"chuẩn hoá thắng verdict", with(func(d *traces.Decision) { d.Normalized, d.Verdict = []string{"khác"}, "y" }), "S2", "normalize", true},
 		{"nhiều chặng sớm cùng khác thì chặng sớm nhất thắng", with(func(d *traces.Decision) {

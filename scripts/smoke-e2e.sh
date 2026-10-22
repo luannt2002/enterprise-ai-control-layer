@@ -77,6 +77,11 @@ req GET "/v1/trace/$trace" "$OTHER"
 check "principal tenant khác đọc vết của tenant này: 404" "$(is "$CODE" 404)"
 req POST /v1/ask "$OTHER" "$body"
 check "principal tenant khác hỏi runtime này: 403" "$(is "$CODE" 403)"
+otrace=$(jget trace_id)
+req GET "/v1/trace/$otrace" "$OTHER"
+check "principal tenant khác đọc được vết của CHÍNH nó (lượt bị chặn cũng có vết): 200" "$(is "$CODE" 200)"
+req GET "/v1/trace/$otrace" "$DIRECTOR"
+check "principal tenant này không đọc được vết của tenant khác: 404" "$(is "$CODE" 404)"
 
 req POST /v1/ingest "$ENGINEER" '{}'
 check "vai không toàn quyền nạp lại: 403" "$(is "$CODE" 403)"

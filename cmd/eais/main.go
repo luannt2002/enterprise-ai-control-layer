@@ -46,18 +46,22 @@ Cờ đứng trước đối số. DSN: EAIS_PG_ADMIN_DSN (vai quản trị, ch�
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	return runCtx(context.Background(), args, stdout, stderr)
+}
+
+// runCtx là run với ngữ cảnh do nơi gọi đưa vào: test dùng nó để giới hạn thời gian của lệnh chạy mãi (serve).
+func runCtx(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		fmt.Fprint(stderr, usageText)
 		return 2
 	}
-	ctx := context.Background()
 	switch args[0] {
 	case "migrate":
 		return cmdMigrate(ctx, args[1:], stdout, stderr)
 	case "ingest":
 		return cmdIngest(ctx, args[1:], stdout, stderr)
 	case "serve":
-		return cmdServe(args[1:], stdout, stderr)
+		return cmdServe(ctx, args[1:], stdout, stderr)
 	case "trace":
 		if len(args) > 1 && args[1] == "diff" {
 			return cmdTraceDiff(ctx, args[2:], stdout, stderr)
@@ -156,7 +160,7 @@ func cmdIngest(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 // cmdServe chạy HTTP. Chưa có cơ chế xác thực cho môi trường thật, nên serve CHỈ chạy với -dev: token dev suy từ world.yaml, địa chỉ
 // nghe phải là loopback (kiểm hai lần: theo chuỗi đưa vào, và theo địa chỉ hệ điều hành thực sự gắn), Host phải là loopback.
-func cmdServe(args []string, stdout, stderr io.Writer) int {
+func cmdServe(parent context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := newFlags("serve", stderr)
 	var cfg config
 	addr := fs.String("addr", "127.0.0.1:8080", "địa chỉ nghe; chế độ -dev chỉ nhận loopback")
@@ -180,7 +184,7 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "serve: cần -pack, -world và -data, không có đối số thừa")
 		return 2
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	log := slog.New(slog.NewTextHandler(stderr, nil))
 	w, err := loadWorld(cfg.World)

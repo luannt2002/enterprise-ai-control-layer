@@ -269,6 +269,14 @@ func newMemStore() *memStore {
 		decisions: map[string]map[string]traces.Record{}, usage: map[string]map[string]pgstore.UsageRecord{}, quarantine: map[string]map[string]pgstore.QuarantineRecord{}}
 }
 
+// ctxErr mô phỏng pgx: ngữ cảnh đã huỷ thì lệnh lỗi, nhãn hạ tầng postgres như pgstore.inTenant gắn cho mọi lỗi kết nối.
+func ctxErr(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return contracts.Label(contracts.Infra("postgres"), err)
+	}
+	return nil
+}
+
 func memTenant(ctx context.Context) (string, error) {
 	t, ok := contracts.TenantFrom(ctx)
 	if !ok {
@@ -344,6 +352,9 @@ func (m *memStore) SaveDecision(ctx context.Context, rec traces.Record) (bool, e
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched++
+	if err := ctxErr(ctx); err != nil {
+		return false, err
+	}
 	m.saveAttempts = append(m.saveAttempts, rec)
 	if len(m.saveDecisionErrs) > 0 {
 		err := m.saveDecisionErrs[0]
@@ -385,6 +396,9 @@ func (m *memStore) Decision(ctx context.Context, id string) (traces.Record, erro
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched++
+	if err := ctxErr(ctx); err != nil {
+		return traces.Record{}, err
+	}
 	t, err := memTenant(ctx)
 	if err != nil {
 		return traces.Record{}, err
@@ -400,6 +414,9 @@ func (m *memStore) SaveUsage(ctx context.Context, u pgstore.UsageRecord) (bool, 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched++
+	if err := ctxErr(ctx); err != nil {
+		return false, err
+	}
 	t, err := memTenant(ctx)
 	if err != nil {
 		return false, err

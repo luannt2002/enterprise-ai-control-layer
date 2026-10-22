@@ -59,7 +59,7 @@ git clone https://github.com/luannt2002/enterprise-ai-control-layer && cd enterp
 scripts/chay-thu.sh          # EAIS_PG_DOWN=1 để gỡ PG khi xong
 ```
 
-Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **10 giây** với bộ nhớ đệm build rỗng, **4 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 19 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước.
+Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **10 giây** với bộ nhớ đệm build rỗng, **4 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 21 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước.
 
 **Từng bước** (cùng việc script làm; `$W` là thư mục làm việc tuỳ chọn):
 

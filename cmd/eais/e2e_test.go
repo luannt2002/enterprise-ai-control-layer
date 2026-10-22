@@ -85,6 +85,15 @@ func runCLI(args ...string) (int, string, string) {
 	return code, out.String(), errb.String()
 }
 
+// runCLIFor như runCLI nhưng giới hạn thời gian: lệnh chạy mãi (serve) bị đột biến thành "chạy được" thì test ĐỎ sau d chứ không treo.
+func runCLIFor(d time.Duration, args ...string) (int, string, string) {
+	ctx, cancel := context.WithTimeout(context.Background(), d)
+	defer cancel()
+	var out, errb bytes.Buffer
+	code := runCtx(ctx, args, &out, &errb)
+	return code, out.String(), errb.String()
+}
+
 // Các lệnh CLI trên PG thật: ingest (lặp lại không nhân đôi), quarantine, trace, trace diff — kể cả ca dùng thật của diff: CÙNG câu, hai
 // MỐC dữ liệu, chỉ đúng bước đầu tiên đổi.
 func TestCLITrenPG(t *testing.T) {
@@ -293,7 +302,7 @@ func TestKhoChuaMigrateTuChoiKhoiDong(t *testing.T) {
 	if code != 1 || !strings.Contains(errs, "eais migrate") || !strings.Contains(errs, "bảng decision_records chưa có") {
 		t.Errorf("ingest trên DB chưa migrate = %d %q, muốn 1 và lời nhắc chạy eais migrate", code, errs)
 	}
-	code, _, errs = runCLI("serve", "-dev", "-addr", "127.0.0.1:0", "-pack", packDir, "-world", repoPath("tenants/construction/win/world.yaml"), "-data", dataRoot)
+	code, _, errs = runCLIFor(4*time.Second, "serve", "-dev", "-addr", "127.0.0.1:0", "-pack", packDir, "-world", repoPath("tenants/construction/win/world.yaml"), "-data", dataRoot)
 	if code != 1 || !strings.Contains(errs, "eais migrate") {
 		t.Errorf("serve trên DB chưa migrate = %d %q, muốn 1 và lời nhắc chạy eais migrate", code, errs)
 	}

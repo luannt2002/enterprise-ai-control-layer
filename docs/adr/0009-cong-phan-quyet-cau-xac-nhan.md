@@ -212,3 +212,69 @@ Hai người soát, mỗi người một worktree, chạy câu thật:
 - Chờ quyết chính sách (đột biến ghi "CHỜ QUYẾT" trong danh mục): R2-6 (bí danh mơ hồ có ứng viên là cấp cha sau "của": "EX-03 của chương trình mới …" vẫn phán quyết); lần nhắc rõ nào quyết bí danh khi cả hai phía đều có.
 
 **Thứ tự kế tiếp:** KHOÁ cổng theo `docs/PROMPT-BUILD-EAIS.md` §9.6 — vì soát vòng 4 còn thấy phán quyết sai chiều cùng họ (V5S4-02…04), bước khoá dùng luật fail-closed rộng: mọi cụm nguồn / chỉ số khác ở ngữ cảnh mà không có con số riêng của nó ⇒ không phán quyết (giá đã biết: đối chứng Vòng 2 "Bao nhiêu định mức, vậy EX-03 … 3850 L" mất "Đúng.") → bộ đọc số bằng chữ (D-OP-14 = a) → vòng sửa tầng ý định S4 theo ADR-0010 và D-OP-15 (a2 kèm 2 điều kiện) → đóng băng mã S4 → chạy H4 MỘT lần.
+
+### Bước khoá (22/10 trưa, brief BUILD §9.6) — mã `f0e1e93`
+
+**Vì sao mở lại sau R5-4, R5-5:** soát vòng 4 tìm thêm ba dạng cùng họ R5-1 mà hệ vẫn phán quyết SAI CHIỀU theo nguồn nêu ở đề mục
+(V5S4-02…04: đề mục kèm "bao nhiêu", kèm danh từ chung, đứng thành câu / dòng riêng). §9.6 chỉ cho mở lại cổng khi gặp phán quyết sai
+chiều; vá từng dạng thì họ lỗi chưa đóng (bốn vòng soát, vòng nào cũng còn dạng mới), nên bước khoá đổi sang luật fail-closed rộng rồi KHOÁ.
+
+**Luật (thay luật 3 và phần "cụm ở ngữ cảnh làm chủ" của luật 2, Vòng 5):**
+- Cụm nguồn khác / chỉ số khác (`qualifierPhrases`: tên / bí danh nguồn khác nguồn đã dùng; từ khoá của ý định số liệu khác; từ chỉ
+  lượng) ở BẤT KỲ đâu trong ngữ cảnh [0, lo), mà KHÔNG có con số nào xen giữa nó và phạm vi hỏi ⇒ không phán quyết: "source" nếu là
+  tên nguồn, còn lại "metric". Cụm đã có số của riêng nó ("Đội báo 3k, vậy được cấp 4000 L …") là sự kiện riêng, không chặn.
+- Chữ của chính claim không tính: từ khoá của ý định yếu, tên đúng nguồn đã dùng, từ khoá của chính ý định trừ khi nó cũng là tên
+  nguồn khác (R5-5). Thuật ngữ vật tư ("dầu") không phải cụm nguồn / chỉ số.
+- Bỏ `topicQualifier` (đề mục thuần) và cụm ngữ cảnh trong `owners`: luật mới bao trùm cả hai. Luật 1 (chủ gần nhất) nay chỉ còn tên
+  và thuật ngữ.
+- Đảo lại ghi chú của luật 3 Vòng 5 ("bản luật rộng hơn … đã thử và bỏ"): cái giá đó nay được chấp nhận — "Bao nhiêu định mức, vậy
+  EX-03 … 3850 L đúng không?" mất "Đúng." (đối chứng Vòng 2 chuyển sang ca âm).
+
+**Đo:**
+- Test đỏ trước trên `1e5457b`: `TestCongPhanQuyetVong5` 9 ca âm mới, `TestVerdictGap` 4 dòng mới. Ba dòng `TestVerdictGap` cũ đổi nhãn
+  "subject" → "metric" / "source" (vẫn không phán quyết; bước khoá bắt trước với nhãn của cụm), ghi lý do ở test.
+- Test có PG 459 / 0 / 0, so theo tên không đổi; 117 / H1 / H3 hai đường: 0 dòng khác.
+- 716.133 câu corpus + 13 tệp E3: 0 phán quyết mới, 0 đổi chiều; mất 1.118 lượt = 549 câu khác nhau, đều dạng "Bao nhiêu định mức,
+  vậy …" (nhãn gốc: phán quyết đúng) — đúng cái giá đã biết.
+- Lưới của người soát vòng 4: 138.870 lượt — sai chiều theo chỉ số nêu ở đề mục 448 / 123 / 123 → 0 (bộ chuẩn / bốn tầng / nguồn thấp),
+  không cơ sở 1.297 / 2.668 / 2.668 → 0, 0 phán quyết mới, 0 đổi chiều; mất 882 / 222 / 222 phán quyết mô hình chấm là đúng (đề mục
+  có "bao nhiêu" cạnh nguồn / chỉ số). Lưới 2 (83.640 lượt): mất 486 (bốn tầng / nguồn thấp: "phiếu (xuất) kho … bao nhiêu"), 0 mới,
+  0 đổi chiều. Nhóm câu viết tay (321 lượt): mất 8, 0 mới, 0 đổi chiều.
+- Đột biến n43 viết lại: bỏ 42 dòng nhắm mã đã xoá, viết lại 6, thêm KH1–KH7; 185 / 185 dòng chạy bị bắt (CG134 thành tương đương,
+  ghi lý do). Danh mục mới n44 cho bộ đọc số bằng chữ: 13 / 13.
+
+**Soát độc lập vòng 1 của bước khoá + D-OP-14 (KHÔNG ĐẠT, hai S2) và bản sửa `017495c`:**
+- F1 (do D-OP-14): "… một nghìn hai **lẻ** lít dầu đúng không?" đổi "Không." → "Đúng." — luật 5 không báo dãy kết thúc bằng "linh" /
+  "lẻ". Sửa: luật 5 dựng lại trên chính bộ đọc — số bằng chữ là mơ hồ khi giá trị do CÁCH NÓI TẮT quyết (chữ số cuối dãy ngay sau từ chỉ
+  hàng, "rưỡi" sau "<hàng> <chữ số>") hoặc dãy kết thúc bằng "linh" / "lẻ" (xấp xỉ; mở rộng có chủ ý: "hai trăm lẻ" cũng thôi phán quyết).
+- F2 (có từ trước, SAI CHIỀU): ngoại lệ "cụm có số của riêng nó" nhận mọi số có đơn vị và cả số mốc ("ERP 8h, EX-03 … 3900 L đúng
+  không?" → "Không." dù ERP ghi 3.900 L; tương tự "tuần 43", "2 ca", "5 người"). Sửa (mở lại theo §9.6 vì sai chiều): chỉ lượng CÙNG
+  CHIỀU ĐO với chỉ số (hay số trần) mới là số của riêng cụm; số mốc và lượng khác chiều đo không tính. Ranh giới có chủ ý (hợp đồng R-1):
+  "ERP 1 L, …", "Đội báo 2k, …", "Đội báo 4 khối, vậy …" vẫn là sự kiện riêng của ngữ cảnh — vẫn phán quyết theo nguồn có thẩm quyền.
+- Đo bản sửa: bộ tái lập của người soát (275 câu đối kháng): mất 99 phán quyết, 0 mới, 0 đổi chiều; 22 câu số bằng chữ: mất 2; 1.500
+  câu đối chứng dương: không đổi. Ở mã sửa: test có PG 463 / 0 / 0 theo tên; 117 / H1 / H3 hai đường 0 dòng khác; corpus 716.133 câu và lưới vòng 4: 0 khác.
+- F3 (S3): giá của khoá rộng hơn mẫu "Bao nhiêu định mức, vậy …": câu hai vế tự nhiên "Hôm nay đội báo bao nhiêu? EX-03 được cấp 3850 L
+  đúng không?" cũng mất phán quyết (vẫn trả số). Chấp nhận (fail-closed); tần suất tự nhiên CHƯA ĐO (không có nhật ký câu thật).
+- Nợ ghi nhận (F4, F5, không sai chiều với dầu): bộ đọc chỉ sửa chữ số CUỐI dãy ("hai trăm năm nghìn" vẫn 205.000, nói thường 250.000;
+  "ba triệu hai trăm" = 3.000.200) — ngoài miền chỉ số dầu nên cổng ra "value"; "hai lăm nghìn" = 5.000 (có từ trước); đường nạp lưu
+  1.200 thay 1.002 cho tin "một nghìn hai", không có bước nạp lại dữ liệu cũ (dữ liệu giả lập hiện có 0 dạng này).
+
+**Soát độc lập vòng 2 (KHÔNG ĐẠT: phần F1 / F2 đã nêu ĐÃ ĐÓNG; còn ba lỗ SAI CHIỀU cùng họ, có từ trước) và bản sửa `7e1d8ca`:**
+- "<chục> trăm" ("Lu 02 … được cấp **mười hai trăm** lít dầu đúng không?" → "Không." vì bộ đọc cộng dồn ra 210): luật 5 coi hàng trăm đứng
+  sau hàng chục là nói tắt (178 / 178 dạng "T trăm" được báo; 0 / 360.000 dạng viết đủ báo oan — số đo của người soát).
+- Số trần chỉ có đơn vị nhờ chữ "dầu" đứng cạnh ("**Dầu ERP 19-10**, EX-03 … đúng không?" → "Đúng." / "Không." theo kho xuất dù ERP ghi
+  3.900 L): không phải lượng của riêng cụm (có thể là ngày, số hiệu). Giá: "Đội báo dầu 4000, vậy …" mất phán quyết.
+- Số của cụm KHÁC đứng sau ("**ERP, đội báo 4000 L**, EX-03 … 3850 L đúng không?" → "Đúng."): số riêng của một cụm phải đứng trước cụm
+  qualifier kế tiếp.
+- Ghi nợ (S3 / S4, không sai chiều với dầu hay câu gượng): số bằng chữ không đơn vị ("ERP hai mươi, …") vẫn là số riêng của cụm trong khi
+  "20" thì không; "lẻ" đứng đầu dãy; "một triệu hai trăm" = 1.000.200 (chỉ chặn nhờ miền chỉ số); bỏ `slices.Clone` ở ctxNumbers không test
+  nào bắt (giữ Clone; ghi trong danh mục).
+- Đo bản sửa: test đỏ trước (`TestAmbiguousNumberWords` 3 dòng, `TestVerdictGap` 3 dòng, `TestCongPhanQuyetVong5` 7 ca âm); test có PG
+  474 pass, 0 đổi / 0 mất theo tên; 117 / H1 / H3 hai đường: không dòng nào khác ngoài dòng G1 của làn 2; corpus 716.133 câu + E3: 0 đổi chiều,
+  0 phán quyết mới, 0 mất; lưới vòng 4: 0 khác; bộ tái lập vòng 1: 0 khác; bộ tái lập vòng 2 (752 câu): phần đã có bản vá thử của người soát
+  (745 câu) trùng bản vá đó; so với trước bản sửa chỉ mất phán quyết (9 câu viết tay, 420 / 704 câu số trần cạnh "dầu", 6 / 7 câu "ERP, đội báo 4000 L, …"), 0 mới, 0 đổi
+  chiều; đột biến n43 180 / 180, n44 13 / 13.
+- Soát độc lập vòng 3 (vòng cuối theo §9.6) cho bản sửa `7e1d8ca`: đang chạy lúc ghi mục này.
+
+**KHOÁ:** từ mã này cổng phán quyết không nhận thêm luật. Lỗ mới cùng họ: ghi nợ, giữ fail-closed (không phán quyết); chỉ mở lại khi
+gặp phán quyết sai chiều (brief §9.6).

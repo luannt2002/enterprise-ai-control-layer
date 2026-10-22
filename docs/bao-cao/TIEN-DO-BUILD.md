@@ -6,30 +6,29 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 22/10/2026 11:0x · **HEAD:** `489c98a` (cộng commit chứa tệp này).
-- **Xong từ lần trước:** Việc 3 mục 2, cổng phán quyết **Vòng 5** — `03c2c54` (áp bản thử V5 + sửa lỗ ngày của nó, R5-1, R5-2) và `489c98a` (sửa sau hai vòng soát độc lập và đột biến). ADR-0009 Vòng 5.
-  - Đóng R4-2, R4-3 (S1), R4-4 (S2), R5-1 (S1: tên nguồn / chỉ số khác ở ngữ cảnh là nguồn của chính claim, gồm R2-4: "… 3850 L. ERP, 3900 L đúng không?", "ERP, EX-03 … 3900 L đúng không?") và R5-2 (S1: "một nghìn hai", "ba nghìn tám rưỡi" không phán quyết).
-  - Bằng chứng: test đỏ trước ở mỗi vòng sửa; test có PG 459 / 0 / 0 (455 test cũ giữ nguyên kết quả theo tên, 4 test mới); bộ câu tổng hợp 25.669 / 25.669 phán quyết sai chỗ đóng (7.168 sai chiều), mất 0 câu rõ nghĩa; 713.097 câu + 13 bộ của người soát E3: 0 đổi chiều, 0 phán quyết mới; 117 / H1 / H3 hai đường 0 dòng khác; đột biến n43 210 / 210 bị bắt.
-  - Soát độc lập ba vòng, ba người khác nhau: vòng 1, 2 KHÔNG ĐẠT vì tồn dư (đã sửa, có test đỏ trước); vòng 3 xác nhận dòng vá cuối đúng, còn hai lỗ cùng họ có từ trước (R5-4, R5-5).
-  - Cái giá (fail-closed, ADR ghi bảng 5 dạng mặc định, đảo được): câu "ranh giới" như "EX-03 dự án A …", "EX-03, dự án A, …", "EX-03 hôm nay Máy 03 được …" mất phán quyết (2.310 câu trên bộ tổng hợp); hệ vẫn trả số.
-- **Cũng xong:** điều tra vòng sửa S4 (ADR-0010): bản đồ mã, 43 ca đỏ-trước, bộ 343 câu ngoài phạm vi tất định; tín hiệu "thực thể VÀ thuật ngữ" không hỏi thừa câu nào trên bộ đó. Câu mở **D-OP-15**: bất biến (a) hỏi lại (đúng chữ ADR, H1 không đổi) hay trả lời theo ý định chung khi đủ thực thể + thuật ngữ + cụm xác nhận (H1 94 / 104, đo trên bản thử).
-- **Đang làm:** đóng R5-4, R5-5 (test đỏ trước; bản vá do người soát vòng 3 đề xuất phải qua người soát khác).
+- **Cập nhật lúc:** 22/10/2026 13:5x · **HEAD:** `a665298` (cộng commit chứa tệp này). Chủ dự án xin push phần đã làm để đọc.
+- **Xong từ lần trước (đều ở brief §9, làn 1 — đường găng M3):**
+  - cổng phán quyết **KHOÁ** (`f0e1e93`; sửa theo soát vòng 1 `017495c`, vòng 2 `7e1d8ca`; ADR-0009 "Bước khoá");
+  - **D-OP-14** bộ đọc số bằng chữ (`9c5b14f`);
+  - **vòng sửa S4** theo D-OP-15 = a2 kèm 2 điều kiện (`723a570`; sửa theo soát đối kháng vòng 1 `32771ff`, vòng 2 `a665298`; ADR-0010);
+  - dòng khung D-RM-05 (`925c5c1`); câu mở D-OP-16, D-OP-17 (`5d690e1`).
+- **Đang làm:**
+  - soát khoá vòng 3 (vòng cuối theo §9.6): đang chạy; soát S4 vòng 3 (vòng cuối): chờ chỗ (tối đa 3 agent cùng lúc);
+  - làn 0 (M1: `cmd/eais` + vết từng bước), làn 3 (giấy Phase 1 / 0a): trên nhánh riêng, đang soát; CHƯA lên main.
 - **Tiếp theo:**
-  1. R5-4, R5-5 → vòng sửa S4 theo ADR-0010 (test đỏ trước nhóm ca không phụ thuộc D-OP-15 + (b) theo luật thử không hồi quy; sửa nhỏ nhất; đo 117 / H1 / bộ ngoài phạm vi; đột biến; soát) → D-OP-15 → đóng băng mã S4 → H4 MỘT lần;
-  2. Việc 3 mục 3–7: phép đo (canary harness, cờ approx W-G1, CI có PG), giấy Phase 0a / 1, Q2–Q7 / Q9–Q13 / Phụ lục C của phản hồi audit, tài liệu lệch.
+  1. Hai vòng soát cuối kết luận → chỉ sửa lỗi thuộc ngoại lệ §9.6 → đóng băng mã S4.
+  2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai`) → báo cáo theo tầng sai đầu tiên, có đối chứng mốc.
+  3. Gộp làn 0, làn 3 sau soát.
 - **Bị chặn:**
-  - mã COMMAND / WORKFLOW / EVENT: chờ D-RM-04;
-  - dữ liệu / người nghiệp vụ thật: chờ D-RM-03;
-  - khung "tên lúc viết" cho `docs/study`, `docs/v3`: chờ D-RM-05;
-  - sửa bộ đọc số bằng chữ ("một nghìn hai", bảng không dấu): chờ D-OP-14; chưa quyết thì BUILD chỉ chặn ở cổng phán quyết;
-  - bất biến (a) của vòng sửa S4, nhánh trả lời theo ý định chung: chờ D-OP-15; chưa quyết thì làm như chữ ADR-0010 (hỏi lại);
-  - W-G7 trả tiền: chờ khoá, D-G7-18 và câu cho phép chi.
-- **Test** (`489c98a`, container `eais-pg`): `go vet ./...` 0 dòng; `gofmt -l` trên tệp git theo dõi: 0; `go test -count=1 ./...` có PG 459 / 0 / 0, so theo tên với mốc đầu ca: 455 giữ nguyên, 4 mới. winreport bộ 117 / H1 / H3, đường bộ nhớ và PostgreSQL: 117/117, 89/104 ×2, 109/134 ×2, 0 dòng khác mốc đầu ca. Đột biến n43 210 / 210.
-- **Handoff / prompt đang mở:**
-  - `PROMPT-DOI-TEN-VA-LUONG-MOI.md`: Việc 1 + Việc 2 XONG, tệp phản hồi XONG; Việc 3 đang làm;
-  - `docs/debug-handoff/2026-10-21-01-…`: NHẬN;
-  - `PROMPT-AUDIT-ROADMAP.md`: K1–K15 xong; còn Q2–Q7, Q9–Q13, Phụ lục C.
-- **Ca ngày 22/10** 09:00 → 17:00 (cron của phiên).
+  - mã Giai đoạn II (COMMAND / WORKFLOW / EVENT, gồm M4 tạo phiếu): mở ngay sau khi chạy xong H4 (D-RM-04 = A);
+  - dữ liệu / người nghiệp vụ thật: không có (D-RM-03) — mọi kết luận ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
+  - W-G7 trả tiền: chưa cấp;
+  - D-OP-16, D-OP-17: chờ chủ dự án (mặc định đang chạy: (a), coi "2k" như cũ).
+- **Test** (`a665298`, container `eais-pg`): `go vet` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 ./...` có PG: 476 pass, so theo tên với
+  `7e1d8ca`: 0 đổi, 0 mất, 2 test mới; winreport 117 / H1 / H3 hai đường: 0 dòng khác (117/117, H1 92/104, H3 113/134).
+- **Handoff / prompt đang mở:** `docs/PROMPT-BUILD-EAIS.md` §9 (bảy làn, MVP trước); PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn
+  Q2–Q7, Q9–Q13, Phụ lục C.
+- **Ca ngày 22/10** 09:00 → 17:00 (cron của phiên). Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -68,3 +67,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 11:0x | commit chứa dòng này | ADR-0009 Vòng 5; STATUS; CHANGELOG; câu mở D-OP-15 (điều tra S4) | Cổng danh tính xanh; quét riêng tư | Chủ dự án xin push để đọc mã |
 | 22/10 12:1x | `962ae9c`, `1666099`, `297a934` + commit chứa dòng này | Cổng phán quyết Vòng 5: đóng R5-4, R5-5 (soát độc lập vòng 4: ĐẠT CÓ GHI CHÚ, thêm ca ghim V5S4-01); `CHO` ghi lời chủ dự án 22/10 (D-OP-15 a2 + 2 điều kiện, D-OP-14 a, D-RM-05, D-RM-04 A, D-RM-03, W-G7 chưa cấp); ADR-0009 cập nhật. Nhận `docs/PROMPT-BUILD-EAIS.md` §9 (MVP M1–M5): làn 0 (M1) đã phóng | Test đỏ trước trên `c086fe7`; test có PG 459 / 0 / 0; 117 / H1 / H3 hai đường 0 dòng khác; 713.097 câu 0 phán quyết mới / 0 đổi chiều; n43 215 / 215 + CG211 | Còn sai chiều cùng họ (V5S4-02…04) ⇒ bước KHOÁ (§9.6) làm tiếp; D-OP-14 đã sửa ở máy, chờ soát |
 | 22/10 13:1x | 7 commit làn 2 (`6e670da` … `649f5b7`) + commit chứa dòng này | LÀN 2 (M5): canary 2 tenant có đối chứng dương (`winreport -canary`, K6) và G1 so cờ ước lượng (K1); sửa theo soát R1–R7 (ratchet ghim chiều lệch, scale-smoke đọc tệp ghim, từ chối `-canary -pg` trước mọi tác dụng phụ). Soát độc lập: ĐẠT CÓ GHI CHÚ | Điều phối đo lại trên origin/main: vet 0; gofmt 0; test có PG 469 / 0 / 0 (459 cũ theo tên không đổi + 10 mới); 117 / H1 / H3 hai đường: chỉ dòng G1 khác (2.736/2.739 + 3 dòng lệch đã biết), mọi dòng ca / câu trả lời giống hệt; scale-smoke ĐẠT; n36 12/12; canary bộ 117: 0 rò rỉ | 3 lệch cờ ước lượng: R-003 "≈" chờ làn 1, R-001/R-002 chờ D-OP-17. Sự cố quy trình: người soát xoá nhầm tệp tạm của tác giả (trùng tiền tố) — không ảnh hưởng nhánh |
+| 22/10 13:5x | `9c5b14f` … `a665298` (9 commit) + commit chứa dòng này | Làn 1 (M3): D-OP-14; KHOÁ cổng phán quyết + sửa theo 2 vòng soát; vòng sửa S4 (a2 + 2 điều kiện) + sửa theo 2 vòng soát đối kháng; D-RM-05; câu mở D-OP-16, D-OP-17 | Test có PG 476 pass, theo tên 0 đổi / 0 mất; 117 / H1 / H3 hai đường 0 dòng khác; corpus 716.133 câu + E3 + lưới của người soát: 0 phán quyết mới / 0 đổi chiều / 0 mất so với `7e1d8ca`; 0/700 câu (ii); đột biến n45 46/46, n44 13/13 (n43 180/180 ở `7e1d8ca`, đang chạy lại ở `a665298`) | Chủ dự án xin push; soát vòng 3 (cuối) của khoá và S4 chưa xong; H4 CHƯA chạy |

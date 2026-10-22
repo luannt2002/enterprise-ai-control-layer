@@ -6,6 +6,17 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 22/10/2026 chiều — KHOÁ cổng phán quyết; D-OP-14; vòng sửa S4
+
+- **R5-4, R5-5** (`962ae9c`): đề mục có thêm "dầu" / từ khoá chính ý định / tên đúng nguồn, và "Phiếu kho," khi nguồn đã dùng là ERP, không còn phán quyết sai chiều.
+- **Cổng phán quyết KHOÁ** (`f0e1e93`; sửa theo soát `017495c`, `7e1d8ca`; ADR-0009 "Bước khoá"): cụm nguồn / chỉ số khác ở ngữ cảnh mà không kèm số riêng ⇒ không phán quyết; số riêng chỉ là lượng cùng chiều đo đứng trước cụm kế tiếp. `topicQualifier` bỏ. Từ nay lỗ mới cùng họ chỉ ghi nợ, giữ fail-closed (brief BUILD §9.6).
+- **D-OP-14** (`9c5b14f`, chủ dự án chọn a): bộ đọc số bằng chữ — "một nghìn hai" = 1.200, "ba nghìn tám rưỡi" = 3.850; "muoi" không dấu đọc tất định; cách nói tắt (chữ số sau từ chỉ hàng, "rưỡi", "linh / lẻ" cuối dãy, "mười hai trăm") thì cổng không phán quyết.
+- **Vòng sửa S4** (`723a570`; sửa theo soát vòng 1 `32771ff`, vòng 2 `a665298`; ADR-0010, D-OP-15 = a2 kèm 2 điều kiện): câu có thực thể + thuật ngữ mà không từ khoá nào khớp không còn là "ngoài phạm vi". Câu không nói gì thêm ⇒ trả lời theo ý định chung kèm câu giả định của chủ dự án; còn lại hỏi lại nghĩa số liệu, chỉ kể ý định người hỏi có quyền. Pack: `assumption`, `{assumption_note}`, thuật ngữ `other_oil`.
+- Bằng chứng: test đỏ trước ở mỗi bước; test có PG so theo tên 0 đổi, 0 mất; corpus 716.133 câu: 0 phán quyết mới, 0 đổi chiều; 117 / H1 / H3 hai đường; danh mục đột biến n43, n44 (mới), n45 (mới) — mọi dòng chạy bị bắt.
+- Cái giá: mất phán quyết ở "Bao nhiêu định mức, vậy …" và câu có số trần cạnh "dầu"; câu chung chung trả lời kèm câu giả định.
+- Chưa xong: soát vòng 3 (vòng cuối theo brief §9.6) của bước khoá và của S4; sau đó đóng băng mã S4 và chạy H4 MỘT lần. Nợ ghi ở ADR-0010
+  (S4R-03 từ khoá khớp chữ con — câu sai nghĩa không nhãn, có từ trước; D-OP-16; danh sách đóng "dầu" nghĩa khác; lượng tiền đọc thành lít).
+
 ### 22/10/2026 sáng — cổng phán quyết Vòng 5; điều tra S4; câu mở D-OP-15
 
 - **Cổng phán quyết Vòng 5** (`03c2c54`, `489c98a`; ADR-0009 Vòng 5): thứ gần nhất đứng trước con số xác nhận phải gắn vào chủ thể; bí danh mơ hồ cần bằng chứng dương; tên nguồn / chỉ số khác ở ngữ cảnh (đứng ngay trước con số, hay đề mục thuần ở đầu câu) là nguồn / chỉ số của chính claim; số bằng chữ kết thúc "<hàng> <một chữ số>" (kèm "rưỡi") không phán quyết. Đóng R4-2…R4-4, R5-1 (gồm R2-4), R5-2.

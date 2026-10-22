@@ -14,8 +14,12 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 - **Vòng sửa S4** (`723a570`; sửa theo soát vòng 1 `32771ff`, vòng 2 `a665298`; ADR-0010, D-OP-15 = a2 kèm 2 điều kiện): câu có thực thể + thuật ngữ mà không từ khoá nào khớp không còn là "ngoài phạm vi". Câu không nói gì thêm ⇒ trả lời theo ý định chung kèm câu giả định của chủ dự án; còn lại hỏi lại nghĩa số liệu, chỉ kể ý định người hỏi có quyền. Pack: `assumption`, `{assumption_note}`, thuật ngữ `other_oil`.
 - Bằng chứng: test đỏ trước ở mỗi bước; test có PG so theo tên 0 đổi, 0 mất; corpus 716.133 câu: 0 phán quyết mới, 0 đổi chiều; 117 / H1 / H3 hai đường; danh mục đột biến n43, n44 (mới), n45 (mới) — mọi dòng chạy bị bắt.
 - Cái giá: mất phán quyết ở "Bao nhiêu định mức, vậy …" và câu có số trần cạnh "dầu"; câu chung chung trả lời kèm câu giả định.
-- Chưa xong: soát vòng 3 (vòng cuối theo brief §9.6) của bước khoá và của S4; sau đó đóng băng mã S4 và chạy H4 MỘT lần. Nợ ghi ở ADR-0010
-  (S4R-03 từ khoá khớp chữ con — câu sai nghĩa không nhãn, có từ trước; D-OP-16; danh sách đóng "dầu" nghĩa khác; lượng tiền đọc thành lít).
+- **Cổng phán quyết sửa theo soát khoá vòng 3** (`be91cd0`, mở lại theo ngoại lệ "sai chiều" của §9.6): tên nguồn đã dùng là ranh giới cụm;
+  số không đơn vị chỉ tự mang chiều đo khi có hàng nghìn hay hậu tố tiếng lóng ("mười chín", "3 trăm" là số trần). Chỉ bớt phán quyết.
+- **S4 ĐÓNG BĂNG ở `a665298`** sau soát vòng 3 (vòng cuối): không lỗi S1, không lỗi thuộc ngoại lệ §9.6; thêm test `f8b295e`.
+- Chưa xong: soát khoá vòng 4 (ngoại lệ sai chiều) đang chạy; H4 chạy MỘT lần sau đó. Nợ ghi ở ADR-0010: F6' (số tiền "4 củ", "4tr" đứng xa
+  "dầu" được trả số kho xuất, có câu giả định — sửa ở S2 / pack), S4R-03 (từ khoá khớp chữ con — câu sai nghĩa không nhãn, có từ trước),
+  D-OP-16, danh sách đóng "dầu" nghĩa khác, hai thực thể khác loại trong câu.
 
 ### 22/10/2026 sáng — cổng phán quyết Vòng 5; điều tra S4; câu mở D-OP-15
 

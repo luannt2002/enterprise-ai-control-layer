@@ -274,7 +274,20 @@ chiều; vá từng dạng thì họ lỗi chưa đóng (bốn vòng soát, vòn
   0 phán quyết mới, 0 mất; lưới vòng 4: 0 khác; bộ tái lập vòng 1: 0 khác; bộ tái lập vòng 2 (752 câu): phần đã có bản vá thử của người soát
   (745 câu) trùng bản vá đó; so với trước bản sửa chỉ mất phán quyết (9 câu viết tay, 420 / 704 câu số trần cạnh "dầu", 6 / 7 câu "ERP, đội báo 4000 L, …"), 0 mới, 0 đổi
   chiều; đột biến n43 180 / 180, n44 13 / 13.
-- Soát độc lập vòng 3 (vòng cuối theo §9.6) cho bản sửa `7e1d8ca`: đang chạy lúc ghi mục này.
+- Soát độc lập vòng 3 (vòng cuối theo §9.6) cho bản sửa `7e1d8ca`: bản sửa tự nó ĐẠT — 3 lỗ đã đóng, 0 S1, chỉ bớt phán quyết (người soát
+  chứng minh đơn điệu bằng đọc mã và đo trên 150.586 câu lưới); KHÔNG ĐẠT vì còn hai lỗ SAI CHIỀU cùng họ, CÓ TỪ TRƯỚC ⇒ mở lại theo ngoại lệ
+  §9.6, bản sửa `be91cd0`:
+  - S2-1: số của tên nguồn ĐÃ DÙNG được tính là số riêng của cụm đứng trước ("ERP, phiếu xuất kho 3850 L, EX-03 … 3850 L đúng không?" →
+    "Đúng." dù ERP ghi 3.900 L). Sửa: tên + bí danh nguồn đã dùng là ranh giới cụm (không chặn).
+  - S2-2: số bằng chữ không đơn vị, không hàng nghìn ("ERP mười chín, …", "Dầu ERP bốn mươi ba, …") được coi là tự mang chiều đo. Sửa: số
+    không đơn vị chỉ tự mang chiều đo khi có từ chỉ hàng nghìn trở lên ("bốn ngàn", "3 nghìn") hay hậu tố tiếng lóng của pack ("3k", "4tr");
+    "mười chín", "hai chục", "3 trăm" là số nhỏ như "19" (dạng "3 trăm" do điều phối tự tìm thêm, cùng họ).
+  - Đo: test đỏ trước (`TestVerdictGap` 7 dòng, `TestCongPhanQuyetVong5` 8 ca âm); test có PG 478 pass, so theo tên 0 đổi / 0 mất; 117 / H1 /
+    H3 hai đường 0 dòng khác; corpus 716.133 câu + E3 + lưới: 0 phán quyết mới, 0 đổi chiều, mất 1 ("ERP hai mươi, …" — món nợ vòng 2, nay
+    đóng); đột biến n43 187 / 187, n44 16 / 16.
+  - Ghi nợ (không sai chiều): "X triệu Y trăm" ("một triệu hai trăm" đọc 1.000.200, chỉ chặn nhờ miền chỉ số); CG67 chỉ có test đơn vị; bỏ
+    `slices.Clone` ở ctxNumbers nhiều khả năng là đột biến tương đương.
+- Soát độc lập vòng 4 (ngoại lệ sai chiều) cho `be91cd0`: đang chạy lúc push này (chủ dự án xin push phần đã làm).
 
 **KHOÁ:** từ mã này cổng phán quyết không nhận thêm luật. Lỗ mới cùng họ: ghi nợ, giữ fail-closed (không phán quyết); chỉ mở lại khi
 gặp phán quyết sai chiều (brief §9.6).

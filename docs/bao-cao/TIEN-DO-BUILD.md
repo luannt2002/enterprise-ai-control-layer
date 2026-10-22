@@ -6,28 +6,26 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 22/10/2026 13:5x · **HEAD:** `a665298` (cộng commit chứa tệp này). Chủ dự án xin push phần đã làm để đọc.
-- **Xong từ lần trước (đều ở brief §9, làn 1 — đường găng M3):**
-  - cổng phán quyết **KHOÁ** (`f0e1e93`; sửa theo soát vòng 1 `017495c`, vòng 2 `7e1d8ca`; ADR-0009 "Bước khoá");
-  - **D-OP-14** bộ đọc số bằng chữ (`9c5b14f`);
-  - **vòng sửa S4** theo D-OP-15 = a2 kèm 2 điều kiện (`723a570`; sửa theo soát đối kháng vòng 1 `32771ff`, vòng 2 `a665298`; ADR-0010);
-  - dòng khung D-RM-05 (`925c5c1`); câu mở D-OP-16, D-OP-17 (`5d690e1`).
-- **Đang làm:**
-  - soát khoá vòng 3 (vòng cuối theo §9.6): đang chạy; soát S4 vòng 3 (vòng cuối): chờ chỗ (tối đa 3 agent cùng lúc);
-  - làn 0 (M1: `cmd/eais` + vết từng bước): trên nhánh riêng, đang soát U0.2; CHƯA lên main;
-  - làn 3: giấy Phase 1 đã lên main (commit chứa dòng này); giấy Phase 0a đang viết; 4 ghi chú S3 của lần soát lại (L3C-01…04) chờ sửa
-    trước khi mở mã Phase 1 (mã Giai đoạn II chỉ mở sau H4, D-RM-04 = A).
+- **Cập nhật lúc:** 22/10/2026 14:4x · **HEAD:** `f8b295e` (cộng commit chứa tệp này). Chủ dự án xin push phần đã làm để đọc.
+- **Xong từ lần trước:**
+  - soát S4 vòng 3 (vòng cuối theo §9.6): KHÔNG ĐẠT có điều kiện, 0 S1, không lỗi thuộc ngoại lệ ⇒ **mã S4 ĐÓNG BĂNG ở `a665298`**; nợ ghi ở
+    ADR-0010 (F6' số tiền xa "dầu", S4R-03, hai thực thể khác loại…); thêm test cho nửa "chỉ số rỗng" (`f8b295e`, không đổi mã);
+  - soát khoá vòng 3: bản sửa vòng 2 tự nó đạt, nhưng còn 2 lỗ SAI CHIỀU có từ trước ⇒ mở lại theo ngoại lệ §9.6, sửa `be91cd0`;
+  - làn 3: giấy Phase 1 lên main (`2b80a38`).
+- **Đang làm:** soát khoá vòng 4 (ngoại lệ sai chiều) cho `be91cd0`; làn 0 (M1: `cmd/eais` + vết) đang soát U0.2 trên nhánh riêng; làn 3 viết
+  giấy Phase 0a trên nhánh riêng.
 - **Tiếp theo:**
-  1. Hai vòng soát cuối kết luận → chỉ sửa lỗi thuộc ngoại lệ §9.6 → đóng băng mã S4.
-  2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai`) → báo cáo theo tầng sai đầu tiên, có đối chứng mốc.
-  3. Gộp làn 0, làn 3 sau soát.
+  1. Soát khoá vòng 4 kết luận (chỉ sửa tiếp nếu còn phán quyết sai chiều).
+  2. H4 chạy MỘT lần (`scripts/chay-giu-lai.sh`, database `eais_giu_lai` đã tạo; băm tệp ca khớp bản đóng băng) → báo cáo theo tầng sai đầu
+     tiên, có đối chứng mốc `7d72e33` → H4 thành bộ hồi quy.
+  3. Gộp làn 0, làn 3 (Phase 0a) sau soát; sửa 4 ghi chú S3 của giấy Phase 1 trước khi mở mã Phase 1.
 - **Bị chặn:**
   - mã Giai đoạn II (COMMAND / WORKFLOW / EVENT, gồm M4 tạo phiếu): mở ngay sau khi chạy xong H4 (D-RM-04 = A);
   - dữ liệu / người nghiệp vụ thật: không có (D-RM-03) — mọi kết luận ghi "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt";
   - W-G7 trả tiền: chưa cấp;
   - D-OP-16, D-OP-17: chờ chủ dự án (mặc định đang chạy: (a), coi "2k" như cũ).
-- **Test** (`a665298`, container `eais-pg`): `go vet` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 ./...` có PG: 476 pass, so theo tên với
-  `7e1d8ca`: 0 đổi, 0 mất, 2 test mới; winreport 117 / H1 / H3 hai đường: 0 dòng khác (117/117, H1 92/104, H3 113/134).
+- **Test** (`f8b295e`, container `eais-pg`): `go vet ./...` 0 dòng; `gofmt -l` 0 tệp; `go test -count=1 ./...` có PG: 479 pass, so theo tên với
+  `a665298`: 0 đổi, 0 mất, 3 test mới; winreport 117 / H1 / H3 hai đường: 0 dòng khác (117/117, H1 92/104, H3 113/134).
 - **Handoff / prompt đang mở:** `docs/PROMPT-BUILD-EAIS.md` §9 (bảy làn, MVP trước); PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn
   Q2–Q7, Q9–Q13, Phụ lục C.
 - **Ca ngày 22/10** 09:00 → 17:00 (cron của phiên). Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
@@ -71,3 +69,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 13:1x | 7 commit làn 2 (`6e670da` … `649f5b7`) + commit chứa dòng này | LÀN 2 (M5): canary 2 tenant có đối chứng dương (`winreport -canary`, K6) và G1 so cờ ước lượng (K1); sửa theo soát R1–R7 (ratchet ghim chiều lệch, scale-smoke đọc tệp ghim, từ chối `-canary -pg` trước mọi tác dụng phụ). Soát độc lập: ĐẠT CÓ GHI CHÚ | Điều phối đo lại trên origin/main: vet 0; gofmt 0; test có PG 469 / 0 / 0 (459 cũ theo tên không đổi + 10 mới); 117 / H1 / H3 hai đường: chỉ dòng G1 khác (2.736/2.739 + 3 dòng lệch đã biết), mọi dòng ca / câu trả lời giống hệt; scale-smoke ĐẠT; n36 12/12; canary bộ 117: 0 rò rỉ | 3 lệch cờ ước lượng: R-003 "≈" chờ làn 1, R-001/R-002 chờ D-OP-17. Sự cố quy trình: người soát xoá nhầm tệp tạm của tác giả (trùng tiền tố) — không ảnh hưởng nhánh |
 | 22/10 13:5x | `9c5b14f` … `a665298` (9 commit) + commit chứa dòng này | Làn 1 (M3): D-OP-14; KHOÁ cổng phán quyết + sửa theo 2 vòng soát; vòng sửa S4 (a2 + 2 điều kiện) + sửa theo 2 vòng soát đối kháng; D-RM-05; câu mở D-OP-16, D-OP-17 | Test có PG 476 pass, theo tên 0 đổi / 0 mất; 117 / H1 / H3 hai đường 0 dòng khác; corpus 716.133 câu + E3 + lưới của người soát: 0 phán quyết mới / 0 đổi chiều / 0 mất so với `7e1d8ca`; 0/700 câu (ii); đột biến n45 46/46, n44 13/13 (n43 180/180 ở `7e1d8ca`, đang chạy lại ở `a665298`) | Chủ dự án xin push; soát vòng 3 (cuối) của khoá và S4 chưa xong; H4 CHƯA chạy |
 | 22/10 14:0x | commit chứa dòng này | LÀN 3: giấy Phase 1 — ADR-0011 (ĐỀ XUẤT, chưa áp mã), hợp đồng việc "tạo một phiếu kiểm tra chênh lệch", cổng QuânIT 9 câu (`docs/viec/1-hanh-dong/`) | Soát độc lập vòng 1 KHÔNG ĐẠT (L3S-01, L3S-02 S2) → sửa; soát lại ĐẠT CÓ GHI CHÚ (đo lại A25; nền PG của A02, A02b, A04b, M2, M4, M23 kiểm bằng psql). Quét: 0 đường dẫn máy, 0 tên cũ, 0 ký tự lạ; cổng danh tính xanh | Chỉ giấy, không mã. Ghi chú S3 chờ sửa: L3C-01 (A04 / M21 mâu thuẫn §7.3), L3C-02 (khuôn ca đồng thời), L3C-03 (số migration 0003 trùng làn 0), L3C-04 (nơi đặt mã lệch write-set làn 4 §9.2) |
+| 22/10 14:4x | `be91cd0`, `f8b295e` + commit chứa dòng này | Làn 1: cổng phán quyết sửa theo soát khoá vòng 3 (2 lỗ sai chiều có từ trước, mở lại theo §9.6); S4 ĐÓNG BĂNG ở `a665298` sau soát vòng 3; test nửa "chỉ số rỗng" | Test có PG 479 pass, theo tên 0 đổi / 0 mất; 117 / H1 / H3 hai đường 0 dòng khác; corpus 716.133 câu + E3 + lưới: 0 phán quyết mới / 0 đổi chiều, mất 1 (nợ vòng 2); đột biến n43 187/187, n44 16/16, n45 46/46 (ở `be91cd0`) + S10, S49 bị bắt (chạy riêng ở `f8b295e`) | Chủ dự án xin push; soát khoá vòng 4 đang chạy; H4 CHƯA chạy |

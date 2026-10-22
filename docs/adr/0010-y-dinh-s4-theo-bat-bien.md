@@ -188,4 +188,25 @@ nào "Đúng." / "Không.") và bản sửa `a665298`:**
     "báo") cho câu trả lời sai nghĩa KHÔNG nhãn, có câu kèm "Đúng." theo dầu kho xuất. Chạm ngưỡng S4 "0 câu sai nghĩa không nhãn" (§9.3):
     H4 đo;
   - S3: chữ gõ lẫn dấu ("xuat" trong câu có dấu) và lời đệm ("anh ơi", "vừa", "khoảng", "ca sáng") làm câu kho xuất hợp lệ bị hỏi lại.
-- Soát vòng 3 (vòng cuối theo §9.6): đang chạy. Sau vòng này mã S4 đóng băng, H4 chạy một lần.
+- Soát vòng 3 (vòng cuối theo §9.6): kết quả ngay dưới.
+
+**Soát đối kháng vòng 3 (vòng cuối theo §9.6) trên `a665298`: KHÔNG ĐẠT có điều kiện — F1–F4 đã đóng, 0 S1 mới, 0 lỗi thuộc ngoại lệ §9.6
+(an ninh, phán quyết sai chiều, mất dữ liệu) ⇒ mã S4 ĐÓNG BĂNG ở `a665298`; các lỗi còn lại ghi nợ:**
+- Số đo của người soát: trên 2.173 câu bộ cũ, chỉ đổi đúng 14 câu so với `7a006a8` (7 F1, 7 F2). 454 câu trả lời theo ý định chung: 0 câu
+  "Đúng." / "Không.", 0 câu thiếu câu giả định. 117 / H1 / H3 đường bộ nhớ: 0 dòng nội dung khác. Quyền: không rò. 17 / 17 đột biến mới bị bắt.
+- Điều kiện (ii) của D-OP-15 (động từ của chỉ số khác): đạt trên 0 / 105 câu mù của người soát, 0 / 700 câu lưới và 0 / 700 câu của điều phối.
+- F6' (S2, cùng họ F6 / S4R-01; phạm vi mới do che lại số trần): số tiền có hậu tố "củ", "tr", "triệu" đứng xa chữ "dầu" bị che như số trần
+  ⇒ a2 trả số kho xuất (lít), CÓ câu giả định, không phán quyết. Ví dụ: "Dầu xuất cho EX-03 hôm qua 4 củ đúng không?". Trên bộ 120 câu số
+  tiền của người soát, sáu dạng ("4 củ", "4,1 triệu", "5 tr", "4tr", "15 triệu", "150k") từ 0 lên 60 / 72 câu; "4 triệu đồng", "21500 đ"
+  vẫn hỏi lại. Sửa đúng tầng là S2 / pack (đánh dấu hậu tố tiền), không phải S4. Đây là nhóm số tiền, không phải động từ của điều kiện (ii).
+- S4R-03 (có từ trước): "… trả nhà cung cấp tiền dầu 5050 đúng không?" → số dầu kho xuất, KHÔNG nhãn ("cấp" nằm trong "cung cấp").
+- Hai thực thể khác loại trong câu ("EX-03 của dự án Đường B"): hệ lấy thực thể đầu và bỏ thầm thực thể sau. Lỗi này có từ trước, ở tầng chọn
+  thực thể; F1 làm nhánh a2 cũng đi qua đó.
+- Chốt `len(gen) != 1 || MetricByTerm[term] == ""` thiếu test cho nửa "chỉ số rỗng": đột biến sống với pack tổng hợp; pack hiện có không với tới.
+- Luật chữ chỉ loại so tên thuật ngữ với tên loại thực thể (hai không gian tên đều do pack đặt): thuật ngữ trùng tên loại mà không phải chữ chỉ
+  loại sẽ bị che nhầm. Pack cầu đường chỉ trùng ở "project". Đây là ghi chú cho người viết pack.
+- Ý định yếu đòi ≥ 2 thuật ngữ khác chỉ số: chỉ số lấy theo thuật ngữ đứng đầu câu. Pack hiện có không với tới.
+- Thêm test, không đổi mã (`f8b295e`): `TestYDinhChungKhongChiSoThiHoiLai` ghim nửa "chỉ số rỗng" của chốt ý định chung; đột biến S10 bật lại,
+  S49 mới — cả hai bị bắt.
+
+**Đóng băng:** mã tầng ý định S4 ở `a665298`. H4 chạy MỘT lần trên mã này (kèm bản sửa cổng phán quyết `be91cd0`, chỉ bớt phán quyết).

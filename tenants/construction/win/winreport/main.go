@@ -3,7 +3,10 @@
 //	go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out /tmp/win -profile functional -seed 42
 //	go run ./tenants/construction/win/winreport -data /tmp/win
 //
-// Thoát 0 chỉ khi G1 khớp hết, mọi ca đạt và cổng đếm G6 đạt.
+// Thoát 0 chỉ khi G1 khớp hết (kể cả cờ ước lượng), mọi ca đạt và cổng đếm G6 đạt.
+//
+// Cờ -canary: nạp cả tenant khác trong -data vào cùng kho, hỏi các câu của tenant được chấm, quét canary (chỉ
+// đường bộ nhớ). Tắt thì không in thêm dòng nào.
 package main
 
 import (
@@ -30,6 +33,7 @@ func main() {
 	flag.StringVar(&cfg.Tenant, "tenant", "abc-infra", "tenant được chấm")
 	verbose := flag.Bool("v", false, "in cả ca đạt")
 	usePG := flag.Bool("pg", false, "đọc dữ liệu qua PostgreSQL (EAIS_PG_ADMIN_DSN + EAIS_PG_DSN, xem deploy/docker-compose.yml)")
+	flag.BoolVar(&cfg.Canary, "canary", false, "nạp cả tenant khác trong -data vào cùng kho rồi quét canary trong câu trả lời (chưa hỗ trợ cùng -pg)")
 	flag.Parse()
 	if cfg.Data == "" {
 		fmt.Fprintln(os.Stderr, "thiếu -data")
@@ -98,6 +102,18 @@ func main() {
 		fmt.Println("  ✗", p)
 	}
 	ok = ok && len(r.ReplayProblems) == 0 && r.Decisions > 0
+	if c := r.Canary; c != nil {
+		fmt.Printf("\nCANARY 2 TENANT: kho chung %d tenant\n", len(c.Tenants))
+		for _, t := range c.Tenants {
+			fmt.Printf("  %s: %d quan sát, %d thực thể, %d tài liệu\n", t.ID, t.Observations, t.Entities, t.Documents)
+		}
+		fmt.Printf("  canary suy ra (%d chuỗi chỉ có ở tenant khác): %s\n", len(c.Canaries), strings.Join(c.Canaries, " · "))
+		fmt.Printf("  đã quét %d câu trả lời (câu chữ + trích dẫn + xung đột + câu hỏi lại): %d rò rỉ\n", c.Answers, len(c.Leaks))
+		for _, l := range c.Leaks {
+			fmt.Println("  ✗", l)
+		}
+		ok = ok && len(c.Leaks) == 0
+	}
 	fmt.Println("phiên bản dữ liệu (sha256 manifest):", r.DataVersion)
 	for _, name := range slices.Sorted(maps.Keys(r.CaseHashes)) {
 		fmt.Printf("bộ ca %s sha256 %s\n", name, r.CaseHashes[name])

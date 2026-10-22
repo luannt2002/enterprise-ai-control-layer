@@ -36,6 +36,12 @@ type Config struct {
 	// PG: có thì dữ liệu đã nạp được ghi vào PostgreSQL (thay trọn dữ liệu của tenant) và luồng hỏi
 	// đọc danh mục, fact, tài liệu QUA PG (RLS theo tenant của Principal); nil = đọc trong bộ nhớ.
 	PG *pgstore.Store
+	// Canary: nạp thêm dữ liệu của MỌI tenant khác trong world (cùng thư mục Data) vào CÙNG kho với Tenant, hỏi
+	// dưới Principal của Tenant, rồi quét câu trả lời và trích dẫn tìm canary của tenant khác (canary.go).
+	// Tắt (mặc định) = đường cũ, không đổi gì. Chưa hỗ trợ cùng PG.
+	Canary bool
+	// wrapStore (chỉ test trong gói): thay kho chung bằng kho cố ý rò, làm đối chứng dương của canary.
+	wrapStore func(*sharedStore) coStore
 }
 
 // Result là kết quả một lượt đo.
@@ -56,6 +62,8 @@ type Result struct {
 	// G1 metamorphic: số biểu diễn đã nạp riêng từng cái, theo bản ghi; biểu diễn ra khác kỳ vọng.
 	Variants        map[string]int
 	VariantProblems []string
+	// Canary: kết quả canary 2 tenant; nil khi Config.Canary tắt.
+	Canary *CanaryResult
 }
 
 type manifest struct {
@@ -93,6 +101,8 @@ type pipelineAsker struct {
 	a         *pipeline.Ask
 	model     *models.Extractive
 	decisions []traces.Decision
+	// scan (nil = không quét): gọi cho MỌI lần hỏi, kể cả lần lỗi — canary ghép lần hỏi với ca theo thứ tự.
+	scan func(question string, pr contracts.Principal, r contracts.AskResponse)
 }
 
 func (p *pipelineAsker) ModelCalls() int  { return p.model.Calls() }
@@ -102,6 +112,9 @@ func (p *pipelineAsker) Ask(ctx context.Context, pr contracts.Principal, q strin
 	out, err := p.a.Handle(ctx, pr, contracts.AskRequest{ConversationID: "win", MessageID: "win", Text: q})
 	if err == nil {
 		p.decisions = append(p.decisions, out.Decision)
+	}
+	if p.scan != nil {
+		p.scan(q, pr, out.Response)
 	}
 	return out.Response, err
 }
@@ -180,6 +193,15 @@ func Run(cfg Config) (Result, error) {
 		}
 		deps.Directory, deps.Facts, deps.Knowledge = cfg.PG, cfg.PG, cfg.PG
 	}
+	var co *coRun
+	if cfg.Canary {
+		if cfg.PG != nil {
+			return out, fmt.Errorf("canary chưa hỗ trợ đường PostgreSQL: chạy đường bộ nhớ")
+		}
+		if co, err = newCoRun(ctx, cfg, worldTenantIDs(w), rt, sm, tenantData{id: cfg.Tenant, res: res, dir: directory, docs: docs}, &deps); err != nil {
+			return out, err
+		}
+	}
 	ask := &pipeline.Ask{RT: rt, Deps: deps}
 
 	files, _ := filepath.Glob(cfg.CasesGlob)
@@ -196,7 +218,15 @@ func Run(cfg Config) (Result, error) {
 		}
 	}
 	asker := &pipelineAsker{a: ask, model: model}
+	if co != nil {
+		asker.scan = co.scan
+	}
 	out.Report = evals.RunWin(ctx, asker, out.Cases, principals)
+	if co != nil {
+		if out.Canary, err = co.result(out.Cases, principals); err != nil {
+			return out, err
+		}
+	}
 	// G6 — phát lại: mọi câu đã giao chạy lại từ bản ghi quyết định phải ra đúng từng chặng.
 	out.Decisions = len(asker.decisions)
 	for _, d := range asker.decisions {

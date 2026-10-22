@@ -68,7 +68,7 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	for _, m := range names {
 		cover(m.start, m.end)
 	}
-	value, lastEnd, firstEnd := false, -1, -1 // lastEnd / firstEnd: hết lần nhắc gần nhất / đầu tiên của con số xác nhận
+	value, lastEnd, firstStart, firstEnd := false, -1, -1, -1 // lastEnd / firstStart / firstEnd: hết lần nhắc gần nhất, đầu và hết lần nhắc đầu tiên của con số xác nhận
 	for _, sp := range in.Spans {
 		switch sp.Kind {
 		case contracts.ValueDate, contracts.ValuePeriod:
@@ -102,6 +102,9 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 			if !ok || !unitShown(sp) || def.InRange(v.Number) != nil {
 				return "value"
 			}
+			if normalization.AmbiguousNumberWords(sp.Raw) {
+				return "value" // "một nghìn hai": nói thường là 1.200, bộ đọc cho 1.002 — con số xác nhận chưa đọc chắc (phản hồi audit K5)
+			}
 			if c, err := decimal.Cmp(v.Number, claimed.Number); err != nil || c != 0 {
 				return "value"
 			}
@@ -110,7 +113,7 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 			}
 			cover(sp.Start, sp.End)
 			if !value {
-				firstEnd = sp.End
+				firstStart, firstEnd = sp.Start, sp.End
 			}
 			value, lastEnd = true, sp.End
 		}
@@ -123,6 +126,9 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	// của claim chưa giải. Giá: định ngữ cấp cha đặt sau con số mất phán quyết.
 	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {
 		return "subject"
+	}
+	if os := owners(names, in.Spans, idef.Terms, a.contextOwners(raw, in.Spans, inName, idef, used, lo)); !subj.numberOwned(raw, os, firstStart, firstEnd, lo) {
+		return "subject" // con số xác nhận chưa gắn vào chủ thể: thứ gần nhất đứng trước nó là tên / danh từ khác, hay bí danh mơ hồ chưa có bằng chứng dương
 	}
 	srcSpans, gap := sourceMentions(raw, def, used, lo)
 	if gap != "" {
@@ -260,4 +266,188 @@ func unitShown(sp contracts.Span) bool {
 		return !(strings.Contains(sp.Rule, "unit_from_term") && strings.ContainsAny(sp.Raw, ".,") && strings.TrimRightFunc(sp.Raw, unicode.IsLetter) == sp.Raw)
 	}
 	return strings.ContainsFunc(sp.Raw, unicode.IsLetter)
+}
+
+// ownerRef là một thứ CÓ THỂ sở hữu con số trong câu: tên thực thể (ids khác rỗng) hay danh từ / thuật ngữ khác chính ý định ("dự án",
+// "nhân công": ở ngữ cảnh chúng được che là đã hiểu, nhưng vẫn là thứ con số có thể thuộc về).
+type ownerRef struct {
+	start, end int
+	ids        []string
+}
+
+// owners trả mọi thứ có thể sở hữu con số, theo vị trí: tên, thuật ngữ, và các cụm ở ngữ cảnh do contextOwners tìm (extra). Thuật ngữ hay
+// cụm nằm trong một cụm tên ("dự án" của "dự án A") không tính riêng.
+func owners(names []mention, spans []contracts.Span, ownTerms []string, extra [][2]int) []ownerRef {
+	var out []ownerRef
+	inName := func(s, e int) bool {
+		return slices.ContainsFunc(names, func(m mention) bool { return s < m.end && e > m.start })
+	}
+	for _, m := range names {
+		out = append(out, ownerRef{m.start, m.end, m.ids})
+	}
+	for _, sp := range spans {
+		if sp.Kind != contracts.ValueTerm || slices.Contains(ownTerms, sp.Value.Text) || inName(sp.Start, sp.End) {
+			continue
+		}
+		out = append(out, ownerRef{sp.Start, sp.End, nil})
+	}
+	for _, sp := range extra {
+		if !inName(sp[0], sp[1]) {
+			out = append(out, ownerRef{sp[0], sp[1], nil})
+		}
+	}
+	slices.SortFunc(out, func(a, b ownerRef) int { return a.start - b.start })
+	return out
+}
+
+// contextOwners trả các cụm ở ngữ cảnh [0, lo) có thể sở hữu con số đứng sau chúng (R-1, ADR-0009 Vòng 5): tên nguồn khác nguồn đã tạo
+// con số trả lời ("ERP, 3900 L đúng không?"), từ khoá của ý định số liệu khác ("Đội báo, 4000 L"), từ chỉ lượng ("Định mức, 5000 L").
+// Ngữ cảnh được chứa các cụm này (sự kiện về chỉ số khác), nhưng con số đứng ngay sau chúng là của chúng. Không tính: cụm đã có số của
+// riêng nó trước phạm vi hỏi ("Đội báo 3k, vậy được cấp 3850 L": 3k mới là số của "đội báo"), từ khoá của chính ý định ("được cấp",
+// "phiếu kho"), từ khoá của ý định yếu ("bao nhiêu" chỉ chính chỉ số đang hỏi) và tên đúng nguồn đã tạo con số trả lời ("Phiếu kho, 3850 L").
+func (a *Ask) contextOwners(raw string, spans []contracts.Span, inName func(s, e int) bool, idef intent.Def, used []string, lo int) [][2]int {
+	numberIn := func(s, e int) bool {
+		return slices.ContainsFunc(spans, func(sp contracts.Span) bool {
+			return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= s && sp.Start < e && !inName(sp.Start, sp.End)
+		})
+	}
+	skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())
+	phrases := slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers)
+	for _, id := range a.RT.Metrics.MetricIDs() {
+		m, _ := a.RT.Metrics.Metric(id)
+		for _, s := range m.Sources {
+			if len(used) != 1 || used[0] != s.Type {
+				phrases = append(append(phrases, s.Label), s.Aliases...)
+			}
+		}
+	}
+	var out [][2]int
+	for _, p := range phrases {
+		if p == "" || slices.Contains(skip, p) {
+			continue
+		}
+		for _, sp := range normalization.PhraseSpans(raw, p) {
+			if sp[1] <= lo && !numberIn(sp[1], lo) {
+				out = append(out, sp)
+			}
+		}
+	}
+	return out
+}
+
+// plainBetween báo đoạn chữ chỉ gồm chữ, số, khoảng trắng đơn và dấu chấm / phẩy / gạch chéo / gạch ngang / hai chấm giữa hai chữ số
+// ("3.850", "19/10", "19-10", "8:30"): không dấu câu nào. Ngày, giờ viết bằng số không phải ngắt mệnh đề.
+func plainBetween(s string) bool {
+	rs := []rune(s)
+	for i, r := range rs {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ':
+		case strings.ContainsRune(".,/-:", r) && i > 0 && i+1 < len(rs) && unicode.IsDigit(rs[i-1]) && unicode.IsDigit(rs[i+1]):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// bareWrapped báo đoạn giữa hai cụm là một ngoặc mở trần và sau cụm thứ hai là ngoặc đóng tương ứng: "EX-03 (dự án A)", "máy 03 (EX-03)".
+func bareWrapped(raw, between string, afterEnd int) bool {
+	rest := strings.TrimLeft(raw[afterEnd:], " ")
+	switch strings.TrimSpace(between) {
+	case "(":
+		return strings.HasPrefix(rest, ")")
+	case "[":
+		return strings.HasPrefix(rest, "]")
+	}
+	return false
+}
+
+// wrapped báo cụm [start, end) đứng một mình trong ngoặc: ký tự khác khoảng trắng liền trước là "(" / "[" và liền sau là ")" / "]" tương ứng.
+func wrapped(raw string, start, end int) bool {
+	before, after := strings.TrimRight(raw[:start], " "), strings.TrimLeft(raw[end:], " ")
+	return (strings.HasSuffix(before, "(") && strings.HasPrefix(after, ")")) || (strings.HasSuffix(before, "[") && strings.HasPrefix(after, "]"))
+}
+
+// hasBreak báo đoạn chữ có ngắt mệnh đề: một dấu , ; . ? ! (không nằm giữa hai chữ số: "3.850", "0,5") hay xuống dòng.
+func hasBreak(s string) bool {
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '\n':
+			return true
+		case ',', ';', '.', '?', '!':
+			if !(i > 0 && i+1 < len(s) && s[i-1] >= '0' && s[i-1] <= '9' && s[i+1] >= '0' && s[i+1] <= '9') {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// aliasTied: bí danh MƠ HỒ chứa chủ thể chỉ là chính chủ thể khi câu cho bằng chứng dương: không có lần nhắc rõ nào của chủ thể (router đã gỡ
+// bí danh bằng phạm vi quyền hay cấp cha, mọi bí danh trong câu cùng một thực thể); hoặc nó đứng một mình trong ngoặc, không ngắt mệnh đề khỏi lần
+// nhắc rõ ("EX-03 (máy 03)", "EX-03 … 3850 L (máy 03)"); hoặc lần nhắc rõ đứng một mình trong ngoặc liền sau nó ("máy 03 (EX-03)"); hoặc nó nhắc lại
+// chủ thể SAU con số xác nhận mà không dấu câu nào ngăn ("EX-03 … 3850 L máy 03 đúng không?"). Còn lại — dấu ngăn nào cũng vậy, kể cả ":" " - "
+// "(" "[" "…" hay chỉ một khoảng trắng — là chưa giải.
+func (s subjectFacts) aliasTied(raw string, os []ownerRef, k, numEnd int) bool {
+	best, bestDist := -1, 1<<30
+	for i, c := range os {
+		if len(c.ids) != 1 || c.ids[0] != s.id {
+			continue
+		}
+		d := c.start - os[k].end
+		if c.end <= os[k].start {
+			d = os[k].start - c.end
+		}
+		if d < bestDist {
+			best, bestDist = i, d
+		}
+	}
+	if best < 0 {
+		return true
+	}
+	c, a := os[best], os[k]
+	if c.end <= a.start { // lần nhắc rõ đứng trước bí danh
+		between := raw[c.end:a.start]
+		return (wrapped(raw, a.start, a.end) && !hasBreak(between)) || (a.start >= numEnd && plainBetween(between))
+	}
+	if a.end <= c.start { // bí danh đứng trước lần nhắc rõ: chỉ dạng "máy 03 (EX-03)"
+		return bareWrapped(raw, raw[a.end:c.start], c.end)
+	}
+	return false
+}
+
+// ownedBy báo thứ thứ k đã gắn vào chủ thể: chính chủ thể (nhắc rõ, hay bí danh mơ hồ có bằng chứng dương), hoặc định ngữ — cấp cha / danh từ
+// khác — nối vào thứ liền trước (đã gắn) bằng đúng chữ "của" hay đứng một mình trong ngoặc ("EX-03 (dự án A)").
+func (s subjectFacts) ownedBy(raw string, os []ownerRef, k, numEnd int) bool {
+	c := os[k]
+	if slices.Contains(c.ids, s.id) {
+		return len(c.ids) == 1 || s.aliasTied(raw, os, k, numEnd)
+	}
+	if k == 0 || os[k-1].end > c.start {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(raw[os[k-1].end:c.start]), "của") && !bareWrapped(raw, raw[os[k-1].end:c.start], c.end) {
+		return false
+	}
+	return s.ownedBy(raw, os, k-1, numEnd)
+}
+
+// numberOwned: thứ gần nhất đứng TRƯỚC con số xác nhận đầu tiên phải gắn vào chủ thể (không có thứ nào đứng trước thì chủ thể của con số do
+// phần sau con số kiểm); và mọi bí danh mơ hồ chứa chủ thể trong phạm vi hỏi [lo, len) phải có bằng chứng dương (aliasTied).
+func (s subjectFacts) numberOwned(raw string, os []ownerRef, numStart, numEnd, lo int) bool {
+	k := -1
+	for i, c := range os {
+		if c.end <= numStart {
+			k = i
+		}
+	}
+	if k >= 0 && !s.ownedBy(raw, os, k, numEnd) {
+		return false
+	}
+	for i, c := range os {
+		if c.start >= lo && len(c.ids) > 1 && slices.Contains(c.ids, s.id) && !s.aliasTied(raw, os, i, numEnd) {
+			return false
+		}
+	}
+	return true
 }

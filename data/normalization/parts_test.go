@@ -66,6 +66,37 @@ func TestParseViNumberWords(t *testing.T) {
 	}
 }
 
+// ADR-0009 Vòng 5: dãy số bằng chữ kết thúc bằng "<hàng> <một chữ số>" là chưa đọc chắc (nói thường "một nghìn hai" = 1.200, bộ
+// đọc cho 1.002); dạng viết rõ hàng ("trăm", "linh", "lẻ", "rưỡi", "mươi") thì không.
+func TestAmbiguousNumberWords(t *testing.T) {
+	for _, c := range []struct {
+		in   string
+		want bool
+	}{
+		{"một nghìn hai lít", true},
+		{"ba nghìn tám", true},
+		{"hai trăm năm", true},
+		{"một tỷ hai lít", true},
+		{"trăm hai", true},
+		{"hai nghìn tư lít", true},
+		{"mot nghin hai lit", true}, // gõ không dấu
+		{"một nghìn hai trăm lít", false},
+		{"một nghìn không trăm linh hai lít", false},
+		{"một trăm lẻ một", false},
+		{"hai nghìn rưỡi lít", false},
+		{"ba nghìn tám trăm năm mươi lít", false},
+		{"mười hai", false},
+		{"hai mươi", false},
+		{"bốn ngàn", false},
+		{"3850 L", false},
+		{"", false},
+	} {
+		if got := AmbiguousNumberWords(c.in); got != c.want {
+			t.Errorf("AmbiguousNumberWords(%q) = %v, muốn %v", c.in, got, c.want)
+		}
+	}
+}
+
 func TestMatchAliasLuatDau(t *testing.T) {
 	cases := []struct {
 		s, alias string

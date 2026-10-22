@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,6 +75,14 @@ func TestVerdictGap(t *testing.T) {
 		// E3: sau con số xác nhận chỉ được nhắc lại chính chủ thể
 		{q: "EX-03 hôm nay được cấp 3850 L (3850 L của dự án A) đúng không?", claimed: "3850", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L: dự án A đúng không?", claimed: "3850", want: "subject"},
+		// Vòng 5: thứ gần nhất đứng TRƯỚC con số phải gắn vào chủ thể — cấp cha / danh từ chung / bí danh tách câu (R4-2, R4-3, R4-4),
+		// tên nguồn ở ngữ cảnh (R-1); số bằng chữ "<hàng> <một chữ số>" chưa đọc chắc (K5); ngày viết số không phải ngắt mệnh đề
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A, 5050 L đúng không?", claimed: "5050", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Dự án, 5050 L đúng không?", claimed: "5050", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03 được cấp 3000 L, đúng không?", claimed: "3000", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?", claimed: "3900", want: "subject"},
+		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1002", want: "value"},
+		{q: "EX-03 ngày 19/10 được cấp 3850 L máy 03 đúng không?", claimed: "3850"},
 	} {
 		in := rt.Normalizer.Normalize(c.q, normalization.Options{Now: now})
 		res, err := entityresolution.Resolve(ctx, dir, in)
@@ -99,6 +108,73 @@ func TestVerdictGap(t *testing.T) {
 			contracts.Value{Kind: contracts.ValueQuantity, Number: c.claimed, Unit: "L"}, subj, used)
 		if got != c.want {
 			t.Errorf("verdictGap(%q, %s) = %q, muốn %q", c.q, c.claimed, got, c.want)
+		}
+	}
+}
+
+// ADR-0009 Vòng 5: các vị từ chuỗi của luật bí danh / định ngữ. Ngày, giờ viết bằng số không phải ngắt mệnh đề; dấu câu thật thì là.
+// Ghim nghĩa của từng hàm, không ghim chính sách cho các dạng còn chờ quyết ("EX-03 (dự án A)", "máy 03 (EX-03)").
+func TestViTuDauCauVong5(t *testing.T) {
+	for _, c := range []struct {
+		s          string
+		plain, brk bool
+	}{
+		{" hôm nay được cấp 3850 L ", true, false},
+		{" ngày 19/10 được cấp 3850 L ", true, false},
+		{" ngày 19/10/2026 ", true, false},
+		{" ngày 19-10 ", true, false},
+		{" lúc 8:30 ", true, false},
+		{" 3.850 ", true, false},
+		{" 0,5 ", true, false},
+		{": dự án A ", false, false},
+		{" - ", false, false},
+		{" (", false, false},
+		{", ", false, true},
+		{". ", false, true},
+		{"; ", false, true},
+		{"\n", false, true},
+		{"a, b", false, true},
+		{"19/ 10", false, false},
+	} {
+		if got := plainBetween(c.s); got != c.plain {
+			t.Errorf("plainBetween(%q) = %v, muốn %v", c.s, got, c.plain)
+		}
+		if got := hasBreak(c.s); got != c.brk {
+			t.Errorf("hasBreak(%q) = %v, muốn %v", c.s, got, c.brk)
+		}
+	}
+	at := func(raw, sub string) (int, int) {
+		i := strings.Index(raw, sub)
+		return i, i + len(sub)
+	}
+	for _, c := range []struct {
+		raw, first, second string
+		want               bool
+	}{
+		{"EX-03 (dự án A) hôm nay", "EX-03", "dự án A", true},
+		{"EX-03 [dự án A] hôm nay", "EX-03", "dự án A", true},
+		{"EX-03 (dự án A hôm nay", "EX-03", "dự án A", false},
+		{"EX-03 [dự án A) hôm nay", "EX-03", "dự án A", false},
+		{"EX-03 - dự án A hôm nay", "EX-03", "dự án A", false},
+	} {
+		_, fe := at(c.raw, c.first)
+		ss, se := at(c.raw, c.second)
+		if got := bareWrapped(c.raw, c.raw[fe:ss], se); got != c.want {
+			t.Errorf("bareWrapped(%q, %q) = %v, muốn %v", c.raw, c.second, got, c.want)
+		}
+	}
+	for _, c := range []struct {
+		raw, sub string
+		want     bool
+	}{
+		{"EX-03 (máy 03) hôm nay", "máy 03", true},
+		{"EX-03 [ máy 03 ] hôm nay", "máy 03", true},
+		{"EX-03 (máy 03] hôm nay", "máy 03", false},
+		{"EX-03 máy 03 hôm nay", "máy 03", false},
+	} {
+		s, e := at(c.raw, c.sub)
+		if got := wrapped(c.raw, s, e); got != c.want {
+			t.Errorf("wrapped(%q, %q) = %v, muốn %v", c.raw, c.sub, got, c.want)
 		}
 	}
 }

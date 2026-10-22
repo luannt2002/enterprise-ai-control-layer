@@ -171,6 +171,17 @@ func (s *Set) MetricKeywords() []string {
 	return out
 }
 
+// WeakKeywords trả từ khoá của các ý định yếu ("bao nhiêu", "tổng"): chúng chỉ chung chung chính chỉ số đang hỏi, không nêu chỉ số nào khác.
+func (s *Set) WeakKeywords() []string {
+	var out []string
+	for _, d := range s.defs {
+		if d.Weak {
+			out = append(out, d.Keywords...)
+		}
+	}
+	return out
+}
+
 // Def trả định nghĩa của một ý định.
 func (s *Set) Def(name string) (Def, bool) {
 	for _, d := range s.defs {

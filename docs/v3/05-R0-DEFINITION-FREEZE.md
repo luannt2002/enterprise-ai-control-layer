@@ -1,5 +1,7 @@
 # 05 — R0 Definition Freeze: gói định nghĩa EACL V3
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Trạng thái: **ỨNG VIÊN đông cứng, chờ chủ dự án duyệt.**
 > - Mục nào ghi **ĐỀ XUẤT** là do lead tự đề xuất, đảo được.
 > - Mục nào ghi **NGUYÊN VĂN** lấy từ Blueprint/Playbook.

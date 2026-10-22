@@ -1,5 +1,7 @@
 # Mục lục học và debug EACL — từ mindset đến bằng chứng
 
+> **Khung (D-RM-05, 22/10/2026):** tên sản phẩm và tên biến trong thân tệp là tên lúc viết; tên hiện hành là **EAIS**, biến môi trường hiện hành có tiền tố `EAIS_` (D-RM-02).
+
 > **Phiên bản 2.1 — 21/10/2026**, viết cho Luân. Trạng thái: **bản nền để bắt đầu học V0**; hiệu quả học chưa được nghiệm thu. Tài liệu không thay hợp đồng WIN, không phê duyệt triển khai V3 và không yêu cầu sửa code.
 > Mốc mã và phép đo của phiên bản 1: `5ee31c8`. Phiên bản 2 bổ sung ba luồng và bài thực hành; phiên bản 2.1 làm rõ phương pháp khám phá, phân loại lỗi và trạng thái nghiệm thu. Hai lần sửa tài liệu này không đo lại runtime. Fuel dùng code EACL thật và dữ liệu giả lập.
 

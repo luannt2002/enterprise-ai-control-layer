@@ -1,5 +1,7 @@
 # 08 — Risk Register
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Trạng thái: bản lập kế hoạch 20/10/2026. Xác suất (P) và tác động (I) là **đánh giá định tính** của lead, không phải số đo: Thấp · TB · Cao · Rất cao.
 > Chủ: lead = phiên Opus điều phối; CDA = chủ dự án.
 > Cập nhật khi kết thúc mỗi phase.

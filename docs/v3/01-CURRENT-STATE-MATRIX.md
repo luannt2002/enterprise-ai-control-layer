@@ -1,5 +1,7 @@
 # 01 — Current State Matrix: repo có gì so với EACL V3
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Trạng thái: đo 20/10/2026 trên HEAD `85108c4` (cây sạch). Mốc test ở `02`.
 > Luật: **CODE EXISTS ≠ CAPABILITY EXISTS.**
 > - REACHABLE = nối vào đường chạy thật.

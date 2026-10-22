@@ -1,5 +1,7 @@
 # 09 — Evidence Index
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Mỗi khẳng định PASS hoặc mỗi số trong bộ `docs/v3/` trỏ về một dòng ở đây.
 > Khuôn bản ghi theo Playbook §12, rút gọn thành cột.
 > Không có dòng ở đây thì khẳng định đó là **E0 CLAIM**.

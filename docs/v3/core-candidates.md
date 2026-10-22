@@ -1,5 +1,7 @@
 # Ứng viên lõi chung — CHỈ ghi nhận, KHÔNG trích xuất
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Soạn đêm 20→21/10/2026 theo prompt cố vấn §28, được chủ dự án duyệt cho luồng đêm. **Trích xuất lõi chung đang bị CẤM.**
 > - Logic riêng của Fuel ở lại Fuel; logic riêng của Customer Ops ở lại Customer Ops.
 > - Tệp này chỉ ghi khái niệm có thể dùng lại, để lúc có bằng chứng từ miền thứ hai thì cân nhắc.

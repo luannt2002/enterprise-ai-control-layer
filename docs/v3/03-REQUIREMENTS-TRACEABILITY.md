@@ -1,5 +1,7 @@
 # 03 — Requirements Traceability: yêu cầu V3 → test → cổng → phase
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Trạng thái: bản lập kế hoạch 20/10/2026. Mã yêu cầu `V3-…` là **mới**.
 > Sổ cũ `docs/requirements/catalog.yaml` (422 REQ) giữ làm lịch sử V1/V2 (`05` C8).
 >

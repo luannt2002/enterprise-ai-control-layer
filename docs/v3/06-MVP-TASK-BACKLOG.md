@@ -1,5 +1,7 @@
 # 06 — MVP Task Backlog: R0 → R6
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Trạng thái: bản lập kế hoạch 20/10/2026.
 >
 > | Nhãn | Nghĩa |

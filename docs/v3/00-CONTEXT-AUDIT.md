@@ -1,5 +1,7 @@
 # 00 — Context Audit: EACL V3 bắt đầu từ đâu
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > **Historical artifact** (kiểm toán nguồn 20/10/2026).
 
 > Trạng thái: **bản lập kế hoạch 20/10/2026, chưa được chủ dự án duyệt.** Chưa sửa dòng mã nào.

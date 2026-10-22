@@ -1,5 +1,7 @@
 # 02 — Baseline Evidence: mốc trước V3
 
+> **Khung (D-RM-05, 22/10/2026):** tệp để tra cứu — roadmap hiện hành là `docs/ROADMAP-DAY-DU.md` (D-RM-01). Tên sản phẩm trong thân tệp là tên lúc viết; tên hiện hành là **EAIS** (D-RM-02).
+
 > Đo ngày **20/10/2026 15:22 (+07)** bằng lệnh của `docs/STATUS.md`, chưa sửa dòng mã nào.
 > Đây là mốc "trước V3". Mọi thay đổi V3 phải giữ mốc này xanh, hoặc ghi rõ vì sao đổi (`CLAUDE.md` §22, §32).
 

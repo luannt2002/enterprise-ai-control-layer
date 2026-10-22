@@ -47,3 +47,57 @@ go test ./... -count=1 && scripts/scale-smoke.sh
 ```
 
 Mọi dữ liệu trong repo là dữ liệu giả lập; repo công khai không chứa dữ liệu thật của tenant nào.
+
+## Chạy thử trong 5 phút
+
+Ứng dụng `eais` (một binary: HTTP + CLI) chạy trên PostgreSQL với dữ liệu giả lập seed 42. Mặc định **không gọi model**: luồng hỏi dùng model tất định (extractive) và ứng dụng không có cờ hay đường nào tới model trả tiền. Cần: Go (theo `go.mod`), Docker, `curl`, `python3`, `pdftotext` (`poppler-utils`).
+
+**Một lệnh** (dựng PG → migrate → sinh seed 42 → nạp → chạy server nền → smoke E2E bằng curl → dừng server):
+
+```bash
+git clone https://github.com/luannt2002/enterprise-ai-control-layer && cd enterprise-ai-control-layer
+scripts/chay-thu.sh          # EAIS_PG_DOWN=1 để gỡ PG khi xong
+```
+
+Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **10 giây** với bộ nhớ đệm build rỗng, **4 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 19 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước.
+
+**Từng bước** (cùng việc script làm; `$W` là thư mục làm việc tuỳ chọn):
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --wait
+export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable' EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
+go build -o $W/eais ./cmd/eais && $W/eais migrate
+go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out $W/data -profile functional -seed 42
+$W/eais ingest -pack tenants/construction/pack -data $W/data       # in số quan sát / cách ly và mã lần nạp
+$W/eais serve -dev -pack tenants/construction/pack -world tenants/construction/win/world.yaml -data $W/data -now world   # 127.0.0.1:8080
+```
+
+Gọi thử (token dev `dev-<tenant>-<principal>` suy từ `world.yaml`, là thông tin công khai):
+
+```bash
+H='Authorization: Bearer dev-abc-infra-u-director'
+curl -s -X POST localhost:8080/v1/ask -H "$H" -H 'Content-Type: application/json' \
+  -d '{"text":"Hôm qua máy 03 được cấp bao nhiêu dầu?","conversation_id":"c1","message_id":"m1"}'   # có trace_id
+curl -s "localhost:8080/v1/trace/<trace_id>?format=table" -H "$H"        # bảng vết S0→S10, đánh dấu bước lệch
+$W/eais trace -tenant abc-infra <trace_id>                                # cùng bảng, từ CLI
+$W/eais trace diff -tenant abc-infra <id1> <id2>                          # bước ĐẦU TIÊN hai lượt cho kết quả khác nhau
+$W/eais quarantine -tenant abc-infra <mã lần nạp>                         # bản ghi cách ly kèm lý do
+```
+
+| Điểm cuối | Việc | Ai được gọi |
+|---|---|---|
+| `GET /healthz` | 200, hoặc 503 khi PG không trả lời | không cần token |
+| `POST /v1/ask` | thân `{"text","conversation_id","message_id"}`; trả câu trả lời + `trace_id` | mọi principal có token |
+| `GET /v1/trace/{id}` | vết một lượt (JSON, hoặc `?format=table`) | chính người đã hỏi, hoặc principal toàn quyền dữ liệu; còn lại 404 |
+| `POST /v1/ingest` | nạp lại thư mục dữ liệu đã cấu hình của tenant của principal; thân phải rỗng hoặc `{}` | principal toàn quyền dữ liệu |
+
+- **Tenant, người hỏi, vai chỉ đến từ token**, không bao giờ từ thân: thân có trường `tenant`, `principal`, vai hay bất kỳ trường lạ nào bị từ chối 400. Tenant khác đọc vết ⇒ 404, y hệt "không có".
+- **Toàn quyền dữ liệu** tính theo `policy.yaml` của pack, không nêu tên vai: có một vai phạm vi `all` nắm **mọi** capability mà policy định nghĩa. Với pack hiện tại chỉ `director` (accountant có phạm vi `all` nhưng không có `documents.read`).
+- **Mọi lượt đã xác thực để lại vết bền** (kể cả lượt lỗi, lượt bị chính sách chặn, thân sai), gồm usage (extractive: 0 token). Lượt không lưu được vết thì không giao câu trả lời. Lượt chưa xác thực được tenant (401) không có dòng vết theo tenant; chúng chỉ được đếm trong log tổng kết khi tắt server.
+- Mã lần nạp là băm của (dữ liệu, pack, mã): nạp lại cùng dữ liệu cho cùng mã và không nhân đôi bản ghi cách ly.
+
+**Giới hạn đã biết** (ghi thẳng):
+- `serve` chỉ chạy được với `-dev` (token công khai, chỉ nghe loopback, chặn `Host` không phải loopback). Chưa có cơ chế xác thực cho môi trường thật — đang chờ quyết định.
+- Phiên bản dữ liệu ghi vào vết được tính từ thư mục dữ liệu lúc server khởi động và sau mỗi `POST /v1/ingest`, không đọc ngược từ PG. Nạp bằng CLI (`eais ingest`) khi server đang chạy: server không biết ⇒ khởi động lại server, hoặc nạp bằng `POST /v1/ingest`.
+- Chưa có vết các bước nạp (`L1.*`) và chưa có chính sách dọn / lưu giữ vết (vai ứng dụng không có quyền xoá).
+- CI ở `.github/workflows/ci.yml` chưa chạy trên GitHub (xem ghi chú đầu tệp).

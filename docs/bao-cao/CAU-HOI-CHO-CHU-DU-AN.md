@@ -5,13 +5,16 @@
 > Trong lúc chờ, BUILD chạy theo **mặc định an toàn, đảo lại được** ghi ở cột "Đang chạy".
 > Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt** (D-RM-03).
 
-Cập nhật: 22/10/2026 17:1x.
+Cập nhật: 22/10/2026 17:3x.
 
 ## 1. Đang chặn một khối MVP
 
 | Câu | Hỏi gì | Chặn gì | Đang chạy | Khuyến nghị |
 |---|---|---|---|---|
 | **D-AI-02** | Dòng S4 của CỔNG TRƯỚC AI trượt trên H4 (S4 là tầng sai đầu tiên ở 10 / 119 = 8,4%, ngưỡng 5%; 3 câu sai nghĩa không nhãn). Làm gì tiếp? | M3; dòng S4 của M5 | M3 ghi "chưa RA"; không đổi mã S4 trên main; chưa mở bộ giữ lại mới | **a**: sửa bằng luật các cụm C3 / C4 / C5 / N1 (ADR-0010), chấm trên một bộ giữ lại MỚI soạn độc lập (H6) |
+| **D-AI-03** | Dòng S7 (Ngữ cảnh / RAG) có nằm trong cổng ra M3 / M5 của MVP không? (lệnh ca cấm làm RAG, cổng ra M3 lại liệt kê S7) | lời tuyên bố M3 / M5 RA | S7 ghi "CHƯA CÓ BỘ CA ĐỘC LẬP"; không tuyên bố M3 / M5 RA; không mở việc RAG | **a**: S7 ngoài MVP, ghi rõ "MVP không gồm câu hỏi quy trình (RAG)"; đo S7 ở nấc RAG-0 |
+| **D-OP-9** | Nhóm nghìn bằng dấu cách ("bể 2 500 lít") — làm lại cách sửa nào | dòng S2 của CỔNG TRƯỚC AI (KHÔNG ĐẠT) | lỗi đã đo, giữ nguyên | xem dòng D-OP-9 ở `docs/CHO-QUYET-DINH.md` |
+| **D-OP-11** | Hỏi lại khi bí danh mơ hồ: liệt kê ứng viên nào | dòng S3 (KHÔNG ĐẠT: H3-538, 539, 543) | test đang ghim hành vi hiện tại | **b** (theo dòng D-OP-11) |
 | **D-OP-18** | Câu "ghi nhận / nhận xét + giá trị" ("Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay") là lệnh ghi hay câu hỏi? | vòng cuối của nợ S4 sau H4 | mã ở nhánh máy, không gộp; main giữ hành vi cũ | **c**: câu có giá trị cụ thể là lệnh ghi (hỏi lại / từ chối kèm "trợ lý chưa ghi số liệu"); câu không có giá trị là câu hỏi |
 
 ## 2. Không chặn — đang chạy theo mặc định
@@ -29,3 +32,5 @@ Cập nhật: 22/10/2026 17:1x.
 |---|---|---|---|
 | 22/10 17:0x | Làm tiếp sau giờ ca, nhịp 30 phút suốt 22–23/10 | lời chủ dự án 16:5x, 17:0x | xoá cron của phiên |
 | 22/10 17:0x | Nợ S4 sau H4 không gộp sau hai vòng soát KHÔNG ĐẠT | luật dừng brief BUILD §9.6 | trả lời D-OP-18 rồi chạy vòng cuối |
+| 22/10 17:2x | Trần agent cùng lúc 3 → 5 | lời chủ dự án 17:2x | — |
+| 22/10 17:3x | "Lượt" của vế 100% dòng Vết = lượt đã xác thực (lượt 401 chỉ bộ đếm + log) | chưa có tenant để ghi vết theo RLS | đổi định nghĩa trong `docs/bao-cao/CONG-TRUOC-AI.md` |

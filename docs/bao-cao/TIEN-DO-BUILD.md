@@ -19,8 +19,10 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
   - M4 giấy (`f102238`, soát ĐẠT CÓ GHI CHÚ); trước mã: L3D-01…08 + bộ ca giữ lại độc lập Phase 1. Khi mã xong, dòng M4 ghi "lệnh tạo
     phiếu có kiểm soát; chưa có bên kích hoạt tự động (Q-P1-6)".
   - M2 giấy (`5d69d24`); bản sửa F01–F03 ở nhánh máy (5 commit, chưa gộp): soát vòng 2 KHÔNG ĐẠT — 1 S2 (quyết định của người đưa bản HELD vì lý do khác sang ACCEPTED mà không chạy TR3 với bản đứng trước ⇒ cộng đôi im lặng) và 6 S3; sửa vòng 3 (vòng cuối theo §9.6).
-  - M5 **chưa đạt**: dòng S4 KHÔNG ĐẠT; các dòng khác chưa đủ bảng lệnh theo §9.3.
-- **Đang làm:** theo lệnh ca: M4 (sửa L3D → bộ ca giữ lại Phase 1 → mã), M2 (sửa giấy vòng 3), M5 (bảng lệnh §9.3).
+  - M5 **chưa đạt**: bảng lệnh từng dòng ở `docs/bao-cao/CONG-TRUOC-AI.md` (22/10 17:3x) — S2, S3, S4 KHÔNG ĐẠT; L1, S7, S9 chưa có bộ ca
+    độc lập; S6 và vế ≥ 90% của dòng Vết chưa đo; S5 đạt theo tầng có điều kiện; câu mở D-AI-03 (S7 trong hay ngoài MVP).
+- **Đang làm** (tối đa 5 agent cùng lúc, chủ dự án 17:2x): M4 sửa giấy L3D; M2 sửa giấy vòng 3; đo vế "người soát chỉ đọc vết ≥ 90%"
+  (thẻ vết + người đọc mù + nhãn chuẩn độc lập); M1 sửa ghi chú S3 R2-01/02/04/05. Câu chờ quyết: `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
 - **Xong từ lần trước (cả ca 22/10):** cổng phán quyết KHOÁ HẲN (`59557c2`); S4 đóng băng `a665298`; H4 chạy một lần (104/119 hai đường;
   mốc 102/119); M1 RA theo lệnh ca; giấy Phase 1 (sửa L3C-01…04 + demo), giấy Phase 0a; nợ S4 sau H4: hai vòng soát KHÔNG ĐẠT ⇒ không gộp,
   câu mở D-OP-18. Báo cáo ca: `docs/bao-cao/2026-10-22-ca.md`.
@@ -88,3 +90,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 16:2x | commit chứa dòng này | Nợ S4 sau H4: hai vòng sửa, hai vòng soát độc lập KHÔNG ĐẠT ⇒ không gộp; ghi bài học + trạng thái ở ADR-0010; câu mở **D-OP-18** | Vòng 2 đo: test có PG 602 pass (theo tên 0 đổi / 0 mất), 117 / H1 / H3 / H4 0 dòng, corpus 0 phán quyết mới; F6' đóng | Mã ở nhánh máy `lead/no-s4-sau-h4` (3 commit WIP); vòng 3 là vòng cuối (§9.6) |
 | 22/10 17:0x | commit chứa dòng này | Mốc chốt ca ngày 22/10: cổng cuối, báo cáo ca, STATUS, CHANGELOG (chủ dự án dặn làm tiếp) | `go vet` 0; `gofmt -l` 0; test có PG 601 test (kể cả test con) pass / 0 skip (theo tên 0 đổi / 0 mất so cổng M1); bộ 117 (đường bộ nhớ) và H1 / H3 / H4 (hai đường) 0 dòng nội dung khác so cổng M1; CI run 39755113290 success | MVP chưa RA: M1 RA theo lệnh ca (vế ≥ 90% của §5b chưa đo); M3 chờ D-AI-02; M2, M4 giấy; M5 chưa đạt. Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
 | 22/10 17:1x | commit chứa dòng này | So cổng cuối với mốc đầu ca `ffb1efb` (báo cáo ca mục 6) | Test có PG theo tên: 455 → 601, 0 đổi / 0 mất / 146 mới; 117 117/117 không đổi; H1 89 → 92, H3 109 → 113 (hai đường), 0 ca xanh → đỏ; mọi dòng khác thuộc G1 cờ ước lượng (làn 2) hoặc vòng S4 (ADR-0010) | H1 / H3 là bộ hồi quy, không phải bằng chứng cho vòng S4 |
+| 22/10 17:3x | commit chứa dòng này | M5: bảng lệnh từng dòng CỔNG TRƯỚC AI (`docs/bao-cao/CONG-TRUOC-AI.md`) từ người kiểm toán chỉ đọc; câu mở D-AI-03 (S7 trong hay ngoài MVP) | Điều phối đo lại phần không PG: 374 test (kể cả test con) pass, 0 fail, 6 skip đều cần PG; số theo gói khớp lời khai | Trạng thái tổng CHƯA ĐẠT; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |

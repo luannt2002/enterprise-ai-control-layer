@@ -210,3 +210,36 @@ nào "Đúng." / "Không.") và bản sửa `a665298`:**
   S49 mới — cả hai bị bắt.
 
 **Đóng băng:** mã tầng ý định S4 ở `a665298`. H4 chạy MỘT lần trên mã này (kèm bản sửa cổng phán quyết `be91cd0`, chỉ bớt phán quyết).
+
+## Kết quả H4 (22/10 14:59, chạy MỘT lần ở `57409f2`)
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Bằng chứng thô: `docs/g7/holdout-h4/ket-qua-h4/`; đối chứng mốc `7d72e33`:
+`docs/g7/holdout-h4/ket-qua-h4-moc/`.
+
+- **104 / 119 ở cả hai đường** (bộ nhớ, PostgreSQL), phát lại 119 / 119, 0 lệch, 0 canary. Mốc 102 / 119: 2 ca đỏ → xanh (744, 745), 0 ca
+  xanh → đỏ; 15 ca đỏ đều đã đỏ ở mốc.
+- Tầng sai đầu tiên của 15 ca đỏ: một người phân tích chạy lại từng ca qua pipeline thật (vết từng tầng, cặp câu tối thiểu); một người kiểm
+  chéo độc lập chạy lại 13 ca (mọi ca bị gán S4 hoặc sai nghĩa + mẫu) — **đồng ý 13 / 13** về tầng và nhãn.
+
+| Ca | Lớp | Tầng sai đầu tiên | Sai nghĩa không nhãn | Cụm |
+|---|---|---|---|---|
+| 705 | representation | cổng phán quyết | không | C1 — đóng thừa ("kho cấp": "kho" không được giải thích), an toàn |
+| 716 | representation | S4 | không | C3 + S4R-05 — câu không có chữ "dầu" bị từ chối |
+| 740 | ambiguity | S4 | không | N1 (mới) — hoà ý định ("cảm biến báo") bỏ rơi ứng viên thực thể |
+| 758 | semantic | S4 | **có** | C4 — "chênh" ép cặp mặc định thay cặp người hỏi nêu |
+| 806 | source_conflict | S4 | không | C3 — danh sách đóng (a2 thành a1) |
+| 808 | source_conflict | cổng phán quyết | không | C1 — đóng thừa |
+| 810 | source_conflict | S4 | không | C5 — vai mệnh đề rò rỉ (bất biến (b) chưa áp) |
+| 835 | unsupported_answer | cổng phán quyết | không | C1 — đóng thừa |
+| 837 | unsupported_answer | cổng phán quyết | không | C1 — đóng thừa (số trần ở ngữ cảnh) |
+| 838 | unsupported_answer | cổng phán quyết | không | C1 — đóng thừa |
+| 841 | unsupported_answer | S4 | không | C3 + S4R-05 |
+| 847 | unsupported_answer | S4 | **có** | C5 — vai mệnh đề rò rỉ |
+| 848 | unsupported_answer | S4 | không | C3 + S4R-05 (kèm C1) |
+| 854 | routing | S4 | **có** | C4 — tập chỉ số "thắng hết" |
+| 862 | routing | S4 | không | C3 — danh sách đóng (lời chào) |
+
+**Ngưỡng S4 của brief §9.3: KHÔNG ĐẠT.** S4 là tầng sai đầu tiên ở 10 / 119 = 8,4% (ngưỡng ≤ 5%); 3 câu trả lời sai nghĩa không nhãn
+(ngưỡng 0). Năm ca dừng ở cổng phán quyết đều là đóng thừa (không phán quyết sai chiều), cổng đã khoá. Việc tiếp theo chờ chủ dự án quyết
+**D-AI-02** (`docs/CHO-QUYET-DINH.md`): sửa tiếp bằng luật (khuyến nghị) và chấm trên bộ giữ lại mới, hay hạ ngưỡng, hay cho một lượt model
+nhỏ. Từ nay H4 là bộ hồi quy; không chạy lại, không dùng làm bằng chứng cho bản sửa sau.

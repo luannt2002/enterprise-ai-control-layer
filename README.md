@@ -59,11 +59,12 @@ git clone https://github.com/luannt2002/enterprise-ai-control-layer && cd enterp
 scripts/chay-thu.sh          # EAIS_PG_DOWN=1 để gỡ PG khi xong
 ```
 
-Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **10 giây** với bộ nhớ đệm build rỗng, **4 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 21 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước.
+Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **10 giây** với bộ nhớ đệm build rỗng, **4 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 21 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước. Server của script nghe ở cổng do hệ điều hành chọn (`127.0.0.1:0`) và script chỉ gọi đúng địa chỉ mà server của nó đã báo, nên một server khác đang giữ cổng cũng không bị gọi nhầm (đặt `EAIS_ADDR` cố định mà cổng bận thì script dừng với "server thoát sớm").
 
-**Từng bước** (cùng việc script làm; `$W` là thư mục làm việc tuỳ chọn):
+**Từng bước** (cùng việc script làm). Các lệnh dùng `$W/eais` và `$W/data`, nên **đặt `W` trước** (không đặt thì thành `/eais` và `/data`):
 
 ```bash
+W=$(mktemp -d)
 docker compose -f deploy/docker-compose.yml up -d --wait
 export EAIS_PG_ADMIN_DSN='postgres://postgres@127.0.0.1:25432/eais?sslmode=disable' EAIS_PG_DSN='postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable'
 go build -o $W/eais ./cmd/eais && $W/eais migrate
@@ -98,6 +99,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 
 **Giới hạn đã biết** (ghi thẳng):
 - `serve` chỉ chạy được với `-dev` (token công khai, chỉ nghe loopback, chặn `Host` không phải loopback). Chưa có cơ chế xác thực cho môi trường thật — đang chờ quyết định.
-- Phiên bản dữ liệu ghi vào vết được tính từ thư mục dữ liệu lúc server khởi động và sau mỗi `POST /v1/ingest`, không đọc ngược từ PG. Nạp bằng CLI (`eais ingest`) khi server đang chạy: server không biết ⇒ khởi động lại server, hoặc nạp bằng `POST /v1/ingest`.
+- Phiên bản dữ liệu ghi vào vết được tính từ thư mục dữ liệu lúc server khởi động và sau mỗi `POST /v1/ingest`, không đọc ngược từ PG. Nạp bằng CLI (`eais ingest`) khi server đang chạy: các lần nạp cùng tenant xếp hàng nhau ở kho (khoá tư vấn theo tenant) nên không giẫm nhau, nhưng server không biết dữ liệu đã đổi ⇒ vết sau đó mang phiên bản dữ liệu cũ; khởi động lại server, hoặc nạp bằng `POST /v1/ingest`. Còn một cửa sổ cực ngắn giữa lúc lần nạp ghi xong vào kho và lúc server cập nhật phiên bản: lượt hỏi rơi vào đó đọc dữ liệu mới nhưng ghi phiên bản cũ.
+- Lượt mà `Handle` trả lỗi (kể cả bị chính sách chặn, vd tenant lạ) chỉ để lại MỘT bước vết `S?` đánh dấu TRỐNG, không chỉ được tầng lỗi, vì `Handle` trả kết quả rỗng khi lỗi (`core/pipeline` ngoài phạm vi của ứng dụng). Chỉ tiêu "người chỉ đọc vết mà chỉ đúng tầng sai đầu tiên ở ≥ 90% ca đỏ" **chưa đo**, và với lượt lỗi cơ chế hiện tại không cho đạt: cần `Handle` trả kết quả một phần khi lỗi.
 - Chưa có vết các bước nạp (`L1.*`) và chưa có chính sách dọn / lưu giữ vết (vai ứng dụng không có quyền xoá).
 - CI ở `.github/workflows/ci.yml` chưa chạy trên GitHub (xem ghi chú đầu tệp).

@@ -609,6 +609,10 @@ func TestLuuVetThatBaiDongMacDinh(t *testing.T) {
 	if r.status != 503 || strings.Contains(string(r.body), `"answer"`) || strings.Contains(string(r.body), "s3cretpw") || strings.Contains(string(r.body), "postgres://") {
 		t.Fatalf("không lưu được vết: %d %s, muốn 503 không có câu trả lời và không lộ DSN", r.status, r.body)
 	}
+	// client chỉ nhận LỚP lỗi ("infra"), không nhận tên thành phần nội bộ ("infra:postgres"); thông điệp không hứa trace_id (không có)
+	if eb := decodeAs[errBody](t, r); eb.Fault != "infra" || eb.TraceID != "" || strings.Contains(string(r.body), "postgres") || strings.Contains(eb.Error, "tra cứu vết bằng trace_id") {
+		t.Errorf("phản hồi khi không lưu được vết: %+v, muốn fault \"infra\" (không lộ tên thành phần), không trace_id, không bảo tra cứu vết", eb)
+	}
 	if got := e.srv.cnt.TraceSaveFailed.Load(); got != 1 {
 		t.Errorf("TraceSaveFailed = %d, muốn 1", got)
 	}
@@ -629,6 +633,32 @@ func TestLuuVetThatBaiDongMacDinh(t *testing.T) {
 	}
 	if r := e.ask(tokDirector, qSQL); r.status != 200 {
 		t.Errorf("hết lỗi chèn mà lượt kế vẫn lỗi: %d", r.status)
+	}
+}
+
+// Lượt Handle trả lỗi VÀ vết của lượt cũng không lưu được: phản hồi không được bảo "tra cứu vết bằng trace_id" khi không có trace_id nào;
+// nó nói thẳng là vết không lưu được. Đối chứng: lưu được thì có trace_id và có lời chỉ dẫn tra cứu. Nhãn lỗi ra client chỉ là lớp ("infra"
+// / "code"), không phải tên thành phần nội bộ.
+func TestLuotLoiKhongLuuDuocVet(t *testing.T) {
+	e, ms := memEnv(t)
+	ms.panicEntities = true
+	ms.saveDecisionErrs = []error{infraErr(), infraErr(), infraErr()}
+	r := e.ask(tokDirector, qSQL)
+	eb := decodeAs[errBody](t, r)
+	if r.status != 500 || eb.TraceID != "" || r.header.Get("X-Trace-Id") != "" || eb.Fault != contracts.FaultCode {
+		t.Fatalf("lỗi Handle + không lưu được vết: %d %+v, muốn 500, fault code, không trace_id", r.status, eb)
+	}
+	if strings.Contains(eb.Error, "tra cứu vết bằng trace_id") || !strings.Contains(eb.Error, "không lưu được") || strings.Contains(eb.Error, "panic") {
+		t.Errorf("thông điệp %q: không được hứa tra cứu bằng trace_id khi không có trace_id, phải nói vết không lưu được, không lộ chữ panic", eb.Error)
+	}
+	if got := e.srv.cnt.TraceSaveFailed.Load(); got != 1 {
+		t.Errorf("TraceSaveFailed = %d, muốn 1", got)
+	}
+	ms.saveDecisionErrs = nil
+	r = e.ask(tokDirector, qSQL)
+	eb = decodeAs[errBody](t, r)
+	if r.status != 500 || eb.TraceID == "" || !strings.Contains(eb.Error, "tra cứu vết bằng trace_id") {
+		t.Errorf("đối chứng (lưu được vết): %d %+v, muốn 500 có trace_id và lời chỉ dẫn tra cứu", r.status, eb)
 	}
 }
 

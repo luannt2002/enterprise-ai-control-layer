@@ -165,14 +165,26 @@ func deadline(w http.ResponseWriter, d time.Duration) {
 	_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d))
 }
 
+// isCallerFault: lỗi do bên gọi (input) hoặc do chính sách (policy) — thông điệp của chúng viết cho người gọi.
+func isCallerFault(fault string) bool {
+	return fault == contracts.FaultInput || fault == contracts.FaultPolicy
+}
+
 // publicMessage là thông điệp lỗi giao cho client. Lỗi do bên gọi (input) và do chính sách (policy) có thông điệp viết cho người
-// gọi nên giữ nguyên; mọi lỗi khác có thể mang chi tiết nội bộ (lỗi driver, đường dẫn…) nên client chỉ nhận câu chung + trace_id,
-// còn chi tiết đã làm sạch nằm trong vết.
+// gọi nên giữ nguyên; mọi lỗi khác có thể mang chi tiết nội bộ (lỗi driver, đường dẫn…) nên client chỉ nhận câu chung; chi tiết đã
+// làm sạch nằm trong vết (nếu lượt có vết) và trong log. Câu này KHÔNG nhắc trace_id: chỉ failTurn biết lượt có vết hay không.
 func publicMessage(fault, msg string) string {
-	if fault == contracts.FaultInput || fault == contracts.FaultPolicy {
+	if isCallerFault(fault) {
 		return msg
 	}
-	return "lỗi hệ thống; tra cứu vết bằng trace_id (chi tiết nội bộ không công bố qua API)"
+	return "lỗi hệ thống (chi tiết nội bộ không công bố qua API)"
+}
+
+// publicFault là nhãn lỗi giao cho client: chỉ LỚP lỗi ("infra", "third_party", "code"…), không có tên thành phần nội bộ phía sau dấu
+// hai chấm ("infra:postgres" → "infra"). Nhãn đầy đủ nằm trong vết, cho người vận hành.
+func publicFault(fault string) string {
+	class, _, _ := strings.Cut(fault, ":")
+	return class
 }
 
 func (s *server) healthz(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +225,7 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 		if fault == contracts.FaultInput || fault == contracts.FaultPolicy { // bản ghi do CHÍNH server dựng bị từ chối: lỗi của server, không phải của client
 			status = http.StatusInternalServerError
 		}
-		writeJSON(w, status, errBody{Error: "không lưu được vết của lượt; không giao câu trả lời", Fault: fault})
+		writeJSON(w, status, errBody{Error: "không lưu được vết của lượt này nên không giao câu trả lời (không có trace_id; xem log của server)", Fault: publicFault(fault)})
 		return
 	}
 	w.Header().Set("X-Trace-Id", out.Response.TraceID)
@@ -244,10 +256,15 @@ func (s *server) failTurn(w http.ResponseWriter, r *http.Request, pr contracts.P
 	if status == 0 {
 		status = contracts.HTTPStatus(err)
 	}
-	body := errBody{Error: publicMessage(rec.Fault, rec.Error), Fault: rec.Fault}
+	body := errBody{Error: publicMessage(rec.Fault, rec.Error), Fault: publicFault(rec.Fault)}
 	if s.persist(r.Context(), pr, rec, acc) == nil {
 		body.TraceID = traceID
 		w.Header().Set("X-Trace-Id", traceID)
+		if !isCallerFault(rec.Fault) {
+			body.Error += "; tra cứu vết bằng trace_id"
+		}
+	} else if !isCallerFault(rec.Fault) {
+		body.Error += "; vết của lượt này cũng không lưu được nên không có trace_id (xem log của server)"
 	}
 	writeJSON(w, status, body)
 }
@@ -369,7 +386,7 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request, pr contracts.Pri
 		if fault == contracts.FaultData { // người gọi đã là vai toàn quyền và xung đột dữ liệu là thứ họ phải xử lý: nói rõ
 			public = msg
 		}
-		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: public, Fault: fault})
+		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: public, Fault: publicFault(fault)})
 		return
 	}
 	s.log.Info("đã nạp lại dữ liệu", "tenant", pr.TenantID, "principal", pr.ID, "load_id", rep.LoadID, "observations", rep.Observations,
@@ -414,7 +431,7 @@ func (s *server) traceGet(w http.ResponseWriter, r *http.Request, pr contracts.P
 	if err != nil {
 		fault, msg := traces.SanitizeError(err)
 		s.log.Error("đọc vết thất bại", "trace_id", traces.Sanitize(id), "tenant", pr.TenantID, "fault", fault, "lỗi", msg)
-		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: publicMessage(fault, msg), Fault: fault})
+		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: publicMessage(fault, msg), Fault: publicFault(fault)})
 		return
 	}
 	if r.URL.Query().Get("format") == "table" {

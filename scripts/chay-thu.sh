@@ -11,7 +11,8 @@
 #   EAIS_COMPOSE_PROJECT   tên dự án compose              (eais)
 #   EAIS_PG_CONTAINER      tên container PG               (eais-pg)
 #   EAIS_PG_PORT           cổng PG trên 127.0.0.1         (25432)
-#   EAIS_ADDR              địa chỉ nghe của server        (127.0.0.1:8080; serve -dev chỉ nhận loopback)
+#   EAIS_ADDR              địa chỉ nghe của server        (127.0.0.1:0 = hệ điều hành chọn cổng trống, script đọc cổng thật từ
+#                          dòng "đang nghe http://…" của server; serve -dev chỉ nhận loopback)
 #   EAIS_WORK              thư mục làm việc (binary, dữ liệu, log); mặc định mktemp -d, xoá khi xong nếu do script tạo
 #   EAIS_PG_DOWN=1         gỡ PG khi xong NẾU CHÍNH script này đã dựng nó (mặc định giữ lại để soi tay)
 #
@@ -26,7 +27,7 @@ step() { printf '\n== [%ss] %s\n' "$((SECONDS - t0))" "$*"; }
 PROJECT=${EAIS_COMPOSE_PROJECT:-eais}
 CONTAINER=${EAIS_PG_CONTAINER:-eais-pg}
 PORT=${EAIS_PG_PORT:-25432}
-ADDR=${EAIS_ADDR:-127.0.0.1:8080}
+ADDR=${EAIS_ADDR:-127.0.0.1:0}
 started_pg=0 server_pid='' made_work=0
 if [ -z "${EAIS_WORK:-}" ]; then
 	EAIS_WORK=$(mktemp -d) made_work=1
@@ -77,28 +78,50 @@ go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/wo
 step "nạp dữ liệu của tenant vào PG (quan sát + cách ly có lý do)"
 "$EAIS_WORK/eais" ingest -pack tenants/construction/pack -data "$EAIS_WORK/data"
 
-step "chạy server (nền, chế độ dev, $ADDR)"
+step "chạy server (nền, chế độ dev, nghe $ADDR)"
 "$EAIS_WORK/eais" serve -dev -addr "$ADDR" -pack tenants/construction/pack -world tenants/construction/win/world.yaml \
 	-data "$EAIS_WORK/data" -now world >"$EAIS_WORK/serve.log" 2>&1 &
 server_pid=$!
-up=0
-for _ in $(seq 1 60); do
+# Chỉ hỏi địa chỉ mà CHÍNH server của script đã báo bằng dòng "đang nghe http://…" (server in dòng đó sau khi gắn cổng thành công).
+# KHÔNG hỏi /healthz của địa chỉ yêu cầu khi chưa có dòng đó: cổng đang bị một server KHÁC giữ (bản cũ, tiến trình khác) sẽ trả lời
+# healthz thay cho server mới còn đang khởi động hoặc đang chết vì không gắn được cổng, và smoke chạy nhầm vào nó.
+addr=''
+for _ in $(seq 1 120); do
 	if ! kill -0 "$server_pid" 2>/dev/null; then
 		echo "server thoát sớm; log:" >&2
 		cat "$EAIS_WORK/serve.log" >&2
 		exit 1
 	fi
-	if curl -fsS -m 2 "http://$ADDR/healthz" >/dev/null 2>&1; then up=1; break; fi
+	line=$(grep -m1 '^đang nghe http://' "$EAIS_WORK/serve.log" || true)
+	if [ -n "$line" ]; then addr=${line#đang nghe http://}; break; fi
+	sleep 0.25
+done
+[ -n "$addr" ] || { echo "server không báo địa chỉ đang nghe sau 30 giây; log:" >&2; cat "$EAIS_WORK/serve.log" >&2; exit 1; }
+echo "server của script nghe ở http://$addr"
+up=0
+for _ in $(seq 1 60); do
+	if ! kill -0 "$server_pid" 2>/dev/null; then
+		echo "server thoát sớm sau khi báo đang nghe; log:" >&2
+		cat "$EAIS_WORK/serve.log" >&2
+		exit 1
+	fi
+	if curl -fsS -m 2 "http://$addr/healthz" >/dev/null 2>&1; then up=1; break; fi
 	sleep 0.5
 done
 [ "$up" = 1 ] || { echo "server không trả lời /healthz sau 30 giây; log:" >&2; cat "$EAIS_WORK/serve.log" >&2; exit 1; }
 
 step "smoke E2E"
 rc=0
-scripts/smoke-e2e.sh "http://$ADDR" || rc=$?
+scripts/smoke-e2e.sh "http://$addr" || rc=$?
 
 step "dừng server"
-kill -TERM "$server_pid"
+if kill -0 "$server_pid" 2>/dev/null; then
+	kill -TERM "$server_pid"
+else
+	echo "server của script đã thoát giữa chừng lúc chạy smoke; log:" >&2
+	cat "$EAIS_WORK/serve.log" >&2
+	if [ "$rc" = 0 ]; then rc=1; fi
+fi
 wait "$server_pid" 2>/dev/null || true
 server_pid=''
 grep -E 'tổng kết|CHỈ DEV' "$EAIS_WORK/serve.log" || true

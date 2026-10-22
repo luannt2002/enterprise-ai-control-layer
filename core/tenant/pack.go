@@ -202,6 +202,18 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
 				NeutralWords:      inf.ClaimNeutralWords,
+				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định)
+				QuantityFits: func(metric string, v contracts.Value) bool {
+					def, ok := rt.Metrics.Metric(metric)
+					if !ok {
+						return false
+					}
+					if v.Unit == def.Unit {
+						return true
+					}
+					_, err := rt.Normalizer.Convert(v, def.Unit)
+					return err == nil
+				},
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)
 					return ok && d.DefaultUnit != ""
@@ -253,6 +265,18 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 	for _, name := range needed {
 		if _, ok := tf.Templates[name]; !ok {
 			problems = append(problems, "templates.yaml: thiếu mẫu câu "+name)
+		}
+	}
+	// Ý định khai câu giả định thì mọi mẫu câu trả lời số liệu của nó phải có chỗ cho câu đó: đổi mẫu mà quên {assumption_note} sẽ nuốt
+	// nhãn giả định im lặng (D-OP-15 điều kiện (i)).
+	for _, d := range inf.Intents {
+		if d.Assumption == "" {
+			continue
+		}
+		for _, name := range []string{d.Template, "no_data", "needs_review"} {
+			if text, ok := tf.Templates[name]; ok && !strings.Contains(text, "{assumption_note}") {
+				problems = append(problems, fmt.Sprintf("templates.yaml: ý định %s có assumption nhưng mẫu %s thiếu {assumption_note}", d.Name, name))
+			}
 		}
 	}
 	for name, text := range tf.Templates {

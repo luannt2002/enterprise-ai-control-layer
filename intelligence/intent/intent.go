@@ -64,6 +64,9 @@ type Options struct {
 	// trả lời theo ý định chung khi ngoài tên, mốc, lượng, thuật ngữ, cụm xác nhận ra chỉ còn những từ này và mảnh từ khoá của ý
 	// định riêng mà ý định chung quy về (xem Set.generic).
 	NeutralWords []string
+	// QuantityFits báo một lượng đổi được sang đơn vị của chỉ số (cùng chiều đo): a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số
+	// chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng khác. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa.
+	QuantityFits func(metric string, v contracts.Value) bool
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -592,7 +595,8 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			}
 		}
 	}
-	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
+	metric := gen[0].MetricByTerm[term]
+	if len(gen) != 1 || metric == "" {
 		return Def{}, false
 	}
 	var own, other []string // từng chữ của từ khoá: ý định riêng cùng chỉ số với ý định chung / ý định số liệu khác
@@ -601,7 +605,7 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			continue
 		}
 		for _, k := range d.Keywords {
-			if d.MetricByTerm[term] == gen[0].MetricByTerm[term] {
+			if d.MetricByTerm[term] == metric {
 				own = append(own, strings.Fields(k)...)
 			} else {
 				other = append(other, strings.Fields(k)...)
@@ -633,9 +637,15 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
 				cover(ws, we)
 			}
-		case contracts.ValueTerm, contracts.ValueQuantity, contracts.ValueNumber:
-			cover(sp.Start, sp.End)
-		}
+		case contracts.ValueTerm: // chỉ thuật ngữ của ý định chung ("dầu"); "giá", "giờ máy", "nhân công" là đại lượng khác
+			if slices.Contains(gen[0].Terms, sp.Value.Text) {
+				cover(sp.Start, sp.End)
+			}
+		case contracts.ValueQuantity: // chỉ lượng cùng chiều đo với chỉ số chung ("4 khối"); "7 tấn", "8h" là đại lượng khác
+			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {
+				cover(sp.Start, sp.End)
+			}
+		} // số trần (không gắn đơn vị hay "dầu": "số 2") không thuộc nghĩa của chỉ số chung
 	}
 	for _, p := range s.opt.FocusMarkers {
 		for _, sp := range normalization.PhraseSpans(raw, p) {
@@ -665,7 +675,10 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			}
 			j += m
 		}
-		if !whole(raw[i:j], own) {
+		// so khớp trong CẢ câu (cùng luật dấu với từ trung tính): "duoc" không dấu trong câu có dấu không phải "được"
+		if !slices.ContainsFunc(own, func(c string) bool {
+			return slices.ContainsFunc(normalization.PhraseSpans(raw, c), func(sp [2]int) bool { return sp[0] == i && sp[1] == j })
+		}) {
 			return Def{}, false
 		}
 		meaning = true

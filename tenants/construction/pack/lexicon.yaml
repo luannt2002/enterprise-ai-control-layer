@@ -32,6 +32,9 @@ terms:
   - {term: machine_hours, label: giờ máy, aliases: [giờ máy, ca máy], default_unit: h}
   - {term: project, label: dự án, aliases: [dự án, công trình]}
   - {term: price, label: giá, aliases: [giá, đơn giá], default_unit: VND}
+  # Dầu KHÔNG phải nhiên liệu (dầu nhớt, dầu thuỷ lực, dầu ăn…): vật tư khác, cụm dài thắng "dầu" nên không bị hiểu là dầu diesel; có đơn
+  # vị mặc định nên là "đại lượng khác" (không hiểu ngầm dầu diesel). Pack chưa có ý định nào cho vật tư này ⇒ câu về nó ngoài phạm vi.
+  - {term: other_oil, label: dầu không phải nhiên liệu, aliases: [dầu nhớt, nhớt, dầu thủy lực, dầu thuỷ lực, dầu hộp số, dầu bôi trơn, mỡ bôi trơn, dầu ăn, dầu gội, dầu gió, dầu thơm], default_unit: L}
 
 abbreviations:
   # "DA 4.000L" → dầu (lượng thể tích đứng sau); "DA cầu A" → dự án; "DA: 4.000" → hỏi lại.

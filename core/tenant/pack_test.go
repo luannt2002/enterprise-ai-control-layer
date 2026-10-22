@@ -139,6 +139,8 @@ func TestLoadChanPackHong(t *testing.T) {
 		"vai mở toang không khai scope":               {"policy.yaml": "roles:\n  director: {capabilities: [metrics.read]}\n"},
 		"thiếu policy":                                {"policy.yaml": "<xoá>"},
 		"khai cụm so sánh mà thiếu mẫu compare_total": {"intents.yaml": validIntents + "comparison_markers: [nhiều hơn]\n"},
+		// ý định có câu giả định mà mẫu câu trả lời không có chỗ cho nó: nhãn bị nuốt im lặng (D-OP-15 (i))
+		"ý định có assumption, mẫu câu thiếu {assumption_note}": {"intents.yaml": assumedIntents},
 		"ý định RAG thiếu mẫu câu khi tài liệu không trả lời được": {
 			"intents.yaml": validIntents + ragIntent, "templates.yaml": validTemplates + "  knowledge_answer: \" Theo {title}: {procedure}\"\n"},
 	}
@@ -146,6 +148,25 @@ func TestLoadChanPackHong(t *testing.T) {
 		dir := writePack(t, fullPack(over))
 		if _, err := Load(dir); err == nil {
 			t.Errorf("%s: Load phải lỗi", name)
+		}
+	}
+}
+
+// assumedIntents là validIntents với câu giả định cho ý định chung.
+var assumedIntents = strings.Replace(validIntents, "    capability: metrics.read\n", "    capability: metrics.read\n    assumption: \"Hiểu là dầu báo cáo.\"\n", 1)
+
+// Ý định có câu giả định: đủ {assumption_note} ở mẫu câu của nó, no_data và needs_review thì nạp được.
+func TestLoadPackCauGiaDinh(t *testing.T) {
+	tmpl := strings.NewReplacer("{conflict_note}\"", "{conflict_note}{assumption_note}\"", "\"Chưa có dữ liệu.\"", "\"Chưa có dữ liệu.{assumption_note}\"",
+		"\"Cần người duyệt: {reason}\"", "\"Cần người duyệt: {reason}{assumption_note}\"").Replace(validTemplates)
+	if _, err := Load(writePack(t, fullPack(map[string]string{"intents.yaml": assumedIntents, "templates.yaml": tmpl}))); err != nil {
+		t.Fatalf("pack có câu giả định và đủ chỗ trong mẫu câu phải nạp được: %v", err)
+	}
+	for _, name := range []string{"metric_total", "no_data", "needs_review"} {
+		broken := strings.Replace(tmpl, name+": ", name+"_x: ", 1) // mẫu đó quay về bản không có {assumption_note}
+		broken += "  " + name + ": " + map[string]string{"metric_total": "\"{value}\"", "no_data": "\"Chưa có.\"", "needs_review": "\"Duyệt.\""}[name] + "\n"
+		if _, err := Load(writePack(t, fullPack(map[string]string{"intents.yaml": assumedIntents, "templates.yaml": broken}))); err == nil {
+			t.Errorf("mẫu %s thiếu {assumption_note}: Load phải lỗi", name)
 		}
 	}
 }

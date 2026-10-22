@@ -47,6 +47,13 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		"EX-03 hôm nay định mức 5000 L dầu đúng không?",
 		// tên nguồn chưa thuộc tập chữ giải thích được của a2 (ý định không biết nguồn của chỉ số) ⇒ hỏi lại, phía an toàn
 		"EX-03 hôm nay ERP ghi 3900 L dầu, vậy đúng không?",
+		// thuật ngữ / lượng của đại lượng KHÁC không phải chữ trung tính của a2 (soát S4 vòng 1, S4R-01): hỏi giá, giờ máy, khối lượng
+		"Đơn giá dầu xuất hôm nay của EX-03 là 4100 đúng không?",
+		"Giờ máy xuất dầu hôm nay của EX-03 là 8h đúng không?",
+		"Hôm nay EX-03 xuất 7 tấn dầu đúng không?",
+		"Hôm nay nhân công EX-03 xuất 3850 L dầu đúng không?", // thuật ngữ của đại lượng khác là chữ lạ duy nhất
+		// chữ không dấu trong câu có dấu xét theo cùng luật dấu với cả câu (S4R-06): "duoc" không phải "được"
+		"Hôm qua EX-03 duoc 4k dầu đúng không?",
 	} {
 		r := ask(t, a, director, q).Response
 		if r.Route != contracts.RouteClarification || r.Outcome != contracts.OutcomeClarificationRequired {
@@ -64,6 +71,8 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		"EX-03 hôm nay xuất 4000 lít dầu phải không?",
 		"Cho hỏi hôm nay EX-03 đã được xuất 3850 L dầu đúng không ạ?",
 		"EX-03 ngày 19/10 được xuất 3850 L dầu đúng không?", // "ngày" đứng trước mốc số thuộc mốc
+		"Hôm nay EX-03 xuất 4 khối dầu đúng không?",         // lượng cùng chiều đo (thể tích) với chỉ số chung
+		"Hôm nay EX-03 xuất dầu 3850 đúng không?",           // số trần
 	} {
 		r := ask(t, a, director, q).Response
 		if r.Route != contracts.RouteSQLQuery || r.Outcome != contracts.OutcomeResolved || r.Intent != "fuel_generic" {
@@ -94,6 +103,10 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		"Dầu diesel thế giới tuần này có tăng không?",
 		"Nghe nói EX-03 sắp được đổi tên thành Ông Voi, đúng không?",
 		"Cảm ơn bạn nhé",
+		// "dầu" nghĩa khác (dầu nhớt, dầu thuỷ lực…) là vật tư khác, không phải nhiên liệu (soát S4 vòng 1, S4R-04)
+		"EX-03 thay dầu nhớt lúc nào?",
+		"Dầu thủy lực của máy xúc 07 loại nào?",
+		"EX-03 hôm nay nhận bao nhiêu dầu nhớt?",
 	} {
 		if r := ask(t, a, director, q).Response; r.Route != contracts.RouteReject || r.Outcome != contracts.OutcomeOutOfScope {
 			t.Errorf("%q: ngoài phạm vi, muốn từ chối, được [%s/%s] %q", q, r.Route, r.Outcome, r.Answer)

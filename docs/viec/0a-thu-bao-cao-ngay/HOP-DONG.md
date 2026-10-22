@@ -2,7 +2,7 @@
 
 > **Trạng thái: GIẤY, chưa có mã.**
 > - Mã Phase 0a chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong"). H4 đã khoá (`15f04f9`) và đã chạy MỘT lần ngày 22/10 (`docs/STATUS.md`, dòng "H4, 22/10 14:59") [REPO]: điều kiện này đã đạt. Kết quả H4 ở tầng S4 không đổi hợp đồng này, vì Phase 0a không đi qua S4 (§1.4).
-> - Soát: vòng 1 (người soát ≠ người viết) kết luận **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO]. Bản này sửa ba ghi chú đó (F01: §3.1, §3.8, §5, §9; F02: §5.1, §5.6, §7.4, LC63, LC74, LC75; F03: §10 nhóm I, §11) và khớp M1 đã lên main (§1.4, §14.1); **chưa soát lại sau khi sửa**. Chưa có người nghiệp vụ duyệt (D-RM-03 = "Chưa có").
+> - Soát: vòng 1 (người soát ≠ người viết) kết luận **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO]. Bản này sửa ba ghi chú đó (F01: §3.1, §3.8, §5.4, BB1, CL1, §9 và mọi chỗ nhắc `DUPLICATE`; F02: §5.1, §5.6, §7.4, LC63, LC74, LC75, DB26, DB27; F03: §10 nhóm I, §11.1, §11.3, DB22–DB25, DB28) và khớp M1 đã lên main (§1.4, §14.1); **chưa soát lại sau khi sửa**. Chưa có người nghiệp vụ duyệt (D-RM-03 = "Chưa có").
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc sửa từng quyết định, và trả lời các câu ở §15;
@@ -345,7 +345,7 @@ Mỗi dòng: `unit_key`, `source_type`, `channel`, `sent_at`, `sender_id`, `occu
 |---|---|---|---|---|
 | kho bản ghi (§3.2) | một đơn vị: bản hiện hành, kèm lịch sử phiên bản | `(tenant, unit_key)` | đổi trạng thái theo quyết định, sửa tin, thu hồi, đánh giá lại TR3 | không |
 | sổ lần giao | một lần giao của một đơn vị trong một lô | `(tenant, mã lô, thứ tự trong lô)`; **không** duy nhất theo `unit_key` | chỉ thêm | có, và là nơi duy nhất |
-| vết từng bước (GA10) | một bước của một lần giao | do làn 0 (§1.4) | chỉ thêm | chỉ mô tả cách quyết định; không phải nơi đếm |
+| vết từng bước (GA10, §11.1) | một bước của một lần giao | `(trace_id, thứ tự bước)` | chỉ thêm | chỉ mô tả cách quyết định; không phải nơi đếm |
 
 Vì sao không để `DUPLICATE` ở kho bản ghi: với TR1, bản trùng mang **cùng** `unit_key` với bản gốc nên không thể là dòng thứ hai; nếu mỗi lần giao lại thêm một dòng thì "trạng thái cuối giống hệt" (§5.4) sai. Vì sao không chỉ ở vết: bộ kiểm GA1 không được import bộ nạp và phải đối chiếu được từ kho; nếu một lần giao trùng rơi im lặng (không có dòng nào) mà `DUPLICATE` chỉ nằm ở vết thì GA1 phải tin vào chính điều GA10 đang đo.
 

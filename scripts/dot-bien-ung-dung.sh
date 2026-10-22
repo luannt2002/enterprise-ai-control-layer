@@ -225,6 +225,12 @@ m .github/workflows/ci.yml 'go test -count=1 -json ./... | tee test.json' 'go te
 m scripts/kiem-skip-test.py 'if ngoai or thua or test_hong or goi_hong:' 'if ngoai or thua:' 'CI11 cổng không đỏ khi luồng có test / gói FAIL'
 m scripts/kiem-skip-test.py 'if hanh_dong == "fail" and goi and goi not in goi_hong:' 'if False:' 'CI12 gói không dịch được (chỉ có fail mức gói) không bị đếm'
 m .github/workflows/ci.yml 'poppler-utils fonts-dejavu-core' 'poppler-utils' 'CI13 CI không cài phông DejaVu (test dựng PDF thử tự SKIP)'
+m .github/workflows/ci.yml '            echo "$bad" >&2
+            exit 1' '            echo "$bad" >&2
+            exit 0' 'CI14 bước gofmt không đỏ khi có tệp chưa format'
+m .github/workflows/ci.yml 'run: go vet ./...' 'run: go vet ./... || true' 'CI15 bước go vet có || true'
+m .github/workflows/ci.yml 'run: scripts/chay-thu.sh' 'run: scripts/chay-thu.sh || true' 'CI16 bước smoke E2E có || true'
+m .github/workflows/ci.yml "TestRequestTypesHaveNoTenantField' ." "TestRequestTypesHaveNoTenantField' . || true" 'CI17 bước cổng danh tính có || true'
 
 # --- smoke E2E bằng curl: cổng này cũng phải đỏ được ---
 ms $S 'dec.DisallowUnknownFields()' '_ = 0' 'SM1 smoke: thân mang tenant được nhận'

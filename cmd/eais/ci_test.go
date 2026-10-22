@@ -182,25 +182,38 @@ func TestWorkflowCI(t *testing.T) {
 }
 
 // runCIStep chạy ĐÚNG đoạn lệnh của một bước ci.yml dưới bash TRẦN (không -e, không pipefail: runner có thể thêm cờ nhưng đoạn lệnh phải
-// tự đủ) với một `go` giả thoát bằng goExit. Trả mã thoát của đoạn lệnh và nội dung test.json mà bước ghi ra (nếu có).
-func runCIStep(t *testing.T, script string, goExit int) (int, string) {
+// tự đủ) trong một thư mục làm việc giả, với ba công cụ giả của các cổng — `go`, `python3` và scripts/chay-thu.sh — cùng thoát bằng exit
+// (`go` còn in một dòng JSON như go test -json). Trả mã thoát của đoạn lệnh và nội dung test.json mà bước ghi ra (nếu có).
+func runCIStep(t *testing.T, script string, exit int) (int, string) {
 	t.Helper()
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "bin")
-	if err := os.MkdirAll(bin, 0o755); err != nil {
-		t.Fatal(err)
+	for _, d := range []string{bin, filepath.Join(dir, "scripts")} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
-	fakeGo := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' '{\"Action\":\"output\",\"Package\":\"p\",\"Test\":\"TestX\",\"Output\":\"x\"}'\nexit %d\n", goExit)
-	if err := os.WriteFile(filepath.Join(bin, "go"), []byte(fakeGo), 0o755); err != nil {
-		t.Fatal(err)
+	stub := func(path, body string) {
+		if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body+fmt.Sprintf("exit %d\n", exit)), 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
+	stub(filepath.Join(bin, "go"), `printf '%s\n' '{"Action":"output","Package":"p","Test":"TestX","Output":"x"}'`+"\n")
+	stub(filepath.Join(bin, "python3"), "")
+	stub(filepath.Join(dir, "scripts", "chay-thu.sh"), "")
+	return runCIScript(t, dir, script, bin+":/usr/bin:/bin")
+}
+
+// runCIScript chạy script dưới bash trần trong dir với PATH cho trước; trả mã thoát và test.json (nếu có).
+func runCIScript(t *testing.T, dir, script, path string) (int, string) {
+	t.Helper()
 	sp := filepath.Join(dir, "step.sh")
 	if err := os.WriteFile(sp, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command("bash", "--noprofile", "--norc", sp)
 	cmd.Dir = dir
-	cmd.Env = []string{"PATH=" + bin + ":/usr/bin:/bin", "HOME=" + dir}
+	cmd.Env = []string{"PATH=" + path, "HOME=" + dir, "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null"}
 	err := cmd.Run()
 	code := 0
 	if ee, ok := err.(*exec.ExitError); ok {
@@ -239,5 +252,77 @@ func TestCIBuocGoTestDoKhiGoTestHong(t *testing.T) {
 	noSet := regexp.MustCompile(`(?m)^\s*set .*$`).ReplaceAllString(step.Run, "")
 	if code, _ := runCIStep(t, noSet, 1); code != 0 {
 		t.Errorf("đối chứng: bỏ pipefail mà bước vẫn thoát %d — phép thử không phân biệt được bước có / không nuốt mã lỗi", code)
+	}
+}
+
+// Mọi bước cổng của ci.yml phải ĐỎ khi công cụ của cổng đỏ: `|| true`, một `true` thay lệnh, hay một lệnh bị xoá đều làm CI xanh giả mà
+// không cổng nào bắt. Ở đây từng bước (trừ apt, cần sudo thật; và gofmt, kiểm riêng bằng công cụ thật bên dưới) được chạy với các
+// công cụ giả cùng thoát 1 — phải đỏ — và cùng thoát 0 — phải xanh (đối chứng: phép thử không phải lúc nào cũng đỏ).
+func TestCIMoiBuocCongDoKhiCongHong(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Fatalf("cần bash để chạy bước CI: %v", err)
+	}
+	wf, _ := loadCI(t)
+	gated := 0
+	for _, s := range wf.Jobs["kiem"].Steps {
+		if s.Run == "" || strings.Contains(s.Run, "apt-get") || strings.Contains(s.Run, "gofmt") {
+			continue
+		}
+		gated++
+		if code, _ := runCIStep(t, s.Run, 1); code == 0 {
+			t.Errorf("bước %q thoát 0 khi công cụ của cổng (go, python3, scripts/chay-thu.sh) thoát 1 — cổng bị vô hiệu (|| true, true, lệnh bị xoá?)", s.Name)
+		}
+		if code, _ := runCIStep(t, s.Run, 0); code != 0 {
+			t.Errorf("đối chứng: bước %q thoát %d khi mọi công cụ thoát 0", s.Name, code)
+		}
+	}
+	if gated < 5 { // go vet, go test, kiem-skip-test, cổng danh tính, smoke E2E
+		t.Errorf("chỉ chạy được %d bước cổng, muốn ít nhất 5", gated)
+	}
+}
+
+// Bước gofmt chạy bằng git, xargs và gofmt THẬT trên một kho git tạm: có tệp .go chưa format (đã `git add`) thì bước phải đỏ và nêu tệp đó;
+// format xong thì xanh.
+func TestCIBuocGofmtDoKhiCoTepChuaFormat(t *testing.T) {
+	for _, tool := range []string{"bash", "git", "xargs", "gofmt"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Fatalf("cần %s để chạy bước gofmt của CI: %v", tool, err)
+		}
+	}
+	wf, _ := loadCI(t)
+	var script string
+	for _, s := range wf.Jobs["kiem"].Steps {
+		if strings.Contains(s.Run, "gofmt -l") {
+			script = s.Run
+		}
+	}
+	if script == "" {
+		t.Fatal("ci.yml không có bước gofmt")
+	}
+	dir := t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + dir, "GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_SYSTEM=/dev/null"}
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	write := func(src string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, "x.go"), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		git("add", "x.go")
+	}
+	write("package x\n\nfunc  f( ) {}\n") // hai dấu cách và dấu cách trong ngoặc: gofmt sẽ sửa
+	if code, _ := runCIScript(t, dir, script, os.Getenv("PATH")); code == 0 {
+		t.Error("có tệp .go chưa format mà bước gofmt của CI thoát 0")
+	}
+	write("package x\n\nfunc f() {}\n")
+	if code, _ := runCIScript(t, dir, script, os.Getenv("PATH")); code != 0 {
+		t.Errorf("mọi tệp .go đã format mà bước gofmt thoát %d, muốn 0", code)
 	}
 }

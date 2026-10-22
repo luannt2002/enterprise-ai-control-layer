@@ -69,7 +69,9 @@ Roadmap hiện hành là `docs/ROADMAP-DAY-DU.md`:
 - hai cổng cho mọi việc: cổng QuânIT 9 câu (§4.1) và cổng gốc (§4.2);
 - các luồng L0–L10 (§5).
 
-Thứ tự ưu tiên:
+> **Từ 22/10: thứ tự hiện hành và cách chạy multi-agent nằm ở §9** (kế hoạch workflow tự chạy, D-AI-00). Mục 1 bên dưới đã xong; các mục 2–7 được gom vào các làn của §9. Khi §4 và §9 khác nhau thì theo §9.
+
+Thứ tự ưu tiên (bản 21/10):
 
 **1. ĐỔI TÊN LẠI (D-RM-02): làm đầu tiên, trước mọi việc khác.** Chi tiết, việc viết lại các luồng và khuôn trả lời: `docs/PROMPT-DOI-TEN-VA-LUONG-MOI.md`.
 
@@ -200,4 +202,128 @@ Phiên điều phối + debug pull về, đọc `TIEN-DO-BUILD.md`, `CHO`, trạ
 - thấy lỗi → handoff mới;
 - việc cần xây thêm → prompt mới hoặc đề xuất ở `ROADMAP.md`.
 
-BUILD không cần chờ phía này; cứ xây theo §4 và đẩy tiến độ lên.
+BUILD không cần chờ phía này; cứ xây theo §9 và đẩy tiến độ lên.
+
+## 9. Kế hoạch workflow tự chạy (từ 22/10, D-AI-00)
+
+> Căn cứ: `CHO` §0 dòng **D-AI-00**: build ra dự án chạy được; kiểm hết phần không-AI trước khi chi tiền model; mỗi bước phải có vết để debug. Câu còn mở: `CHO` §4 (D-AI-01, D-OP-14, D-OP-15, D-RM-03, D-RM-04, D-RM-05).
+> Chạy **liên tục, không xin phép** cho việc loại 1. Việc loại 2 / 3 thì ghi vào `CHO` rồi làm theo mặc định ở §9.7, **không dừng cả hệ**.
+
+### 9.1 Đích của chu kỳ này: MVP (D-MVP-00, `ROADMAP-DAY-DU.md` §5b)
+
+Ra **MVP** trước mọi việc khác. MVP gồm 5 khối:
+- **M1** ứng dụng chạy được + vết từng bước (làn 0);
+- **M2** thu báo cáo ngày đúng, Phase 0a (làn 3 làm giấy → làn 4 làm mã);
+- **M3** hỏi số liệu đúng nghĩa, đúng nguồn: đóng 0b, chạy H4 một lần (làn 1);
+- **M4** phát hiện chênh lệch → tạo đúng một phiếu, lát mỏng Phase 1 (làn 3 làm giấy → làn 4 làm mã; **mã cần D-RM-04 = A**);
+- **M5** CỔNG TRƯỚC AI đạt (làn 2).
+
+Đạt đủ thì ghi **"MVP RA"** vào TIEN-DO. Chưa có D-RM-04 = A thì ghi "MVP RA, THIẾU M4".
+
+**Luật ưu tiên:**
+- Người và máy dành cho M1–M5 trước.
+- Làn 5, làn 6 và mọi việc ngoài MVP (`ROADMAP-DAY-DU.md` §5b.2) chỉ chạy khi còn tài nguyên.
+- Không chi tiền model trước khi MVP ra.
+
+### 9.2 Bảy làn
+
+Write-set của các làn không giao nhau. Mỗi làn có một tác giả; người soát là agent khác, chỉ đọc.
+
+| Làn | Mục tiêu | Write-set | Mở khi | Ra khi |
+|---|---|---|---|---|
+| **0. Ứng dụng + vết** | `cmd/eais` (HTTP: `POST /v1/ask`, `POST /v1/ingest`, `GET /v1/trace/{id}`, `GET /healthz`); principal lấy từ token, ở dev ghi rõ "dev only", **không lấy tenant từ body**; mặc định KHÔNG gọi model (RAG dùng extractive); một lệnh dựng từ checkout sạch (PG → migrate → nạp seed → API → smoke E2E); CI chạy test CÓ PG; vết từng bước (§9.4) lưu bền | `cmd/eais/`, `observability/`, bảng vết trong `platform/` + migration mới, `deploy/`, CI, README | ngay | smoke E2E xanh từ checkout sạch; 117 / H1 / H3 **0 dòng khác** (không đổi câu trả lời) |
+| **1. Đường găng 0b** | R5-4, R5-5 → **khoá cổng phán quyết** → D-OP-14 (nếu = a) → vòng S4 (theo D-OP-15) → đóng băng S4 → **H4 MỘT lần** | `core/pipeline/`, `intelligence/`, `data/normalization/`, `tenants/construction/pack/` | ngay | báo cáo H4 theo tầng sai đầu tiên |
+| **2. Phép đo** | harness canary nạp 2 tenant, có đối chứng dương · cờ approx ở W-G1 · đo các dòng của §9.3 | `tenants/construction/win/` (trừ thư mục của làn 6), `evals/`, `scripts/dot-bien/` | ngay | mỗi dòng §9.3 có lệnh + kết quả |
+| **3. Giấy GĐ I–II** | Phase 0a, 1, 2, 3: 9 câu cổng QuânIT + hợp đồng việc + ADR + bộ ca soạn độc lập (người soạn không đọc mã); Phase 2 so Temporal / n8n trước khi chọn tự viết | `docs/adr/` (ADR mới), `docs/viec/`, bộ ca mới trong `tenants/*/evals/` | ngay | đủ giấy cho từng phase |
+| **4. Mã GĐ II** | Phase 1 → 2 → 3 (+ 0a); mỗi phase một lát mỏng chạy từ đầu tới cuối | `execution/` (mới), migration mới, pack | **0a (M2): sau khi H4 chạy xong.** Phase 1 (M4): sau H4 **VÀ** D-RM-04 = A. Phase 2–3: sau MVP | "PHASE <n> RA" |
+| **5. Giấy GĐ III** | ADR 4a (tách tenant / ngành / tích hợp / kênh); 4b: đánh giá ≥ 2 CRM mã nguồn mở có REST API, không tự viết app cho vừa (R-08); hợp đồng 4 kiểu doanh nghiệp | `docs/adr/`, `docs/viec/` | ngay | đủ giấy |
+| **6. So rule / model / hybrid cho S4** | harness dùng **model giả**; lượt chạy model thật chờ §9.3 | thư mục mới dưới `tenants/construction/win/` | ngay | harness chạy được |
+
+### 9.3 CỔNG TRƯỚC AI và luật chi tiền
+
+**Luật chi tiền (cứng).** Không lời gọi model trả tiền nào (W-G7, pilot, so model cho S4, RAG model thật) cho tới khi đủ cả 4 điều kiện:
+1. CỔNG TRƯỚC AI ĐẠT;
+2. hợp đồng W-G7 đóng băng (bộ chấm v2 + người chấm mù);
+3. dự toán nằm trong trần đã duyệt;
+4. chủ dự án cho phép chi bằng lời, ghi ở `CHO`.
+
+Trước đó, mọi lỗi phải được bắt bằng **model giả** (extractive / đối kháng).
+
+**Ngưỡng (D-AI-01).** Chưa quyết thì dùng đúng các ngưỡng dưới đây. Mỗi dòng cần: bộ ca soạn độc lập, lệnh, kết quả, ca âm.
+
+| Tầng | Ngưỡng |
+|---|---|
+| L1 Nạp | 0 bản ghi rơi im lặng; 100% bản ghi cách ly có lý do, lưu bền, xuất được báo cáo; tin đính chính / kế hoạch / ước lượng (≈) được gắn cờ đúng loại, không thành "đã xảy ra": 100% trên bộ ca bơm; phiếu trùng không bị cộng đôi |
+| S2 Chuẩn hoá / đọc số | 100% trên bộ ca số + đơn vị (gồm số bằng chữ, nhóm nghìn, không dấu); 100 lần chạy cùng đầu vào ra cùng kết quả |
+| S3 Thực thể | 100%; mơ hồ thì hỏi lại đúng ứng viên trong phạm vi được xem |
+| S4 Ý định | trên H4 (một lần): S4 là tầng sai đầu tiên ở ≤ 5% số ca; 0 câu trả lời sai nghĩa mà không có nhãn giả định |
+| S5 Quyền / tenant | 100% ca cho phép và 100% ca từ chối; canary có đối chứng dương; RLS chạy có PG |
+| S6 Truy vấn / tính | 100% số đúng; thẩm quyền và dung sai đúng hợp đồng |
+| S7 Ngữ cảnh / RAG | đoạn chứa đáp án nằm trong top-3 ≥ 90%; 0 đoạn ngoài quyền; 100% bằng chứng có nguồn gốc |
+| S9 Kiểm đầu ra | model giả đối kháng: chặn ≥ 95%; chặn oan ≤ 2% trên câu đúng |
+| Vết / debug | 100% lượt (kể cả lượt lỗi) có vết lưu bền; người soát CHỈ ĐỌC VẾT chỉ đúng tầng sai đầu tiên ở ≥ 90% ca đỏ của bộ 117 / H1 / H3 |
+| Vận hành | dựng được bằng một lệnh; CI xanh có PG; khởi động lại giữa chừng không mất, không nhân đôi |
+
+- Đạt cổng: ghi **"CỔNG TRƯỚC AI ĐẠT"** vào TIEN-DO, kèm bảng lệnh.
+- Một dòng **không thể đạt chỉ bằng luật** (ví dụ S4): ghi vào `CHO` để chủ dự án chọn hạ ngưỡng, hoặc cho phép chi một lượt nhỏ cho riêng dòng đó. **Không tự nới ngưỡng.**
+
+### 9.4 Vết từng bước (làn 0)
+
+- **Ghi gì:** mỗi bước S0–S10 và mỗi bước của tầng nạp (đọc, chuẩn hoá, thực thể, gán nghĩa, thời gian, kiểm miền, cách ly, đối soát), gồm:
+  - trace_id, bước, vào, ra, quyết định;
+  - **LÝ DO** (luật / từ khoá / cấu hình nào);
+  - **phương án đã xét và bị loại**;
+  - bằng chứng + nguồn gốc;
+  - phiên bản pack / mã / dữ liệu;
+  - thời gian, lỗi.
+- **Lưu ở đâu:** bền, theo tenant, chịu RLS. Lượt lỗi cũng ghi. Che khoá / bí mật; không ghi dữ liệu của tenant khác.
+- **Xem:** `eais trace <id>` và `GET /v1/trace/{id}`: bảng từng bước, đánh dấu bước lệch.
+- **So:** cùng câu, hai mốc mã → bước **đầu tiên** đổi kết quả (dùng `traces.Diff`).
+
+### 9.5 Chu kỳ (lặp liên tục)
+
+1. `git pull --ff-only`; đọc `CHO` (có câu mới được trả lời không) và TIEN-DO.
+2. Đo trần máy (RAM, lõi, tải). Số tiến trình build / test Go song song không vượt trần đo được.
+3. Mỗi làn chọn việc kế tiếp **chưa bị chặn**. Giao mục tiêu cho agent con: mục tiêu · write-set · tiêu chí xong · bằng chứng phải nộp.
+4. Mỗi đơn vị việc:
+   - tác giả (worktree riêng) → test **đỏ trước** → sửa nhỏ nhất → tự đo;
+   - người soát chỉ đọc → sửa;
+   - **điều phối đo lại bằng lệnh** (không tin lời khai);
+   - commit nhỏ → push → TIEN-DO.
+5. Gặp câu loại 2 / 3: ghi `CHO` (cột Trả lời để trống, kèm khuyến nghị và hệ quả). Làm theo mặc định §9.7 hoặc chuyển làn khác.
+
+### 9.6 Luật dừng
+
+- **Cổng phán quyết:** đóng R5-4, R5-5 xong thì **KHOÁ**. Lỗ mới cùng họ: ghi nợ, giữ fail-closed (không phán quyết). Chỉ mở lại khi gặp phán quyết **sai chiều**.
+- **Một việc bất kỳ** quá 3 vòng soát mà còn lỗi cùng họ: khoá, ghi nợ, chuyển việc khác. Ngoại lệ: an ninh, sai chiều, mất dữ liệu.
+- **Dừng toàn bộ** chỉ khi: mọi làn bị chặn (bởi `CHO` hoặc tài nguyên), hoặc cổng an ninh đỏ mà không sửa được. Khi đó ghi "DỪNG — lý do" vào TIEN-DO, kèm một báo cáo.
+
+### 9.7 Câu chờ quyết và mặc định khi chưa có trả lời
+
+| Câu | Chưa quyết thì |
+|---|---|
+| D-OP-14 (bộ đọc số bằng chữ) | chỉ chặn ở cổng phán quyết; không sửa tầng chuẩn hoá |
+| D-OP-15 (S4: không khớp ý định) | a1: hỏi lại |
+| D-RM-04 (mã Giai đoạn II trước khi đóng G7) | làn 4 đóng; làn 3 vẫn làm giấy |
+| D-RM-03 (người nghiệp vụ thật) | dữ liệu giả lập; mọi kết luận ghi "chưa có người nghiệp vụ duyệt" |
+| D-RM-05 (khung "tên lúc viết") | để nguyên |
+| D-AI-01 (ngưỡng §9.3) | dùng ngưỡng đề xuất |
+| W-G7 / chi tiền | không chi |
+
+### 9.8 Báo cáo
+
+- TIEN-DO: mỗi lần push.
+- Báo cáo ca: **một** tệp mỗi ngày.
+- Mốc phải ghi: "PHASE <n> RA" (để chủ dự án debug phần đó), "CỔNG TRƯỚC AI ĐẠT", "DỪNG — lý do".
+- Nhãn [ĐO] / [REPO] / [CODE] / [SUY]. Phần chưa đo ghi "chưa đo".
+
+### 9.9 Không được
+
+- gọi model trả tiền trước §9.3;
+- đổi câu trả lời của hệ trong làn 0, hoặc nới ngưỡng §9.3 để "qua cổng";
+- dùng H1 / H3 đã công bố để chỉnh luật rồi lấy chính chúng làm bằng chứng;
+- đọc H4 / H5 trước khi chạy; force push; đổi link git; sửa tệp đã băm hoặc bằng chứng lịch sử;
+- ghi cột Trả lời của `CHO` khi chủ dự án chưa nói;
+- đẻ thêm roadmap / prompt mới;
+- báo "xong" khi chưa có lệnh chứng minh.
+

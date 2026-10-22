@@ -10,6 +10,17 @@ package pgstore
 //     kết nối giữa chừng mà không nhân đôi;
 //   - cùng khoá mà khác nội dung: lỗi FaultData, KHÔNG ghi đè — vết là bằng chứng, hai nội dung cho một khoá là có chuyện cần
 //     người xem (đụng trace_id, mã nạp dùng lại, nguồn không tất định), không phải chuyện để âm thầm chọn một bên.
+//
+// Hợp đồng cho nơi gọi (cmd/eais):
+//   - dựng traces.Record MỘT lần cho mỗi lượt rồi thử lại bằng CHÍNH bản đó: băm gồm cả Spans và TotalMs, nên dựng lại bản ghi của
+//     lượt (đồng hồ chạy lại, thời gian khác) cho băm khác và bị từ chối bằng FaultData — mất vết mới, vết cũ vẫn nguyên;
+//   - tự cấp trace_id (uuid), không nhận từ client: mã tra cứu (trace id, mã lần nạp) mà traces.Sanitize đổi (NUL, UTF-8 hỏng, trùng
+//     mẫu bí mật) bị từ chối FaultInput, vì lưu ra sẽ khác mã nơi gọi cấp và đọc lại "không có";
+//   - lượt KHÔNG xác thực được tenant (token sai / thiếu) không có dòng vết theo tenant: kho vết bắt buộc tenant (RLS) nên các hàm ở
+//     đây từ chối bằng FaultPolicy trước khi chạm DB. Những lượt đó nơi gọi ghi vào bộ đếm / nhật ký riêng NGOÀI kho này; chỉ tiêu
+//     "mọi lượt có vết lưu bền" tính trên lượt ĐÃ có tenant, lượt chưa xác thực nằm ngoài chỉ tiêu và phải có bộ đếm riêng;
+//   - câu hỏi lưu là câu ĐÃ làm sạch (che bí mật): phát lại trên câu đã che có thể cho Decision khác câu gốc;
+//   - eais_app không có DELETE nên chưa có đường dọn vết: chính sách lưu giữ phải chốt trước khi chạy thật.
 
 import (
 	"context"
@@ -31,6 +42,10 @@ var ErrNotFound = errors.New("không có bản ghi")
 // pgFKViolation là SQLSTATE foreign_key_violation.
 const pgFKViolation = "23503"
 
+// stable báo mã tra cứu (trace id, mã lần nạp) có bất biến qua traces.Sanitize không. Mã mà Sanitize đổi sẽ được lưu thành mã khác
+// với nơi gọi cấp rồi đọc lại "không có"; NUL còn làm lệnh PG hỏng bằng lỗi hạ tầng "thử lại được" mà không bao giờ thành công.
+func stable(id string) bool { return traces.Sanitize(id) == id }
+
 // SaveDecision lưu bản ghi vết của một lượt (kể cả lượt lỗi). Tenant của bản ghi phải KHỚP tenant của ngữ cảnh: khác là lỗi chính
 // sách chứ không im lặng ghi sang tenant kia. Trả inserted = true khi ghi mới, false khi đúng bản ghi này đã có (xem luật ghi lại
 // ở đầu tệp).
@@ -48,6 +63,9 @@ func (s *Store) SaveDecision(ctx context.Context, rec traces.Record) (inserted b
 	clean, err := traces.SanitizeRecord(rec)
 	if err != nil {
 		return false, contracts.Label(contracts.FaultCode, err)
+	}
+	if clean.Decision.TraceID != rec.Decision.TraceID {
+		return false, contracts.Errorf(contracts.FaultInput, "trace_id bị làm sạch đổi (NUL, UTF-8 hỏng hoặc trùng mẫu bí mật); tự cấp trace_id, đừng nhận từ client")
 	}
 	digest, err := clean.Digest()
 	if err != nil {
@@ -97,6 +115,9 @@ func (s *Store) Decision(ctx context.Context, traceID string) (traces.Record, er
 	if err != nil {
 		return traces.Record{}, err
 	}
+	if !stable(traceID) { // không bản ghi nào mang mã này (SaveDecision từ chối): khỏi chạm DB, và NUL khỏi làm lệnh PG hỏng
+		return traces.Record{}, contracts.Label(contracts.FaultInput, fmt.Errorf("%w: trace %q", ErrNotFound, traceID))
+	}
 	var rec traces.Record
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		err := tx.QueryRow(ctx, `
@@ -129,8 +150,8 @@ func (s *Store) SaveQuarantine(ctx context.Context, loadID string, recs []Quaran
 	if err != nil {
 		return 0, err
 	}
-	if loadID == "" {
-		return 0, contracts.Errorf(contracts.FaultInput, "thiếu mã lần nạp")
+	if loadID == "" || !stable(loadID) {
+		return 0, contracts.Errorf(contracts.FaultInput, "thiếu mã lần nạp, hoặc mã bị làm sạch đổi (NUL, UTF-8 hỏng, trùng mẫu bí mật)")
 	}
 	var keys, reasons, sources, details []string
 	for i, r := range recs {
@@ -179,6 +200,9 @@ func (s *Store) Quarantine(ctx context.Context, loadID string) ([]QuarantineReco
 	if err != nil {
 		return nil, err
 	}
+	if !stable(loadID) { // không lần nạp nào mang mã này (SaveQuarantine từ chối)
+		return nil, nil
+	}
 	var out []QuarantineRecord
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
@@ -219,6 +243,9 @@ func (s *Store) SaveUsage(ctx context.Context, u UsageRecord) (inserted bool, er
 	if u.TraceID == "" || u.Model == "" || u.Calls < 0 || t.InputTokens < 0 || t.OutputTokens < 0 || t.CacheRead < 0 || t.CacheWrite < 0 {
 		return false, contracts.Errorf(contracts.FaultInput, "usage cần trace_id, model và số không âm")
 	}
+	if !stable(u.TraceID) {
+		return false, contracts.Errorf(contracts.FaultInput, "trace_id của usage bị làm sạch đổi (NUL, UTF-8 hỏng, trùng mẫu bí mật)")
+	}
 	model := traces.Sanitize(u.Model)
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(ctx, `
@@ -255,6 +282,9 @@ func (s *Store) Usage(ctx context.Context, traceID string) ([]UsageRecord, error
 	tenant, err := tenantOf(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if !stable(traceID) { // không lượt nào mang mã này (SaveDecision từ chối)
+		return nil, nil
 	}
 	var out []UsageRecord
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {

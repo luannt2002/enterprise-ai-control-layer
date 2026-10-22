@@ -819,3 +819,98 @@ func TestVetMigration0003HoiTuVeTrangThaiDich(t *testing.T) {
 		}
 	}
 }
+
+// R1-07. Mã tra cứu (trace id, mã lần nạp) mà làm sạch ĐỔI (có NUL, UTF-8 hỏng, hoặc trùng mẫu bí mật) sẽ lưu thành mã khác với nơi
+// gọi cấp rồi đọc lại "không có"; NUL còn làm lệnh PG hỏng bằng lỗi "thử lại được" mà không bao giờ thành công. Phải từ chối ngay ở
+// tầng Go, KHÔNG chạm DB — Store rỗng (không có pool) làm mọi lệnh chạm DB thành panic, nên ca nào chạm DB là đỏ.
+func TestVetMaTraCuuBiLamSachDoiThiTuChoi(t *testing.T) {
+	s := &pgstore.Store{}
+	a := uniq("ta")
+	ctx := contracts.WithTenant(context.Background(), a)
+	for _, id := range []string{"tra\x00ce", "tra\xffce", "pwd=abc123xyz", "token: aaaaaaaa"} {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("mã %q: chạm DB (panic %v) thay vì từ chối từ đầu", id, r)
+				}
+			}()
+			if _, err := s.SaveDecision(ctx, vetRecord(a, id)); contracts.FaultOf(err) != contracts.FaultInput {
+				t.Errorf("SaveDecision trace_id %q: muốn lỗi %s, được %v", id, contracts.FaultInput, err)
+			}
+			if _, err := s.Decision(ctx, id); !errors.Is(err, pgstore.ErrNotFound) {
+				t.Errorf("Decision trace_id %q: muốn ErrNotFound (không thể có bản ghi mang mã này), được %v", id, err)
+			}
+			if _, err := s.SaveUsage(ctx, pgstore.UsageRecord{TraceID: id, Model: "m"}); contracts.FaultOf(err) != contracts.FaultInput {
+				t.Errorf("SaveUsage trace_id %q: muốn lỗi %s, được %v", id, contracts.FaultInput, err)
+			}
+			if us, err := s.Usage(ctx, id); err != nil || len(us) != 0 {
+				t.Errorf("Usage trace_id %q: muốn rỗng không lỗi, được %v %v", id, us, err)
+			}
+			if _, err := s.SaveQuarantine(ctx, id, []pgstore.QuarantineRecord{{Key: "k#1", Reason: "r"}}); contracts.FaultOf(err) != contracts.FaultInput {
+				t.Errorf("SaveQuarantine mã lần nạp %q: muốn lỗi %s, được %v", id, contracts.FaultInput, err)
+			}
+			if qs, err := s.Quarantine(ctx, id); err != nil || len(qs) != 0 {
+				t.Errorf("Quarantine mã lần nạp %q: muốn rỗng không lỗi, được %v %v", id, qs, err)
+			}
+		}()
+	}
+}
+
+// R1-09. Lượt KHÔNG xác thực được tenant (token sai / thiếu) không có dòng vết theo tenant: kho vết bắt buộc tenant (RLS) nên từ chối
+// ngay ở tầng Go bằng lỗi chính sách, KHÔNG chạm DB. Nơi gọi (cmd/eais) ghi những lượt này vào bộ đếm / nhật ký riêng NGOÀI kho vết —
+// chỉ tiêu "mọi lượt có vết lưu bền" tính trên lượt ĐÃ có tenant (xem đầu tệp vet.go).
+func TestVetLuotKhongTenantKhongCoDongVet(t *testing.T) {
+	s := &pgstore.Store{} // không có pool: chạm DB là panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("lượt không tenant chạm DB (panic %v) thay vì bị từ chối ở tầng Go", r)
+		}
+	}()
+	rec := vetRecord(uniq("ta"), uniqTrace())
+	if _, err := s.SaveDecision(context.Background(), rec); contracts.FaultOf(err) != contracts.FaultPolicy {
+		t.Errorf("SaveDecision không tenant: muốn %s, được %v", contracts.FaultPolicy, err)
+	}
+	pr := contracts.Principal{ID: "u-x", TenantID: "", Kind: contracts.PrincipalUser}
+	errRec := traces.NewErrorRecord(uniqTrace(), pr, "câu hỏi", day, traces.Versions{}, contracts.Errorf(contracts.FaultPolicy, "không xác thực được tenant"))
+	if _, err := s.SaveDecision(context.Background(), errRec); contracts.FaultOf(err) != contracts.FaultPolicy {
+		t.Errorf("lượt lỗi không tenant cũng không được ghi: muốn %s, được %v", contracts.FaultPolicy, err)
+	}
+}
+
+// usedTenants là các tenant mà uniq() đã cấp trong lượt chạy này. eais_app chỉ có SELECT + INSERT trên các bảng vết nên test không tự
+// dọn bằng vai ứng dụng được; TestMain dọn bằng vai quản trị sau khi chạy xong, để PG sống lâu không tích dòng của test (R1-08).
+// Đặt EAIS_KEEP_TEST_ROWS=1 khi cần giữ dòng lại để soi bằng tay.
+var usedTenants sync.Map
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	cleanupVetRows()
+	os.Exit(code)
+}
+
+func cleanupVetRows() {
+	admin, _ := pgstore.EnvDSN()
+	if admin == "" || os.Getenv("EAIS_KEEP_TEST_ROWS") != "" {
+		return
+	}
+	var tenants []string
+	usedTenants.Range(func(k, _ any) bool { tenants = append(tenants, k.(string)); return true })
+	if len(tenants) == 0 {
+		return
+	}
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "dọn dòng vết của test: không kết nối được:", err)
+		return
+	}
+	defer conn.Close(ctx)
+	for _, table := range vetTablesChildFirst {
+		if _, err := conn.Exec(ctx, "DELETE FROM "+table+" WHERE tenant_id = ANY($1)", tenants); err != nil {
+			fmt.Fprintln(os.Stderr, "dọn dòng vết của test:", table, err)
+		}
+	}
+}
+
+// vetTablesChildFirst: usage_records có khoá ngoại tới decision_records nên xoá bảng con trước.
+var vetTablesChildFirst = []string{"usage_records", "quarantine_records", "decision_records"}

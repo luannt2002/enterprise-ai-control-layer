@@ -56,7 +56,9 @@ func seed(t *testing.T, s *pgstore.Store, tenant contracts.TenantID, name, value
 }
 
 func uniq(p string) contracts.TenantID {
-	return contracts.TenantID(fmt.Sprintf("%s-%d", p, time.Now().UnixNano()))
+	id := fmt.Sprintf("%s-%d", p, time.Now().UnixNano())
+	usedTenants.Store(id, struct{}{}) // để TestMain dọn dòng vết của test (vet_test.go)
+	return contracts.TenantID(id)
 }
 
 // GUC eais.tenant_id của mọi lệnh lấy từ tenant gắn vào ngữ cảnh (S1 gắn từ Principal); ngữ cảnh

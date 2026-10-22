@@ -64,8 +64,9 @@ type Options struct {
 	// trả lời theo ý định chung khi ngoài tên, mốc, lượng, thuật ngữ, cụm xác nhận ra chỉ còn những từ này và mảnh từ khoá của ý
 	// định riêng mà ý định chung quy về (xem Set.generic).
 	NeutralWords []string
-	// QuantityFits báo một lượng đổi được sang đơn vị của chỉ số (cùng chiều đo): a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số
-	// chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng khác. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa.
+	// QuantityFits báo một lượng (hay số trần) là giá trị có thể của chỉ số: đổi được sang đơn vị của chỉ số (cùng chiều đo) và nằm trong
+	// miền một lần đo. a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng
+	// khác, "4 củ" (4.000.000) ngoài miền. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa (số trần vẫn được).
 	QuantityFits func(metric string, v contracts.Value) bool
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
@@ -648,8 +649,11 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {
 				cover(sp.Start, sp.End)
 			}
-		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
-			cover(sp.Start, sp.End)
+		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"; ngoài
+			// miền chỉ số ("4 củ" = 4.000.000) thì không phải giá trị của chỉ số
+			if s.opt.QuantityFits == nil || s.opt.QuantityFits(metric, sp.Value) {
+				cover(sp.Start, sp.End)
+			}
 		}
 	}
 	for _, p := range s.opt.FocusMarkers {

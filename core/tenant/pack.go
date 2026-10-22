@@ -202,17 +202,22 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
 				NeutralWords:      inf.ClaimNeutralWords,
-				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định)
+				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định) và nằm trong miền một lần
+				// đo của chỉ số; số trần coi như đã ở đơn vị của chỉ số. Ngoài miền thì không phải giá trị của chỉ số: tiền nói tắt "4 củ",
+				// "4,1 triệu" không còn bị hiểu là lít (soát S4 vòng 3, F6')
 				QuantityFits: func(metric string, v contracts.Value) bool {
 					def, ok := rt.Metrics.Metric(metric)
 					if !ok {
 						return false
 					}
-					if v.Unit == def.Unit {
-						return true
+					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {
+						c, err := rt.Normalizer.Convert(v, def.Unit)
+						if err != nil {
+							return false
+						}
+						v = c
 					}
-					_, err := rt.Normalizer.Convert(v, def.Unit)
-					return err == nil
+					return def.InRange(v.Number) == nil
 				},
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)

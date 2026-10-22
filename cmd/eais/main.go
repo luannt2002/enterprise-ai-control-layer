@@ -218,6 +218,8 @@ func serveDev(ctx context.Context, cfg config, addr string, principals map[strin
 	}
 	log.Warn("CHẾ ĐỘ DEV — CHỈ DEV: token dev là thông tin công khai (dev-<tenant>-<principal>), chỉ nghe loopback, không dùng ngoài máy dev",
 		"tenant", a.tenantID(), "principals", len(principals), "model", "extractive (không gọi model trả tiền)")
+	// Dòng này là GIAO DIỆN với scripts/chay-thu.sh: script chỉ gọi địa chỉ mà chính server của nó báo ở đây (cổng "0" do hệ điều hành chọn,
+	// và một server khác đang giữ cổng không bị gọi nhầm). Đổi định dạng dòng này phải đổi cả script (TestServeDevChayThat canh định dạng).
 	fmt.Fprintf(stdout, "đang nghe http://%s\n", ln.Addr())
 	hs := &http.Server{Handler: srv.handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second,
 		MaxHeaderBytes: 16 << 10, ErrorLog: slog.NewLogLogger(log.Handler(), slog.LevelWarn)}

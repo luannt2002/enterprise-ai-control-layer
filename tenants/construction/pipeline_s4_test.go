@@ -222,26 +222,24 @@ func TestS4DauKhongPhaiNhienLieuMoiBiDanh(t *testing.T) {
 	}
 }
 
-// Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d; ADR-0010). (1) S4R-03: từ khoá không được khớp trong cụm ghép mang nghĩa khác ("nhà cung
-// cấp" không phải "cấp", "ghi nhận" không phải "nhận", "cảnh báo" không phải "báo") — câu trả lời sai nghĩa KHÔNG nhãn. (2) F6': lượng hay
-// số ngoài miền một lần đo của chỉ số không phải giá trị của chỉ số — tiền nói tắt ("4 củ", "4tr", "4,1 triệu", "150k") không còn bị hiểu
-// là lít dầu kho xuất.
+// Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d; ADR-0010). (1) S4R-03: từ khoá không được khớp trong cụm ghép mang nghĩa khác mà bỏ qua
+// không đổi nghĩa câu ("ghi nhận", "nhận xét" không phải "nhận"; "cấp bách" không phải "cấp"). Cụm mang nghĩa hệ chưa hỗ trợ ("dự báo",
+// "báo giá", "cảnh báo", "nhà cung cấp" trong câu hỏi tiền) KHÔNG bỏ qua: câu đó vẫn phải hỏi lại, không được trả theo chỉ số còn lại
+// (soát nợ S4 vòng 1, S1-1, S1-2). (2) F6': số không tự viết đơn vị mà ngoài miền một lần đo của chỉ số không phải giá trị của nó — tiền nói
+// tắt ("4 củ", "4tr", "dầu 4,1 triệu", "dầu 150k") không còn bị hiểu là lít; lượng viết rõ đơn vị của cả tháng / tuần vẫn được (S2-1).
 func TestS4NoSauH4(t *testing.T) {
 	a := newAsk(t)
 	director := user("director", "")
 	for _, c := range []struct{ q, notIntent string }{
-		{"Dự án Cầu A đã trả nhà cung cấp tiền dầu 5050 đúng không?", "fuel_issued"},
 		{"Hôm nay EX-03 ghi nhận 3850 L dầu đúng không?", "fuel_issued"},
 		{"Nhận xét về dầu của EX-03 hôm nay thế nào?", "fuel_issued"},
-		{"Cảnh báo dầu của EX-03 hôm nay là bao nhiêu?", "fuel_reported"},
-		{"Thông báo dầu EX-03 hôm nay bao nhiêu?", "fuel_reported"},
-		{"Dự báo dầu EX-03 hôm nay bao nhiêu?", "fuel_reported"},
-		{"Báo giá dầu cho EX-03 hôm nay bao nhiêu?", "fuel_reported"},
 		{"EX-03 hôm nay cấp bách cần bao nhiêu dầu?", "fuel_issued"},
 	} {
 		r := ask(t, a, director, c.q).Response
-		if r.Intent == c.notIntent || verdictOf(r.Answer) != "" {
-			t.Errorf("%q: cụm ghép không phải từ khoá của %s — được [%s/%s/%s] %q", c.q, c.notIntent, r.Route, r.Outcome, r.Intent, r.Answer)
+		if r.Intent == c.notIntent || verdictOf(r.Answer) != "" ||
+			(r.Route != contracts.RouteClarification && !strings.Contains(r.Answer, giaDinhChung)) {
+			t.Errorf("%q: cụm ghép không phải từ khoá của %s — muốn hỏi lại hay trả lời theo ý định chung có nhãn, được [%s/%s/%s] %q", c.q,
+				c.notIntent, r.Route, r.Outcome, r.Intent, r.Answer)
 		}
 	}
 	// đối chứng dương: từ khoá đứng riêng vẫn khớp
@@ -254,7 +252,16 @@ func TestS4NoSauH4(t *testing.T) {
 			t.Errorf("%q: muốn ý định %s, được [%s/%s] %q", c.q, c.intent, r.Route, r.Intent, r.Answer)
 		}
 	}
-	// tiền nói tắt / lượng ngoài miền chỉ số: hỏi lại nghĩa số liệu, không trả số kho xuất
+	// nghĩa hệ chưa hỗ trợ (tiền, dự báo): hỏi lại, không trả số của chỉ số còn lại
+	for _, q := range []string{
+		"Tháng này thanh toán cho nhà cung cấp dầu của EX-03 hết mấy triệu?",
+		"Dự báo tiêu thụ dầu EX-03 tuần sau thế nào?",
+	} {
+		if r := ask(t, a, director, q).Response; r.Route != contracts.RouteClarification {
+			t.Errorf("%q: nghĩa hệ chưa hỗ trợ — muốn hỏi lại, được [%s/%s/%s] %q", q, r.Route, r.Outcome, r.Intent, r.Answer)
+		}
+	}
+	// tiền nói tắt / số ngoài miền chỉ số: hỏi lại nghĩa số liệu, không trả số kho xuất
 	for _, q := range []string{
 		"Dầu xuất cho EX-03 hôm qua 4 củ đúng không?",
 		"Hôm nay EX-03 xuất dầu 4tr đúng không?",
@@ -266,10 +273,11 @@ func TestS4NoSauH4(t *testing.T) {
 			t.Errorf("%q: số ngoài miền một lần đo của dầu kho xuất — muốn hỏi lại, được [%s/%s/%s] %q", q, r.Route, r.Outcome, r.Intent, r.Answer)
 		}
 	}
-	// đối chứng dương: lượng trong miền vẫn trả lời theo ý định chung kèm câu giả định
-	for _, q := range []string{"Hôm nay EX-03 xuất 4k dầu đúng không?", "Hôm nay EX-03 xuất dầu 3850 đúng không?"} {
-		if r := ask(t, a, director, q).Response; r.Intent != "fuel_generic" || !strings.Contains(r.Answer, giaDinhChung) {
-			t.Errorf("%q: muốn trả lời theo ý định chung kèm câu giả định, được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+	// đối chứng dương: lượng trong miền, và lượng viết rõ đơn vị của cả tháng / tuần, vẫn trả lời theo ý định chung kèm câu giả định
+	for _, q := range []string{"Hôm nay EX-03 xuất 4k dầu đúng không?", "Hôm nay EX-03 xuất dầu 3850 đúng không?",
+		"Tháng 9 EX-03 xuất 80000 L dầu đúng không?", "Tuần này EX-03 xuất 25000 L dầu đúng không?"} {
+		if r := ask(t, a, director, q).Response; r.Intent != "fuel_generic" || !strings.Contains(r.Answer, giaDinhChung) || verdictOf(r.Answer) != "" {
+			t.Errorf("%q: muốn trả lời theo ý định chung kèm câu giả định, không phán quyết — được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
 		}
 	}
 }

@@ -49,7 +49,7 @@ m $I '			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
 				cover(ws, we)
 			}
 		case contracts.ValueTerm:' 'S17 a2 không che "ngày" đứng trước mốc số'
-m $I '			if s.opt.QuantityFits == nil || s.opt.QuantityFits(metric, sp.Value) {
+m $I '			if s.inRange(metric, sp.Value) {
 				cover(sp.Start, sp.End)
 			}' '			_ = sp' 'S18 a2 không che số trần không đứng cạnh "dầu" (soát S4 vòng 2, F2: nhánh từng bị bỏ nhầm là mã chết)'
 m $I '	for _, p := range s.opt.FocusMarkers {
@@ -72,13 +72,17 @@ m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Ca
 # Soát S4 vòng 1 (S4R-01, S4R-06, S4R-08): a2 chỉ che thuật ngữ của ý định chung và lượng cùng chiều đo; khớp chữ theo cả câu; pack kiểm chỗ
 # cho câu giả định.
 m $I '			if slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text) {' '			if true {' 'S28 a2 che mọi thuật ngữ ("đơn giá", "giờ máy" thành trung tính)'
-m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if true {' 'S29 a2 che mọi lượng có đơn vị ("7 tấn" thành trung tính)'
-m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if false {' 'S30 a2 không che lượng cùng chiều đo ("4 khối" thành chữ lạ)'
+m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {' '			if true {' 'S29 a2 che mọi lượng có đơn vị ("7 tấn" thành trung tính)'
+m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {' '			if false {' 'S30 a2 không che lượng cùng chiều đo ("4 khối" thành chữ lạ)'
 m $I '		if !slices.ContainsFunc(own, func(c string) bool {' '		if !whole(raw[i:j], own) && !slices.ContainsFunc(own, func(c string) bool {' 'S31 a2 khớp chữ theo từng chữ riêng ("duoc" không dấu thành "được")'
 P=core/tenant/pack.go
 m $P '			if text, ok := tf.Templates[name]; ok && !strings.Contains(text, "{assumption_note}") {' '			if text, ok := tf.Templates[name]; ok && false && !strings.Contains(text, "{assumption_note}") {' 'S32 pack không kiểm chỗ cho câu giả định'
-m $P '					return def.InRange(v.Number) == nil' '					return true' 'S33 mọi lượng / số đều là giá trị có thể của chỉ số ("7 tấn", "4tr")'
-m $P '					return def.InRange(v.Number) == nil' '					return false' 'S34 không lượng / số nào là giá trị của chỉ số ("4 khối", "4k" thành chữ lạ)'
+m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
+					return err == nil' '					_, err := rt.Normalizer.Convert(v, def.Unit)
+					return err == nil || true' 'S33 mọi lượng đều cùng chiều đo với chỉ số ("7 tấn" thành chữ của câu hỏi chỉ số)'
+m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
+					return err == nil' '					_, err := rt.Normalizer.Convert(v, def.Unit)
+					return err == nil && false' 'S34 không lượng nào cùng chiều đo với chỉ số ("4 khối" thành chữ lạ)'
 # Soát S4 vòng 2 (F1, F3, F4): chữ chỉ loại của thực thể đã giải thuộc tên; đếm ý định chung trước khi đọc; mọi bí danh của vật tư "dầu
 # không phải nhiên liệu" có test.
 m $I '		types = append(types, e.Type)
@@ -106,7 +110,7 @@ m $L 'dầu gió, dầu thơm]' 'dầu gió]' 'S48 bỏ bí danh "dầu thơm"'
 m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) != 1 {' 'S49 ý định chung không khai chỉ số cho thuật ngữ vẫn được chọn (soát S4 vòng 3, phát hiện 4)'
 # Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
 # mang nghĩa khác không phải từ khoá (S4R-03).
-m $I '			if s.opt.QuantityFits == nil || s.opt.QuantityFits(metric, sp.Value) {' '			if true {' 'S51 a2 che mọi số trần, kể cả ngoài miền chỉ số ("4 củ")'
+m $I '			if s.inRange(metric, sp.Value) {' '			if true {' 'S51 a2 che mọi số trần, kể cả ngoài miền chỉ số ("4 củ")'
 m $P '					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {' '					if false {' 'S50 không đổi đơn vị trước khi kiểm miền ("7 tấn" thành 7 trong miền)'
 m $P '						c, err := rt.Normalizer.Convert(v, def.Unit)
 						if err != nil {
@@ -114,11 +118,10 @@ m $P '						c, err := rt.Normalizer.Convert(v, def.Unit)
 						if err != nil {
 							return true' 'S52 lượng không đổi được đơn vị vẫn là giá trị của chỉ số'
 L2=tenants/construction/pack/intents.yaml
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'S53 bỏ cụm ghép "nhà cung cấp" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'S54 bỏ cụm ghép "ghi nhận" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'S55 bỏ cụm ghép "nhận xét" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, thông báo, dự báo, báo giá, cấp bách]' 'S56 bỏ cụm ghép "cảnh báo" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, dự báo, báo giá, cấp bách]' 'S57 bỏ cụm ghép "thông báo" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, báo giá, cấp bách]' 'S58 bỏ cụm ghép "dự báo" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, cấp bách]' 'S59 bỏ cụm ghép "báo giá" khỏi ignore_phrases'
-m $L2 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá]' 'S60 bỏ cụm ghép "cấp bách" khỏi ignore_phrases'
+m $L2 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, nhận xét, cấp bách]' 'S53 bỏ cụm ghép "ghi nhận" khỏi ignore_phrases'
+m $L2 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, cấp bách]' 'S54 bỏ cụm ghép "nhận xét" khỏi ignore_phrases'
+m $L2 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét]' 'S55 bỏ cụm ghép "cấp bách" khỏi ignore_phrases'
+m $P '					return def.InRange(v.Number) == nil' '					return true' 'S61 không kiểm miền một lần đo ("4 củ", "dầu 4,1 triệu" thành lít)'
+m $P '					return def.InRange(v.Number) == nil' '					return false' 'S62 mọi số đều ngoài miền ("4k", "3850" thành chữ lạ)'
+m $I ' && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' '' 'S63 lượng chỉ có đơn vị nhờ "dầu" không bị kiểm miền ("4,1 triệu dầu")'
+m $I '(!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' 's.inRange(metric, sp.Value)' 'S64 kiểm miền cả lượng viết rõ đơn vị ("80000 L" của cả tháng bị hỏi lại)'

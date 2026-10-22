@@ -14,10 +14,11 @@ confirm_markers: [đúng không, phải không, có đúng, đúng chưa, đúng
 # cho câu CÓ DẤU: câu không dấu không được phán quyết (khớp bỏ dấu làm chữ trùng nhau: "co" = có / cỡ, "do" = đo / độ).
 claim_neutral_words: [cho hỏi, cho tôi hỏi, cho em hỏi, cho mình hỏi, xin hỏi, ơi, ạ, à, nhé, nhỉ, nha, vậy, thế, đã, có, là, được, dc, đc, của, cho, ghi, đo]
 
-# Cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" không phải "dùng" = tiêu thụ). Cụm ghép mang nghĩa khác (S4R-03, sửa sau H4):
-# "nhà cung cấp" ≠ "cấp", "ghi nhận" / "nhận xét" ≠ "nhận", "cảnh báo" / "thông báo" / "dự báo" / "báo giá" ≠ "báo", "cấp bách" ≠ "cấp".
-# Không thêm "cung cấp": "kho cung cấp dầu cho EX-03" vẫn là nghĩa kho xuất.
-ignore_phrases: [người dùng, người sử dụng, nhà cung cấp, ghi nhận, nhận xét, cảnh báo, thông báo, dự báo, báo giá, cấp bách]
+# Cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" không phải "dùng" = tiêu thụ). Cụm ghép mang nghĩa khác mà bỏ qua không làm đổi
+# nghĩa câu (S4R-03, sửa sau H4): "ghi nhận" / "nhận xét" ≠ "nhận", "cấp bách" ≠ "cấp". KHÔNG đưa vào đây cụm mang nghĩa hệ chưa hỗ trợ
+# ("dự báo", "báo giá", "cảnh báo": dự báo / giá / cảnh báo; "nhà cung cấp" trong câu hỏi tiền): bỏ qua chúng thì câu bị trả theo chỉ
+# số còn lại, sai nghĩa (soát nợ S4 vòng 1) — cần cách xử lý "nghĩa không hỗ trợ" riêng, ghi nợ ở ADR-0010.
+ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]
 
 # Trợ lý nhiên liệu: câu nhắc máy/dự án mà không nói vật tư, và không có đại lượng nào khác
 # ("giá", "nhân công"…), thì hiểu là DẦU. Chính sách của tenant, viết ra rõ ràng (ADR-0001 D7).

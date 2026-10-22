@@ -64,10 +64,13 @@ type Options struct {
 	// trả lời theo ý định chung khi ngoài tên, mốc, lượng, thuật ngữ, cụm xác nhận ra chỉ còn những từ này và mảnh từ khoá của ý
 	// định riêng mà ý định chung quy về (xem Set.generic).
 	NeutralWords []string
-	// QuantityFits báo một lượng (hay số trần) là giá trị có thể của chỉ số: đổi được sang đơn vị của chỉ số (cùng chiều đo) và nằm trong
-	// miền một lần đo. a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng
-	// khác, "4 củ" (4.000.000) ngoài miền. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa (số trần vẫn được).
+	// QuantityFits báo một lượng đổi được sang đơn vị của chỉ số (cùng chiều đo): a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số
+	// chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng khác. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa.
 	QuantityFits func(metric string, v contracts.Value) bool
+	// ValueInRange báo một số nằm trong miền một lần đo của chỉ số. a2 chỉ đòi điều này với số KHÔNG tự viết đơn vị (số trần, hay số chỉ
+	// có đơn vị nhờ thuật ngữ đứng cạnh): "4 củ", "dầu 4,1 triệu" ngoài miền thì không phải giá trị của chỉ số; lượng viết rõ đơn vị
+	// ("80000 L" của cả tháng) không bị chặn. Không khai ⇒ không chặn.
+	ValueInRange func(metric string, v contracts.Value) bool
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -564,6 +567,11 @@ func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution
 	})
 }
 
+// inRange báo số nằm trong miền một lần đo của chỉ số (không khai ValueInRange thì không chặn).
+func (s *Set) inRange(metric string, v contracts.Value) bool {
+	return s.opt.ValueInRange == nil || s.opt.ValueInRange(metric, v)
+}
+
 // meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.
 func (s *Set) meaningOptions() []string {
 	var out []string
@@ -646,12 +654,12 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 				cover(sp.Start, sp.End)
 			}
 		case contracts.ValueQuantity: // chỉ lượng cùng chiều đo với chỉ số chung ("4 khối"); "7 tấn", "8h" là đại lượng khác
-			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {
+			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {
 				cover(sp.Start, sp.End)
 			}
 		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"; ngoài
 			// miền chỉ số ("4 củ" = 4.000.000) thì không phải giá trị của chỉ số
-			if s.opt.QuantityFits == nil || s.opt.QuantityFits(metric, sp.Value) {
+			if s.inRange(metric, sp.Value) {
 				cover(sp.Start, sp.End)
 			}
 		}

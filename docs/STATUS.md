@@ -12,7 +12,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
 
 - **M1 RA theo cổng ra của lệnh ca 22/10** (`41bc3cf`; cổng: 4 route, principal từ token, một lệnh từ checkout sạch, CI có PG, vết lưu bền
   kể cả lượt lỗi, 117 / H1 / H3 không đổi). Vế còn lại của cổng ra M1 ở §5b (người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90% ca
-  đỏ): **CHƯA ĐO**. Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz; principal từ token, không lấy tenant từ
+  đỏ): lần đo 1 (22/10 tối) **KHÔNG ĐẠT**, 29 / 33 = 87,9% ("luôn đoán S4" được 84,8%) — vết chưa xuất phương án đã xét / bị loại
+  (R2-03, đang làm). Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz; principal từ token, không lấy tenant từ
   thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`, kể cả lượt lỗi; một lệnh
   `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21); CI GitHub có PG, cấm SKIP (run 39750100276 xanh).
 - **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`: không nhận thêm luật, lỗ mới ghi nợ, giữ fail-closed; còn nợ S3 ở ADR-0009); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu

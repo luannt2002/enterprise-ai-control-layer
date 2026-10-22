@@ -13,7 +13,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
   - M1 **RA theo cổng ra của lệnh ca** · `41bc3cf` · `scripts/chay-thu.sh` (smoke 21/21 ở máy và trên CI từ checkout sạch), `go test
     -count=1 -json ./...` có PG, `eais trace -tenant <t> <id>` (lượt thường và lượt lỗi), CI GitHub run 39750100276 · ĐẠT các mục: 4 route,
     principal từ token, một lệnh, CI có PG, vết lưu bền, 117 / H1 / H3 không đổi. Vế "người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90%
-    ca đỏ" của cổng ra M1 ở `docs/ROADMAP-DAY-DU.md` §5b: CHƯA ĐO.
+    ca đỏ" của cổng ra M1 ở `docs/ROADMAP-DAY-DU.md` §5b: lần đo 1 (22/10 17:5x) **KHÔNG ĐẠT** — 29 / 33 = 87,9% ca đỏ H1 + H3 ("luôn
+    đoán S4" được 84,8%); 4 ca lệch đều do vết thiếu phương án đã xét (`docs/bao-cao/2026-10-22-do-nguoi-soat-doc-vet.md`); R2-03 đang làm.
   - M3 **chưa RA** · H4 một lần ở `57409f2`, theo tầng ở `e698e30` · dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu sai nghĩa không nhãn)
     ⇒ chờ **D-AI-02**.
   - M4 giấy (`f102238`, soát ĐẠT CÓ GHI CHÚ); trước mã: L3D-01…08 + bộ ca giữ lại độc lập Phase 1. Khi mã xong, dòng M4 ghi "lệnh tạo
@@ -91,3 +92,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 22/10 17:0x | commit chứa dòng này | Mốc chốt ca ngày 22/10: cổng cuối, báo cáo ca, STATUS, CHANGELOG (chủ dự án dặn làm tiếp) | `go vet` 0; `gofmt -l` 0; test có PG 601 test (kể cả test con) pass / 0 skip (theo tên 0 đổi / 0 mất so cổng M1); bộ 117 (đường bộ nhớ) và H1 / H3 / H4 (hai đường) 0 dòng nội dung khác so cổng M1; CI run 39755113290 success | MVP chưa RA: M1 RA theo lệnh ca (vế ≥ 90% của §5b chưa đo); M3 chờ D-AI-02; M2, M4 giấy; M5 chưa đạt. Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
 | 22/10 17:1x | commit chứa dòng này | So cổng cuối với mốc đầu ca `ffb1efb` (báo cáo ca mục 6) | Test có PG theo tên: 455 → 601, 0 đổi / 0 mất / 146 mới; 117 117/117 không đổi; H1 89 → 92, H3 109 → 113 (hai đường), 0 ca xanh → đỏ; mọi dòng khác thuộc G1 cờ ước lượng (làn 2) hoặc vòng S4 (ADR-0010) | H1 / H3 là bộ hồi quy, không phải bằng chứng cho vòng S4 |
 | 22/10 17:3x | commit chứa dòng này | M5: bảng lệnh từng dòng CỔNG TRƯỚC AI (`docs/bao-cao/CONG-TRUOC-AI.md`) từ người kiểm toán chỉ đọc; câu mở D-AI-03 (S7 trong hay ngoài MVP) | Điều phối đo lại phần không PG: 374 test (kể cả test con) pass, 0 fail, 6 skip đều cần PG; số theo gói khớp lời khai | Trạng thái tổng CHƯA ĐẠT; trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt |
+| 22/10 17:5x | commit chứa dòng này | Đo vế "người soát CHỈ ĐỌC VẾT chỉ đúng tầng sai đầu tiên ≥ 90%" (cổng ra M1 §5b, dòng Vết §9.3), lần 1 | 48 thẻ vết từ `eais serve` + `eais trace` (câu trả lời trùng winreport 48 / 48); người đọc mù khớp nhãn chuẩn 29 / 33 = 87,9% ở H1 + H3, 15 / 15 ở H4; "luôn đoán S4" 84,8% | KHÔNG ĐẠT; R2-03 (vết xuất phương án đã xét) đang làm, rồi đo lại có ca xanh đối chứng |

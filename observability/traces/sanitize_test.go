@@ -195,3 +195,62 @@ func TestSanitizeRecordCheGiaTriMapTheoKhoa(t *testing.T) {
 		t.Errorf("Steps và Spans phải là mảng (không nil) để DB lưu [] chứ không null")
 	}
 }
+
+// R1-04. Giá trị bí mật nằm trong nháy và CÓ khoảng trắng: bộ che phải lấy hết giá trị, không để lọt phần đuôi. Mỗi ca liệt kê MỌI mảnh
+// của bí mật; nháy không đóng thì che tới hết chuỗi (chưa biết chỗ kết thúc thì che thừa còn hơn lọt). Cookie / Set-Cookie: cả giá trị
+// của tiêu đề là bí mật phiên, không chỉ một cặp.
+func TestSanitizeCheDuoiGiaTriCoKhoangTrang(t *testing.T) {
+	for _, c := range []struct {
+		name, in string
+		secrets  []string // mọi mảnh của bí mật, không được còn
+		keep     string   // ngữ cảnh phải còn
+	}{
+		{"nháy kép, nhiều từ", `password="hunter two three" host=db`, []string{"hunter", "two", "three"}, "host=db"},
+		{"JSON, giá trị có khoảng trắng", `{"password":"hun ter2", "model": "m1"}`, []string{"hun", "ter2"}, `"model": "m1"`},
+		{"nháy đơn", `client_secret: 'abc def' xong`, []string{"abc", "def"}, "xong"},
+		{"khoá có hậu tố, nháy kép", `secret_token="aaa bbb" tiếp`, []string{"aaa", "bbb"}, "tiếp"},
+		{"pwd, nháy kép", `pwd: "co khoang trang" hết`, []string{"co khoang", "trang"}, "hết"},
+		{"nháy kép không đóng", `password="chưa đóng nháy`, []string{"chưa", "đóng", "nháy"}, "password"},
+		{"nháy đơn không đóng", `api_key='chưa đóng nháy`, []string{"chưa", "đóng", "nháy"}, "api_key"},
+		{"giá trị rỗng trong nháy", `password="" host=db`, nil, "host=db"},
+		{"tiêu đề Cookie", `Cookie: session=abc123def456ghi`, []string{"abc123def456ghi"}, "Cookie"},
+		{"tiêu đề Set-Cookie (cả thuộc tính)", `Set-Cookie: sid=zzzzzzzzzzzz; Path=/`, []string{"zzzzzzzzzzzz"}, "Set-Cookie"},
+		{"Cookie trong JSON", `{"Cookie": "sid=qqqqqqqqqqqq; theme=dark", "x": 1}`, []string{"qqqqqqqqqqqq", "theme=dark"}, `"x": 1`},
+	} {
+		got := traces.Sanitize(c.in)
+		for _, s := range c.secrets {
+			if strings.Contains(got, s) {
+				t.Errorf("%s: mảnh bí mật %q còn trong %q", c.name, s, got)
+			}
+		}
+		if !strings.Contains(got, c.keep) {
+			t.Errorf("%s: mất cả ngữ cảnh %q, được %q", c.name, c.keep, got)
+		}
+		if !strings.Contains(got, traces.Masked) {
+			t.Errorf("%s: không thấy dấu che trong %q", c.name, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+	// nháy giữ nguyên cấu trúc: JSON có nháy quanh giá trị vẫn có nháy quanh dấu che (đọc vết không bị lẫn)
+	if got := traces.Sanitize(`{"api_key": "QWERTY 123456"}`); got != `{"api_key": "`+traces.Masked+`"}` {
+		t.Errorf("cấu trúc JSON bị phá: %q", got)
+	}
+}
+
+// Ca âm cho R1-04: nháy, "cookie" và khoảng trắng trong nội dung thường KHÔNG bị che oan.
+func TestSanitizeKhongCheOanNhayVaCookie(t *testing.T) {
+	for _, in := range []string{
+		`Tên "Máy xúc" và 'EX-03' đều hợp lệ`,
+		"banner cookie hiển thị trên trang chủ",
+		"chính sách cookie của site",
+		`"model": "m1", "note": "hai từ"`,
+		`mật khẩu mạnh cần 12 ký tự`,
+		"password policy: chính sách mật khẩu", // "policy" chen giữa từ khoá và dấu hai chấm: không phải cặp khoá = giá trị
+	} {
+		if got := traces.Sanitize(in); got != in {
+			t.Errorf("che oan: %q → %q", in, got)
+		}
+	}
+}

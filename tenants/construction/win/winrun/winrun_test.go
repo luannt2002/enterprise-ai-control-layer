@@ -3,8 +3,12 @@ package winrun_test
 import (
 	"bufio"
 	"context"
+	"fmt"
+	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -29,24 +33,21 @@ func TestWinRatchet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// G1: lệch cờ ước lượng đã biết (g1-approx-known.txt) không làm đỏ; mọi lệch khác và khoá lệch cờ MỚI thì đỏ.
+	// G1: lệch cờ ước lượng ĐÃ BIẾT (g1-approx-known.txt, đúng chiều đã ghim) không làm đỏ. Mọi lệch khác, khoá lệch cờ MỚI,
+	// lệch ngược chiều đã ghim, và khoá đã hết lệch mà chưa xoá khỏi tệp (ratchet chỉ đi xuống) đều ĐỎ.
 	known, err := loadKnownApprox("../g1-approx-known.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	unexpected, seen := g1Unexpected(r.G1Problems, known)
-	for i, p := range unexpected {
+	g1Errs, tolerated := g1RatchetErrors(r.G1Problems, known)
+	for i, e := range g1Errs {
 		if i == 10 {
+			t.Errorf("G1: … và %d lỗi nữa", len(g1Errs)-10)
 			break
 		}
-		t.Errorf("G1: %s", p)
+		t.Error(e)
 	}
-	for k := range known {
-		if !seen[k] {
-			t.Logf("G1: %s đã hết lệch cờ ước lượng — xoá khỏi g1-approx-known.txt", k)
-		}
-	}
-	t.Logf("G1: %d lệch cờ ước lượng đã biết (g1-approx-known.txt)", len(seen))
+	t.Logf("G1: %d lệch cờ ước lượng đã biết (g1-approx-known.txt)", len(tolerated))
 	// G1 metamorphic (docs/04 mục 6): mỗi bản ghi biến thể có ≥ 4 biểu diễn, và mọi biểu diễn ra cùng
 	// một quan sát chuẩn.
 	if len(r.Variants) < 2 {
@@ -142,55 +143,134 @@ func TestWinTrenPG(t *testing.T) {
 	t.Logf("đường PG: %s", onPG.Report.Summary())
 }
 
-// loadKnownApprox đọc g1-approx-known.txt: mỗi dòng không rỗng, không bắt đầu bằng #, trường đầu là một khoá manifest.
-func loadKnownApprox(path string) (map[string]bool, error) {
+// knownApprox là một lệch cờ ước lượng đã biết: bộ nạp ra got, manifest muốn want ("true" / "false").
+type knownApprox struct{ got, want string }
+
+// loadKnownApprox đọc g1-approx-known.txt: mỗi dòng không rỗng, không bắt đầu bằng #, có dạng
+// `khoá được=<true|false> muốn=<true|false> nguyên nhân` với được ≠ muốn (chiều lệch được ghim). Dòng sai dạng hoặc khoá
+// lặp là lỗi: tệp ghim hỏng thì test phải đỏ, không bỏ qua lặng lẽ. scripts/scale-smoke.sh đọc cùng định dạng này.
+func loadKnownApprox(path string) (map[string]knownApprox, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	out := map[string]bool{}
+	out := map[string]knownApprox{}
 	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		if line := strings.TrimSpace(sc.Text()); line != "" && !strings.HasPrefix(line, "#") {
-			out[strings.Fields(line)[0]] = true
+	for n := 1; sc.Scan(); n++ {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
 		}
+		fields := strings.Fields(line)
+		var got, want string
+		var okGot, okWant bool
+		if len(fields) >= 4 {
+			got, okGot = strings.CutPrefix(fields[1], "được=")
+			want, okWant = strings.CutPrefix(fields[2], "muốn=")
+		}
+		isBool := func(s string) bool { return s == "true" || s == "false" }
+		if !okGot || !okWant || !isBool(got) || !isBool(want) || got == want {
+			return nil, fmt.Errorf("%s:%d: dòng phải có dạng `khoá được=<true|false> muốn=<true|false> nguyên nhân` với được ≠ muốn, có %q", path, n, line)
+		}
+		if _, dup := out[fields[0]]; dup {
+			return nil, fmt.Errorf("%s:%d: khoá %s lặp", path, n, fields[0])
+		}
+		out[fields[0]] = knownApprox{got: got, want: want}
 	}
 	return out, sc.Err()
 }
 
-// g1Unexpected tách các vấn đề G1 thành: không ngờ tới (đỏ) và khoá lệch cờ ước lượng đã biết (seen). Chỉ vấn đề
-// CỜ của khoá có trong danh sách mới được bỏ qua: khoá đã biết mà lệch thêm trường khác, hay khoá mới lệch cờ, vẫn đỏ.
-func g1Unexpected(problems []string, known map[string]bool) (unexpected []string, seen map[string]bool) {
-	seen = map[string]bool{}
+// g1RatchetErrors phân xử các vấn đề G1 theo danh sách lệch cờ đã biết (ratchet chỉ đi xuống): chỉ vấn đề CỜ của khoá có
+// trong danh sách, ĐÚNG chiều đã ghim, mới được bỏ qua (trả về trong tolerated). Mọi thứ khác là lỗi: lệch cờ của khoá mới,
+// lệch cờ ngược chiều đã ghim, khoá đã biết mà lệch thêm trường khác (vấn đề không phải cờ), và khoá đã biết không còn
+// vấn đề nào — người sửa bộ chuẩn hoá hay bộ sinh phải xoá khoá khỏi tệp cùng commit.
+func g1RatchetErrors(problems []string, known map[string]knownApprox) (errs, tolerated []string) {
+	touched := map[string]bool{}
 	for _, p := range problems {
-		key, rest, _ := strings.Cut(p, ": ")
-		if known[key] && strings.HasPrefix(rest, winrun.G1ApproxMark) {
-			seen[key] = true
+		key, _, _ := strings.Cut(p, ": ")
+		touched[key] = true
+		if k, ok := known[key]; ok && p == key+": "+winrun.G1ApproxMark+" được "+k.got+", muốn "+k.want {
+			tolerated = append(tolerated, key)
 			continue
 		}
-		unexpected = append(unexpected, p)
+		errs = append(errs, "G1: "+p)
 	}
-	return unexpected, seen
+	for _, key := range slices.Sorted(maps.Keys(known)) {
+		if !touched[key] {
+			errs = append(errs, "G1: "+key+" đã hết lệch cờ ước lượng — xoá khỏi g1-approx-known.txt cùng commit sửa (ratchet chỉ đi xuống)")
+		}
+	}
+	return errs, tolerated
 }
 
-// TestG1KnownApproxChanDuoc: cổng danh sách lệch đã biết phải THỰC SỰ chặn (CLAUDE.md §1): chỉ lệch cờ của
-// khoá có trong danh sách được bỏ qua.
-func TestG1KnownApproxChanDuoc(t *testing.T) {
-	known := map[string]bool{"k1": true}
+// TestG1RatchetChanDuoc: cổng danh sách lệch đã biết phải THỰC SỰ chặn (CLAUDE.md §1): chỉ lệch cờ đúng chiều của khoá có
+// trong danh sách được bỏ qua; mọi trường hợp còn lại, kể cả khoá đã hết lệch, là lỗi.
+func TestG1RatchetChanDuoc(t *testing.T) {
+	known := map[string]knownApprox{"k1": {got: "false", want: "true"}}
+	approx := func(key, got, want string) string {
+		return key + ": " + winrun.G1ApproxMark + " được " + got + ", muốn " + want
+	}
 	for _, c := range []struct {
-		name       string
-		problem    string
-		wantPassed bool // true: bị bỏ qua (đã biết); false: phải đỏ
+		name          string
+		problems      []string
+		wantTolerated int
+		wantErrs      []string // mỗi phần tử là chuỗi phải có trong lỗi thứ i; độ dài = số lỗi
 	}{
-		{"cờ lệch của khoá đã biết", "k1: " + winrun.G1ApproxMark + " được false, muốn true", true},
-		{"cờ lệch của khoá MỚI", "k9: " + winrun.G1ApproxMark + " được false, muốn true", false},
-		{"khoá đã biết nhưng lệch số", "k1: được EX-03/issued_fuel/erp/2026-10-19/3851, muốn EX-03/issued_fuel/erp/2026-10-19/3850", false},
-		{"khoá đã biết nhưng bị cách ly thiếu", "k1: muốn quan sát, không có", false},
+		{"đúng chiều đã ghim", []string{approx("k1", "false", "true")}, 1, nil},
+		{"ngược chiều đã ghim", []string{approx("k1", "true", "false")}, 0, []string{"k1: cờ ước lượng được true, muốn false"}},
+		{"khoá MỚI lệch cờ", []string{approx("k1", "false", "true"), approx("k9", "false", "true")}, 1, []string{"k9: cờ ước lượng được false, muốn true"}},
+		{"khoá đã biết nhưng lệch số", []string{"k1: được EX-03/issued_fuel/erp/2026-10-19/3851, muốn EX-03/issued_fuel/erp/2026-10-19/3850"}, 0, []string{"k1: được EX-03"}},
+		{"khoá đã biết nhưng bị cách ly thiếu", []string{"k1: muốn quan sát, không có"}, 0, []string{"k1: muốn quan sát"}},
+		{"khoá đã hết lệch mà còn trong tệp", nil, 0, []string{"k1 đã hết lệch cờ ước lượng — xoá khỏi g1-approx-known.txt"}},
 	} {
-		unexpected, seen := g1Unexpected([]string{c.problem}, known)
-		if passed := len(unexpected) == 0 && seen["k1"]; passed != c.wantPassed {
-			t.Errorf("%s: bị bỏ qua = %v, muốn %v (unexpected=%v)", c.name, passed, c.wantPassed, unexpected)
+		errs, tolerated := g1RatchetErrors(c.problems, known)
+		if len(tolerated) != c.wantTolerated || len(errs) != len(c.wantErrs) {
+			t.Errorf("%s: bỏ qua %v, lỗi %v; muốn %d bỏ qua, %d lỗi", c.name, tolerated, errs, c.wantTolerated, len(c.wantErrs))
+			continue
+		}
+		for i, want := range c.wantErrs {
+			if !strings.Contains(errs[i], want) {
+				t.Errorf("%s: lỗi %d = %q, muốn chứa %q", c.name, i, errs[i], want)
+			}
+		}
+	}
+	if errs, _ := g1RatchetErrors(nil, nil); len(errs) != 0 {
+		t.Errorf("không ghim khoá nào, không lệch nào mà có lỗi: %v", errs)
+	}
+}
+
+// TestLoadKnownApproxSaiDang: tệp ghim sai dạng hay có khoá lặp phải là LỖI khi đọc (không bỏ qua lặng lẽ), và tệp thật
+// đọc ra đúng chiều lệch đã ghim.
+func TestLoadKnownApproxSaiDang(t *testing.T) {
+	const good = "k1 được=false muốn=true nguyên nhân\n"
+	for _, c := range []struct {
+		name, content string
+		wantErr       bool
+	}{
+		{"đúng dạng, có chú thích và dòng rỗng", "# chú thích\n\n" + good, false},
+		{"thiếu nguyên nhân", "k1 được=false muốn=true\n", true},
+		{"thiếu chiều muốn", "k1 được=false nguyên nhân dài\n", true},
+		{"giá trị không phải true/false", "k1 được=sai muốn=true nguyên nhân\n", true},
+		{"được bằng muốn (không phải lệch)", "k1 được=true muốn=true nguyên nhân\n", true},
+		{"khoá lặp", good + good, true},
+		{"dòng cũ chưa ghim chiều", "k1 \"nguyên nhân\" như cũ\n", true},
+	} {
+		p := filepath.Join(t.TempDir(), "known.txt")
+		if err := os.WriteFile(p, []byte(c.content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := loadKnownApprox(p); (err != nil) != c.wantErr {
+			t.Errorf("%s: lỗi = %v, muốn lỗi = %v", c.name, err, c.wantErr)
+		}
+	}
+	known, err := loadKnownApprox("../g1-approx-known.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"messages.jsonl#R-001", "messages.jsonl#R-002", "reports/2026-10-19.pdf#1"} {
+		if known[key] != (knownApprox{got: "false", want: "true"}) {
+			t.Errorf("tệp thật: %s ghim %+v, muốn được=false muốn=true", key, known[key])
 		}
 	}
 }

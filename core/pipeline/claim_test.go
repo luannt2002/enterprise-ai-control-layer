@@ -80,8 +80,34 @@ func TestVerdictGap(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L. Dự án A, 5050 L đúng không?", claimed: "5050", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L. Dự án, 5050 L đúng không?", claimed: "5050", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03 được cấp 3000 L, đúng không?", claimed: "3000", want: "subject"},
-		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?", claimed: "3900", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "ERP, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "subject"},
+		{q: "Dự án hôm nay được cấp 3850 L cho EX-03 đúng không?", claimed: "3850", want: "subject"},
+		{q: "EX-03 hôm nay được cấp 3850 L, máy 03 đúng không?", claimed: "3850", want: "subject"},
+		{q: "DZ-03 (máy 03) hôm nay được cấp 3850 L đúng không?", claimed: "3850", subject: "DZ-03"}, // "máy 03" mơ hồ, có chủ thể trong ứng viên, trong ngoặc liền sau lần nhắc rõ
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1002", want: "value"},
+		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3008.5", want: "value"},
+		// đề mục thuần (topicQualifier): nhãn "metric" cho chỉ số khác, "source" khi cụm vừa là nguồn vừa là chỉ số; đề mục được có từ
+		// trung tính, mốc (kể cả "ngày" / "hôm" đứng trước mốc số), dấu ngăn nhiều byte; số do hai nguồn thì không nguồn nào là "đúng nguồn"
+		{q: "Đội báo, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
+		{q: "Hoá đơn, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source"},
+		{q: "ERP ơi, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Hôm nay, ERP, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Tháng 10, ERP, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Ngày 19/10, ERP, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Ngày 19/10, đội báo, EX-03 được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},
+		{q: "ERP ngày 19/10, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Hôm 19/10, ERP, EX-03 được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "“ERP”, EX-03 hôm nay được cấp 3900 L đúng không?", claimed: "3900", want: "source"},
+		{q: "Phiếu xuất kho, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "source", used: []string{"warehouse_slip", "erp"}},
+		// đề mục chỉ có mốc / từ trung tính vẫn phán quyết; từ khoá ý định yếu ở ngữ cảnh không được giải thích ("Tổng,")
+		{q: "Hôm nay, EX-03 được cấp 3850 L đúng không?", claimed: "3850"},
+		{q: "Cho hỏi, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850"},
+		{q: "Tổng, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "residual"},
+		// chủ gần nhất (contextOwners): tên nguồn ở ngữ cảnh đứng ngay trước con số; số ở câu trước không biến "đội báo" thành sự kiện riêng
+		{q: "EX-03 hôm nay ERP, được cấp 3900 L đúng không?", claimed: "3900", want: "subject"},
+		{q: "ERP ghi 3900 L. EX-03 hôm nay đội báo, được cấp 3850 L đúng không?", claimed: "3850", want: "subject"},
 		{q: "EX-03 ngày 19/10 được cấp 3850 L máy 03 đúng không?", claimed: "3850"},
 	} {
 		in := rt.Normalizer.Normalize(c.q, normalization.Options{Now: now})
@@ -135,6 +161,13 @@ func TestViTuDauCauVong5(t *testing.T) {
 		{"\n", false, true},
 		{"a, b", false, true},
 		{"19/ 10", false, false},
+		{"3850,", false, true},
+		{",3850", false, true},
+		{"a,5", false, true},
+		{"3,a", false, true},
+		{"3;850", false, false},
+		{"? ", false, true},
+		{"! ", false, true},
 	} {
 		if got := plainBetween(c.s); got != c.plain {
 			t.Errorf("plainBetween(%q) = %v, muốn %v", c.s, got, c.plain)
@@ -156,6 +189,7 @@ func TestViTuDauCauVong5(t *testing.T) {
 		{"EX-03 (dự án A hôm nay", "EX-03", "dự án A", false},
 		{"EX-03 [dự án A) hôm nay", "EX-03", "dự án A", false},
 		{"EX-03 - dự án A hôm nay", "EX-03", "dự án A", false},
+		{"EX-03 ( dự án A ) hôm nay", "EX-03", "dự án A", true},
 	} {
 		_, fe := at(c.raw, c.first)
 		ss, se := at(c.raw, c.second)
@@ -176,5 +210,18 @@ func TestViTuDauCauVong5(t *testing.T) {
 		if got := wrapped(c.raw, s, e); got != c.want {
 			t.Errorf("wrapped(%q, %q) = %v, muốn %v", c.raw, c.sub, got, c.want)
 		}
+	}
+}
+
+// subjectFacts.gap ở mức đơn vị: phạm vi hỏi [lo, len) nêu tên (cấp cha) mà không nêu chủ thể ⇒ "subject". Ở mức câu, numberOwned + E3
+// (Vòng 5) đã bao trùm phép kiểm này nên chỉ test đơn vị bắt được đột biến tắt nó (n43 CG24).
+func TestSubjectGapPhamViHoi(t *testing.T) {
+	s := subjectFacts{id: "EX-03", ancestors: map[string]bool{"PRJ-A": true}}
+	names := []mention{{start: 0, end: 5, ids: []string{"EX-03"}}, {start: 30, end: 37, ids: []string{"PRJ-A"}}}
+	if got := s.gap(names, 20); got != "subject" {
+		t.Errorf("gap(lo = 20) = %q, muốn \"subject\": phạm vi hỏi chỉ nêu cấp cha", got)
+	}
+	if got := s.gap(names, 0); got != "" {
+		t.Errorf("gap(lo = 0) = %q, muốn \"\": phạm vi hỏi có nêu chủ thể", got)
 	}
 }

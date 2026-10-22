@@ -344,10 +344,10 @@ func TestCongPhanQuyetSoatLan3(t *testing.T) {
 	}
 }
 
-// ADR-0009 Vòng 5: đóng R4-2, R4-3 (S1), R4-4 (S2), R-1 (S1: tên nguồn / từ chỉ lượng ở ngữ cảnh đứng ngay trước con số) và câu đổi
-// chiều của số bằng chữ "<hàng> <một chữ số>" (S1, phản hồi audit ROADMAP K5). Kỳ vọng suy từ luật của ADR, không chép đầu ra của bản
-// sửa; ca R4 theo bảng của bản soát mã độc lập 21/10. Chưa ghim các dạng chờ quyết chính sách (ADR-0009 Vòng 5): viết liền "EX-03 dự án
-// A", đồng vị phẩy "EX-03, dự án A, …", bí danh chen giữa "EX-03 hôm nay Máy 03 được …", ngoặc cấp cha "EX-03 (dự án A)", "máy 03 (EX-03)".
+// ADR-0009 Vòng 5: đóng R4-2, R4-3 (S1), R4-4 (S2), R5-1 (S1: ngữ cảnh nêu nguồn khác, chỉ số khác hay từ chỉ lượng mà không kèm số
+// của riêng nó; gồm R2-4) và R5-2 (S1: số bằng chữ "<hàng> <một chữ số>", phản hồi audit ROADMAP K5). Kỳ vọng suy từ luật của ADR, không
+// chép đầu ra của bản sửa; ca R4 theo bảng của bản soát mã độc lập 21/10, ca D theo bản đột biến 22/10. Năm dạng chính sách mặc định
+// (bảng của ADR-0009 Vòng 5) được ghim theo hành vi đã chọn: chủ dự án quyết khác thì đổi luật cùng các dòng "mặc định Vòng 5".
 func TestCongPhanQuyetVong5(t *testing.T) {
 	std := newAsk(t)
 	tiers := newAskWith(t, "seed/entities-bon-tang.yaml", "seed/facts-nguon-thap.yaml")
@@ -373,13 +373,41 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03 được cấp 3000 L, đúng không?"},
 		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03, 3000 L đúng không?"},
 		{q: "EX-03 hôm nay được cấp 3850 L. Máy 03 3850 L, đúng không?"},
-		// R-1: tên nguồn / từ chỉ lượng ở ngữ cảnh đứng ngay trước con số: con số là của nguồn / chỉ số đó (ERP ghi 3.900 L)
+		// R5-1: ngữ cảnh nêu nguồn khác / chỉ số khác / từ chỉ lượng mà không kèm số của riêng nó: đó là nguồn / chỉ số của chính claim
+		// (ERP ghi 3.900 L; đội báo 4.000 L)
 		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?"},
 		{q: "EX-03 hôm nay được cấp 3850 L. ERP, 3850 L đúng không?"},
 		{q: "EX-03 hôm nay được cấp 3850 L. Định mức, 5000 L đúng không?"},
+		{q: "ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Đội báo, EX-03 hôm nay được cấp 3850 L đúng không?"},
+		{q: "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L. Đội báo, 4000 L được cấp đúng không?"},
+		{q: "Định mức, hôm nay được cấp 3850 L cho EX-03 đúng không?"},
+		{q: "Hôm nay EX-03 được cấp bao nhiêu dầu? Bảng tổng hợp, 3850 L đúng không?"},
+		// đề mục có mốc / từ trung tính vẫn là đề mục: "ngày" đứng trước mốc số, "hôm nay", "cho hỏi", "ghi"
+		{q: "Ngày 19/10, ERP, EX-03 được cấp 3900 L đúng không?"},
+		{q: "ERP ngày 19/10, EX-03 được cấp 3900 L đúng không?"},
+		{q: "Hôm nay, ERP, EX-03 được cấp 3900 L đúng không?"},
+		{q: "ERP ghi, EX-03 hôm nay được cấp 3900 L đúng không?"},
+		{q: "Cho hỏi, ERP, EX-03 hôm nay được cấp 3900 L đúng không?"},
 		// số bằng chữ kết thúc bằng "<hàng> <một chữ số>": nói thường là hàng kế dưới (1.200, 3.800), bộ đọc cho 1.002, 3.008
 		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?"},
 		{q: "EX-03 hôm nay được cấp ba nghìn tám lít dầu đúng không?"},
+		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?"},
+		// R4-4: bí danh mơ hồ sau con số, ngăn bằng dấu câu (luật bí danh: không có bằng chứng dương)
+		{q: "EX-03 ngày 19/10 được cấp 3850 L, máy 03 đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L; máy 03 đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L - máy 03 đúng không?"},
+		{q: "EX-03 hôm nay được cấp 3850 L: máy 03 đúng không?"},
+		{q: "EX-03, (máy 03) hôm nay được cấp 3850 L đúng không?"},
+		{q: "Máy 03 hôm nay được cấp 3850 L, EX-03 đúng không?"},
+		// định ngữ chỉ nối bằng ĐÚNG chữ "của", mọi mắt xích của chuỗi
+		{q: "EX-03 hôm nay được cấp của dự án A 3850 L đúng không?"},
+		{q: "EX-03: dự án A của chương trình quốc lộ hôm nay được cấp 3900 L đúng không?", tiers: true},
+		// mặc định Vòng 5 (fail-closed): viết liền, đồng vị phẩy, bí danh chen giữa không ngắt
+		{q: "EX-03 dự án A hôm nay được cấp 3850 L đúng không?"},
+		{q: "EX-03, dự án A, hôm nay được cấp 3850 L, đúng không?"},
+		{q: "EX-03 hôm nay Máy 03 được cấp 3850 L đúng không?"},
 	} {
 		a := std
 		if c.tiers {
@@ -407,11 +435,31 @@ func TestCongPhanQuyetVong5(t *testing.T) {
 		{q: "Định mức 5000 L, vậy EX-03 của dự án A hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "ERP ghi 3900 L, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "Đội báo 4000 L, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
-		// cụm ở ngữ cảnh đứng ngay trước con số mà KHÔNG sở hữu nó: từ hỏi của ý định yếu, từ khoá của chính ý định, đúng nguồn đã dùng
+		// cụm ở ngữ cảnh đứng ngay trước con số mà KHÔNG phải nguồn / chỉ số khác: từ hỏi của ý định yếu ("bao nhiêu"), từ khoá của
+		// chính ý định ("được cấp", "phiếu kho")
 		{q: "EX-03 hôm nay được cấp bao nhiêu? 3850 L đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp 3850 L, 3850 L đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp dầu. Được cấp, 3850 L đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay được cấp 3850 L. Phiếu kho, 3850 L đúng không?", want: "Đúng."},
+		// tên ĐÚNG nguồn đã tạo con số trả lời (nhãn "phiếu xuất kho", không phải từ khoá): vẫn phán quyết, cả hai chiều
+		{q: "Hôm nay EX-03 được cấp bao nhiêu dầu? Phiếu xuất kho, 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L. Phiếu xuất kho, 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L. Phiếu xuất kho, 3900 L đúng không?", want: "Không."},
+		{q: "Phiếu xuất kho, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Phiếu xuất kho ngày 19/10, EX-03 được cấp 3850 L đúng không?", want: "Đúng."},
+		// đề mục chỉ có mốc / từ trung tính không phải nguồn / chỉ số khác
+		{q: "Hôm nay, EX-03 được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Cho hỏi, EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		// số bằng chữ mơ hồ ở NGỮ CẢNH chỉ được che, không đem so; bí danh mơ hồ ở ngữ cảnh không phải kiểm
+		{q: "Đội báo hai nghìn tám lít, vậy EX-03 hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Máy 03 được cấp 3000 L. EX-03 hôm nay được cấp 3850 L, đúng không?", want: "Đúng."},
+		{q: "Máy 03 được cấp 3000 L. EX-03 hôm nay được cấp 4000 L, đúng không?", want: "Không."},
+		// "của" không phân biệt hoa thường; lần nhắc rõ GẦN NHẤT quyết bí danh trong ngoặc
+		{q: "EX-03 CỦA dự án A hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "EX-03 hôm nay được cấp 3850 L, EX-03 (máy 03) đúng không?", want: "Đúng."},
+		// mặc định Vòng 5: định ngữ trong ngoặc trần, bí danh rồi lần nhắc rõ trong ngoặc
+		{q: "EX-03 (dự án A) hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
+		{q: "Máy 03 (EX-03) hôm nay được cấp 3850 L đúng không?", want: "Đúng."},
 		// cụm ở ngữ cảnh đã có số của riêng nó ("đội báo 3k"): con số xác nhận đứng sau không phải của nó
 		{q: "EX-03 hôm nay đội báo 3k, vậy được cấp 3850 L đúng không?", want: "Đúng."},
 		{q: "EX-03 hôm nay ERP ghi 3900 L, vậy được cấp 3850 L đúng không?", want: "Đúng."},

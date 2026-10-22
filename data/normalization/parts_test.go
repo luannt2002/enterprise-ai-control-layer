@@ -66,8 +66,8 @@ func TestParseViNumberWords(t *testing.T) {
 	}
 }
 
-// ADR-0009 Vòng 5: dãy số bằng chữ kết thúc bằng "<hàng> <một chữ số>" là chưa đọc chắc (nói thường "một nghìn hai" = 1.200, bộ
-// đọc cho 1.002); dạng viết rõ hàng ("trăm", "linh", "lẻ", "rưỡi", "mươi") thì không.
+// ADR-0009 Vòng 5: dãy số bằng chữ kết thúc bằng "<hàng> <một chữ số>", có thể kèm "rưỡi", là chưa đọc chắc (nói thường "một nghìn
+// hai" = 1.200, bộ đọc cho 1.002); dạng viết rõ hàng ("trăm", "linh", "lẻ", "mươi") hay "rưỡi" ngay sau hàng thì không.
 func TestAmbiguousNumberWords(t *testing.T) {
 	for _, c := range []struct {
 		in   string
@@ -90,6 +90,20 @@ func TestAmbiguousNumberWords(t *testing.T) {
 		{"bốn ngàn", false},
 		{"3850 L", false},
 		{"", false},
+		// "rưỡi" sau "<hàng> <chữ số>" vẫn mơ hồ ("ba nghìn tám rưỡi" = 3.850); sau hàng tròn hay "trăm" thì rõ
+		{"ba nghìn tám rưỡi lít", true},
+		{"một trăm hai rưỡi", true},
+		{"ba nghìn tám trăm rưỡi", false},
+		{"ba trăm rưỡi", false},
+		{"mười hai rưỡi", false},
+		{"hai trăm mười rưỡi lít", false},
+		{"ba nghìn lẻ rưỡi lít", false},
+		// chữ số đứng sau "mươi" là hàng đơn vị bình thường; từ không phải số làm đứt dãy; dấu câu dính vào từ được bỏ
+		{"hai mươi lăm", false},
+		{"một trăm hai mươi lăm lít", false},
+		{"ba nghìn lít hai", false},
+		{"(một nghìn hai)", true},
+		{"một nghìn hai.", true},
 	} {
 		if got := AmbiguousNumberWords(c.in); got != c.want {
 			t.Errorf("AmbiguousNumberWords(%q) = %v, muốn %v", c.in, got, c.want)

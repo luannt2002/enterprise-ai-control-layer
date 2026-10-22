@@ -69,22 +69,26 @@ func lookupNumberWord(word string) (viNumWord, bool) {
 }
 
 // AmbiguousNumberWords báo s có dãy số bằng chữ KẾT THÚC bằng một chữ số đứng ngay sau từ chỉ hàng ("một nghìn hai", "hai trăm năm",
-// "ba nghìn tám"). Nói thường, chữ số đó là hàng kế dưới (1.200, 250, 3.800); parseViNumberWords cộng nó như hàng đơn vị (1.002, 205,
-// 3.008). Dạng viết rõ hàng ("một nghìn hai trăm", "một trăm linh năm", "hai nghìn rưỡi") không tính. Cổng phán quyết dùng hàm này để
-// không phán quyết con số đọc chưa chắc; sửa chính bộ đọc chờ D-OP-14.
+// "ba nghìn tám"), kể cả khi theo sau là "rưỡi" ("ba nghìn tám rưỡi"). Nói thường, chữ số đó là hàng kế dưới (1.200, 250, 3.800, 3.850);
+// parseViNumberWords cộng nó như hàng đơn vị (1.002, 205, 3.008, 3.008,5). Dạng viết rõ hàng ("một nghìn hai trăm", "một trăm linh năm",
+// "hai nghìn rưỡi", "ba nghìn tám trăm rưỡi") không tính. Cổng phán quyết dùng hàm này để không phán quyết con số đọc chưa chắc; sửa
+// chính bộ đọc chờ D-OP-14.
 func AmbiguousNumberWords(s string) bool {
-	var prev, last viWord // loại của hai từ số cuối trong dãy đang xét
-	tail := func() bool { return last == vwDigit && (prev == vwScale || prev == vwHundred) }
+	var prev2, prev, last viWord // loại của ba từ số cuối trong dãy đang xét
+	scaled := func(k viWord) bool { return k == vwScale || k == vwHundred }
+	tail := func() bool {
+		return (last == vwDigit && scaled(prev)) || (last == vwHalf && prev == vwDigit && scaled(prev2))
+	}
 	for _, f := range strings.Fields(s) {
 		w, ok := lookupNumberWord(strings.Trim(f, ".,;:!?()[]\"'"))
 		if !ok {
 			if tail() {
 				return true
 			}
-			prev, last = 0, 0
+			prev2, prev, last = 0, 0, 0
 			continue
 		}
-		prev, last = last, w.kind
+		prev2, prev, last = prev, last, w.kind
 	}
 	return tail()
 }

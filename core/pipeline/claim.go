@@ -127,7 +127,12 @@ func (a *Ask) verdictGap(in contracts.NormalizedInput, names []mention, it contr
 	if slices.ContainsFunc(names, func(m mention) bool { return m.start >= firstEnd && !slices.Contains(m.ids, subj.id) }) {
 		return "subject"
 	}
-	if os := owners(names, in.Spans, idef.Terms, a.contextOwners(raw, in.Spans, inName, idef, used, lo)); !subj.numberOwned(raw, os, firstStart, firstEnd, lo) {
+	sources, metrics := a.qualifierPhrases(idef, used)
+	if gap := a.topicQualifier(raw, in.Spans, sources, metrics, lo); gap != "" {
+		return gap
+	}
+	extra := contextOwners(raw, in.Spans, inName, slices.Concat(sources, metrics), lo)
+	if os := owners(names, in.Spans, idef.Terms, extra); !subj.numberOwned(raw, os, firstStart, firstEnd, lo) {
 		return "subject" // con số xác nhận chưa gắn vào chủ thể: thứ gần nhất đứng trước nó là tên / danh từ khác, hay bí danh mơ hồ chưa có bằng chứng dương
 	}
 	srcSpans, gap := sourceMentions(raw, def, used, lo)
@@ -300,32 +305,44 @@ func owners(names []mention, spans []contracts.Span, ownTerms []string, extra []
 	return out
 }
 
-// contextOwners trả các cụm ở ngữ cảnh [0, lo) có thể sở hữu con số đứng sau chúng (R-1, ADR-0009 Vòng 5): tên nguồn khác nguồn đã tạo
-// con số trả lời ("ERP, 3900 L đúng không?"), từ khoá của ý định số liệu khác ("Đội báo, 4000 L"), từ chỉ lượng ("Định mức, 5000 L").
-// Ngữ cảnh được chứa các cụm này (sự kiện về chỉ số khác), nhưng con số đứng ngay sau chúng là của chúng. Không tính: cụm đã có số của
-// riêng nó trước phạm vi hỏi ("Đội báo 3k, vậy được cấp 3850 L": 3k mới là số của "đội báo"), từ khoá của chính ý định ("được cấp",
-// "phiếu kho"), từ khoá của ý định yếu ("bao nhiêu" chỉ chính chỉ số đang hỏi) và tên đúng nguồn đã tạo con số trả lời ("Phiếu kho, 3850 L").
-func (a *Ask) contextOwners(raw string, spans []contracts.Span, inName func(s, e int) bool, idef intent.Def, used []string, lo int) [][2]int {
+// qualifierPhrases trả các cụm có thể là nguồn / chỉ số của một con số khác chỉ số đang hỏi (ADR-0009 Vòng 5, R5-1): tên nguồn khác nguồn đã
+// tạo con số trả lời, và từ khoá của ý định số liệu khác cùng từ chỉ lượng. Bỏ từ khoá của chính ý định ("được cấp", "phiếu kho") và của ý
+// định yếu ("bao nhiêu" chỉ chính chỉ số đang hỏi).
+func (a *Ask) qualifierPhrases(idef intent.Def, used []string) (sources, metrics []string) {
+	skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())
+	keep := func(p string) bool { return p != "" && !slices.Contains(skip, p) }
+	for _, id := range a.RT.Metrics.MetricIDs() {
+		m, _ := a.RT.Metrics.Metric(id)
+		for _, src := range m.Sources {
+			if len(used) == 1 && used[0] == src.Type {
+				continue // tên đúng nguồn đã dùng ("Phiếu xuất kho, 3850 L đúng không?")
+			}
+			for _, p := range append([]string{src.Label}, src.Aliases...) {
+				if keep(p) {
+					sources = append(sources, p)
+				}
+			}
+		}
+	}
+	for _, p := range slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers) {
+		if keep(p) {
+			metrics = append(metrics, p)
+		}
+	}
+	return sources, metrics
+}
+
+// contextOwners trả các cụm qualifierPhrases ở ngữ cảnh [0, lo) mà KHÔNG có con số nào xen giữa chúng và phạm vi hỏi: chúng có thể sở hữu
+// con số đứng sau ("… 3850 L. Định mức, 5000 L đúng không?", "EX-03 hôm nay đội báo, được cấp 3850 L đúng không?"). Cụm đã có số của
+// riêng nó ("Đội báo 3k, vậy được cấp 3850 L") là một sự kiện riêng của ngữ cảnh.
+func contextOwners(raw string, spans []contracts.Span, inName func(s, e int) bool, phrases []string, lo int) [][2]int {
 	numberIn := func(s, e int) bool {
 		return slices.ContainsFunc(spans, func(sp contracts.Span) bool {
 			return (sp.Kind == contracts.ValueQuantity || sp.Kind == contracts.ValueNumber) && sp.Start >= s && sp.Start < e && !inName(sp.Start, sp.End)
 		})
 	}
-	skip := slices.Concat(idef.Keywords, a.RT.Intents.WeakKeywords())
-	phrases := slices.Concat(a.RT.Intents.MetricKeywords(), a.RT.QuantityMarkers)
-	for _, id := range a.RT.Metrics.MetricIDs() {
-		m, _ := a.RT.Metrics.Metric(id)
-		for _, s := range m.Sources {
-			if len(used) != 1 || used[0] != s.Type {
-				phrases = append(append(phrases, s.Label), s.Aliases...)
-			}
-		}
-	}
 	var out [][2]int
 	for _, p := range phrases {
-		if p == "" || slices.Contains(skip, p) {
-			continue
-		}
 		for _, sp := range normalization.PhraseSpans(raw, p) {
 			if sp[1] <= lo && !numberIn(sp[1], lo) {
 				out = append(out, sp)
@@ -335,7 +352,60 @@ func (a *Ask) contextOwners(raw string, spans []contracts.Span, inName func(s, e
 	return out
 }
 
-// plainBetween báo đoạn chữ chỉ gồm chữ, số, khoảng trắng đơn và dấu chấm / phẩy / gạch chéo / gạch ngang / hai chấm giữa hai chữ số
+// topicQualifier trả "source" / "metric" khi đoạn từ đầu câu chứa phạm vi hỏi tới lo CHỈ gồm tên nguồn khác nguồn đã dùng / từ khoá của ý
+// định số liệu khác / từ chỉ lượng (cùng từ trung tính, mốc và dấu ngăn): "ERP, EX-03 hôm nay được cấp 3900 L đúng không?", "… 3850 L. ERP,
+// 3900 L đúng không?", "Đội báo, EX-03 …" — đề mục đó là nguồn / chỉ số của chính claim (R5-1, gồm R2-4). Đoạn có chữ khác ("Bao nhiêu định
+// mức, vậy EX-03 …", "Theo ERP, …") không phải đề mục của claim.
+func (a *Ask) topicQualifier(raw string, spans []contracts.Span, sources, metrics []string, lo int) string {
+	from := sentenceStart(raw, lo)
+	if from >= lo {
+		return ""
+	}
+	covered := make([]bool, lo-from)
+	mark := func(s, e int) {
+		for i := s; i < e; i++ {
+			covered[i-from] = true
+		}
+	}
+	markPhrases := func(phrases []string) bool {
+		hit := false
+		for _, p := range phrases {
+			for _, sp := range normalization.PhraseSpans(raw, p) {
+				if sp[0] >= from && sp[1] <= lo {
+					mark(sp[0], sp[1])
+					hit = true
+				}
+			}
+		}
+		return hit
+	}
+	src, met := markPhrases(sources), markPhrases(metrics)
+	if !src && !met {
+		return ""
+	}
+	markPhrases(a.RT.ClaimNeutral)
+	for _, sp := range spans {
+		if (sp.Kind == contracts.ValueDate || sp.Kind == contracts.ValuePeriod) && sp.Start >= from && sp.End <= lo {
+			mark(sp.Start, sp.End)
+			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok && ws >= from {
+				mark(ws, we) // "ngày" của "ngày 19/10", như ở verdictGap
+			}
+		}
+	}
+	for i := from; i < lo; {
+		r, n := utf8.DecodeRuneInString(raw[i:])
+		if !covered[i-from] && !unicode.IsSpace(r) && !strings.ContainsRune(claimSeparators, r) {
+			return ""
+		}
+		i += n
+	}
+	if src {
+		return "source"
+	}
+	return "metric"
+}
+
+// plainBetween báo đoạn chữ chỉ gồm chữ, số, dấu cách và dấu chấm / phẩy / gạch chéo / gạch ngang / hai chấm giữa hai chữ số
 // ("3.850", "19/10", "19-10", "8:30"): không dấu câu nào. Ngày, giờ viết bằng số không phải ngắt mệnh đề.
 func plainBetween(s string) bool {
 	rs := []rune(s)

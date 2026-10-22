@@ -3,12 +3,13 @@
 > **Trạng thái: GIẤY, chưa có mã.**
 > - Mã Phase 0a (khối M2 của MVP) chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong").
 > - H4 đã khoá (`15f04f9`); tại mốc đọc mã `2b80a38` thì CHƯA chạy, và đã chạy MỘT lần ngày 22/10 sau đó (`docs/STATUS.md`, dòng "H4, 22/10 14:59") [REPO]: điều kiện này đã đạt.
-> - Soát (mã ghi chú F01–F03, R2-01…R2-09, R3-01…R3-05 và R4-01…R4-04 định nghĩa ở `docs/adr/0012-phase0a-thu-bao-cao-ngay.md`, mục "Ghi chú soát đã xử lý"):
+> - Soát (mã ghi chú F01–F03, R2-01…R2-09, R3-01…R3-05, R4-01…R4-04 và R5-01…R5-03 định nghĩa ở `docs/adr/0012-phase0a-thu-bao-cao-ngay.md`, mục "Ghi chú soát đã xử lý"):
 >   - vòng 1 (người soát ≠ người viết): **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO];
 >   - vòng 2 (soát lại bản sửa F01–F03): **KHÔNG ĐẠT**, một ghi chú S2 (R2-01), sáu S3 (R2-02…R2-07), hai S4 (R2-08, R2-09) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
 >   - vòng 3 (soát lại bản sửa R2-01…R2-09; ở tệp này tác giả vòng 3 chỉ đổi số đột biến ở mục 5, điều kiện 4, và số dòng của D-OP-17 ở câu 8): **KHÔNG ĐẠT**, một ghi chú S2 (R3-01), ba S3 (R3-02, R3-03, R3-04), một S4 (R3-05) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
 >   - vòng 4 (bản chỉ sửa lỗi thuộc ngoại lệ của luật dừng (`docs/PROMPT-BUILD-EAIS.md` §9.6: an ninh, sai chiều, mất dữ liệu); ở tệp này vòng 4 chỉ đổi số đột biến và số lớp ca ở mục 5, điều kiện 4; phần nội dung chính do `HOP-DONG.md` và ADR-0012 sửa): **KHÔNG ĐẠT**, chỉ vì một chặn hẹp ở tài liệu: R4-01 (S3); thêm ba ghi chú S4 ghi nợ (R4-02, R4-03, R4-04) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
->   - **bản này là vòng 5: chỉ vá R4-01 và R4-02, chưa soát lại.** Ở tệp này vòng 5 chỉ đổi số đột biến (36) và số lớp ca (84) ở mục 5, điều kiện 4; phần nội dung chính do `HOP-DONG.md` và ADR-0012 sửa. Mục 5, điều kiện 4 vẫn do vòng 1 (F03) hạ chữ và khớp M1 đã lên main.
+>   - vòng 5 (bản chỉ vá R4-01 và R4-02; ở tệp này vòng 5 chỉ đổi số đột biến (36) và số lớp ca (84) ở mục 5, điều kiện 4): **KHÔNG ĐẠT**, chỉ vì một chặn hẹp ở tài liệu: R5-01 (S3); thêm hai ghi chú S4 (R5-02, R5-03) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
+>   - **bản này là vòng 6: chỉ vá R5-01, sửa chữ R5-03 và đo lại R5-02, chưa soát lại.** Ở tệp này vòng 6 chỉ đổi dòng Soát này; số đột biến (36) và số lớp ca (84) ở mục 5, điều kiện 4 giữ nguyên; phần nội dung chính do `HOP-DONG.md` và ADR-0012 sửa. Mục 5, điều kiện 4 vẫn do vòng 1 (F03) hạ chữ và khớp M1 đã lên main.
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc bác từng câu chấm;

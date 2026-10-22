@@ -887,8 +887,8 @@ expected_output_properties:
 Chi tiết ở `docs/adr/0011-phase1-hanh-dong-co-kiem-soat.md` (mục "Chứng minh"). Tóm tắt điều kiện **trước khi có dòng mã đầu tiên**:
 1. H4 đã chạy một lần (D-RM-04 = A): **đã thoả**, 22/10 14:59 ở `57409f2` [REPO].
 2. Hợp đồng này đã qua soát độc lập và chủ dự án đã trả lời §14 (hoặc chấp nhận mặc định).
-3. Bộ giữ lại độc lập (§12) đã đóng băng và băm.
-4. ADR-0011 chuyển từ ĐỀ XUẤT sang CHỐT.
+3. Bộ giữ lại độc lập (§12) đã đóng băng và băm: **đã thoả**, 22/10/2026 20:19 — 157 ca (23 lớp; A09, A11, A12, A24–A28, A29 (a)–(d) không khai được bằng khuôn §12.1, U10) + tệp thế giới bổ sung, cam kết băm ở `docs/g7/holdout-p1/holdout-manifest.json`; người soạn, người soát chéo và người sửa là ba agent không đọc mã, kiểm toán nhật ký công cụ: chỉ đọc bộ đồ nghề + tệp ca + tệp tạm của chính mình.
+4. ADR-0011 chuyển từ ĐỀ XUẤT sang CHỐT: **đã thoả**, 22/10/2026 (lệnh ca MVP ALL-IN mục 3b).
 
 Riêng **route lệnh** (§2.6.2) chỉ thêm được khi `cmd/eais` của làn 0 (khối M1) đã có trên `main`: điều kiện này **đã thoả** (mục "Mốc đọc làn 0" ở đầu tệp). Pipeline lệnh, kho phiếu và migration không phụ thuộc làn 0, trừ `execution/commands/trace.go`: tệp đó dựng `traces.Record`, kiểu của làn 0 (`observability/traces`), nay đã có ở `main`.
 

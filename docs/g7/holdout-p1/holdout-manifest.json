@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "rule": "ADR-0006 §10: cam kết băm — chỉ commit sha256 + số đếm; nội dung công bố khi chạy",
+  "frozen_at": "2026-10-22T20:19:36+07:00",
+  "revision_at_freeze": "790d82136c937431f171d1a10f5d5ccf49a8471e",
+  "content_published": false,
+  "files_sha256": {
+    "p1.yaml": "122637193a8dd713a1265241f2560a8ed7c9e7d70c522f65c3fa875931bdd9ba",
+    "world-p1.yaml": "f46c3b467fd7149023ff2a46b02d9fd91fad606c95394b3076ee7fe69a47c27f",
+    "soat-ca.md": "c3ac255919a4b28ed1ca6ad2991a2e5774734286260867fc17ee509c62cbe458"
+  },
+  "counts": {
+    "total": 157,
+    "per_class": {
+      "A01": 7,
+      "A02": 4,
+      "A02b": 5,
+      "A03": 7,
+      "A04": 6,
+      "A04b": 5,
+      "A05": 7,
+      "A06": 7,
+      "A07": 7,
+      "A08": 9,
+      "A10": 7,
+      "A13": 26,
+      "A14": 7,
+      "A15": 10,
+      "A16": 7,
+      "A17": 4,
+      "A18": 4,
+      "A19": 4,
+      "A20": 4,
+      "A21": 9,
+      "A22": 3,
+      "A23": 5,
+      "A29": 3
+    },
+    "per_category": {
+      "adversarial": 24,
+      "ambiguity": 4,
+      "conflict": 13,
+      "dirty_data": 36,
+      "happy_path": 14,
+      "infrastructure": 32,
+      "permission": 34
+    }
+  },
+  "author_kit": {
+    "tree_sha256": "af36c7a4ceea4dd04cc0978adba820a5053808bbb50a98778c381dc4f7a7f2e5",
+    "files_sha256": {
+      "CONVENTIONS-muc-5.md": "277ba5a8d6d6cdddcc04d0644c6f27755af1095a0502a952ae917c7fc0f5994b",
+      "HOP-DONG-phan-duoc-nhan.md": "c00b57f1d6011e871c647be56f460a2c0962c1f2e1163ee710acf8ea8c806028",
+      "du-lieu/world.yaml": "1631a6c6af835bf6c2c168b69226d203284ff608d0a3948d45736ed93251e39e",
+      "kit-manifest.json": "61e941a3a74067147a7ab13c45a8080c16b1768425a2d8b8fc730175e47bdbf3"
+    }
+  }
+}

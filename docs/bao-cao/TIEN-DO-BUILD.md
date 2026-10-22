@@ -6,14 +6,14 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 21/10/2026 22:0x, CHỐT CA TỐI · **HEAD:** `25a73bf` (cộng commit chứa tệp này).
+- **Cập nhật lúc:** 22/10/2026 09:0x, **NHẬN CA NGÀY 22/10** (09:00 → 17:00) · **HEAD:** `ffb1efb` (cộng commit chứa tệp này). Từ tối qua không có PROMPT, handoff hay câu trả lời CHO mới.
 - **Xong ca tối 21/10** (18:07 → 22:00, PROMPT-DOI-TEN-VA-LUONG-MOI + brief §4):
   - Việc 1, đổi tên lại EAIS (D-RM-02) và Việc 2, luồng theo roadmap mới: XONG, qua 3 lượt soát độc lập; tệp phản hồi `docs/bao-cao/2026-10-21-phan-hoi-doi-ten.md` (`1ccac76`);
   - Việc 3 mục 2: đo lại và soát mã bản thử R4 (V5) — CHƯA áp mã (DỪNG ở điểm an toàn: bước tiếp là test đỏ trước rồi sửa);
   - Việc 3 mục 7: K1–K5 của phản hồi audit ROADMAP (`docs/bao-cao/2026-10-21-phan-hoi-roadmap-k1-k5.md`); câu mở D-OP-14.
 - **Lỗ S1 của cổng phán quyết phải đóng TRƯỚC H4:** R4-2, R4-3 (+ R4-4 S2); R-1 (tên nguồn đứng trước số ở mệnh đề khác: "EX-03 hôm nay được cấp 3850 L. ERP, 3900 L đúng không?" → "Không." dù ERP ghi 3.900 L); K5 trong miền ("Hôm qua đội báo lu 02 một nghìn hai lít dầu đúng không?" → "Không." dù đúng 1.200 L).
 - **Lỗi ẩn:** đọc số bằng chữ không dấu không tất định ("hai muoi lit": 11 / 20 lần 10 L, 9 / 20 lần 20 L); bộ ca hiện có 0 lần "muoi" nên số đo không ảnh hưởng. Chờ D-OP-14.
-- **Đang làm:** không. Ca ngày 22/10 bắt đầu 09:00 (cron của phiên).
+- **Đang làm:** Việc 3 mục 2 — đóng các lỗ của cổng phán quyết trước H4 (R4-2, R4-3, R4-4, R-1, K5 trong miền), bắt đầu bằng test đỏ trước.
 - **Tiếp theo:**
   1. Việc 3 mục 2: R4-2…R4-4, R-1 và câu đổi chiều K5 theo thứ tự test đỏ trước → sửa nhỏ nhất → đo bộ câu, fuzz, 117 / H1 / H3 → đột biến → soát độc lập → áp. Sau đó vòng S4 (ADR-0010) → H4 MỘT lần;
   2. Việc 3 mục 3–7: phép đo (canary harness, cờ approx W-G1, CI có PG), giấy Phase 0a / 1, Q2–Q7 / Q9–Q13 / Phụ lục C của phản hồi audit, tài liệu lệch (danh sách trong tệp phản hồi đổi tên mục 7).
@@ -61,3 +61,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 21/10 21:3x | commit chứa dòng này | K1–K5 của phản hồi audit ROADMAP (tệp mới `2026-10-21-phan-hoi-roadmap-k1-k5.md`); không đổi mã | Bơm một dòng vào bản sao seed 42 + winreport, có đối chứng; 2 người đo + 2 người đo lại độc lập: đồng ý 5 / 5; BUILD đo lại bằng binary, dữ liệu, tệp ca riêng: K4 lu 02 1.200 → 2.400 L; "… lu 02 một nghìn hai lít … đúng không?" → "Không."; "hai muoi lit" 11 / 20 lần 10 L, 9 / 20 lần 20 L | Hai phát hiện mới: lỗ S1 đổi chiều (K5 trong miền) và bảng không dấu không tất định |
 | 21/10 21:3x | commit chứa dòng này | Câu mở D-OP-14 vào `CHO` mục 3 (cột Trả lời để trống) | Dạng mơ hồ trong bộ 117 / H1 / H3, seed, test: 0 (grep; 4 chỗ khớp thừa soát tay đều là số đầy đủ: "một nghìn năm trăm", "ba trăm năm chục") | Khuyến nghị a; chưa quyết thì c |
 | 21/10 22:0x | commit chứa dòng này | Chốt ca tối: STATUS, CHANGELOG, tiến độ | Cổng cuối ở `25a73bf`: vet 0; gofmt 0; test có PG 455 / 0 / 0, so theo tên với `ca62760`: 0 đổi, 4 cặp đổi tên, 2 mới; winreport 117 / H1 / H3 hai đường 0 dòng khác mốc | Ca tối kết thúc; ca ngày 22/10 bắt đầu 09:00 |
+| 22/10 09:0x | commit chứa dòng này | NHẬN ca ngày 22/10 (09:00 → 17:00), HEAD `ffb1efb` | — | Không có PROMPT / handoff / câu trả lời CHO mới từ tối qua |

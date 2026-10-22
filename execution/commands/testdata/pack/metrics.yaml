@@ -1,0 +1,18 @@
+# Pack GIẢ chỉ để thử tools.go: hai chỉ số gốc cùng đơn vị và một chỉ số dẫn xuất.
+# Không phải pack của tenant nào; không có tên tenant nào trong tệp này.
+metrics:
+  - id: issued_amount
+    label: Lượng xuất
+    unit: L
+    entity_types: [equipment]
+    sources:
+      - {type: slip, authority: 1}
+  - id: measured_amount
+    label: Lượng đo được
+    unit: L
+    entity_types: [equipment]
+    sources:
+      - {type: sensor, authority: 1}
+
+derived:
+  - {id: issue_vs_measured, label: Chênh lệch xuất và đo, op: subtract, left: issued_amount, right: measured_amount}

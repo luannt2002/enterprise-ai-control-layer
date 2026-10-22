@@ -52,6 +52,25 @@ func TestParseViNumberWords(t *testing.T) {
 		{"bon nghin", "4000", true, true}, // gõ không dấu
 		{"năm", "5", false, true},         // không có hàng — bên gọi đòi đơn vị theo sau
 		{"máy", "", false, false},
+		// D-OP-14 (chủ dự án chọn a, 22/10): chữ số đứng NGAY sau từ chỉ hàng ở cuối dãy là hàng kế dưới, như cách nói thường
+		{"một nghìn hai", "1200", true, true},
+		{"hai trăm năm", "250", true, true},
+		{"ba nghìn tám", "3800", true, true},
+		{"một triệu hai", "1200000", true, true},
+		{"một tỷ hai", "1200000000", true, true},
+		{"mười nghìn hai", "10200", true, true},
+		{"ba nghìn tám rưỡi", "3850", true, true},
+		{"một trăm hai rưỡi", "125", true, true},
+		// dạng viết rõ hàng giữ nguyên
+		{"một nghìn không trăm linh hai", "1002", true, true},
+		{"một nghìn linh hai", "1002", true, true},
+		{"một nghìn hai mươi", "1020", true, true},
+		// "muoi" không dấu là "mươi" khi có chữ số đứng trước, là "mười" khi đứng đầu (trước đây chọn ngẫu nhiên theo thứ tự duyệt map)
+		{"hai muoi", "20", true, true},
+		{"muoi lam", "15", true, true},
+		{"muoi", "10", true, true},
+		// "một" và "mốt" cùng gấp thành "mot", cùng nghĩa: bản gấp vẫn có, không bị coi là xung đột
+		{"mot tram linh nam", "105", true, true},
 	}
 	for _, c := range cases {
 		toks := tokenize(c.in)

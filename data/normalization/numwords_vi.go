@@ -2,6 +2,7 @@ package normalization
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 )
 
@@ -14,13 +15,14 @@ import (
 type viWord int
 
 const (
-	vwDigit   viWord = iota + 1
-	vwMuoi           // "mười" — số 10, đứng đầu
-	vwTens           // "mươi", "chục" — nhân 10 cho chữ số đứng trước
-	vwHundred        // "trăm"
-	vwScale          // "nghìn", "ngàn", "triệu", "tỷ"
-	vwFiller         // "linh", "lẻ" — số 0 ở hàng chục
-	vwHalf           // "rưỡi" — một nửa đơn vị vừa đọc
+	vwDigit      viWord = iota + 1
+	vwMuoi              // "mười" — số 10, đứng đầu
+	vwTens              // "mươi", "chục" — nhân 10 cho chữ số đứng trước
+	vwHundred           // "trăm"
+	vwScale             // "nghìn", "ngàn", "triệu", "tỷ"
+	vwFiller            // "linh", "lẻ" — số 0 ở hàng chục
+	vwHalf              // "rưỡi" — một nửa đơn vị vừa đọc
+	vwMuoiOrTens        // "muoi" (gõ không dấu): "mươi" khi có chữ số đứng trước, "mười" khi đứng đầu
 )
 
 type viNumWord struct {
@@ -41,14 +43,24 @@ var viNumberWords = func() map[string]viNumWord {
 		"linh": {vwFiller, 0}, "lẻ": {vwFiller, 0}, "rưỡi": {vwHalf, 0},
 	}
 	m := map[string]viNumWord{}
+	folded := map[string][]viNumWord{}
 	for w, v := range base {
 		m[w] = v
 		// Bản bỏ dấu chỉ thêm khi không đè một từ có dấu khác nghĩa.
-		f := Fold(w)
-		if _, exists := base[f]; !exists {
-			if _, taken := m[f]; !taken {
-				m[f] = v
+		if f := Fold(w); f != w {
+			if _, exists := base[f]; !exists && !slices.Contains(folded[f], v) {
+				folded[f] = append(folded[f], v)
 			}
+		}
+	}
+	// Quyết bản bỏ dấu SAU vòng duyệt để không phụ thuộc thứ tự duyệt map (D-OP-14): "mười" và "mươi" cùng gấp thành "muoi" thì để
+	// bộ đọc quyết theo ngữ cảnh; hai từ khác nghĩa khác cùng gấp về một chữ thì bỏ bản bỏ dấu (không đoán).
+	for f, vs := range folded {
+		switch {
+		case len(vs) == 1:
+			m[f] = vs[0]
+		case len(vs) == 2 && slices.Contains(vs, viNumWord{vwMuoi, 10}) && slices.Contains(vs, viNumWord{vwTens, 10}):
+			m[f] = viNumWord{vwMuoiOrTens, 10}
 		}
 	}
 	return m
@@ -70,9 +82,9 @@ func lookupNumberWord(word string) (viNumWord, bool) {
 
 // AmbiguousNumberWords báo s có dãy số bằng chữ KẾT THÚC bằng một chữ số đứng ngay sau từ chỉ hàng ("một nghìn hai", "hai trăm năm",
 // "ba nghìn tám"), kể cả khi theo sau là "rưỡi" ("ba nghìn tám rưỡi"). Nói thường, chữ số đó là hàng kế dưới (1.200, 250, 3.800, 3.850);
-// parseViNumberWords cộng nó như hàng đơn vị (1.002, 205, 3.008, 3.008,5). Dạng viết rõ hàng ("một nghìn hai trăm", "một trăm linh năm",
-// "hai nghìn rưỡi", "ba nghìn tám trăm rưỡi") không tính. Cổng phán quyết dùng hàm này để không phán quyết con số đọc chưa chắc; sửa
-// chính bộ đọc chờ D-OP-14.
+// trước D-OP-14 bộ đọc cộng nó như hàng đơn vị (1.002, 205, 3.008, 3.008,5), nay đọc theo cách nói thường. Dạng viết rõ hàng ("một nghìn
+// hai trăm", "một trăm linh năm", "hai nghìn rưỡi", "ba nghìn tám trăm rưỡi") không tính. Cổng phán quyết (khoá ở ADR-0009 Vòng 5) vẫn
+// dùng hàm này để không phán quyết dạng nói tắt, kể cả sau khi bộ đọc đã sửa.
 func AmbiguousNumberWords(s string) bool {
 	var prev2, prev, last viWord // loại của ba từ số cuối trong dãy đang xét
 	scaled := func(k viWord) bool { return k == vwScale || k == vwHundred }
@@ -102,7 +114,9 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 	total := new(big.Rat)
 	var group int64
 	pending := int64(-1) // chữ số đang chờ hàng; -1 = không có
+	implied := int64(1)  // đơn vị của chữ số đang chờ khi nó đứng NGAY sau từ chỉ hàng: "một nghìn hai" = 1.200 (D-OP-14)
 	lastUnit := int64(1)
+	var prev viWord // loại của từ chỉ số vừa đọc
 	consumed := 0
 	j := i
 	last := i
@@ -126,6 +140,12 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 		if !isNum {
 			break
 		}
+		if w.kind == vwMuoiOrTens {
+			w.kind = vwMuoi
+			if pending >= 0 {
+				w.kind = vwTens // "hai muoi" = hai mươi
+			}
+		}
 		stop := false
 		switch w.kind {
 		case vwDigit:
@@ -134,6 +154,10 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 				break
 			}
 			pending = w.value
+			implied = 1
+			if prev == vwHundred || prev == vwScale {
+				implied = lastUnit / 10 // hàng kế dưới: "hai trăm năm" = 250, "ba nghìn tám" = 3.800
+			}
 			lastUnit = 1
 		case vwMuoi:
 			if pending >= 0 {
@@ -180,6 +204,9 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 				total.Add(total, new(big.Rat).SetInt64(lastUnit/2))
 			case lastUnit == 100 || lastUnit == 10:
 				group += lastUnit / 2
+			case pending >= 0 && implied > 1:
+				group += pending*implied + implied/2 // "ba nghìn tám rưỡi" = 3.850, "một trăm hai rưỡi" = 125
+				pending = -1
 			case pending >= 0:
 				group += pending
 				pending = -1
@@ -199,6 +226,7 @@ func parseViNumberWords(toks []token, i int) (value *big.Rat, next int, hasScale
 		if stop {
 			break
 		}
+		prev = w.kind
 		consumed++
 		last = j
 		j++
@@ -208,7 +236,7 @@ done:
 		return nil, i, false, false
 	}
 	if pending >= 0 {
-		group += pending
+		group += pending * implied
 	}
 	total.Add(total, new(big.Rat).SetInt64(group))
 	return total, last + 1, hasScale, true

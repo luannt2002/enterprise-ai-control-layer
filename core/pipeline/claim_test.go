@@ -86,8 +86,8 @@ func TestVerdictGap(t *testing.T) {
 		{q: "Dự án hôm nay được cấp 3850 L cho EX-03 đúng không?", claimed: "3850", want: "subject"},
 		{q: "EX-03 hôm nay được cấp 3850 L, máy 03 đúng không?", claimed: "3850", want: "subject"},
 		{q: "DZ-03 (máy 03) hôm nay được cấp 3850 L đúng không?", claimed: "3850", subject: "DZ-03"}, // "máy 03" mơ hồ, có chủ thể trong ứng viên, trong ngoặc liền sau lần nhắc rõ
-		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1002", want: "value"},
-		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3008.5", want: "value"},
+		{q: "Lu 02 hôm nay được cấp một nghìn hai lít dầu đúng không?", claimed: "1200", want: "value"},
+		{q: "EX-03 hôm nay được cấp ba nghìn tám rưỡi lít dầu đúng không?", claimed: "3850", want: "value"},
 		// đề mục thuần (topicQualifier): nhãn "metric" cho chỉ số khác, "source" khi cụm vừa là nguồn vừa là chỉ số; đề mục được có từ
 		// trung tính, mốc (kể cả "ngày" / "hôm" đứng trước mốc số), dấu ngăn nhiều byte; số do hai nguồn thì không nguồn nào là "đúng nguồn"
 		{q: "Đội báo, EX-03 hôm nay được cấp 3850 L đúng không?", claimed: "3850", want: "metric"},

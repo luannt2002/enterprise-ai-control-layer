@@ -4,7 +4,7 @@
 #   m  <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy `go test` ở PKGS (đột biến của mã)
 #   ms <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>   chạy scripts/chay-thu.sh (smoke E2E) trên cây đã đột biến; đòi smoke ĐỎ
 #   sc <kịch bản> <nhãn> [<tệp> <gốc> <đột biến>]  kịch bản của CHÍNH scripts/chay-thu.sh (cổng bị chiếm, server chết giữa lúc smoke, PG chạy
-#                                                  sẵn không bị gỡ): không
+#                                                  sẵn không bị gỡ và không bị ghi đè khi không có EAIS_REUSE_PG=1): không
 #                                                  đột biến thì đòi script nguyên bản cư xử đúng ("ĐẠT"); có đột biến thì đòi kịch bản phát hiện
 # Kỳ vọng: mọi dòng in "BỊ BẮT" hoặc "ĐẠT"; cuối cùng in tổng và thoát 0 chỉ khi không đột biến nào sống sót. Mã đổi thì chuỗi gốc có thể
 # không còn khớp (rc=2, "xuất hiện 0 lần"): sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
@@ -16,8 +16,9 @@
 # Test của cmd/eais ghi dòng vào PG đó bằng tenant riêng của lượt chạy (TestMain dọn bằng vai quản trị); các dòng `ms` còn nạp tenant thật
 # của pack (seed 42) vào PG đó — nên chỉ trỏ vào PG của riêng bạn. Dòng `ms` nghe ở SMOKE_ADDR (mặc định 127.0.0.1:28085). Hai kịch bản
 # `sc` dựng thứ riêng của chúng: SQUAT_ADDR (127.0.0.1:28086) là cổng bị một server giả chiếm; kịch bản pgkeep dựng một PG tạm tên
-# KEEP_NAME (eais-giu-pg) ở cổng KEEP_PORT (25449), chạy server ở KEEP_ADDR (127.0.0.1:28087), rồi gỡ đúng PG tạm đó. Đổi các biến này
-# nếu trùng việc khác trên máy.
+# KEEP_NAME (eais-giu-pg) ở cổng KEEP_PORT (25449), chạy server ở KEEP_ADDR (127.0.0.1:28087), rồi gỡ đúng PG tạm đó; kịch bản pgrefuse
+# cũng dựng PG tạm KEEP_NAME ở KEEP_PORT (do CHÍNH scripts/chay-thu.sh dựng ở lần 1, server ở cổng hệ điều hành chọn) rồi gỡ nó. Mỗi
+# kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
 : "${EAIS_PG_DSN:?đặt EAIS_PG_DSN (PG riêng của bạn)}"
@@ -94,12 +95,12 @@ http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()' "${S
 	grep -q 'server thoát sớm' <<<"$out" || why+="không báo 'server thoát sớm'; "
 	[ -z "$why" ]
 }
-scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước: script dùng lại và KHÔNG BAO GIỜ gỡ nó, kể cả khi đặt EAIS_PG_DOWN=1 (PG tạm riêng của phép thử)
+scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước + EAIS_REUSE_PG=1: script dùng lại và KHÔNG BAO GIỜ gỡ nó, kể cả khi đặt EAIS_PG_DOWN=1 (PG tạm riêng của phép thử)
 	local out rc running
 	if ! EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$KEEP_NAME" -f deploy/docker-compose.yml up -d --wait >/dev/null 2>&1; then
 		why="không dựng được PG tạm $KEEP_NAME ở cổng $KEEP_PORT"; return 1
 	fi
-	out=$(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN EAIS_PG_DOWN=1 EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT \
+	out=$(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN EAIS_REUSE_PG=1 EAIS_PG_DOWN=1 EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT \
 		EAIS_ADDR=$KEEP_ADDR scripts/chay-thu.sh 2>&1); rc=$?
 	running=$(docker ps -q --filter "name=^/${KEEP_NAME}\$" --filter status=running)
 	EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$KEEP_NAME" -f deploy/docker-compose.yml down >/dev/null 2>&1
@@ -107,6 +108,36 @@ scen_pgkeep() { # container PG tên đó ĐÃ chạy từ trước: script dùng
 	[ "$rc" -eq 0 ] || why+="script thoát $rc ($(tail -2 <<<"$out" | tr '\n' ' ')); "
 	grep -q 'ĐÃ chạy từ trước' <<<"$out" || why+="không nhận ra container đã chạy sẵn; "
 	[ -n "$running" ] || why+="container $KEEP_NAME đã bị GỠ dù chạy từ trước; "
+	[ -z "$why" ]
+}
+scen_pgrefuse() { # R2-04 trên container RIÊNG: lần 1 chỗ trống ⇒ script tự dựng PG (xong còn chạy) · lần 2 mặc định (PG đang chạy; rồi PG tạm dừng) ⇒ TỪ CHỐI, thoát 2, KHÔNG ghi gì · lần 3 EAIS_REUSE_PG=1 ⇒ dùng lại; cuối cùng gỡ đúng PG tạm
+	local out1 out2 out2p out3 rc1 rc2 rc2p rc3 mark2 mark2p running
+	local run=(env -u EAIS_PG_ADMIN_DSN -u EAIS_PG_DSN -u EAIS_REUSE_PG -u EAIS_PG_DOWN EAIS_COMPOSE_PROJECT=$KEEP_NAME EAIS_PG_CONTAINER=$KEEP_NAME
+		EAIS_PG_PORT=$KEEP_PORT EAIS_ADDR=127.0.0.1:0)
+	psql_keep() { docker exec "$KEEP_NAME" psql -U postgres -d eais -Atc "$1" 2>/dev/null; }
+	if [ -n "$(docker ps -aq --filter "name=^/${KEEP_NAME}\$")" ]; then why="đã có container $KEEP_NAME — đặt KEEP_NAME khác"; return 1; fi
+	out1=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc1=$?
+	# Dấu hiệu "dữ liệu của người khác": sửa một fact của tenant đã nạp. Script nào ghi đè PG này sẽ nạp lại giá trị seed và làm dấu hiệu mất.
+	psql_keep "update facts set value = 999999 where tenant_id = 'abc-infra' and id = (select min(id) from facts where tenant_id = 'abc-infra')" >/dev/null
+	out2=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2=$?
+	mark2=$(psql_keep "select count(*) from facts where value = 999999")
+	docker pause "$KEEP_NAME" >/dev/null 2>&1
+	out2p=$(timeout 90 "${run[@]}" scripts/chay-thu.sh 2>&1); rc2p=$?
+	docker unpause "$KEEP_NAME" >/dev/null 2>&1
+	mark2p=$(psql_keep "select count(*) from facts where value = 999999")
+	out3=$(timeout 90 "${run[@]}" EAIS_REUSE_PG=1 scripts/chay-thu.sh 2>&1); rc3=$?
+	running=$(docker ps -q --filter "name=^/${KEEP_NAME}\$")
+	EAIS_PG_CONTAINER=$KEEP_NAME EAIS_PG_PORT=$KEEP_PORT docker compose -p "$KEEP_NAME" -f deploy/docker-compose.yml down >/dev/null 2>&1
+	why=''
+	[ "$rc1" -eq 0 ] || why+="lần 1 (chỗ trống) thoát $rc1 ($(tail -2 <<<"$out1" | tr '\n' ' ')); "
+	[ "$rc2" -eq 2 ] || why+="lần 2 (PG đang chạy, mặc định) thoát $rc2 thay vì 2; "
+	grep -q 'TỪ CHỐI' <<<"$out2" || why+="lần 2 không nói TỪ CHỐI; "
+	[ "$mark2" = 1 ] || why+="lần 2 đã GHI vào PG đang chạy (dấu hiệu mất); "
+	[ "$rc2p" -eq 2 ] || why+="lần 2 với container tạm dừng thoát $rc2p thay vì 2 (bỏ sót container paused?); "
+	[ "$mark2p" = 1 ] || why+="lần 2 với container tạm dừng đã GHI vào PG; "
+	[ "$rc3" -eq 0 ] || why+="lần 3 (EAIS_REUSE_PG=1) thoát $rc3 ($(tail -2 <<<"$out3" | tr '\n' ' ')); "
+	grep -q 'dùng lại' <<<"$out3" || why+="lần 3 không báo là dùng lại; "
+	[ -n "$running" ] || why+="PG tạm đã bị gỡ trước khi phép thử gỡ; "
 	[ -z "$why" ]
 }
 scen_srvdie() { # server chết GIỮA lúc smoke (smoke giả giết nó rồi báo xanh): script phải thoát khác 0 và nói rõ, không được báo "smoke XANH"
@@ -165,6 +196,8 @@ m $S 'if _, err := dec.Token(); !errors.Is(err, io.EOF) {' 'if _, err := dec.Tok
 m $S 's.cnt.Unauthenticated.Add(1)' '_ = 0' 'AV4 lượt chưa xác thực không được đếm'
 m $S 'if !loopbackHost(r.Host) {' 'if false {' 'AV5 Host lạ qua (DNS rebinding)'
 m $S 'if err := s.st.Ping(ctx); err != nil {' 'if err := s.st.Ping(ctx); err != nil && false {' 'AV6 healthz không báo kho hỏng'
+m $S 'maxAskBody    = 64 << 10' 'maxAskBody    = 64 << 22' 'AV7 trần thân /v1/ask nâng từ 64 KiB lên 256 MiB'
+m $S 'maxAskBody    = 64 << 10' 'maxAskBody    = 64 << 9' 'AV8 trần thân /v1/ask hạ từ 64 KiB xuống 32 KiB'
 # --- cô lập tenant và quyền đọc vết ---
 m $S 'ctx := contracts.WithTenant(r.Context(), pr.TenantID)' 'ctx := contracts.WithTenant(r.Context(), contracts.TenantID(s.app.tenantID()))' 'TV1 đọc vết bằng tenant của runtime thay vì của token'
 m $S 'if err == nil && rec.Decision.Principal != pr.ID && !s.fullAccess(pr) {' 'if false {' 'TV2 ai cùng tenant cũng đọc được vết của người khác'
@@ -253,6 +286,33 @@ m .github/workflows/ci.yml 'run: go vet ./...' 'run: go vet ./... || true' 'CI15
 m .github/workflows/ci.yml 'run: scripts/chay-thu.sh' 'run: scripts/chay-thu.sh || true' 'CI16 bước smoke E2E có || true'
 m .github/workflows/ci.yml "TestRequestTypesHaveNoTenantField' ." "TestRequestTypesHaveNoTenantField' . || true" 'CI17 bước cổng danh tính có || true'
 
+# --- script một lệnh không ghi vào PG đang chạy của người khác (R2-04): bắt bằng test có docker / go giả (cmd/eais/chaythu_test.go) ---
+export PKGS=./cmd/eais/
+m scripts/chay-thu.sh 'if [ -n "$(docker ps -q --filter "name=^/${CONTAINER}\$" 2>/dev/null)" ]; then' 'if false; then' 'RP1 script không thấy container đang chạy'
+m scripts/chay-thu.sh 'elif (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then' 'elif false; then' 'RP2 script không thăm dò cổng'
+m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif true; then' 'RP3 không cần EAIS_REUSE_PG vẫn dùng lại PG đang chạy'
+m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif false; then' 'RP4 đặt EAIS_REUSE_PG=1 mà vẫn bị từ chối'
+m scripts/chay-thu.sh 'EOF
+		exit 2' 'EOF
+		exit 0' 'RP5 từ chối mà thoát 0'
+m scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1' 'RP6 PG dùng lại bị gỡ khi đặt EAIS_PG_DOWN=1'
+
+# --- phiên bản mã của vết và của mã lần nạp (R2-02): hàm chọn (version.go), bước ghi đè ở server, script nhúng -ldflags, workflow CI ---
+V=cmd/eais/version.go
+m $V 'if v := strings.TrimSpace(linked); v != "" {' 'if v := strings.TrimSpace(linked); v != "" && false {' 'CV1 giá trị -ldflags không được dùng'
+m $V 'rev += "+dirty"' 'rev += ""' 'CV2 bản sửa VCS bẩn không có +dirty'
+m $V 'v != "" && v != "(devel)"' 'v != ""' 'CV3 "(devel)" của phiên bản module được coi là phiên bản thật'
+m $V 'return binHashPrefix + sum' 'return sum' 'CV4 băm binary không có tiền tố (lẫn với mã git)'
+m $V 'if _, err := io.Copy(h, f); err != nil {' 'if _, err := io.WriteString(h, path); err != nil {' 'CV5 băm đường dẫn của binary thay vì nội dung'
+m $V 'var buildVersion string' 'var buildVersion = strings.ToUpper("")' 'CV6 biến nhận -ldflags khởi tạo bằng lời gọi hàm (-X lặng lẽ không tác dụng)'
+m $V 'return "(unknown)"' 'return "(devel)"' 'CV7 không có nguồn nào mà trả "(devel)"'
+m $S 'out.Decision.CodeVersion = buildRevision()' '_ = 0' 'CV8 lượt thành công giữ phiên bản mã "(devel)" của luồng hỏi'
+m $M ', "code_version", buildRevision())' ')' 'CV9 server không báo phiên bản mã ở dòng khởi động'
+m scripts/chay-thu.sh "then code_version+='+dirty'" "then code_version+=''" 'CV10 script không đánh dấu +dirty khi cây bẩn'
+m scripts/chay-thu.sh '-X main.buildVersion=$code_version' '-X main.buildVersions=$code_version' 'CV11 script nhúng vào biến không tồn tại (-X lặng lẽ không tác dụng)'
+m scripts/chay-thu.sh '*[!0-9A-Za-z.+_-]*)' '*[!0-9A-Za-z.+_\ -]*)' 'CV12 script nhận EAIS_CODE_VERSION có khoảng trắng'
+m .github/workflows/ci.yml 'EAIS_CODE_VERSION: ${{ github.sha }}' 'EAIS_CODE_VERSION: ""' 'CI18 bước smoke không truyền commit đang kiểm'
+
 # --- smoke E2E bằng curl: cổng này cũng phải đỏ được ---
 ms $S 'dec.DisallowUnknownFields()' '_ = 0' 'SM1 smoke: thân mang tenant được nhận'
 ms $S 'if pr, found := s.principals[tok]; found {' 'if pr, found := s.principals[tok]; found || true {' 'SM2 smoke: token lạ vẫn qua'
@@ -260,6 +320,9 @@ ms $S 'if !s.fullAccess(pr) {' 'if false {' 'SM3 smoke: vai không toàn quyền
 ms $S 'if s.persist(r.Context(), pr, rec, acc) == nil {' 'if true {' 'SM4 smoke: lượt lỗi không có vết'
 ms $S 'ctx := contracts.WithTenant(r.Context(), pr.TenantID)' 'ctx := contracts.WithTenant(r.Context(), contracts.TenantID(s.app.tenantID()))' 'SM5 smoke: tenant khác đọc được vết'
 ms $A 'sum := sha256.Sum256([]byte(dataVersion + "\n" + packVersion + "\n" + codeVersion))' 'sum := sha256.Sum256([]byte(dataVersion + "\n" + packVersion + "\n" + codeVersion + time.Now().String()))' 'SM6 smoke: nạp lại nhân đôi cách ly'
+ms $M ', "code_version", buildRevision())' ')' 'SM7 smoke: server không báo phiên bản mã lúc khởi động (script phải bắt)'
+# SM8: trong một clone thường, thông tin VCS do go build ghi cho CÙNG giá trị nên biến nhúng sai tên không lộ ra; tắt VCS để phép thử không phụ thuộc nơi chạy.
+ms scripts/chay-thu.sh '-ldflags "-X main.buildVersion=$code_version"' '-buildvcs=false -ldflags "-X main.buildVersions=$code_version"' 'SM8 smoke: script nhúng vào biến không tồn tại, binary không có VCS (script phải bắt)'
 
 # --- script một lệnh: cổng bị chiếm, và PG đã chạy sẵn không bị gỡ ---
 sc scen_squat 'SQ0 cổng bị chiếm: script nguyên bản từ chối, không chạy smoke vào kẻ chiếm cổng'
@@ -268,6 +331,8 @@ sc scen_srvdie 'SD0 server chết giữa lúc smoke: script nguyên bản thoát
 sc scen_srvdie 'SD1 script không đổi mã thoát khi server chết giữa lúc smoke' scripts/chay-thu.sh 'if [ "$rc" = 0 ]; then rc=1; fi' 'if false; then rc=1; fi'
 sc scen_pgkeep 'PK0 PG đã chạy sẵn: script nguyên bản không gỡ nó dù đặt EAIS_PG_DOWN=1'
 sc scen_pgkeep 'PK1 script gỡ cả PG đã chạy từ trước' scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1'
+sc scen_pgrefuse 'RP7 PG đã chạy sẵn (lần 1 do script dựng): mặc định script nguyên bản TỪ CHỐI và không ghi gì; EAIS_REUSE_PG=1 mới dùng lại'
+sc scen_pgrefuse 'RP8 script bỏ cổng từ chối: dùng lại PG đang chạy dù không đặt EAIS_REUSE_PG' scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif true; then'
 
 echo "TỔNG: $bat bị bắt, $song sống sót, $khac lỗi khác; $dat kịch bản nguyên bản đạt"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

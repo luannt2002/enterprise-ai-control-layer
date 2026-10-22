@@ -89,9 +89,10 @@ func TestKiemSkipScript(t *testing.T) {
 }
 
 type ciStep struct {
-	Name string `yaml:"name"`
-	Uses string `yaml:"uses"`
-	Run  string `yaml:"run"`
+	Name string            `yaml:"name"`
+	Uses string            `yaml:"uses"`
+	Run  string            `yaml:"run"`
+	Env  map[string]string `yaml:"env"`
 }
 
 type ciWorkflow struct {
@@ -170,6 +171,20 @@ func TestWorkflowCI(t *testing.T) {
 		if !strings.Contains(all, must) {
 			t.Errorf("ci.yml thiếu bước chạy %q", must)
 		}
+	}
+	// R2-02: bước smoke nhúng commit đang kiểm vào binary (script đọc EAIS_CODE_VERSION); thiếu thì vết của CI khai mã theo git của runner,
+	// không phải theo commit mà workflow đang kiểm.
+	smoke := 0
+	for _, s := range job.Steps {
+		if strings.Contains(s.Run, "scripts/chay-thu.sh") {
+			smoke++
+			if got := s.Env["EAIS_CODE_VERSION"]; got != "${{ github.sha }}" {
+				t.Errorf("bước %q: EAIS_CODE_VERSION = %q, muốn ${{ github.sha }}", s.Name, got)
+			}
+		}
+	}
+	if smoke != 1 {
+		t.Errorf("ci.yml có %d bước chạy scripts/chay-thu.sh, muốn đúng 1", smoke)
 	}
 	for k, v := range job.Env {
 		if strings.HasPrefix(k, "EAIS_PG_") && !regexp.MustCompile(`^postgres://[^:@/]+@127\.0\.0\.1:\d+/`).MatchString(v) {

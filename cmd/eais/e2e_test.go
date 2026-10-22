@@ -253,7 +253,8 @@ func TestServeDevChayThat(t *testing.T) {
 	case <-time.After(20 * time.Second):
 		t.Fatal("serve không tắt sau khi ngữ cảnh bị huỷ")
 	}
-	for _, want := range []string{"CHẾ ĐỘ DEV — CHỈ DEV", "extractive", "tổng kết", "host_rejected=1"} {
+	// code_version: scripts/chay-thu.sh đối chiếu dòng này với phiên bản đã nhúng bằng -ldflags (đổi định dạng phải đổi cả script).
+	for _, want := range []string{"CHẾ ĐỘ DEV — CHỈ DEV", "extractive", "tổng kết", "host_rejected=1", "code_version=" + buildRevision()} {
 		if !strings.Contains(logs.String(), want) {
 			t.Errorf("log của serve thiếu %q:\n%s", want, logs.String())
 		}

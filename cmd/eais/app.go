@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime/debug"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -154,31 +153,6 @@ func parseClock(cfg config, rt *tenant.Runtime) (func() time.Time, error) {
 var tenantSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,62}$`)
 
 func validTenantID(id string) bool { return tenantSlug.MatchString(id) }
-
-// buildRevision là phiên bản mã đang chạy, cùng quy ước core/pipeline (bản sửa VCS do `go build` ghi vào binary, "+dirty" khi cây có
-// sửa chưa commit; không có thì phiên bản module).
-func buildRevision() string {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "(unknown)"
-	}
-	rev, dirty := "", false
-	for _, s := range bi.Settings {
-		switch s.Key {
-		case "vcs.revision":
-			rev = s.Value
-		case "vcs.modified":
-			dirty = s.Value == "true"
-		}
-	}
-	if rev == "" {
-		return bi.Main.Version
-	}
-	if dirty {
-		rev += "+dirty"
-	}
-	return rev
-}
 
 // dataVersion là băm nội dung MỌI tệp dưới dir: sha256 của các dòng "<đường dẫn tương đối>\x00<sha256 nội dung>" xếp tăng dần. Thêm,
 // sửa, xoá hay đổi tên một tệp đều đổi nó; cùng nội dung ở thư mục khác cho cùng giá trị. Thư mục rỗng hoặc không có là lỗi: không

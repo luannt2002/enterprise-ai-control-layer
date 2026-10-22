@@ -217,6 +217,10 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 		s.failTurn(w, r, pr, req.Text, err, 0, false, acc)
 		return
 	}
+	// Luồng hỏi tự ghi phiên bản mã riêng của nó vào Decision, và là "(devel)" khi binary không mang thông tin VCS. Ứng dụng là nơi biết binary
+	// nào đang chạy nên ghi đè bằng phiên bản của mình: vết lượt thành công, vết lượt lỗi (versions) và mã lần nạp cùng một nguồn. Đặt trước
+	// NewRecord vì từng bước của vết chép phiên bản từ Decision.
+	out.Decision.CodeVersion = buildRevision()
 	rec := traces.NewRecord(traces.Turn{Decision: out.Decision, Spans: out.Spans, TotalMs: out.TotalMs,
 		UnaccountedMs: out.UnaccountedMs, Plan: out.Plan, Response: out.Response})
 	if err := s.persist(r.Context(), pr, rec, acc); err != nil {

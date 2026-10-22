@@ -90,5 +90,9 @@ jobs:
       - name: Cổng danh tính và cổng kiến trúc
         run: go test -count=1 -run 'TestDanhTinh|TestSharedCodeHasNoTenantLiterals|TestRequestTypesHaveNoTenantField' .
 
+      # EAIS_CODE_VERSION: script nhúng giá trị này vào binary bằng -ldflags (vết ghi phiên bản mã = commit đang kiểm, không phải "(devel)"),
+      # rồi đối chiếu với phiên bản mà server báo lúc khởi động. Hai biến DSN ở mức job nên script dùng PG của job và không chạm Docker.
       - name: Smoke E2E một lệnh (migrate, nạp seed 42, serve, curl)
+        env:
+          EAIS_CODE_VERSION: ${{ github.sha }}
         run: scripts/chay-thu.sh

@@ -216,8 +216,9 @@ func serveDev(ctx context.Context, cfg config, addr string, principals map[strin
 		fmt.Fprintln(stderr, "serve:", err)
 		return 2
 	}
+	// code_version cũng là GIAO DIỆN với scripts/chay-thu.sh: script đối chiếu nó với phiên bản đã nhúng bằng -ldflags (TestServeDevChayThat canh).
 	log.Warn("CHẾ ĐỘ DEV — CHỈ DEV: token dev là thông tin công khai (dev-<tenant>-<principal>), chỉ nghe loopback, không dùng ngoài máy dev",
-		"tenant", a.tenantID(), "principals", len(principals), "model", "extractive (không gọi model trả tiền)")
+		"tenant", a.tenantID(), "principals", len(principals), "model", "extractive (không gọi model trả tiền)", "code_version", buildRevision())
 	// Dòng này là GIAO DIỆN với scripts/chay-thu.sh: script chỉ gọi địa chỉ mà chính server của nó báo ở đây (cổng "0" do hệ điều hành chọn,
 	// và một server khác đang giữ cổng không bị gọi nhầm). Đổi định dạng dòng này phải đổi cả script (TestServeDevChayThat canh định dạng).
 	fmt.Fprintf(stdout, "đang nghe http://%s\n", ln.Addr())

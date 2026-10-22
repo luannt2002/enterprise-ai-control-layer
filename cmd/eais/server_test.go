@@ -120,6 +120,35 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 		}
 	})
 
+	// R2-02: vết mang phiên bản MÃ của binary đang chạy, không phải "(devel)" — ở lượt thành công (bản ghi quyết định và từng bước) lẫn lượt
+	// lỗi. Luồng hỏi (core/pipeline) tự ghi một phiên bản mã riêng và nó là "(devel)" khi binary không mang thông tin VCS (git worktree liên
+	// kết, `go test`, cây không có .git): ứng dụng ghi đè bằng phiên bản của chính nó (buildRevision) để vết thành công, vết lượt lỗi và mã
+	// lần nạp cùng MỘT nguồn. Thiếu bước ghi đè thì "eais trace diff" hai mốc mã in "(devel)" cho cả hai bên.
+	t.Run("ma-phien-ban-trong-vet", func(t *testing.T) {
+		e := mk(t)
+		want := buildRevision()
+		if want == "" || want == "(devel)" || want == "(unknown)" {
+			t.Fatalf("buildRevision() = %q: không phân biệt được các mốc mã", want)
+		}
+		ok := decodeAs[contracts.AskResponse](t, e.ask(tokDirector, qSQL))
+		bad := decodeAs[errBody](t, e.do(http.MethodPost, "/v1/ask", tokDirector, "application/json", []byte(`{"text":`))) // thân hỏng ⇒ lượt lỗi có vết
+		for name, id := range map[string]string{"lượt thành công": ok.TraceID, "lượt lỗi": bad.TraceID} {
+			if id == "" {
+				t.Errorf("%s: không có trace_id", name)
+				continue
+			}
+			rec := e.getTrace(tokDirector, id).Record
+			if rec.Decision.CodeVersion != want {
+				t.Errorf("%s: code_version của bản ghi quyết định = %q, muốn %q", name, rec.Decision.CodeVersion, want)
+			}
+			for _, st := range rec.Steps {
+				if st.CodeVersion != want {
+					t.Errorf("%s: code_version của bước %s = %q, muốn %q", name, st.Stage, st.CodeVersion, want)
+				}
+			}
+		}
+	})
+
 	// Route tri thức gọi extractive đúng MỘT lần, và usage ghi đúng như vậy (0 token).
 	t.Run("ask-rag-usage", func(t *testing.T) {
 		e := mk(t)
@@ -187,7 +216,17 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 		valid := func(extra string) []byte {
 			return []byte(`{"text":"` + qSQL + `","conversation_id":"c","message_id":"m"` + extra + `}`)
 		}
-		huge := []byte(`{"text":"` + strings.Repeat("a", maxAskBody+10) + `","conversation_id":"c","message_id":"m"}`)
+		// bodyOf dựng thân /v1/ask đúng cú pháp, dài ĐÚNG n byte (phần dư là chữ 'a' trong text). Trần kích thước được ghim bằng SỐ CỨNG chứ không
+		// bằng chính hằng maxAskBody: thân dựng từ hằng thì nâng / hạ hằng cũng kéo thân theo và test vẫn xanh (R2-05: nâng maxAskBody từ 64 KiB
+		// lên 256 MiB mà mọi test xanh). Muốn đổi trần có chủ ý thì đổi các số 65536 ở đây cùng lúc.
+		bodyOf := func(n int) []byte {
+			const head, tail = `{"text":"`, `","conversation_id":"c","message_id":"m"}`
+			b := []byte(head + strings.Repeat("a", n-len(head)-len(tail)) + tail)
+			if len(b) != n {
+				t.Fatalf("bodyOf(%d) dựng %d byte", n, len(b))
+			}
+			return b
+		}
 		cases := []struct {
 			name, ctype string
 			body        []byte
@@ -205,7 +244,9 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 			{"than-rong", "application/json", nil, 400, "S0", "rỗng"},
 			{"noi-dung-thua", "application/json", append(valid(""), []byte(` {"x":1}`)...), 400, "S0", "thừa"},
 			{"sai-content-type", "text/plain", valid(""), 415, "S0", "application/json"},
-			{"qua-lon", "application/json", huge, 413, "S0", "quá"},
+			{"qua-lon-70000-byte", "application/json", bodyOf(70_000), 413, "S0", "quá 65536 byte"},
+			{"vua-qua-tran-65537-byte", "application/json", bodyOf(65_537), 413, "S0", "quá 65536 byte"},
+			{"dung-tran-65536-byte", "application/json", bodyOf(65_536), 400, "S?", "quá"}, // đúng trần thì KHÔNG phải 413: tới được luồng hỏi, bị chặn vì text quá dài
 			{"text-rong", "application/json", []byte(`{"text":"  ","conversation_id":"c","message_id":"m"}`), 400, "S?", "text rỗng"},
 			{"thieu-message-id", "application/json", []byte(`{"text":"x","conversation_id":"c"}`), 400, "S?", "message_id"},
 			{"text-qua-dai", "application/json", []byte(`{"text":"` + strings.Repeat("a", 2001) + `","conversation_id":"c","message_id":"m"}`), 400, "S?", "quá"},

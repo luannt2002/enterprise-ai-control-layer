@@ -575,10 +575,11 @@ func (s *Set) meaningOptions() []string {
 }
 
 // generic chọn ý định chung (yếu) để trả lời câu có thực thể + thuật ngữ mà không từ khoá nào khớp (D-OP-15 = a2). Câu phải có cụm xác
-// nhận; đúng MỘT ý định yếu đòi thuật ngữ của câu; mọi chữ còn lại — ngoài tên thực thể, mốc, lượng, thuật ngữ, cụm xác nhận, từ trung
-// tính — phải là mảnh từ khoá của ý định riêng mà ý định chung quy về (cùng chỉ số theo metric_by_term: "xuất" của "kho xuất"), và phải
-// có ÍT NHẤT một mảnh như thế: câu xác nhận không nêu chỉ số ("Hôm qua máy 03 4k dầu đúng không?") thì hỏi lại (BR-FUEL-02 của tenant:
-// chưa rõ chỉ số mà các nguồn đang lệch thì hỏi lại, không xác nhận).
+// nhận; đúng MỘT ý định yếu đòi thuật ngữ của câu; mọi chữ còn lại — ngoài tên thực thể và chữ chỉ loại của nó ("dự án" của "dự án
+// Cầu A"), mốc, lượng cùng chiều đo với chỉ số chung, số trần, thuật ngữ của ý định chung, cụm xác nhận, từ trung tính — phải là mảnh
+// từ khoá của ý định riêng mà ý định chung quy về (cùng chỉ số theo metric_by_term: "xuất" của "kho xuất"), và phải có ÍT NHẤT một
+// mảnh như thế: câu xác nhận không nêu chỉ số ("Hôm qua máy 03 4k dầu đúng không?") thì hỏi lại (BR-FUEL-02 của tenant: chưa rõ chỉ
+// số mà các nguồn đang lệch thì hỏi lại, không xác nhận).
 // Mảnh từ khoá của ý định số liệu khác ("tiêu" của "tiêu thụ", "đo" của "đo được") không được coi là trung tính. Còn chữ lạ ("xài",
 // "hao", "đổ", "tính tiền", "định mức") ⇒ không chọn: câu có thể hỏi một chỉ số khác, nên hỏi lại (D-OP-15 điều kiện (ii)).
 func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (Def, bool) {
@@ -595,10 +596,10 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			}
 		}
 	}
-	metric := gen[0].MetricByTerm[term]
-	if len(gen) != 1 || metric == "" {
+	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
 		return Def{}, false
 	}
+	metric := gen[0].MetricByTerm[term]
 	var own, other []string // từng chữ của từ khoá: ý định riêng cùng chỉ số với ý định chung / ý định số liệu khác
 	for _, d := range s.defs {
 		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
@@ -624,8 +625,10 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			covered[i] = true
 		}
 	}
+	var types []string // loại của thực thể đã giải: thuật ngữ cùng tên loại là chữ chỉ loại ("dự án" của "dự án Cầu A")
 	for _, e := range res.Entities {
 		cover(e.Start, e.End)
+		types = append(types, e.Type)
 	}
 	for _, m := range res.Ambiguous {
 		cover(m.Start, m.End)
@@ -637,15 +640,17 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
 				cover(ws, we)
 			}
-		case contracts.ValueTerm: // chỉ thuật ngữ của ý định chung ("dầu"); "giá", "giờ máy", "nhân công" là đại lượng khác
-			if slices.Contains(gen[0].Terms, sp.Value.Text) {
+		case contracts.ValueTerm: // thuật ngữ của ý định chung ("dầu") và chữ chỉ loại; "giá", "giờ máy", "nhân công" là đại lượng khác
+			if slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text) {
 				cover(sp.Start, sp.End)
 			}
 		case contracts.ValueQuantity: // chỉ lượng cùng chiều đo với chỉ số chung ("4 khối"); "7 tấn", "8h" là đại lượng khác
 			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {
 				cover(sp.Start, sp.End)
 			}
-		} // số trần (không gắn đơn vị hay "dầu": "số 2") không thuộc nghĩa của chỉ số chung
+		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
+			cover(sp.Start, sp.End)
+		}
 	}
 	for _, p := range s.opt.FocusMarkers {
 		for _, sp := range normalization.PhraseSpans(raw, p) {

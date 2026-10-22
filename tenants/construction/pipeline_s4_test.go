@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // giaDinhChung là câu giả định chủ dự án đòi kèm mọi câu trả lời theo ý định chung (D-OP-15, điều kiện (i)).
@@ -54,6 +55,8 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		"Hôm nay nhân công EX-03 xuất 3850 L dầu đúng không?", // thuật ngữ của đại lượng khác là chữ lạ duy nhất
 		// chữ không dấu trong câu có dấu xét theo cùng luật dấu với cả câu (S4R-06): "duoc" không phải "được"
 		"Hôm qua EX-03 duoc 4k dầu đúng không?",
+		// chữ chỉ loại chỉ thuộc tên khi đúng loại của thực thể trong câu (soát S4 vòng 2, F1): EX-03 là thiết bị, không phải dự án
+		"Hôm nay dự án EX-03 xuất 3850 L dầu đúng không?",
 	} {
 		r := ask(t, a, director, q).Response
 		if r.Route != contracts.RouteClarification || r.Outcome != contracts.OutcomeClarificationRequired {
@@ -73,6 +76,9 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		"EX-03 ngày 19/10 được xuất 3850 L dầu đúng không?", // "ngày" đứng trước mốc số thuộc mốc
 		"Hôm nay EX-03 xuất 4 khối dầu đúng không?",         // lượng cùng chiều đo (thể tích) với chỉ số chung
 		"Hôm nay EX-03 xuất dầu 3850 đúng không?",           // số trần
+		// số trần không đứng cạnh "dầu" (không được gắn đơn vị) là con số của câu xác nhận (soát S4 vòng 2, F2)
+		"Dầu xuất hôm nay của EX-03 là 3850 đúng không?",
+		"Dầu được xuất cho EX-03 hôm nay là 3850 đúng không?",
 	} {
 		r := ask(t, a, director, q).Response
 		if r.Route != contracts.RouteSQLQuery || r.Outcome != contracts.OutcomeResolved || r.Intent != "fuel_generic" {
@@ -81,6 +87,17 @@ func TestS4KhongKhopYDinhKhongPhaiNgoaiPhamVi(t *testing.T) {
 		}
 		if !strings.Contains(r.Answer, "3.850") || !strings.Contains(r.Answer, giaDinhChung) || verdictOf(r.Answer) != "" {
 			t.Errorf("%q: muốn số kho xuất 3.850 kèm câu giả định, không phán quyết — được %q", q, r.Answer)
+		}
+	}
+
+	// chữ chỉ loại của thực thể có trong câu ("dự án" của "dự án Cầu A") thuộc tên, không phải chữ lạ (soát S4 vòng 2, F1); Cầu A hôm
+	// nay kho xuất 5.050 L
+	for _, q := range []string{"Hôm nay dự án Cầu A xuất 5050 L dầu đúng không?", "Hôm nay công trình Cầu A xuất 5050 L dầu đúng không?"} {
+		r := ask(t, a, director, q).Response
+		if r.Intent != "fuel_generic" || r.Outcome != contracts.OutcomeResolved || !strings.Contains(r.Answer, "5.050") ||
+			!strings.Contains(r.Answer, giaDinhChung) || verdictOf(r.Answer) != "" {
+			t.Errorf("%q: muốn số kho xuất 5.050 theo ý định chung, kèm câu giả định, không phán quyết — được [%s/%s/%s] %q", q, r.Route,
+				r.Outcome, r.Intent, r.Answer)
 		}
 	}
 
@@ -176,6 +193,31 @@ func TestS4CauTraLoiYDinhChungNoiRoGiaDinh(t *testing.T) {
 	for _, q := range []string{"EX-03 hôm nay kho xuất bao nhiêu dầu?", "EX-03 hôm nay được cấp 3850 L đúng không?"} {
 		if r := ask(t, a, director, q).Response; strings.Contains(r.Answer, giaDinhChung) {
 			t.Errorf("%q: ý định riêng không kèm câu giả định, được %q", q, r.Answer)
+		}
+	}
+}
+
+// Mọi bí danh của vật tư "dầu không phải nhiên liệu" (other_oil) được đọc là vật tư đó, không phải dầu diesel; câu hỏi số lượng về một
+// bí danh có chữ "dầu" vẫn ngoài phạm vi, không bị trả số dầu diesel (soát S4 vòng 2, F4: trước đó chỉ hai bí danh có test).
+func TestS4DauKhongPhaiNhienLieuMoiBiDanh(t *testing.T) {
+	a := newAsk(t)
+	director := user("director", "")
+	for _, alias := range []string{"dầu nhớt", "nhớt", "dầu thủy lực", "dầu thuỷ lực", "dầu hộp số", "dầu bôi trơn", "mỡ bôi trơn", "dầu ăn",
+		"dầu gội", "dầu gió", "dầu thơm"} {
+		in := a.RT.Normalizer.Normalize("Hôm nay EX-03 nhận 20 L "+alias, normalization.Options{Now: today})
+		var terms []string
+		for _, sp := range in.SpansOf(contracts.ValueTerm) {
+			terms = append(terms, sp.Value.Text+"="+sp.Raw)
+		}
+		if !slices.Contains(terms, "other_oil="+alias) || slices.ContainsFunc(terms, func(s string) bool { return strings.HasPrefix(s, "diesel_fuel=") }) {
+			t.Errorf("%q: muốn đọc là vật tư khác (other_oil), không phải dầu diesel — thuật ngữ đọc được %v", alias, terms)
+		}
+		if !strings.Contains(alias, "dầu") {
+			continue
+		}
+		q := "Hôm nay EX-03 nhận bao nhiêu " + alias + "?"
+		if r := ask(t, a, director, q).Response; r.Route != contracts.RouteReject || r.Outcome != contracts.OutcomeOutOfScope {
+			t.Errorf("%q: ngoài phạm vi, muốn từ chối, được [%s/%s] %q", q, r.Route, r.Outcome, r.Answer)
 		}
 	}
 }

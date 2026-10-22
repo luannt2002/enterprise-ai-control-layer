@@ -267,3 +267,24 @@ func TestNgayHongThiKheThoiGianKhongRoiVeMacDinh(t *testing.T) {
 		}
 	}
 }
+
+// Bộ ý định không có ý định chung (yếu) đòi thuật ngữ của câu: câu có thực thể + thuật ngữ + cụm xác nhận mà không từ khoá nào khớp thì
+// hỏi lại nghĩa số liệu, không sập (soát S4 vòng 2, F3: generic() đọc ý định chung đầu tiên trước khi đếm số ý định chung).
+func TestYDinhChungKhongCoThiHoiLaiKhongSap(t *testing.T) {
+	yes := func(string) bool { return true }
+	s, err := Compile([]Def{{
+		Name: "q", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Terms: []string{"fuel"}, Capability: "metrics.read",
+		MetricByTerm: map[string]string{"fuel": "issued"},
+		Slots:        []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}},
+	}}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}})
+	in := contracts.NormalizedInput{Raw: "EX-03 dầu đúng không", Spans: []contracts.Span{
+		{Kind: contracts.ValueTerm, Raw: "dầu", Start: 6, End: 10, Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+	r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{ent("EX-03", "equipment")}}, testNow)
+	if r.Intent.Name != "" || !slices.Equal(r.NeedMeaning, []string{"q"}) {
+		t.Errorf("muốn hỏi lại nghĩa số liệu [q], được intent=%q needMeaning=%v", r.Intent.Name, r.NeedMeaning)
+	}
+}

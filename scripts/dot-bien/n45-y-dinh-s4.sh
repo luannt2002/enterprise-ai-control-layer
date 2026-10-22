@@ -35,11 +35,8 @@ m $I '		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contra
 		for _, k := range d.Keywords {' 'S12 từ khoá của chính ý định chung ("hết" của "hết bao nhiêu") thành giải thích được'
 m $I '		if whole(p, other) && !whole(p, own) {' '		if whole(p, other) && !whole(p, own) && false {' 'S13 từ trung tính là mảnh từ khoá của chỉ số khác ("đo") vẫn được tha'
 m $I '		if !slices.ContainsFunc(own, func(c string) bool {' '		if false && !slices.ContainsFunc(own, func(c string) bool {' 'S14 a2 bỏ kiểm chữ còn lại (chữ lạ "xài", "hao" vẫn trả số kho xuất)'
-m $I '	for _, e := range res.Entities {
-		cover(e.Start, e.End)
-	}' '	for _, e := range res.Entities[:0] {
-		cover(e.Start, e.End)
-	}' 'S15 a2 không che tên thực thể'
+m $I '		cover(e.Start, e.End)
+		types = append(types, e.Type)' '		types = append(types, e.Type)' 'S15 a2 không che tên thực thể'
 m $I '	for _, m := range res.Ambiguous {
 		cover(m.Start, m.End)
 	}' '	for _, m := range res.Ambiguous[:0] {
@@ -52,7 +49,9 @@ m $I '			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
 				cover(ws, we)
 			}
 		case contracts.ValueTerm:' 'S17 a2 không che "ngày" đứng trước mốc số'
-# S18 — nhánh che số trần đã bỏ (số đứng cạnh "dầu" luôn được bộ chuẩn hoá đọc thành lượng có đơn vị; đột biến cũ sống vì nhánh là mã chết)
+m $I '		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
+			cover(sp.Start, sp.End)' '		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
+			_ = sp' 'S18 a2 không che số trần không đứng cạnh "dầu" (soát S4 vòng 2, F2: nhánh từng bị bỏ nhầm là mã chết)'
 m $I '	for _, p := range s.opt.FocusMarkers {
 		for _, sp := range normalization.PhraseSpans(raw, p) {
 			cover(sp[0], sp[1])
@@ -72,7 +71,7 @@ m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Ca
 m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands[:0]}' 'S27 câu hỏi lại nghĩa số liệu không kể ứng viên của bí danh mơ hồ'
 # Soát S4 vòng 1 (S4R-01, S4R-06, S4R-08): a2 chỉ che thuật ngữ của ý định chung và lượng cùng chiều đo; khớp chữ theo cả câu; pack kiểm chỗ
 # cho câu giả định.
-m $I '			if slices.Contains(gen[0].Terms, sp.Value.Text) {' '			if true {' 'S28 a2 che mọi thuật ngữ ("đơn giá", "giờ máy" thành trung tính)'
+m $I '			if slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text) {' '			if true {' 'S28 a2 che mọi thuật ngữ ("đơn giá", "giờ máy" thành trung tính)'
 m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if true {' 'S29 a2 che mọi lượng có đơn vị ("7 tấn" thành trung tính)'
 m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if false {' 'S30 a2 không che lượng cùng chiều đo ("4 khối" thành chữ lạ)'
 m $I '		if !slices.ContainsFunc(own, func(c string) bool {' '		if !whole(raw[i:j], own) && !slices.ContainsFunc(own, func(c string) bool {' 'S31 a2 khớp chữ theo từng chữ riêng ("duoc" không dấu thành "được")'
@@ -84,3 +83,27 @@ m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
 m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil' '					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil && false' 'S34 không lượng nào cùng chiều đo với chỉ số'
+# Soát S4 vòng 2 (F1, F3, F4): chữ chỉ loại của thực thể đã giải thuộc tên; đếm ý định chung trước khi đọc; mọi bí danh của vật tư "dầu
+# không phải nhiên liệu" có test.
+m $I '		types = append(types, e.Type)
+	}' '	}' 'S35 a2 không che chữ chỉ loại ("dự án Cầu A" bị hỏi lại)'
+m $I 'slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text)' 'slices.Contains(gen[0].Terms, sp.Value.Text) || (s.opt.Measurable != nil && !s.opt.Measurable(sp.Value.Text))' 'S36 a2 che mọi thuật ngữ không đo được, bất kể loại của thực thể ("dự án EX-03")'
+m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
+		return Def{}, false
+	}
+	metric := gen[0].MetricByTerm[term]' '	metric := gen[0].MetricByTerm[term]
+	if len(gen) != 1 || metric == "" {
+		return Def{}, false
+	}' 'S37 đọc ý định chung đầu tiên trước khi đếm (sập khi pack không có ý định chung cho thuật ngữ)'
+L=tenants/construction/pack/lexicon.yaml
+m $L 'aliases: [dầu nhớt, nhớt, dầu thủy lực' 'aliases: [nhớt, dầu thủy lực' 'S38 bỏ bí danh "dầu nhớt"'
+m $L 'dầu nhớt, nhớt, dầu thủy lực, dầu thuỷ lực' 'dầu nhớt, dầu thủy lực, dầu thuỷ lực' 'S39 bỏ bí danh "nhớt"'
+m $L 'nhớt, dầu thủy lực, dầu thuỷ lực, dầu hộp số' 'nhớt, dầu thuỷ lực, dầu hộp số' 'S40 bỏ bí danh "dầu thủy lực"'
+m $L 'dầu thủy lực, dầu thuỷ lực, dầu hộp số' 'dầu thủy lực, dầu hộp số' 'S41 bỏ bí danh "dầu thuỷ lực"'
+m $L 'dầu thuỷ lực, dầu hộp số, dầu bôi trơn' 'dầu thuỷ lực, dầu bôi trơn' 'S42 bỏ bí danh "dầu hộp số"'
+m $L 'dầu hộp số, dầu bôi trơn, mỡ bôi trơn' 'dầu hộp số, mỡ bôi trơn' 'S43 bỏ bí danh "dầu bôi trơn"'
+m $L 'dầu bôi trơn, mỡ bôi trơn, dầu ăn' 'dầu bôi trơn, dầu ăn' 'S44 bỏ bí danh "mỡ bôi trơn"'
+m $L 'mỡ bôi trơn, dầu ăn, dầu gội' 'mỡ bôi trơn, dầu gội' 'S45 bỏ bí danh "dầu ăn"'
+m $L 'dầu ăn, dầu gội, dầu gió' 'dầu ăn, dầu gió' 'S46 bỏ bí danh "dầu gội"'
+m $L 'dầu gội, dầu gió, dầu thơm' 'dầu gội, dầu thơm' 'S47 bỏ bí danh "dầu gió"'
+m $L 'dầu gió, dầu thơm]' 'dầu gió]' 'S48 bỏ bí danh "dầu thơm"'

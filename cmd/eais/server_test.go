@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
+	"github.com/luannt2002/enterprise-ai-control-layer/evals"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 )
 
@@ -368,6 +369,62 @@ func serverSuite(t *testing.T, mk func(t *testing.T) *env) {
 		if got := e.getTrace(tokDirector, a.TraceID).Record.Decision.DataVersion; got != rep2.DataVersion {
 			t.Errorf("vết sau nạp lại mang phiên bản dữ liệu %q, muốn %q", got, rep2.DataVersion)
 		}
+	})
+
+	// Bất biến "ứng dụng không đổi câu trả lời": cả bộ ca WIN (117 câu, đủ các route: số liệu, so sánh, hỏi lại, từ chối, tri thức, xung đột)
+	// đi qua HTTP cho ĐÚNG câu trả lời, route, outcome và ý định mà Handle trả khi gọi thẳng với cùng principal và đồng hồ — và MỌI lượt
+	// để lại vết đọc lại được có đủ 11 bước.
+	t.Run("bo-ca-win-qua-http", func(t *testing.T) {
+		e := mk(t)
+		suite, err := evals.LoadWinSuite(repoPath("tenants/construction/win/cases-independent.yaml"))
+		if err != nil || len(suite.Cases) < 100 {
+			t.Fatalf("không nạp được bộ ca WIN: %d ca, %v", len(suite.Cases), err)
+		}
+		w, err := loadWorld(repoPath("tenants/construction/win/world.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tn := range w.Tenants { // principal của tenant tham chiếu trong world.yaml, gắn vào tenant riêng của lượt chạy
+			if tn.ID != seedTenant {
+				continue
+			}
+			for _, p := range tn.Principals {
+				pr := contracts.Principal{ID: p.ID, TenantID: contracts.TenantID(e.tenantA), Kind: contracts.PrincipalUser, Roles: []string{p.Role}}
+				if p.EntityScope != "" {
+					pr.Attributes = map[string]string{"entity_scope": p.EntityScope}
+				}
+				e.srv.principals["w-"+p.ID] = pr
+			}
+		}
+		routes := map[string]int{}
+		for _, c := range suite.Cases {
+			pr, ok := e.srv.principals["w-"+c.Principal]
+			if !ok {
+				t.Fatalf("%s: principal %q không có trong world.yaml", c.ID, c.Principal)
+			}
+			r := e.ask("w-"+c.Principal, c.Question)
+			if r.status != http.StatusOK {
+				t.Errorf("%s: HTTP %d: %s", c.ID, r.status, r.body)
+				continue
+			}
+			got := decodeAs[contracts.AskResponse](t, r)
+			direct, err := e.app.ask.Load().Handle(context.Background(), pr, contracts.AskRequest{ConversationID: "c-1", MessageID: "m-1", Text: c.Question})
+			if err != nil {
+				t.Errorf("%s: Handle trực tiếp lỗi: %v", c.ID, err)
+				continue
+			}
+			if got.Answer != direct.Response.Answer || got.Route != direct.Response.Route || got.Outcome != direct.Response.Outcome || got.Intent != direct.Response.Intent {
+				t.Errorf("%s: HTTP đổi câu trả lời:\n HTTP:      %s %s %q\n trực tiếp: %s %s %q", c.ID, got.Route, got.Outcome, got.Answer, direct.Response.Route, direct.Response.Outcome, direct.Response.Answer)
+			}
+			routes[string(got.Route)]++
+			if n := len(e.getTrace("w-"+c.Principal, got.TraceID).Record.Steps); n != 11 {
+				t.Errorf("%s: vết có %d bước, muốn 11", c.ID, n)
+			}
+		}
+		if rows := e.decisionRows(e.tenantA); rows != len(suite.Cases) {
+			t.Errorf("%d ca nhưng %d dòng vết: mọi lượt phải có vết", len(suite.Cases), rows)
+		}
+		t.Logf("%d ca qua HTTP, mỗi ca một vết đủ 11 bước; route: %v", len(suite.Cases), routes)
 	})
 
 	// Nhiều lượt song song: mỗi lượt một vết riêng, đọc lại được, không lẫn.

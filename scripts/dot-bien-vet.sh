@@ -147,6 +147,7 @@ m $S 'for _, re := range []*regexp.Regexp{m.escaped, m.raw} {' 'for _, re := ran
 m $S 'for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {' 'for ; i < len(secretMasks) && secretMasks[i].value != nil && len(ms) == 0; i++ {' 'TV40 che lần lượt từng mẫu tên + giá trị (lọt Cookie sau giá trị kết thúc bằng \\, soát lại 5abc 5a-R1)'
 m $S 'return spans[i].start < spans[j].start' 'return false' 'TV41 không sắp vùng trước khi gộp (lọt khi ≥ 3 cặp mà hai cách đọc nháy bất đồng, soát lại 5abc 5a-R2)'
 m $S 'if cur.line {' 'if false && cur.line {' 'TV45 vùng gộp chứa giá trị Cookie trần không kéo tới hết dòng (lọt phần sau nháy qua xuống dòng, soát 5a vòng 3 5a3-1)'
+m $S 'strings.IndexAny(s[cur.end:], "\r\n")' 'strings.IndexAny(s[cur.end:], "\n")' 'TV49 kéo tới hết dòng không coi CR đơn là xuống dòng (nuốt dòng sau, soát 5a vòng 4 5a4-3)'
 m $S '`[^\r\n]+`, true)}' '`[^\r\n]+`, false)}' 'TV46 mẫu Cookie không đánh dấu là mẫu dòng (5a3-1)'
 m $S 'cur.line = cur.line || spans[i].line' 'cur.line = cur.line' 'TV48 cờ dòng không lan khi vùng gộp bắt đầu ở cặp trước Cookie (hình lai 5a-R1 + 5a3-1)'
 m $S 'spans := sequentialSpans(s, ms)' 'var spans []span' 'TV50 không hợp vùng của che tuần tự (che ít hơn main, soát 5a vòng 4 5a4-1)'

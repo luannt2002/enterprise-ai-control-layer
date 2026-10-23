@@ -401,6 +401,8 @@ func TestSanitizeCookieCoNhayQuaXuongDong(t *testing.T) {
 		{"Cookie=apikey=\"\n\"ZQX", "Cookie=" + traces.Masked},
 		// giá trị trần bắt đầu bằng ";": vẫn là cả dòng (sau khi có kéo tới hết dòng, chỉ hình này phân biệt Cookie trần dừng ở ";")
 		{"Cookie: ;sid=ZQX5", "Cookie: " + traces.Masked},
+		// xuống dòng chỉ CR (soát 5a vòng 4, 5a4-3): kéo tới hết dòng dừng ở CR, không nuốt dòng sau
+		{"Cookie: auth_token=\"abc\rdef\"; sid=ZQX1\rAccept: KEEP", "Cookie: " + traces.Masked + "\rAccept: KEEP"},
 	} {
 		got := traces.Sanitize(c.in)
 		if got != c.want {

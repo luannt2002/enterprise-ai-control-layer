@@ -15,7 +15,11 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   Đóng C3-02, C3-05 và các lỗi đã đo của hàng D-OP-9. Giá đã đo: H1 92 → 91, H3 113 → 112, H4 104 → 103 (WIN-I-264, 509, 717 hỏi lại thay
   vì trả số). Nợ S1 có từ trước, ghi ở CỔNG TRƯỚC AI: S2AS-01, S2AS-02.
 - **M3:** bộ giữ lại H6 (94 ca) đóng băng bằng cam kết băm TRƯỚC bản sửa S4 (`6734cff`).
-- **M4:** K1 lõi lệnh `execution/commands` (`e1ce950`), K2 kho PG của phiếu + migration 0004 (`d919ebf`).
+- **M4:** K1 lõi lệnh `execution/commands` (`e1ce950`), K2 kho PG của phiếu + migration 0004 (`d919ebf`); K3 route
+  `POST /v1/commands/<tool>` ở `cmd/eais` (tools.yaml của pack, vết chín bước C0…C7, `eais trace` đọc lượt lệnh) cùng bảy lỗi P2 C1–C7 —
+  migration 0005: vai ứng dụng không đọc được `audit_log.reason_detail`, CHECK `tenant_id <> ''` cho ba bảng của 0004; đọc lại so đủ 15 cột
+  của dòng EXECUTED; trần 128 byte cho subject_key; ca quyền A07–A10 trên PG; `classifyCommit` chỉ coi đúng mức ERROR là "chưa ghi"
+  (`3892be2`; hai vòng soát C1–C7, soát K3, soát lại cây gộp — ĐẠT CÓ GHI CHÚ).
 - **M1:** R2-03 vết xuất lý do và phương án đã xét (`5fd463f`); `scripts/chay-thu.sh` khoá theo dự án bằng flock (`c97a989`).
 
 ### 22/10/2026 tối — bộ ca giữ lại Phase 1 đóng băng, ADR-0011 CHỐT; M1 đóng thêm ghi chú soát; bảng lệnh M5; đo người đọc vết lần 1

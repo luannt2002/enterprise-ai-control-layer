@@ -7,6 +7,7 @@ package normalization
 
 import (
 	"math/big"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -202,8 +203,13 @@ func (e *Engine) matchCode(s string, toks []token, i int) (contracts.Span, int, 
 }
 
 func (e *Engine) matchApprox(s string, t token) (int, bool) {
-	if t.kind == tokSym && t.text == "~" {
-		return t.end, true
+	if t.kind == tokSym {
+		// dấu ước lượng dạng ký hiệu: "~" (luôn nhận, như trước) và mọi ký hiệu pack khai ở approx_markers ("≈" của pack cầu đường). Trước đây
+		// chỉ "~" được nhận nên "≈ 2,6 m3" trên phiếu kho mất cờ ước lượng (4 ca đỏ của bộ giữ lại P1).
+		if t.text == "~" || slices.Contains(e.approx, t.text) {
+			return t.end, true
+		}
+		return 0, false
 	}
 	if t.kind != tokWord {
 		return 0, false

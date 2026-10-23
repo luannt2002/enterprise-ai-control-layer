@@ -963,7 +963,7 @@ func verifyFresh(st Stored, u WriteUnit) []string {
 	} else if st.Ledger[0] != u.Ledger {
 		bad = append(bad, "sổ lệnh: lệch trường")
 	}
-	if !hasExecuted(st.Executed, u.Ticket.ID) {
+	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return executedMatches(a, u.Audit) }) {
 		bad = append(bad, "audit EXECUTED: không thấy")
 	}
 	return bad
@@ -981,14 +981,30 @@ func verifyReplay(st Stored, led LedgerRecord, req Request, caller string) []str
 		t.Day != req.Day || t.CommandID != req.CommandID || t.CreatedBy != caller {
 		bad = append(bad, "phiếu: lệch so với yêu cầu đã phát lại")
 	}
-	if !hasExecuted(st.Executed, led.TicketID) {
+	// Không có bản chụp ý định của lượt gốc: so các cột suy ra được từ dòng sổ lệnh và chính yêu cầu. Vai, phạm vi, phiên bản pack / mã và
+	// trace_id là của lượt gốc (vai có thể đã đổi từ đó) nên không so ở đây.
+	want := Audit{Outcome: AuditExecuted, Caller: Caller{ID: led.Caller}, CommandID: led.CommandID, Action: CommandOpenDiscrepancyTicket,
+		SubjectKey: req.SubjectKey, Metric: req.Metric, Day: req.Day, TicketID: led.TicketID, Fingerprint: led.Fingerprint}
+	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return replayedExecutedMatches(a, want) }) {
 		bad = append(bad, "audit EXECUTED: không thấy")
 	}
 	return bad
 }
 
-func hasExecuted(audits []Audit, ticketID string) bool {
-	return slices.ContainsFunc(audits, func(a Audit) bool { return a.Outcome == AuditExecuted && a.TicketID == ticketID })
+// executedMatches báo a là đúng dòng audit EXECUTED của bản chụp ý định want: so MỌI cột đọc lại được (HOP-DONG §7.2; C2, lệnh ca chiều
+// 23/10), trừ reason_detail — cột vai ứng dụng không được đọc (C1); dòng EXECUTED luôn ghi reason_detail rỗng.
+func executedMatches(a, want Audit) bool {
+	return replayedExecutedMatches(a, want) && slices.Equal(a.Caller.Roles, want.Caller.Roles) &&
+		a.Caller.EntityScope == want.Caller.EntityScope && a.PackVersion == want.PackVersion && a.CodeVersion == want.CodeVersion &&
+		a.TraceID == want.TraceID
+}
+
+// replayedExecutedMatches so các cột của dòng EXECUTED mà lượt phát lại suy ra được: kết cục, mã lý do, người gọi, khoá lệnh, hành động,
+// khoá thực thể, chỉ số, ngày, mã phiếu, vân tay.
+func replayedExecutedMatches(a, want Audit) bool {
+	return a.Outcome == want.Outcome && a.ReasonCode == want.ReasonCode && a.Caller.ID == want.Caller.ID && a.CommandID == want.CommandID &&
+		a.Action == want.Action && a.SubjectKey == want.SubjectKey && a.Metric == want.Metric && a.Day == want.Day &&
+		a.TicketID == want.TicketID && a.Fingerprint == want.Fingerprint
 }
 
 // diffTicket trả tên các trường lệch giữa bản chụp ý định và dòng đọc lại; chỉ tên, không giá trị.

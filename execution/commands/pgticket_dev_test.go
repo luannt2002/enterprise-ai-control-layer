@@ -324,6 +324,16 @@ func TestPGA23DocLaiHong(t *testing.T) {
 			w.check(w.tenant, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
 		})
 	}
+	// C2 trên PG: dòng EXECUTED đọc lại từ DB thật phải khớp mọi cột đọc được (ca DONE ở trên chứng minh không lệch giả).
+	for _, mode := range []string{"audit-fp", "audit-trace", "audit-roles", "audit-reason"} {
+		t.Run("F6 audit EXECUTED lệch: "+mode, func(t *testing.T) {
+			w := newPGWorld(t)
+			w.probe.f6stale, w.probe.staleMode = 1, mode
+			o := w.run(w.user("p-1", "director", ""), req(79, "EX-03", day1))
+			wantFail(t, o, StatusUnknown, ReasonVerifyMismatch)
+			w.check(w.tenant, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
+		})
+	}
 	for _, mode := range []string{"missing", "subject"} {
 		t.Run("phát lại cũng đọc lại: "+mode, func(t *testing.T) {
 			w := newPGWorld(t)

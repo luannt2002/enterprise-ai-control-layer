@@ -619,6 +619,28 @@ func TestA23DocLaiHong(t *testing.T) {
 			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
 		})
 	}
+	// C2 (lệnh ca chiều 23/10): dòng audit EXECUTED đọc lại phải khớp MỌI cột đọc được với bản chụp ý định, không chỉ kết cục + mã phiếu.
+	for _, mode := range []string{"audit-fp", "audit-trace", "audit-caller", "audit-roles", "audit-day", "audit-action", "audit-reason"} {
+		t.Run("F6 audit EXECUTED lệch: "+mode, func(t *testing.T) {
+			w := newWorld(t)
+			w.probe.f6stale, w.probe.staleMode = 1, mode
+			o := w.run(p, req(79, "EX-03", day1))
+			wantFail(t, o, StatusUnknown, ReasonVerifyMismatch)
+			assertSteps(t, o, "C7")
+			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
+		})
+	}
+	// phát lại: không có bản chụp ý định của lượt gốc, nên so với dòng sổ lệnh và chính yêu cầu — các cột suy ra được từ đó
+	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason"} {
+		t.Run("phát lại, audit EXECUTED lệch: "+mode, func(t *testing.T) {
+			w := newWorld(t)
+			r := req(80, "EX-03", day1)
+			wantDone(t, w.run(p, r), false)
+			w.probe.f6stale, w.probe.staleMode = 1, mode
+			wantFail(t, w.run(p, r), StatusUnknown, ReasonVerifyMismatch)
+			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
+		})
+	}
 	for _, mode := range []string{"missing", "subject"} { // phát lại cũng đọc lại: không thấy phiếu, hoặc thấy phiếu của khoá khác
 		t.Run("phát lại cũng đọc lại: "+mode, func(t *testing.T) {
 			w := newWorld(t)

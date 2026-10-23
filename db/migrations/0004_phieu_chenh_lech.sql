@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS commands (
 
 CREATE TABLE IF NOT EXISTS audit_log (
   tenant_id     text        NOT NULL,
-  id            bigint      GENERATED ALWAYS AS IDENTITY, -- thứ tự ghi trong tenant; có khe hở khi giao dịch huỷ
+  id            bigint      GENERATED ALWAYS AS IDENTITY, -- số cấp lúc INSERT, KHÔNG phải thứ tự commit (dòng commit muộn có thể mang số nhỏ hơn); có khe hở khi giao dịch huỷ
   at            timestamptz NOT NULL DEFAULT now(),
   outcome       text        NOT NULL,
   reason_code   text        NOT NULL DEFAULT '',

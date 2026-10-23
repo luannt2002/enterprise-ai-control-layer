@@ -74,6 +74,8 @@ func dataset(t *testing.T) string {
 		`{"record_id":"R-037","sent_at":"2026-10-19T18:50:00+07:00","sender":"Tuấn","text":"máy 03 đổ bể: 2 500 lít"}`,
 		`{"record_id":"R-038","sent_at":"2026-10-19T19:00:00+07:00","sender":"Tuấn","text":"máy 3 850 lít, phiếu 912"}`,
 		`{"record_id":"R-039","sent_at":"2026-10-19T19:10:00+07:00","sender":"Tuấn","text":"lu 2 850 lít ca 2"}`,
+		`{"record_id":"R-040","sent_at":"2026-10-19T19:15:00+07:00","sender":"Tuấn","text":"máy 03 tiền xe 500 000 đồng"}`, // tiền sau từ đếm "xe"
+		`{"record_id":"R-043","sent_at":"2026-10-19T19:40:00+07:00","sender":"Tuấn","text":"máy 03 tổng số 3 850 lít"}`,    // từ nhãn "số"
 		`{"record_id":"R-041","sent_at":"2026-10-19T19:20:00+07:00","sender":"Tuấn","text":"3 850 lít cho máy 03"}`,
 		`{"record_id":"R-042","sent_at":"2026-10-19T19:30:00+07:00","sender":"Tuấn","text":"` + string(rune(0x200B)) + `3 850 lít cho lu 02"}`, // ký tự vô hình đầu tin
 	}, "\n")+"\n")
@@ -162,15 +164,18 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"messages.jsonl#R-037": ingestion.ReasonUnparseable,
 		// tiền viết nhóm nghìn là một lượng tiền, không bao giờ thành lượng dầu
 		"messages.jsonl#R-035": ingestion.ReasonMissingValue,
+		"messages.jsonl#R-040": ingestion.ReasonMissingValue,
 		// nhóm nghìn chồng lên tên thiết bị ("máy 3" / "lu 2"): cách ly, không loại im lặng rồi lấy số khác ("phiếu 912" thành 912 L, "ca 2"
 		// thành 2 L của RL-02)
 		"messages.jsonl#R-038": ingestion.ReasonUnparseable,
 		"messages.jsonl#R-039": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-043": ingestion.ReasonUnparseable,
 	}
 	// quan trọng hơn lý do chung: đúng lý do NHÓM NGHÌN, không phải "có 2 lượng" tình cờ
 	wantDetail := map[string]string{
 		"messages.jsonl#R-033": "nhóm nghìn", "messages.jsonl#R-034": "nhóm nghìn", "messages.jsonl#R-036": "nhóm nghìn",
-		"messages.jsonl#R-037": "nhóm nghìn", "messages.jsonl#R-039": "nhóm nghìn",
+		"messages.jsonl#R-037": "nhóm nghìn", "messages.jsonl#R-038": "nhóm nghìn", "messages.jsonl#R-039": "nhóm nghìn",
+		"messages.jsonl#R-043": "nhóm nghìn",
 	}
 	seen := map[string]int{}
 	for _, o := range res.Observations {

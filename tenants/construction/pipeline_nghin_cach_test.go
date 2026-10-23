@@ -46,6 +46,12 @@ func TestCauXacNhanNhomNghinKhongDungDauThiHoiLai(t *testing.T) {
 		{"EX-03 hôm nay được cấp bể: 2 500 lít đúng không?", "2 500 lít"},
 		{"EX-03 hôm nay được cấp 3850 L (3 850 lít) đúng không?", "3 850 lít"},
 		{"EX-03 hôm nay được cấp 3 850 lít, 4 000 lít đúng không?", "4 000 lít"},
+		// chữ đứng trước là từ nhãn / từ đếm: danh sách của bộ chuẩn hoá không phân định được, nên cũng chỉ là chữ đứng trước (C3-05: "tổng số
+		// 3 850 lít" từng thành số "3" + lượng "850 lít" nên câu bị trả "không phải 850 L" khi chưa có cổng phán quyết)
+		{"EX-03 hôm nay tổng số 3 850 lít đúng không?", "3 850 lít"},
+		{"EX-03 hôm nay được cấp đợt 1 200 lít đúng không?", "1 200 lít"},
+		{"EX-03 hôm nay được cấp phiếu 1 200 lít đúng không?", "1 200 lít"},
+		{"EX-03 hôm nay được cấp ca 2 850 lít đúng không?", "2 850 lít"},
 	} {
 		r := ask(t, a, user("director", ""), c.text).Response
 		hoiLaiVe(t, r, c.text, "claimed", "Chưa rõ cách đọc", `"`+c.group+`"`)

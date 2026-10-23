@@ -29,11 +29,14 @@ func TestNhomNghinNganBangDauCach(t *testing.T) {
 		{"3 8500 lít", []string{"8500"}, []string{"3"}},     // nhóm sau quá 3 chữ số
 		{"1234 567 lít", []string{"567"}, []string{"1234"}}, // phần đầu quá 3 chữ số
 		{"3  850 lít", []string{"850"}, []string{"3"}},      // hai dấu cách: không chắc là một số
-		// số đứng sau từ nhãn / từ đếm / từ chỉ kỳ là số hiệu, không phải phần đầu của lượng: "đội 3, 500 lít"
-		{"đội 3 500 lít", []string{"500"}, []string{"3"}},
-		{"phiếu 1 200 lít", []string{"200"}, []string{"1"}},
-		{"máy 3 850 lít", []string{"850"}, []string{"3"}},
-		{"tuần 2 400 lít", []string{"400"}, []string{"2"}},
+		// số đứng sau từ nhãn / từ đếm / từ chỉ kỳ VẪN là phần đầu của một lượng viết nhóm nghìn (D-OP-9, a'): danh sách từ nhãn không phân định được
+		// ("tổng số", "bể", "#"… nó rò: soát C3) nên không có danh sách — hệ gộp, gắn cờ chưa phân định (UncertainGroup) và tầng sau hỏi lại / cách ly
+		{"đội 3 500 lít", []string{"3500"}, nil},
+		{"phiếu 1 200 lít", []string{"1200"}, nil},
+		{"máy 3 850 lít", []string{"3850"}, nil},
+		{"tuần 2 400 lít", []string{"2400"}, nil},
+		{"tổng số 3 850 lít", []string{"3850"}, nil},
+		{"lu 2 850 lít ca 2", []string{"2850"}, []string{"2"}}, // "ca 2" là số trần riêng
 		// số 0 đầu không phải phần đầu của nhóm nghìn kể cả khi không có từ nhãn đứng trước
 		{"cấp 03 850 lít", []string{"850"}, []string{"3"}},
 	} {
@@ -92,6 +95,12 @@ func TestNhomNghinChuaPhanDinhKhiKhongDungDauVanBan(t *testing.T) {
 		{"12 3 850 lít", true},
 		{"máy 03 đổ 1 200 lít", true},
 		{zwsp + "cấp 3 850 lít", true}, // ký tự vô hình không biến chữ đứng trước thành "đầu văn bản"
+		// chữ đứng trước là từ nhãn / đếm / kỳ: cũng chỉ là chữ đứng trước
+		{"tổng số 3 850 lít", true},
+		{"đội 3 500 lít", true},
+		{"phiếu 1 200 lít", true},
+		{"máy 3 850 lít", true},
+		{"tuần 2 400 lít", true},
 	} {
 		in := e.Normalize(c.in, Options{Now: now})
 		var groups []contracts.Span
@@ -190,5 +199,37 @@ func TestGroupSplitsName(t *testing.T) {
 	plain := e.Normalize("lu 02 850 lít", Options{Now: now}).SpansOf(contracts.ValueQuantity)
 	if len(plain) != 1 || SpaceGroup(plain[0]) || GroupSplitsName(plain[0], 0, 6) || GroupSplitsName(plain[0], 4, 10) {
 		t.Errorf("lượng thường (\"850 lít\" ở [6, 14)) không phải nhóm nghìn, kể cả khi một cụm tên chồng một phần lên nó: %+v", plain)
+	}
+}
+
+// Nhóm nghìn của tiền và của lượng khác chiều đo giữ đúng nghĩa dù chữ đứng trước là từ nhãn / đếm ("tiền xe 500 000 đồng"): MỘT span cùng kiểu,
+// không có số trần mồ côi. Trước đây "xe" nằm trong danh sách từ đếm nên "500" thành số trần và "000 đồng" thành 0 đồng — một đường nạp lấy
+// số trần "500" làm 500 L dầu.
+func TestNhomNghinTienVaKhacChieuDoGiuNghia(t *testing.T) {
+	e := mustEngine(t)
+	for _, c := range []struct {
+		in, kind, number, unit string
+		bare                   int // số trần ĐỨNG RIÊNG hợp lệ (số hiệu, số thứ tự) — không phải phần đầu mồ côi của nhóm
+	}{
+		{"tiền xe 500 000 đồng", "money", "500000", "VND", 0},
+		{"sửa chữa 500 000 đồng", "money", "500000", "VND", 0},
+		{"máy chạy 12 000 km", "quantity", "12000", "km", 0},
+		{"xe chạy 12 000 km", "quantity", "12000", "km", 0},
+		{"đội 3 25 000 đồng", "money", "25000", "VND", 1}, // "đội 3" rồi "25 000 đồng": nhóm bắt đầu ở "25", không nuốt "3"
+		{"ca 2 1 200 giờ", "quantity", "1200", "h", 1},    // "ca 2" rồi "1 200 giờ"
+	} {
+		in := e.Normalize(c.in, Options{Now: now})
+		var groups []contracts.Span
+		for _, sp := range in.Spans {
+			if SpaceGroup(sp) {
+				groups = append(groups, sp)
+			}
+		}
+		if len(groups) != 1 || string(groups[0].Kind) != c.kind || groups[0].Value.Number != c.number || groups[0].Value.Unit != c.unit || !UncertainGroup(groups[0]) {
+			t.Errorf("%q: muốn MỘT span nhóm nghìn %s %s %s chưa phân định, được %+v", c.in, c.kind, c.number, c.unit, in.Spans)
+		}
+		if bare := len(in.SpansOf(contracts.ValueNumber)); bare != c.bare {
+			t.Errorf("%q: muốn %d số trần đứng riêng, được %d (%+v)", c.in, c.bare, bare, in.Spans)
+		}
 	}
 }

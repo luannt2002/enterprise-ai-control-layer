@@ -148,3 +148,47 @@ func TestNhomNghinOCoCauTrucLuonChacChan(t *testing.T) {
 		}
 	}
 }
+
+// GroupSplitsName: nhóm nghìn chồng MỘT PHẦN lên cụm tên đã nhận ra ("3 850 lít" lên "máy 3") là chưa phân định — số đầu là số hiệu của tên
+// hay phần đầu của lượng; nhóm nằm ngoài tên, nằm trọn trong tên, hay span không phải nhóm nghìn thì không.
+func TestGroupSplitsName(t *testing.T) {
+	e := mustEngine(t)
+	in := e.Normalize("lu 2 850 lít ca 2", Options{Now: now}) // tên "lu 2" = [0, 4); nhóm "2 850 lít" = [3, 13)
+	var group contracts.Span
+	for _, sp := range in.Spans {
+		if SpaceGroup(sp) {
+			group = sp
+		}
+	}
+	if group.Raw != "2 850 lít" || group.Start != 3 || group.End != 13 {
+		t.Fatalf("muốn nhóm \"2 850 lít\" ở [3, 13), được %+v", group)
+	}
+	for _, c := range []struct {
+		name       string
+		start, end int
+		want       bool
+	}{
+		{"đầu nhóm nằm trong tên", 0, 4, true},
+		{"đuôi nhóm nằm trong tên", 8, 14, true},
+		{"tên nằm trọn trong nhóm", 4, 7, true},
+		{"nhóm nằm trọn trong tên", 0, 14, false},
+		{"tên trùng khít nhóm", 3, 13, false},
+		{"tên đứng trước, sát nhóm", 0, 3, false},
+		{"tên đứng sau, sát nhóm", 13, 17, false},
+		{"tên cách xa nhóm", 14, 17, false},
+	} {
+		if got := GroupSplitsName(group, c.start, c.end); got != c.want {
+			t.Errorf("%s: GroupSplitsName(nhóm [3, 13), tên [%d, %d)) = %v, muốn %v", c.name, c.start, c.end, got, c.want)
+		}
+	}
+	// ô có cấu trúc không miễn việc chồng lên tên: Options.Cell chỉ bỏ cờ "không đứng đầu văn bản"
+	cell := e.Normalize("lu 2 850 lít", Options{Now: now, Cell: true}).SpansOf(contracts.ValueQuantity)
+	if len(cell) != 1 || !GroupSplitsName(cell[0], 0, 4) {
+		t.Errorf("ô có cấu trúc vẫn là nhóm nghìn chồng lên tên: %+v", cell)
+	}
+	// số 0 đầu: "lu 02 850 lít" không có nhóm nghìn, "850 lít" là lượng thường
+	plain := e.Normalize("lu 02 850 lít", Options{Now: now}).SpansOf(contracts.ValueQuantity)
+	if len(plain) != 1 || SpaceGroup(plain[0]) || GroupSplitsName(plain[0], 0, 6) || GroupSplitsName(plain[0], 4, 10) {
+		t.Errorf("lượng thường (\"850 lít\" ở [6, 14)) không phải nhóm nghìn, kể cả khi một cụm tên chồng một phần lên nó: %+v", plain)
+	}
+}

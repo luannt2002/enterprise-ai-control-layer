@@ -312,6 +312,14 @@ func UncertainGroup(sp contracts.Span) bool {
 	return strings.HasPrefix(sp.Rule, ruleSpaceThousandsUncertain)
 }
 
+// GroupSplitsName báo span là lượng viết nhóm nghìn mà phần đầu nằm trong một cụm tên đã nhận ra [nameStart, nameEnd) còn phần sau nằm ngoài
+// ("3 850 lít" chồng lên "máy 3" của "máy 3 850 lít"): "3" là số hiệu của tên hay phần đầu của lượng? Hai cách đọc ngang nhau, nên người gọi
+// cách ly / hỏi lại — không bỏ lượng im lặng vì "nằm trong tên" rồi lấy số khác ("máy 3 850 lít, phiếu 912" thành 912 L). Vị trí cùng hệ toạ độ
+// với span (NormalizedInput.Raw); nhóm nằm trọn trong tên thì không chồng một phần.
+func GroupSplitsName(sp contracts.Span, nameStart, nameEnd int) bool {
+	return SpaceGroup(sp) && sp.Start < nameEnd && sp.End > nameStart && (sp.Start < nameStart || sp.End > nameEnd)
+}
+
 // markUncertainGroup gắn cờ chưa phân định cho span lượng viết nhóm nghìn mà con số không đứng đầu văn bản s.
 func markUncertainGroup(s string, sp *contracts.Span) {
 	if !SpaceGroup(*sp) || atTextStart(s, sp.Start) {

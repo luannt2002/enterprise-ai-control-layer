@@ -16,7 +16,9 @@ m $I '	if len(res.Entities)+len(res.Ambiguous) == 0 {
 		return false
 	}' 'S3 tín hiệu phạm vi không cần thực thể'
 m $I '	if len(res.Entities)+len(res.Ambiguous) == 0 {' '	if len(res.Entities) == 0 {' 'S4 tín hiệu phạm vi bỏ bí danh mơ hồ'
-m $I '		return slices.ContainsFunc(s.defs, func(d Def) bool { return slices.Contains(d.Terms, sp.Value.Text) })' '		return true' 'S5 tín hiệu phạm vi không cần thuật ngữ của một ý định'
+m $I '	if slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
+		return slices.ContainsFunc(s.defs, func(d Def) bool { return slices.Contains(d.Terms, sp.Value.Text) })' '	if slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
+		return true' 'S5 tín hiệu phạm vi không cần thuật ngữ của một ý định'
 m $I '		if len(d.Terms) > 0 && !d.Weak && contracts.RouteKind(d.Route) != contracts.RouteRAG {' '		if len(d.Terms) > 0 && contracts.RouteKind(d.Route) != contracts.RouteRAG {' 'S6 hỏi lại kể cả ý định chung'
 # S7 — ý định tri thức (RAG) của pack hiện có không khai thuật ngữ nên đã bị loại bởi len(d.Terms) > 0: tương đương trên pack cầu đường;
 # giữ điều kiện vì nghĩa của "hỏi lại nghĩa SỐ LIỆU" (pack khác có thể có ý định tri thức đòi thuật ngữ)
@@ -125,8 +127,8 @@ m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 
 m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if len(r.Ambiguous) > 0 && len(r.Candidates) == 0 {' 'S74 chỉ hoà ý định mang ứng viên, thiếu thuật ngữ thì bỏ rơi'
 m tenants/construction/pack/templates.yaml '  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"' '  clarify_intent: "Bạn muốn hỏi {options}?"' 'S75 mẫu hỏi lại nghĩa số liệu không kể ứng viên (người dùng không thấy máy nào cần chọn)'
 # C5 (bất biến (b), vai mệnh đề): mệnh đề ngữ cảnh nêu con số, đứng trước mệnh đề hỏi có chỉ số riêng, không quyết định ý định.
-m $I '	text := maskRanges(in.Raw, prem)' '	text := in.Raw' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
-m $I '	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {' '	if len(out) == 0 {' 'S77 che mệnh đề trước cả khi mệnh đề hỏi chỉ là cái đuôi không có chỉ số riêng'
+m $I '	text := maskRanges(rawBG, prem)' '	text := rawBG' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
+m $I '	if len(out) == 0 || !s.ownMetric(maskRanges(raw, s.backgroundRanges(raw))[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {' '	if len(out) == 0 {' 'S77 che mệnh đề trước cả khi mệnh đề hỏi chỉ là cái đuôi không có chỉ số riêng'
 m $I '		if i != q && hasFigure(in, res, cl[i][0], cl[i][1]) {' '		if i != q {' 'S78 che cả mệnh đề dẫn đề không nêu con số'
 m $I '	for i := range cl {
 		// trước mệnh đề hỏi' '	for i := 0; i < q; i++ {
@@ -186,8 +188,10 @@ m $I '	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) ==
 m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			return nil' '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG && false {
 			return nil' 'S105 câu hỏi quy trình về cảnh báo cũng bị hỏi lại'
-m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if asked {' 'S106 lệnh ghi không cần con số ("ghi nhận dầu" không có con số bị hỏi lại)'
-m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if !hasFigure(in, res, c[0], c[1]) || false && asked {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
+m $I '				} else if !s.attachedRequest(clauses, ci, rawBG) {
+					continue
+				}' '				}' 'S106 lệnh ghi không cần con số ("ghi nhận dầu" không có con số, mệnh đề kề cũng không có, bị hỏi lại)'
+m $I '					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' '					if false {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi (mệnh đề có cụm hỏi không được coi là câu hỏi)'
 m $I '	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	return slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
 m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
@@ -195,19 +199,20 @@ m $I '	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ 
 
 
 # ---- vòng 2 (23/10, soát vòng 1): S4AS-01 — lệnh ghi lịch sự có "?" vẫn là lệnh
-m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := strings.HasSuffix(strings.TrimSpace(in.Raw), "?") || s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' 'S113 dấu "?" ở cuối câu làm mệnh đề thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
+m $I '					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' '					if strings.HasSuffix(strings.TrimSpace(in.Raw), "?") || s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' 'S113 dấu "?" ở cuối câu làm mệnh đề thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
 m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' '	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' 'S114 cụm hỏi lượng không đánh dấu câu hỏi ("ghi nhận … bao nhiêu" bị coi là lệnh)'
 
 # ---- S4AS-02: nghĩa tiền theo cấu trúc và họ nghĩa
-m $I '				if s.onlyMarkers(text[sp[1]:end], markers) {' '				if s.onlyMarkers(text[sp[1]:end], markers) || true {' 'S115 "bao nhiêu đồng" không đòi mệnh đề kết thúc sau đơn vị ("đồng hồ", "đồng nghiệp" thành tiền)'
-m $I '		if why == "" && !measured && slices.ContainsFunc(' '		if why == "" && (measured || true) && slices.ContainsFunc(' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
+# S115 (vòng 2) được thay bởi S165–S167: "bao nhiêu đồng" nay kiểm chữ liền sau bằng moneyPhraseEnds, không còn onlyMarkers ở cuối mệnh đề.
+# m (đã bỏ) "S115"
+m $I '(kind != "span" || !measured)' '(kind != "span" || true)' 'S116 tín hiệu span:money không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
 m $I '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })' '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) })' 'S117 tín hiệu span không xét kiểu span (mọi span là tiền)'
 m $I '	case "asked_unit":
 		return s.askedUnit(in.Raw[start:end], arg)' '	case "asked_unit":
 		return false' 'S118 bỏ tín hiệu "bao nhiêu" + đơn vị tiền'
-m tenants/construction/pack/intents.yaml 'dự tính, dự phóng, dự trù, ước tính, sẽ]' ']' 'S119 họ dự báo mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'cues: [dự báo, dự đoán, dự phóng, dự trù], weak_cues: [dự kiến, dự tính, ước tính, sẽ]}' 'cues: [dự báo], weak_cues: []}' 'S119 họ dự báo mất đồng nghĩa ngoài danh sách vòng 1'
 m tenants/construction/pack/intents.yaml 'báo giá, hỏi giá, xin giá, chào giá, giá chào]' 'báo giá]' 'S120 họ báo giá mất đồng nghĩa ngoài danh sách vòng 1'
 m tenants/construction/pack/intents.yaml 'cảnh báo, báo động, nhắc tôi, nhắc em, nhắc mình, nhắc nhở, báo khi, thông báo khi]' 'cảnh báo]' 'S121 họ cảnh báo mất đồng nghĩa ngoài danh sách vòng 1'
 m tenants/construction/pack/intents.yaml 'nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu]' ']' 'S122 họ lệnh ghi mất đồng nghĩa ngoài danh sách vòng 1'
@@ -219,22 +224,21 @@ m $I '		if d.Priority == top.Priority {' '		if d.Priority == top.Priority && fal
 m tenants/construction/pack/intents.yaml 'comparison_markers: [hơn, kém, so với]' 'comparison_markers: [so với]' 'S129 từ so sánh bậc hơn / kém ("cao hơn", "kém") ngoài pack'
 m tenants/construction/pack/intents.yaml 'quantity_markers: [bao nhiêu, định mức, mấy]' 'quantity_markers: [bao nhiêu, định mức]' 'S130 "mấy lít" không đánh dấu mệnh đề hỏi'
 m $I '			return 0, len(text), true' '			return clauseSpans(text)[0][0], clauseSpans(text)[0][1], true' 'S131 phép so sánh có "chênh lệch" chỉ xét mệnh đề đầu (danh sách chỉ số cách nhau bằng dấu phẩy bị cắt)'
-m tenants/construction/pack/intents.yaml 'đo được, cảm biến báo, cảm biến, dùng' 'đo được, cảm biến, dùng' 'S132 "cảm biến báo" không là cụm của nguồn: "báo" thành chỉ số đội báo, hai chỉ số hoà nhau (WIN-I-038, H3 509)'
+# S132 (vòng 2) được thay bởi S183, S186: "cảm biến báo" không còn khai tay mà sinh từ source_verbs + tên nguồn (WIN-I-038, H3 509 vẫn là ca bảo vệ).
+# m (đã bỏ) "S132"
 
 # ---- S4AS-04: cụm nghĩa ở mệnh đề ngữ cảnh vẫn được nói ra
 m $I '				if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {' '				if false {' 'S133 "nguồn + động từ" ở mệnh đề ngữ cảnh ("phiếu kho ghi nhận 3850 L, vậy …") bị coi là lệnh ghi'
-m $I '			ct := in.Raw[c[0]:c[1]]
-			at := -1' '			ct := in.Raw[c[0]:c[1]]
-			if c[1] <= qStart {
+m $I '			at := firstSpan(ct, u.Cues)' '			if c[1] <= qStart {
 				continue
 			}
-			at := -1' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
-m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := s.asking(ct) || false && strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
+			at := firstSpan(ct, u.Cues)' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
+m $I '					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '					return false' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
 
 # ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'
-m $I '			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(ct, m) }) {' '			if false {' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
-m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
+m $I '			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) ||' '			if false ||' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
+m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
 
 # ---- S4AS-06: kiểm nạp pack của nghĩa chưa hỗ trợ và khử trùng ứng viên
 m core/tenant/pack.go '				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {' '				if false {' 'S139 pack không đòi name / template / cues của nghĩa chưa hỗ trợ'
@@ -259,24 +263,24 @@ m $I '	if len(s.opt.PurposeMarkers) == 0 {
 	}' '	if true {
 		return nil
 	}' 'S148 không nhận đoạn mục đích: "để em báo cáo" lại ngang hàng "được cấp"'
-m $I '		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {' '		if false {' 'S149 đoạn mục đích che cả từ khoá quy trình ("dùng để làm gì theo quy trình" mất route RAG)'
+m $I '		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {' '		if r := contracts.RouteKind(d.Route); false && r != contracts.RouteSQLQuery {' 'S149 đoạn mục đích che cả từ khoá quy trình ("dùng để làm gì theo quy trình" mất route RAG)'
 m tenants/construction/pack/intents.yaml 'ignore_phrases: [người dùng, người sử dụng, xác nhận]' 'ignore_phrases: [người dùng, người sử dụng]' 'S150 "xác nhận" lại là chữ "nhận" của kho xuất (nhờ xác nhận làm hoà với đội báo)'
 m tenants/construction/pack/intents.yaml 'purpose_markers: [để, nhằm]' 'purpose_markers: [để]' 'S151 từ nối "nhằm" không mở đoạn mục đích'
-m $I '				ct := rawBG[c[0]:c[1]]' '				ct := in.Raw[c[0]:c[1]]' 'S152 cụm báo nghĩa trong đoạn mục đích ("để tính chi phí") vẫn kích hoạt'
+m $I '			ct := rawBG[c[0]:c[1]]' '			ct := in.Raw[c[0]:c[1]]' 'S152 cụm báo nghĩa trong đoạn mục đích ("để tính chi phí") vẫn kích hoạt'
 
 # ---- S4BS-03 (vòng 3): cụm báo nghĩa chiếm chỗ không được để câu đi tiếp thành ý định số liệu khác trong im lặng
 m $I '		for _, nj := range []int{ci + 1, ci - 1} {' '		for _, nj := range []int{} {' 'S153 lệnh có con số ở mệnh đề kề ("Ghi nhận cho EX-03, dùng 3782 L dầu") bị trả số tiêu thụ'
 m $I '				if askedAt(ci) {' '				if false {' 'S154 cụm trong câu hỏi xác nhận ("ghi nhận tiêu thụ 3782 L, đúng không?") bị coi là lệnh ghi'
 m $I '	text = s.withoutCues(text)' '	_ = s.withoutCues(text)' 'S155 "định mức" trong "nhận định mức tiêu thụ" khớp cụm hỏi lượng (lệnh nhận định bị coi là câu hỏi)'
-m $I '	if s.hasSourceName(ct) {' '	if false {' 'S156 yêu cầu kèm thêm tính cả nguồn + động từ ("…, theo ghi nhận của cảm biến?")'
+m $I '	if s.hasSourceName(ct) {' '	if false && s.hasSourceName(ct) {' 'S156 yêu cầu kèm thêm tính cả nguồn + động từ ("…, theo ghi nhận của cảm biến?")'
 m $I '	for j := 0; j < ci; j++ {' '	for j := 0; j < len(clauses); j++ {' 'S157 yêu cầu kèm thêm tính cả cụm đứng TRƯỚC câu hỏi ("Ghi nhận cho EX-03, hôm nay dùng bao nhiêu dầu?")'
 
 # ---- D-OP-18 = c đúng chữ (vòng 3): câu nêu giá trị không dấu hiệu hỏi là lệnh ghi bất kể động từ
 m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if len(out) == 0 && false {' 'S158 bỏ luật lệnh ghi theo cấu trúc: động từ ngoài danh sách ("Nhập", "Chốt số", "Note lại") lại trả số tiêu thụ'
 m $I '	if s.asking(raw) || strings.Contains(raw, "?") {' '	if s.asking(raw) {' 'S159 dấu "?" không là dấu hiệu hỏi của câu nêu giá trị ("Nhập … nhé?" bị coi là lệnh)'
-m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return false' 'S160 đuôi "… không" cuối câu không là dấu hiệu hỏi ("EX-03 hôm nay có đốt 3782 L dầu không" bị coi là lệnh ghi)'
+m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return len(sp) > 0 && sp[len(sp)-1][1] == end && false' 'S160 đuôi "… không" cuối câu không là dấu hiệu hỏi ("EX-03 hôm nay có đốt 3782 L dầu không" bị coi là lệnh ghi)'
 m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })' '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) })' 'S161 mọi lượng có đơn vị là giá trị ("7h30", "20 tấn" biến yêu cầu tra cứu thành lệnh ghi)'
-m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })' '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return s.fitsAnyMetric(sp.Value) })' 'S162 "03" của "máy 03" (bị gắn đơn vị lít) là giá trị'
+m $I 'return !inName(sp) && s.fitsAnyMetric(sp.Value) })' 'return (!inName(sp) || true) && s.fitsAnyMetric(sp.Value) })' 'S162 "03" của "máy 03" (bị gắn đơn vị lít) là giá trị'
 m tenants/construction/pack/intents.yaml 'needs_value: true, signals: ["stated_value"]}' 'needs_value: true}' 'S163 pack không khai tín hiệu stated_value cho nghĩa lệnh ghi'
 m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if s.statedValue(in, res) {' 'S164 nhãn "chưa ghi số liệu" thêm vào cả câu đã mang nghĩa khác ("nhắc tôi khi … 4000 L" mang hai nhãn)'
 
@@ -285,15 +289,16 @@ m $I '			if eaten && s.moneyPhraseEnds(rest) {' '			if eaten {' 'S165 "bao nhiê
 m $I '	return w == "" || s.isNeutral(w) || normalization.HasNumberWord(w) ||' '	return w == "" || normalization.HasNumberWord(w) ||' 'S166 đơn vị tiền chỉ nhận khi hết mệnh đề ("bao nhiêu đồng cho dầu của EX-03" không dính)'
 m $I '	return w == "" || s.isNeutral(w) || normalization.HasNumberWord(w) ||' '	return w == "" || s.isNeutral(w) ||' 'S167 "bao nhiêu đồng một lít" không dính (số chữ sau đơn vị không được tha)'
 m $I '				if w == "" || !normalization.HasNumberWord(w) {' '				if true {' 'S168 từ chỉ hàng ("triệu", "tỷ", "trăm nghìn") không được ăn: "bao nhiêu triệu" không dính'
-m $I '	slices.SortStableFunc(units, func(a, b string) int { return len(b) - len(a) })' '	_ = units' 'S169 đơn vị ngắn trước đơn vị dài ("đô" trước "đô la": "bao nhiêu đô la" bị chữ "la" chặn)'
-m $I '			return sig != SignalStatedValue && (kind != "span" || !measured) && s.signalHit(sig, in, qStart, len(in.Raw))' '			return sig != SignalStatedValue && !measured && s.signalHit(sig, in, qStart, len(in.Raw))' 'S170 câu hỏi tiền nhường câu có lượng lít ("bao nhiêu đồng một lít" trả số lít)'
+# S169 TƯƠNG ĐƯƠNG trên pack cầu đường: bỏ sắp xếp đơn vị dài trước thì "bao nhiêu đô la" đọc "đô" rồi chữ "la" — nhưng "la" gõ không dấu khớp từ trung tính "là" của pack nên vẫn là câu hỏi tiền. Giữ sắp xếp để không phụ thuộc thứ tự khai trong YAML.
+# m (đã bỏ) "S169"
+m $I '(kind != "span" || !measured)' '(kind == "" || !measured)' 'S170 câu hỏi tiền nhường câu có lượng lít ("bao nhiêu đồng một lít" trả số lít)'
 m tenants/construction/pack/lexicon.yaml 'aliases: [usd, đô, đô la]}' 'aliases: [usd]}' 'S171 lexicon không có "đô" / "đô la" (250 đô không là tiền)'
 m tenants/construction/pack/intents.yaml 'signals: ["span:money", "asked_unit:currency", "asked_unit:currency_usd"]}' 'signals: ["span:money", "asked_unit:currency"]}' 'S172 pack không khai tín hiệu asked_unit cho ngoại tệ'
 m core/tenant/pack.go '						out = append(out, rt.Normalizer.MultiplierAliases("1000000")...)' '						_ = rt.Normalizer.MultiplierAliases' 'S173 hậu tố nhân cỡ triệu ("củ", "tr") không là đơn vị tiền khi hỏi "bao nhiêu củ"'
 
 # ---- S4BS-05 (vòng 3): cụm báo nghĩa chỉ kích hoạt ở mệnh đề hỏi; cụm quá chung cần chính mệnh đề hỏi một chỉ số
 m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && metricAsk {' 'S174 cụm quá chung ("sẽ") kích hoạt ở mệnh đề không phải câu hỏi ("Anh sẽ duyệt, …" thành câu dự báo)'
-m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && s.asking(ct) {' 'S175 cụm quá chung kích hoạt khi câu không hỏi chỉ số nào ("EX-03 sẽ về công trường lúc mấy giờ?" thành câu dự báo)'
+m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && (metricAsk || true) && s.asking(ct) {' 'S175 cụm quá chung kích hoạt khi câu không hỏi chỉ số nào ("EX-03 sẽ về công trường lúc mấy giờ?" thành câu dự báo)'
 m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.conditional(ct) {' 'S176 mệnh đề phủ định ("Không tính tiền, …") vẫn kích hoạt cụm tiền'
 m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.negated(ct) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
 m $I 'func(sp [2]int) bool { return sp[1] < end })' 'func(sp [2]int) bool { return sp[1] <= end })' 'S178 từ phủ định cuối mệnh đề (đuôi hỏi "… có cao không?") bị coi là phủ định'
@@ -305,7 +310,7 @@ m tenants/construction/pack/intents.yaml 'condition_markers: [nếu, giả sử,
 # ---- S4BS-06 (vòng 3): "<tên nguồn> báo" theo cấu trúc cho mọi nguồn của pack
 m $I '	if o.SourceNames == nil || len(o.SourceVerbs) == 0 {' '	if true {' 'S183 không sinh cụm "<tên nguồn> báo": "hoá đơn báo", "ERP báo" lại là đội báo (cảm biến báo mất cả ca độc lập WIN-I-038)'
 m $I '	if s.hit != nil {' '	if false {' 'S184 cụm sinh ra không được dùng để đếm từ khoá'
-m $I '			for _, name := range o.SourceNames(m) {' '			for _, name := range o.SourceNames("issued_fuel") {' 'S185 mọi ý định số liệu nhận tên nguồn của chỉ số kho xuất ("hoá đơn báo" không thuộc dầu theo hoá đơn)'
+m $I '			for _, name := range o.SourceNames(m) {' '			for _, name := range o.SourceNames("issued_fuel" + m[:0]) {' 'S185 mọi ý định số liệu nhận tên nguồn của chỉ số kho xuất ("hoá đơn báo" không thuộc dầu theo hoá đơn)'
 m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: []' 'S186 pack không khai động từ nguồn'
 
 # ---- Hồi quy vòng 3 (bộ 325 câu của vòng 2): từ phủ định + từ trung tính cuối câu vẫn là đuôi hỏi

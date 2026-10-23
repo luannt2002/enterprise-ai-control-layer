@@ -210,7 +210,25 @@ func TestS4BS05CumBaoNghiaChiKichHoatOMenhDeHoi(t *testing.T) {
 	// từ phủ định đứng CUỐI câu là đuôi hỏi, không phải phủ định: câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền
 	askBack(t, "Chi phí dầu EX-03 hôm nay có cao không?", notMoney)
 	// "không" của cụm xác nhận ("đúng không") không phải từ phủ định dù sau nó còn chữ ("ạ")
-	askBack(t, "Chi phí dầu EX-03 hôm nay 4tr đồng đúng không ạ?", notMoney)
+	askBack(t, "Chi phí dầu EX-03 hôm nay 4tr đồng đúng không anh?", notMoney)
+}
+
+// Lệnh lịch sự có "?" mà động từ nằm trong danh sách cụm của pack: luật cấu trúc (D-OP-18 = c) coi "?" là dấu hiệu hỏi nên chỉ còn cụm báo nghĩa bắt được những câu này — test ghim danh sách cụm của nghĩa ghi
+// ("nhập số liệu", "khai báo", "điều chỉnh số", "hiệu chỉnh", "thay số", "lập phiếu", "sửa số", "chỉnh số", "nhập vào").
+func TestLenhLichSuCoDauHoiDongTuTrongDanhSach(t *testing.T) {
+	for _, q := range []string{
+		"Nhập số liệu EX-03 hôm nay dùng 3782 L dầu nhé?",
+		"Nhập vào giúp em EX-03 hôm nay xuất 3850 L dầu nhé?",
+		"Khai báo EX-03 hôm nay dùng 3782 L dầu giúp em nhé?",
+		"Sửa số EX-03 hôm nay thành 3850 L dầu được không?",
+		"Chỉnh số EX-03 hôm nay thành 3782 L dầu giúp em nhé?",
+		"Điều chỉnh số dầu EX-03 hôm nay thành 3850 L được không?",
+		"Hiệu chỉnh EX-03 hôm nay đốt 3900 L dầu giúp em nhé?",
+		"Thay số EX-03 hôm nay thành 3782 L dầu nhé?",
+		"Lập phiếu EX-03 hôm nay xuất 3850 L dầu nhé?",
+	} {
+		askBack(t, q, notWrite)
+	}
 }
 
 // S4BS-06 (S3): "<tên nguồn> báo" là chữ của NGUỒN, không phải chỉ số đội báo — theo cấu trúc cho MỌI nguồn của pack (nhãn + bí danh ở metrics.yaml), không chỉ cảm biến. Pack khai động từ nguồn

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -25,28 +26,88 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 //
 // Giá trị của "khoá = giá trị" có ba dạng: trong nháy kép, trong nháy đơn (kể cả có khoảng trắng và nháy thoát như \" — nháy không
 // đóng thì che tới hết chuỗi: chưa biết chỗ kết thúc thì che thừa còn hơn để lọt đuôi), hoặc trần (tới khoảng trắng / dấu phân cách).
-// Nháy bao quanh được giữ lại quanh dấu che để cấu trúc JSON không bị phá.
+// Nháy bao quanh được giữ lại quanh dấu che để cấu trúc JSON không bị phá. Giá trị trong nháy đọc theo HAI cách rồi che hợp hai vùng
+// (xem quotedEscaped, valueMask).
 //
 // Giới hạn đã biết (KHÔNG che): bí mật trần có khoảng trắng ("password=hunter two" chỉ che "hunter"); câu văn xuôi không có dấu : hoặc
 // = ("mật khẩu của tôi là hunter2pw"); chuỗi ngẫu nhiên không có từ khoá và không theo dạng token đã biết. Bộ mẫu chỉ là danh sách —
 // dạng nào ngoài danh sách thì chưa có bảo đảm.
 var secretMasks = []struct {
-	re   *regexp.Regexp
-	repl string
+	re    *regexp.Regexp
+	repl  string
+	value *valueMask // khác nil: mẫu "tên + giá trị" che hợp hai cách đọc nháy (re, repl không dùng)
 }{
 	// khoá riêng PEM, kể cả khối bị cắt cụt (không có dòng END)
-	{regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)`), Masked},
+	{re: regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)`), repl: Masked},
 	// mật khẩu trong URL: scheme://người:mật-khẩu@máy, kể cả người dùng rỗng ("redis://:mật-khẩu@máy")
-	{regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.\-]*://[^\s/:@]*):[^\s/@]+@`), "${1}:" + Masked + "@"},
+	{re: regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.\-]*://[^\s/:@]*):[^\s/@]+@`), repl: "${1}:" + Masked + "@"},
 	// tiêu đề Authorization (mọi kiểu: Bearer, Basic, Token…) và "Bearer <mã>" đứng riêng
-	{regexp.MustCompile(`(?i)(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;]+`), "${1}" + Masked},
-	{regexp.MustCompile(`(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}`), "${1} " + Masked},
+	{re: regexp.MustCompile(`(?i)(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;]+`), repl: "${1}" + Masked},
+	{re: regexp.MustCompile(`(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}`), repl: "${1} " + Masked},
 	// "tên-có-từ-khoá-bí-mật = giá trị" (password=…, "api_key": "…", EAIS_PG_PASSWORD=…, mật khẩu: …)
-	{regexp.MustCompile(`(?i)\b([a-z0-9_.\-]*(?:` + secretKeyWords + `)[a-z0-9_.\-]*)(["']?\s*[:=]\s*)(?:(")(?:[^"\\]|\\[\s\S])*"?|(')(?:[^'\\]|\\[\s\S])*'?|[^\s"',;&]+)`), "${1}${2}${3}${4}" + Masked + "${3}${4}"},
+	{value: newValueMask(`(?i)\b[a-z0-9_.\-]*(?:`+secretKeyWords+`)[a-z0-9_.\-]*["']?\s*[:=]\s*`, `[^\s"',;&]+`)},
 	// tiêu đề Cookie / Set-Cookie: cả giá trị là bí mật phiên (nhiều cặp, kèm thuộc tính), che hết dòng chứ không chỉ cặp đầu
-	{regexp.MustCompile(`(?i)\b((?:set-)?cookies?["']?\s*[:=]\s*)(?:(")(?:[^"\\]|\\[\s\S])*"?|(')(?:[^'\\]|\\[\s\S])*'?|[^\r\n]+)`), "${1}${2}${3}" + Masked + "${2}${3}"},
+	{value: newValueMask(`(?i)\b(?:set-)?cookies?["']?\s*[:=]\s*`, `[^\r\n]+`)},
 	// dạng mã thông báo đã biết, đứng ở đâu cũng che: sk-…, ghp_…, github_pat_…, xox?-…, AKIA…, AIza…, JWT
-	{regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_\-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9\-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_\-]{30,}|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,})`), Masked},
+	{re: regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_\-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9\-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_\-]{30,}|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,})`), repl: Masked},
+}
+
+// Hai cách đọc giá trị trong nháy. Theo nháy thoát (quotedEscaped: \" nằm TRONG giá trị — đúng với JSON, logfmt) và thô (quotedRaw: nháy
+// kế tiếp là nháy đóng — đúng với chữ chép tay có giá trị kết thúc bằng \ như "C:\share\"). Hai cách chỉ khác nhau khi có \ ngay trước
+// nháy, và chọn cách nào thì cách kia lọt bí mật: đọc thô lọt đuôi "pw" của {"password":"ab\"pw"}, đọc theo nháy thoát nuốt nháy mở
+// của bí mật KẾ TIẾP trong password="ab\" token="bí-mật" (soát độc lập 23/10, 5a-1). Nên valueMask che HỢP hai vùng.
+const (
+	quotedEscaped = `"(?:[^"\\]|\\[\s\S])*"?|'(?:[^'\\]|\\[\s\S])*'?`
+	quotedRaw     = `"[^"]*"?|'[^']*'?`
+)
+
+// valueMask là mẫu "tiền tố + giá trị" đọc theo hai cách: giá trị (nhóm v) trong nháy theo quotedEscaped / quotedRaw, hoặc trần.
+type valueMask struct{ escaped, raw *regexp.Regexp }
+
+func newValueMask(prefix, bare string) *valueMask {
+	return &valueMask{
+		escaped: regexp.MustCompile(prefix + `(?P<v>` + quotedEscaped + `|` + bare + `)`),
+		raw:     regexp.MustCompile(prefix + `(?P<v>` + quotedRaw + `|` + bare + `)`),
+	}
+}
+
+func (m *valueMask) mask(s string) string { return maskValues(s, m.escaped, m.raw) }
+
+// maskValues che hợp các vùng giá trị (nhóm v) mà mọi mẫu trong res tìm thấy trên s: vùng chồng nhau gộp thành một, mỗi vùng thay
+// bằng Masked, giữ nháy mở của vùng (nếu có) ở cả hai đầu để cấu trúc JSON không bị phá.
+func maskValues(s string, res ...*regexp.Regexp) string {
+	type span struct{ start, end int }
+	var spans []span
+	for _, re := range res {
+		v := 2 * re.SubexpIndex("v")
+		for _, m := range re.FindAllStringSubmatchIndex(s, -1) {
+			if m[v+1] > m[v] {
+				spans = append(spans, span{m[v], m[v+1]})
+			}
+		}
+	}
+	if len(spans) == 0 {
+		return s
+	}
+	sort.Slice(spans, func(i, j int) bool { return spans[i].start < spans[j].start })
+	var b strings.Builder
+	last := 0
+	for i := 0; i < len(spans); {
+		cur := spans[i]
+		for i++; i < len(spans) && spans[i].start < cur.end; i++ {
+			cur.end = max(cur.end, spans[i].end)
+		}
+		b.WriteString(s[last:cur.start])
+		if q := s[cur.start]; q == '"' || q == '\'' {
+			b.WriteByte(q)
+			b.WriteString(Masked)
+			b.WriteByte(q)
+		} else {
+			b.WriteString(Masked)
+		}
+		last = cur.end
+	}
+	return b.String() + s[last:]
 }
 
 // Sanitize làm sạch một chuỗi trước khi ghi vào vết: sửa UTF-8 hỏng và bỏ byte NUL (PostgreSQL không nhận cả hai trong text /
@@ -57,6 +118,10 @@ func Sanitize(s string) string {
 	}
 	s = strings.ReplaceAll(s, "\x00", "")
 	for _, m := range secretMasks {
+		if m.value != nil {
+			s = m.value.mask(s)
+			continue
+		}
 		s = m.re.ReplaceAllString(s, m.repl)
 	}
 	return s

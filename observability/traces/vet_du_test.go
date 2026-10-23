@@ -119,10 +119,14 @@ func TestVetDuS4YDinhDaXet(t *testing.T) {
 	// hai máy cùng loại tranh một khe, một trong hai viết bằng bí danh mơ hồ: ứng viên của bí danh đến từ S3, thực thể rõ do S4 gộp thêm
 	mix := stepOf(t, steps(t, director, "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?"), "S4")
 	// mỗi ứng viên nói ĐÚNG nơi sinh ra nó: RL-02 là thực thể rõ do S4 gộp thêm; DZ-03 và EX-03 là ứng viên của cụm mơ hồ do S3 thấy
-	wantAll(t, "S4 nguồn ứng viên", mix.Reason, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm:", "ứng viên hỏi lại DZ-03 ← S3:", "ứng viên hỏi lại EX-03 ← S3:", `cụm mơ hồ “may 3”`)
-	if strings.Contains(mix.Reason, "ứng viên hỏi lại DZ-03 ← do S4") || strings.Contains(mix.Reason, "ứng viên hỏi lại RL-02 ← S3") {
-		t.Errorf("nguồn ứng viên bị đảo: %s", mix.Reason)
+	// D-OP-11 = b: RL-02 (thực thể rõ) không vào danh sách hỏi lại nên không có nguồn; vết nói vì sao
+	wantAll(t, "S4 nguồn ứng viên", mix.Reason, "ứng viên hỏi lại DZ-03 ← S3:", "ứng viên hỏi lại EX-03 ← S3:", `cụm mơ hồ “may 3”`, "thực thể rõ RL-02 chỉ góp vào việc đếm chủ thể", "(D-OP-11 = b)")
+	if strings.Contains(mix.Reason, "ứng viên hỏi lại DZ-03 ← do S4") || strings.Contains(mix.Reason, "ứng viên hỏi lại RL-02") {
+		t.Errorf("nguồn ứng viên bị đảo hay RL-02 lọt vào danh sách: %s", mix.Reason)
 	}
+	// hai thực thể RÕ cùng loại (giữ cách liệt kê cũ): cả hai là thứ S4 gộp
+	two := stepOf(t, steps(t, director, "RL-02 và EX-03 hôm nay được cấp bao nhiêu dầu?"), "S4")
+	wantAll(t, "S4 hai thực thể rõ", two.Reason, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm:", "ứng viên hỏi lại EX-03 ← do S4 gộp thêm:")
 
 	// chỉ một cụm mơ hồ: mọi ứng viên đến từ S3
 	only := stepOf(t, steps(t, director, "Máy 03 hôm nay được cấp bao nhiêu dầu?"), "S4")

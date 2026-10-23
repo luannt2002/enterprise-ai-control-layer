@@ -59,6 +59,9 @@ func TestVetDuChatCauNhieuMenhDe(t *testing.T) {
 		"term “dầu” ← term:exact")
 	wantList(t, "S3", w.Resolve.Reasons, "cụm “EX-03” (khoá so khớp “ex 3”) khớp EX-03 (Máy xúc EX-03, loại equipment)")
 	wantList(t, "S4", w.Intent.Reasons,
+		// bất biến (b): mệnh đề ngữ cảnh nêu con số bị che khỏi phép đếm từ khoá — vết nói rõ mệnh đề nào (đổi có chủ ý khi áp C5, thêm dòng)
+		"mệnh đề ngữ cảnh “đội báo 4k” nêu một con số và đứng trước mệnh đề hỏi — chữ của nó chỉ nguồn của con số, không quyết định ý định (bất biến (b))",
+		"mệnh đề ngữ cảnh “báo cáo ghi 4 m3” nêu một con số và đứng trước mệnh đề hỏi — chữ của nó chỉ nguồn của con số, không quyết định ý định (bất biến (b))",
 		"từ khoá lấy trong mệnh đề hỏi “vậy EX-03 được cấp 4k dầu đúng không” (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)",
 		"từ khoá khớp (luật khớp dài nhất): fuel_issued [“được cấp”]",
 		"khớp đủ: fuel_issued (ưu tiên 20, từ khoá “được cấp”, câu có thuật ngữ diesel_fuel)",
@@ -195,15 +198,18 @@ func TestVetDuChatYDinhHieuNgamVaBiBo(t *testing.T) {
 	wantLine(t, "hai mốc", two.Intent.Reasons, "khe period thiếu: câu nêu 2 mốc thời gian khác nhau và 0 ngày hỏng — không lấy mốc nhắc đầu, không rơi về ngày mặc định")
 }
 
-// Câu hỏi lại vì hai máy cùng tên: ứng viên trước / sau lọc phạm vi gồm CẢ thực thể do S4 gộp thêm, nguồn từng ứng viên, và không lộ DZ-03.
+// Câu hỏi lại vì hai máy cùng tên (D-OP-11 = b): ứng viên trước / sau lọc phạm vi CHỈ gồm ứng viên của bí danh (thực thể rõ RL-02 không vào danh sách), nguồn từng ứng viên, và không lộ DZ-03.
 func TestVetDuChatCauHoiLaiCuaKySu(t *testing.T) {
 	w := whyOfTurn(t, realAsk(t), person("site_engineer", "PRJ-A"), "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?")
 	wantList(t, "S3 lý do", w.Resolve.Reasons,
 		"cụm “RL-02” (khoá so khớp “rl 2”) khớp RL-02",
 		"cụm “máy 03” (khoá so khớp “may 3”) khớp 2 thực thể: DZ-03, EX-03 — không chọn bừa",
-		"ứng viên của câu hỏi lại: trước lọc phạm vi 3 ứng viên → sau lọc 2 ứng viên [RL-02, EX-03]")
+		"ứng viên của câu hỏi lại: trước lọc phạm vi 2 ứng viên → sau lọc 1 ứng viên [EX-03]")
 	wantList(t, "S3 loại", w.Resolve.Rejected, "1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)")
-	wantLine(t, "nguồn RL-02", w.Intent.Reasons, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm: thực thể rõ “rl 2” ở S3, S4 gộp vào danh sách vì khe subject chỉ nhận một thực thể mà câu nêu 3")
+	wantLine(t, "RL-02 không vào danh sách", w.Intent.Reasons, "hỏi lại chỉ liệt kê ứng viên của bí danh mơ hồ (DZ-03, EX-03): thực thể rõ RL-02 chỉ góp vào việc đếm chủ thể, không phải thứ người hỏi cần chọn (D-OP-11 = b)")
+	if slices.ContainsFunc(w.Intent.Reasons, func(l string) bool { return strings.HasPrefix(l, "ứng viên hỏi lại RL-02") }) {
+		t.Errorf("RL-02 là thực thể rõ, không phải ứng viên hỏi lại nên không có dòng nguồn:\n%s", strings.Join(w.Intent.Reasons, "\n"))
+	}
 	wantLine(t, "nguồn EX-03", w.Intent.Reasons, "ứng viên hỏi lại EX-03 ← S3: ứng viên của cụm mơ hồ “may 3”, S4 giữ trong danh sách vì khe subject chỉ nhận một thực thể mà câu nêu 3")
 }
 

@@ -613,6 +613,11 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 		r.Intent.Rule += "+compare:" + right.Name
 		r.Compare = right.Name
 		w.reason("câu so sánh: %s so với %s (hai chỉ số khác nhau kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ", left.Name, right.Name)
+		for _, d := range matched {
+			if d.Name != left.Name && d.Name != right.Name {
+				w.reject("%s: khớp đủ nhưng không phải vế của phép so sánh %s so với %s", d.Name, left.Name, right.Name)
+			}
+		}
 		return r, true
 	}
 	if len(derived) == 0 {
@@ -652,7 +657,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 	it := contracts.Intent{Name: top.Name, Confidence: 1, Slots: map[string]contracts.Slot{}, Rule: "intent:rules"}
 	var candidates []contracts.EntityRef
 	var unclear Unclear
-	clashSlot := ""
+	clashSlot, clashMentioned := "", 0
 	for _, sd := range top.Slots {
 		switch sd.From {
 		case "entity":
@@ -665,12 +670,17 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 					}
 				}
 			}
-			if clash := clashing(res, sd.Types); len(clash) > 0 {
+			if clash, mentioned := clashing(res, sd.Types); len(clash) > 0 {
 				// Câu nêu ≥ 2 thực thể KHÁC NHAU cùng loại cho khe chỉ nhận một: không lấy thực thể nhắc đầu (P5).
 				it.Missing = append(it.Missing, sd.Name)
 				unclear.Entities = append(unclear.Entities, clash...)
-				clashSlot = sd.Name
-				w.reason("khe %s thiếu: câu nêu %d thực thể khác nhau cùng loại (%s) cho khe chỉ nhận một — không lấy thực thể nhắc đầu", sd.Name, len(clash), contracts.Brief(refKeys(clash), 6, "thực thể"))
+				clashSlot, clashMentioned = sd.Name, len(mentioned)
+				w.reason("khe %s thiếu: câu nêu %d thực thể khác nhau cùng loại (%s) cho khe chỉ nhận một — không lấy thực thể nhắc đầu", sd.Name, len(mentioned), contracts.Brief(refKeys(mentioned), 6, "thực thể"))
+				if dropped := slices.DeleteFunc(slices.Clone(mentioned), func(e contracts.EntityRef) bool {
+					return slices.ContainsFunc(clash, func(c contracts.EntityRef) bool { return c.ID == e.ID })
+				}); len(dropped) > 0 {
+					w.reason("hỏi lại chỉ liệt kê ứng viên của bí danh mơ hồ (%s): thực thể rõ %s chỉ góp vào việc đếm chủ thể, không phải thứ người hỏi cần chọn (D-OP-11 = b)", contracts.Brief(refKeys(clash), 6, "thực thể"), contracts.Brief(refKeys(dropped), 6, "thực thể"))
+				}
 				continue
 			}
 			if e, ok := firstOfTypes(res.Entities, sd.Types); ok {
@@ -732,7 +742,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 	if len(unclear.Entities) > 0 {
 		candidates = nil // thực thể người hỏi viết rõ đang tranh nhau: không để bí danh mơ hồ làm router chọn thay
 	}
-	w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot)
+	w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot, clashMentioned)
 	w.reason("luật %s", it.Rule)
 	return Result{Intent: it, Candidates: candidates, Unclear: unclear}
 }
@@ -1280,7 +1290,7 @@ func mapKeys(m map[string]string) string {
 
 // originsOf ghi nơi sinh ra từng ứng viên dùng để hỏi lại: ứng viên của cụm mơ hồ do S3 thấy (cands), và các thực thể S4 gộp thêm vì khe
 // chỉ nhận một mà câu nêu nhiều (clash) — mỗi thực thể gộp kèm gốc của nó ở S3 (thực thể rõ, hay ứng viên của một cụm mơ hồ).
-func originsOf(res contracts.Resolution, cands, clash []contracts.EntityRef, clashSlot string) []Origin {
+func originsOf(res contracts.Resolution, cands, clash []contracts.EntityRef, clashSlot string, mentioned int) []Origin {
 	mentionOf := func(id string) string {
 		for _, m := range res.Ambiguous {
 			for _, c := range m.Candidates {
@@ -1299,7 +1309,7 @@ func originsOf(res contracts.Resolution, cands, clash []contracts.EntityRef, cla
 		}
 	}
 	for _, e := range clash {
-		why := fmt.Sprintf("khe %s chỉ nhận một thực thể mà câu nêu %d", clashSlot, len(clash))
+		why := fmt.Sprintf("khe %s chỉ nhận một thực thể mà câu nêu %d", clashSlot, mentioned)
 		if slices.ContainsFunc(res.Entities, func(r contracts.EntityRef) bool { return r.ID == e.ID }) {
 			w.addOrigin(Origin{ID: e.ID, From: OriginS4, Note: fmt.Sprintf("thực thể rõ %s ở S3, S4 gộp vào danh sách vì %s", contracts.Quote(e.Mention), why)})
 		} else if !slices.ContainsFunc(w.Origins, func(o Origin) bool { return o.ID == e.ID }) {
@@ -1372,8 +1382,8 @@ func firstOfTypes(es []contracts.EntityRef, types []string) (contracts.EntityRef
 //
 // Danh sách trả về (D-OP-11 = b, ADR-0010 bất biến (c)): có bí danh mơ hồ trong số các lần nhắc tranh nhau thì CHỈ gồm ứng viên của bí
 // danh — thực thể đã giải không phải thứ người hỏi cần chọn, nó chỉ góp vào việc đếm để biết câu có nhiều chủ thể; hai thực thể đều đã
-// giải thì giữ cách liệt kê cũ (cả hai).
-func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
+// giải thì giữ cách liệt kê cũ (cả hai). Giá trị trả thứ hai (mentioned) là mọi thực thể câu nêu tranh khe, chưa lọc — để vết kể đúng số chủ thể.
+func clashing(res contracts.Resolution, types []string) (list, mentioned []contracts.EntityRef) {
 	var uniq []contracts.EntityRef
 	count, seen := map[string]int{}, map[string]bool{}
 	viable := map[string]bool{} // ứng viên của bí danh mơ hồ (khác thực thể đã giải)
@@ -1403,10 +1413,11 @@ func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
 			out = append(out, e)
 		}
 	}
+	mentioned = slices.Clone(out)
 	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return viable[e.ID] }) {
 		out = slices.DeleteFunc(out, func(e contracts.EntityRef) bool { return !viable[e.ID] })
 	}
-	return out
+	return out, mentioned
 }
 
 // distinctPeriods trả các span mốc / khoảng thời gian KHÁC NHAU (theo giá trị chuẩn), mỗi giá trị một lần, theo thứ

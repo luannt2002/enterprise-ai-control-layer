@@ -351,3 +351,19 @@ func TestSanitizeDauRaChinhXac(t *testing.T) {
 		}
 	}
 }
+
+// Soát lại 5abc (5a-R1, S1): giá trị trong nháy kết thúc bằng \ rồi một tiêu đề Cookie / Set-Cookie có nháy ở sau (cùng dòng hay dòng sau). Che
+// lần lượt từng mẫu thì đọc theo nháy thoát của mẫu "khoá = giá trị" nuốt tiền tố "Cookie:" của chữ, mẫu Cookie chạy sau không còn khớp và giá trị
+// Cookie lọt nguyên văn (main che đúng; bản 5a trước lọt). Mọi mẫu "tên + giá trị" phải tính vùng trên CÙNG chữ gốc rồi gộp một lần.
+func TestSanitizeCookieSauGiaTriKetThucBangGachCheo(t *testing.T) {
+	for _, in := range []string{
+		"password=\"C:\\secret\\\"\nCookie: sid=\"ZQX77pw\"",
+		`ghi: password="ab\" Cookie: "sid=ZQX77pw" xong`,
+		`ghi: password='ab\' Set-Cookie: 'sid=ZQX77pw' xong`,
+		"password=\"C:\\x\\\"\nCookie: theme=dark; sid=\"ZQX77pw\"; lang=vi",
+	} {
+		if got := traces.Sanitize(in); strings.Contains(got, "ZQX") {
+			t.Errorf("bí mật Cookie lọt: %q → %q", in, got)
+		}
+	}
+}

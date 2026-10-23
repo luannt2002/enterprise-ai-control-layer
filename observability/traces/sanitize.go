@@ -78,8 +78,6 @@ func newValueMask(prefix, bare string) *valueMask {
 	}
 }
 
-func (m *valueMask) mask(s string) string { return maskValues(s, m.escaped, m.raw) }
-
 // maskValues che hợp các vùng giá trị (nhóm v) mà mọi mẫu trong res tìm thấy trên s: vùng chồng nhau gộp thành một, mỗi vùng thay
 // bằng Masked, giữ nháy mở của vùng (nếu có) ở cả hai đầu để cấu trúc JSON không bị phá.
 func maskValues(s string, res ...*regexp.Regexp) string {
@@ -124,12 +122,21 @@ func Sanitize(s string) string {
 		s = strings.ToValidUTF8(s, "�")
 	}
 	s = strings.ReplaceAll(s, "\x00", "")
-	for _, m := range secretMasks {
-		if m.value != nil {
-			s = m.value.mask(s)
+	for i := 0; i < len(secretMasks); i++ {
+		if secretMasks[i].value == nil {
+			s = secretMasks[i].re.ReplaceAllString(s, secretMasks[i].repl)
 			continue
 		}
-		s = m.re.ReplaceAllString(s, m.repl)
+		// Mọi mẫu "tên + giá trị" đứng liền nhau tính vùng trên CÙNG một chữ rồi gộp MỘT lần (soát lại 5abc, 5a-R1): che lần lượt thì mẫu
+		// trước (đọc theo nháy thoát) có thể nuốt tiền tố "Cookie:" của chữ, mẫu Cookie chạy sau không còn khớp và giá trị Cookie lọt.
+		// Hệ quả (che thừa, chấp nhận): vùng gộp nuốt cả tên của cặp kế tiếp — `password="C:\x\"` xuống dòng `Cookie: sid="…"` thành
+		// `password="[REDACTED]"`, `password="a\" secret="…\" token="…"` thành `password="[REDACTED]" token="[REDACTED]"`.
+		var res []*regexp.Regexp
+		for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {
+			res = append(res, secretMasks[i].value.escaped, secretMasks[i].value.raw)
+		}
+		i--
+		s = maskValues(s, res...)
 	}
 	return s
 }

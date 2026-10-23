@@ -510,7 +510,12 @@ func TestNghiaChuaHoTro(t *testing.T) {
 		{"ghi nhận có con số nhưng hỏi lượng", "ghi nhận 3850 bao nhiêu dầu", false, nil, ""},
 		{"câu hỏi quy trình về cảnh báo: tri thức trả lời được", "quy trình cảnh báo nhận dầu", false, nil, "q"},
 		{"không thực thể: không phải nghĩa chưa hỗ trợ, phân loại như cũ (router từ chối vì thiếu chủ thể / ngoài phạm vi)", "cảnh báo nhận dầu", true, nil, "q"},
-		{"cụm ở mệnh đề ngữ cảnh nêu con số: không tính", "cảnh báo ghi 3850, vậy nhận bao nhiêu dầu", false, nil, "q"},
+		// S4AS-04: cụm ở mệnh đề ngữ cảnh vẫn phải được nói ra (trước đây không tính — im lặng về cảnh báo / lệnh ghi): cụm không cần giá trị tính ở mọi mệnh đề; lệnh ghi đòi
+		// chính mệnh đề đó có con số, không phải câu hỏi, và ở mệnh đề ngữ cảnh thì cụm đứng đầu — "phiếu kho ghi nhận 3850" là nguồn + động từ của con số
+		{"cụm cảnh báo ở mệnh đề ngữ cảnh nêu con số: vẫn tính", "cảnh báo ghi 3850, vậy nhận bao nhiêu dầu", false, []string{"warning"}, ""},
+		{"lệnh ghi đứng đầu mệnh đề ngữ cảnh: vẫn tính", "ghi nhận 3850 dầu, vậy nhận bao nhiêu dầu", false, []string{"write"}, ""},
+		{"nguồn + động từ ở mệnh đề ngữ cảnh: không phải lệnh", "phiếu kho ghi nhận 3850, vậy nhận bao nhiêu dầu", false, nil, "q"},
+		{"cụm đuôi hỏi áp cho mệnh đề trước: câu xác nhận, không phải lệnh", "ghi nhận 3850 dầu, đúng không", false, nil, ""},
 	} {
 		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
 		if i := strings.Index(c.raw, "3850"); i >= 0 {

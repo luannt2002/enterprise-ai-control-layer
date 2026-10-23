@@ -246,3 +246,28 @@ func TestS4AS03MenhDeHoiVaNguCanhTruocSau(t *testing.T) {
 	// mệnh đề sau KHÔNG có con số vẫn là phần bổ nghĩa của câu hỏi, nên ở lại: "đội báo … theo hoá đơn" nêu hai chỉ số ⇒ hỏi lại
 	askBackMeaning(t, "EX-03 hôm nay đội báo bao nhiêu dầu, theo hoá đơn?")
 }
+
+// S4AS-04 (S2): cụm báo nghĩa chưa hỗ trợ nằm ở MỆNH ĐỀ NGỮ CẢNH (đứng trước mệnh đề hỏi, có con số) vẫn phải được nói ra — nếu không câu trả lời đúng cho phần hỏi nhưng im
+// về phần lệnh / đánh giá / cảnh báo, và đọc lại đúng con số người dùng vừa "ghi". Cặp tối thiểu: lệnh ghi đứng đầu mệnh đề ("Ghi nhận …, vậy …") / nguồn + động từ
+// ("Phiếu kho ghi nhận 3850 L, vậy …" — nguồn của con số, không phải lệnh).
+func TestS4AS04CumNghiaOMenhDeNguCanhVanDuocNoiRa(t *testing.T) {
+	for note, qs := range map[string][]string{
+		notWrite: {
+			"Ghi nhận EX-03 hôm nay dùng 3782 L dầu. Vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?",
+			"Cập nhật giúp em: EX-03 hôm nay xuất 3850 L dầu, vậy EX-03 hôm nay được cấp bao nhiêu dầu?",
+			"Lưu lại EX-03 hôm nay nhận 3850 L dầu, sau đó cho biết EX-03 hôm nay được cấp bao nhiêu dầu?",
+			"Anh ghi nhận EX-03 hôm nay đốt 3900 L dầu, rồi cho em biết EX-03 hôm nay đốt bao nhiêu dầu?",
+		},
+		notEval:     {"Nhận xét: EX-03 hôm nay dùng 3782 L dầu, vậy EX-03 hôm nay tiêu thụ bao nhiêu dầu?", "Đánh giá EX-03 hôm nay đốt 3782 L dầu, vậy EX-03 hôm nay đo được bao nhiêu dầu?"},
+		notWarning:  {"Cảnh báo: EX-03 dùng quá 4000 L dầu, vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?"},
+		notForecast: {"Dự báo EX-03 dùng 4000 L dầu, vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?"},
+		notQuote:    {"Báo giá dầu 20 triệu cho EX-03, vậy hôm nay EX-03 được cấp bao nhiêu dầu?"},
+	} {
+		for _, q := range qs {
+			askBack(t, q, note)
+		}
+	}
+	// ca âm: "<nguồn> ghi nhận <con số>" ở mệnh đề ngữ cảnh là nguồn của con số — câu hỏi ở mệnh đề sau vẫn được trả theo đúng chỉ số
+	wantMetric(t, "Phiếu kho ghi nhận 3850 L, vậy EX-03 hôm nay đo được bao nhiêu dầu?", "fuel_consumed", "3.782")
+	wantMetric(t, "Đội báo ghi nhận 4000 L, vậy EX-03 hôm nay được cấp bao nhiêu dầu?", "fuel_issued", "3.850")
+}

@@ -225,3 +225,13 @@ m tenants/construction/pack/intents.yaml 'comparison_markers: [hơn, kém, so v�
 m tenants/construction/pack/intents.yaml 'quantity_markers: [bao nhiêu, định mức, mấy]' 'quantity_markers: [bao nhiêu, định mức]' 'S130 "mấy lít" không đánh dấu mệnh đề hỏi'
 m $I '			return 0, len(text), true' '			return clauseSpans(text)[0][0], clauseSpans(text)[0][1], true' 'S131 phép so sánh có "chênh lệch" chỉ xét mệnh đề đầu (danh sách chỉ số cách nhau bằng dấu phẩy bị cắt)'
 m tenants/construction/pack/intents.yaml 'đo được, cảm biến báo, cảm biến, dùng' 'đo được, cảm biến, dùng' 'S132 "cảm biến báo" không là cụm của nguồn: "báo" thành chỉ số đội báo, hai chỉ số hoà nhau (WIN-I-038, H3 509)'
+
+# ---- S4AS-04: cụm nghĩa ở mệnh đề ngữ cảnh vẫn được nói ra
+m $I '				if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {' '				if false {' 'S133 "nguồn + động từ" ở mệnh đề ngữ cảnh ("phiếu kho ghi nhận 3850 L, vậy …") bị coi là lệnh ghi'
+m $I '			ct := in.Raw[c[0]:c[1]]
+			at := -1' '			ct := in.Raw[c[0]:c[1]]
+			if c[1] <= qStart {
+				continue
+			}
+			at := -1' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
+m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := s.asking(ct)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'

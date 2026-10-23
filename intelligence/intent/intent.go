@@ -350,7 +350,7 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	}
 	ignore := s.ignored()
 	counts, _, phrases := keywordHits(s.defs, text, ignore)
-	if un := s.unsupportedIn(in, res, text, prem, counts); len(un) > 0 {
+	if un := s.unsupportedIn(in, res, prem, counts, w); len(un) > 0 {
 		names := make([]string, len(un))
 		for i, u := range un {
 			names[i] = u.Name
@@ -1019,10 +1019,12 @@ func (s *Set) cuePhrases() []string {
 	return out
 }
 
-// unsupportedIn trả các nghĩa chưa hỗ trợ mà câu mang (D-OP-18 = c): câu có thực thể, và trong phần quyết định (mệnh đề hỏi trở đi) có cụm báo nghĩa đó
-// (cụm nằm ngoài các mệnh đề ngữ cảnh). Nghĩa NeedsValue (lệnh ghi, đánh giá) còn đòi câu nêu một con số và không phải câu hỏi. Câu có từ khoá
-// tri thức ("quy trình cảnh báo …") là câu hỏi quy trình, tài liệu trả lời được: không tính.
-func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resolution, text string, prem [][2]int, counts []int) []Unsupported {
+// unsupportedIn trả các nghĩa chưa hỗ trợ mà câu mang (D-OP-18 = c): câu có thực thể, và MỘT mệnh đề nào đó có cụm báo nghĩa đó — kể cả mệnh đề ngữ cảnh đứng trước mệnh
+// đề hỏi (S4AS-04): im lặng về lệnh ghi / đánh giá / cảnh báo rồi trả đúng phần hỏi là để người dùng tưởng đã được ghi. Nghĩa NeedsValue (lệnh ghi, đánh giá) còn đòi chính mệnh đề
+// đó nêu một con số và không phải câu hỏi (cụm xác nhận / cụm hỏi lượng); ở mệnh đề ngữ cảnh, cụm phải đứng ĐẦU mệnh đề ("Ghi nhận …, vậy …"): "phiếu kho ghi nhận 3850 L, vậy …"
+// là nguồn + động từ của con số, không phải lệnh. Tín hiệu cấu trúc (Signals) chỉ xét ở phần quyết định (từ mệnh đề hỏi trở đi). Câu có từ khoá tri thức ("quy trình cảnh báo …")
+// là câu hỏi quy trình, tài liệu trả lời được: không tính.
+func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resolution, prem [][2]int, counts []int, w *Why) []Unsupported {
 	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) == 0 {
 		return nil
 	}
@@ -1038,11 +1040,44 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 	// Câu nêu một lượng cùng chiều đo với chỉ số ("3850 L") thì con số tiền kèm theo là phụ, câu vẫn là câu về lượng (cổng phán quyết đã không phán quyết khi
 	// có nhiều con số): tín hiệu cấu trúc của nghĩa tiền chỉ tính khi câu không có lượng như thế; cụm báo nghĩa ("tiền dầu") vẫn tính.
 	measured := s.volumeFigureIn(in, qStart, len(in.Raw))
+	clauses := clauseSpans(in.Raw)
 	var out []Unsupported
+	markers := slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)
 	for _, u := range s.opt.Unsupported {
-		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 }) ||
-			(!measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return s.signalHit(sig, in, qStart, len(in.Raw)) }))
-		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {
+		why := ""
+		for ci, c := range clauses {
+			ct := in.Raw[c[0]:c[1]]
+			at := -1 // vị trí của cụm báo nghĩa đầu tiên trong mệnh đề
+			for _, cue := range u.Cues {
+				if sp := normalization.PhraseSpans(ct, cue); len(sp) > 0 && (at < 0 || sp[0][0] < at) {
+					at = sp[0][0]
+				}
+			}
+			if at < 0 {
+				continue
+			}
+			if u.NeedsValue {
+				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
+				next := ""
+				if ci+1 < len(clauses) {
+					next = in.Raw[clauses[ci+1][0]:clauses[ci+1][1]]
+				}
+				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)
+				if !hasFigure(in, res, c[0], c[1]) || asked {
+					continue
+				}
+				if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {
+					continue // mệnh đề ngữ cảnh mà cụm không đứng đầu: nguồn + động từ của con số, không phải lệnh
+				}
+			}
+			why = fmt.Sprintf("cụm báo nghĩa ở mệnh đề %s", contracts.Quote(ct))
+			break
+		}
+		if why == "" && !measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return s.signalHit(sig, in, qStart, len(in.Raw)) }) {
+			why = "tín hiệu cấu trúc ở phần quyết định của câu"
+		}
+		if why != "" {
+			w.reason("nghĩa chưa hỗ trợ %s: %s", u.Name, why)
 			out = append(out, u)
 		}
 	}

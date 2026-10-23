@@ -53,6 +53,10 @@ negation_markers: [không, chưa, hông, ko]
 # Từ nối mở mệnh đề điều kiện ("Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?"): giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong đó không kích hoạt (S4BS-05).
 condition_markers: [nếu, giả sử, hễ]
 
+# Động từ của NGUỒN (S4BS-06): "<tên nguồn> báo" ("cảm biến báo", "hoá đơn báo", "phiếu kho báo", "ERP báo") là chữ của nguồn, không phải chỉ số đội báo. Tên nguồn lấy từ metrics.yaml (nhãn + bí danh) cho MỌI
+# chỉ số; lúc nạp ý định của chỉ số nhận thêm cụm "<tên nguồn> <động từ>" (cụm dài thắng "báo" trong luật khớp dài nhất). Thêm nguồn mới ở metrics.yaml là đủ — không thêm từ khoá theo từng nguồn.
+source_verbs: [báo]
+
 unsupported_meanings:
   - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency", "asked_unit:currency_usd"]}
   - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự phóng, dự trù], weak_cues: [dự kiến, dự tính, ước tính, sẽ]}
@@ -106,9 +110,8 @@ intents:
   - name: fuel_consumed
     label: dầu tiêu thụ đo được
     route: SQL_QUERY
-    # "dùng / sử dụng" = tiêu thụ (ADR-0001 D3). "cảm biến báo" = cảm biến ghi nhận: chữ "báo" là động từ của NGUỒN (cảm biến), không phải chỉ số đội báo — cụm dài thắng "báo"
-    # trong luật khớp dài nhất, nên câu không còn hai chỉ số hoà nhau (S4AS-03 bỏ luật số cụm: hai chỉ số hoà thì hỏi lại).
-    keywords: [tiêu thụ, đốt, đo được, cảm biến báo, cảm biến, dùng, sử dụng]
+    # "dùng / sử dụng" = tiêu thụ (ADR-0001 D3). "cảm biến báo" không còn khai tay: source_verbs sinh "<tên nguồn> báo" cho mọi nguồn của pack (S4BS-06).
+    keywords: [tiêu thụ, đốt, đo được, cảm biến, dùng, sử dụng]
     terms: [diesel_fuel]
     metric_by_term: {diesel_fuel: measured_consumption}
     priority: 20

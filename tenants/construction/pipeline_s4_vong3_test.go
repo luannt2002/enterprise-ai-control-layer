@@ -212,3 +212,20 @@ func TestS4BS05CumBaoNghiaChiKichHoatOMenhDeHoi(t *testing.T) {
 	// "không" của cụm xác nhận ("đúng không") không phải từ phủ định dù sau nó còn chữ ("ạ")
 	askBack(t, "Chi phí dầu EX-03 hôm nay 4tr đồng đúng không ạ?", notMoney)
 }
+
+// S4BS-06 (S3): "<tên nguồn> báo" là chữ của NGUỒN, không phải chỉ số đội báo — theo cấu trúc cho MỌI nguồn của pack (nhãn + bí danh ở metrics.yaml), không chỉ cảm biến. Pack khai động từ nguồn
+// (source_verbs); cụm "<tên nguồn> <động từ>" sinh lúc nạp và thuộc ý định của chỉ số mà nguồn đó cung cấp. Ca âm: "báo" của đội trưởng / tin nhắn hiện trường vẫn là đội báo.
+func TestS4BS06DanhTuNguonCongDongTuBao(t *testing.T) {
+	for q, want := range map[string][2]string{
+		"Hoá đơn báo EX-03 hôm nay bao nhiêu lít dầu?":              {"fuel_billed", "4.100"},
+		"Phiếu kho báo EX-03 hôm nay bao nhiêu lít dầu?":            {"fuel_issued", "3.850"},
+		"ERP báo EX-03 hôm nay bao nhiêu lít dầu?":                  {"fuel_issued", "3.850"},
+		"Bảng tổng hợp báo EX-03 hôm nay bao nhiêu lít dầu?":        {"fuel_issued", "3.850"},
+		"Cảm biến báo EX-03 hôm nay bao nhiêu lít dầu?":             {"fuel_consumed", "3.782"},
+		"Tin nhắn hiện trường báo EX-03 hôm nay bao nhiêu lít dầu?": {"fuel_reported", "4.000"},
+		"Đội trưởng báo EX-03 hôm nay bao nhiêu lít dầu?":           {"fuel_reported", "4.000"},
+		"Hôm nay EX-03 đội báo bao nhiêu lít dầu?":                  {"fuel_reported", "4.000"},
+	} {
+		answersIntent(t, q, want[0], want[1])
+	}
+}

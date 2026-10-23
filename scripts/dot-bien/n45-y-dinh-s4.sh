@@ -304,3 +304,9 @@ m tenants/construction/pack/intents.yaml 'cues: [dự báo, dự đoán, dự ph
 m tenants/construction/pack/intents.yaml 'bỏ qua, lo sau, tính sau, làm sau, xong]' 'bỏ qua]' 'S181 pack không có cụm hoãn / đã xong ("em lo sau", "em tính sau", "xong")'
 m tenants/construction/pack/intents.yaml 'condition_markers: [nếu, giả sử, hễ]' 'condition_markers: []' 'S182 pack không khai từ nối điều kiện'
 
+# ---- S4BS-06 (vòng 3): "<tên nguồn> báo" theo cấu trúc cho mọi nguồn của pack
+m $I '	if o.SourceNames == nil || len(o.SourceVerbs) == 0 {' '	if true {' 'S183 không sinh cụm "<tên nguồn> báo": "hoá đơn báo", "ERP báo" lại là đội báo (cảm biến báo mất cả ca độc lập WIN-I-038)'
+m $I '	if s.hit != nil {' '	if false {' 'S184 cụm sinh ra không được dùng để đếm từ khoá'
+m $I '			for _, name := range o.SourceNames(m) {' '			for _, name := range o.SourceNames("issued_fuel") {' 'S185 mọi ý định số liệu nhận tên nguồn của chỉ số kho xuất ("hoá đơn báo" không thuộc dầu theo hoá đơn)'
+m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: []' 'S186 pack không khai động từ nguồn'
+

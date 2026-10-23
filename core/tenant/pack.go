@@ -57,8 +57,10 @@ type intentsFile struct {
 	PurposeMarkers  []string `yaml:"purpose_markers"`
 	NegationMarkers []string `yaml:"negation_markers"`
 	// ConditionMarkers: từ nối mở mệnh đề điều kiện (xem intent.Options.ConditionMarkers).
-	ConditionMarkers []string     `yaml:"condition_markers"`
-	Intents          []intent.Def `yaml:"intents"`
+	ConditionMarkers []string `yaml:"condition_markers"`
+	// SourceVerbs: động từ của nguồn (xem intent.Options.SourceVerbs).
+	SourceVerbs []string     `yaml:"source_verbs"`
+	Intents     []intent.Def `yaml:"intents"`
 	// UnsupportedMeanings: các nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá): câu mang nghĩa đó được hỏi lại, nói rõ nghĩa nào
 	// chưa hỗ trợ, thay vì trả theo chỉ số còn lại. Có khai thì phải có mẫu unsupported_meaning và mẫu riêng của từng nghĩa.
 	UnsupportedMeanings []intent.Unsupported `yaml:"unsupported_meanings"`
@@ -226,6 +228,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				PurposeMarkers:    inf.PurposeMarkers,
 				NegationMarkers:   inf.NegationMarkers,
 				ConditionMarkers:  inf.ConditionMarkers,
+				SourceVerbs:       inf.SourceVerbs,
 				// tên nguồn cấp số liệu (nhãn + bí danh ở metrics.yaml) của một chỉ số; metric rỗng = mọi chỉ số
 				SourceNames: func(metric string) []string {
 					if rt.Metrics == nil {

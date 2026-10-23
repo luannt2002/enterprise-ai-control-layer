@@ -67,6 +67,9 @@ type Unsupported struct {
 type Options struct {
 	// Unsupported: các nghĩa hệ chưa hỗ trợ (xem Unsupported).
 	Unsupported []Unsupported
+	// SourceVerbs: động từ của NGUỒN ("báo"): "<tên nguồn> <động từ>" ("cảm biến báo", "hoá đơn báo", "ERP báo") là chữ của nguồn chứ không phải chỉ số đội báo — SetOptions sinh cụm này cho ý định của chỉ số mà nguồn
+	// đó cung cấp, dùng tên nguồn do SourceNames trả (S4BS-06).
+	SourceVerbs []string
 	// SourceNames trả tên các nguồn cấp số liệu của một chỉ số (nhãn và bí danh ở metrics.yaml: "cảm biến", "phiếu kho", "ERP"); metric rỗng = mọi chỉ số. Cụm báo nghĩa ở mệnh đề có tên nguồn
 	// là động từ của NGUỒN ("theo ghi nhận của cảm biến"), không phải yêu cầu của người hỏi (S4BS-03).
 	SourceNames func(metric string) []string
@@ -115,8 +118,48 @@ type Options struct {
 	Measurable func(term string) bool
 }
 
-// SetOptions gắn chính sách phân loại của pack.
-func (s *Set) SetOptions(o Options) { s.opt = o }
+// SetOptions gắn chính sách phân loại của pack. Pack khai động từ nguồn (SourceVerbs) thì sinh luôn cụm "<tên nguồn> <động từ>" ("cảm biến báo", "hoá đơn báo", "ERP báo") cho ý định của chỉ số mà nguồn đó
+// cung cấp (S4BS-06): chữ "báo" ấy là động từ của NGUỒN, không phải chỉ số đội báo; cụm dài thắng "báo" trong luật khớp dài nhất.
+func (s *Set) SetOptions(o Options) {
+	s.opt, s.hit = o, nil
+	if o.SourceNames == nil || len(o.SourceVerbs) == 0 {
+		return
+	}
+	hit := slices.Clone(s.defs)
+	for i, d := range hit {
+		if d.Weak || len(d.MetricByTerm) == 0 {
+			continue
+		}
+		var metrics []string
+		for _, m := range d.MetricByTerm {
+			if !slices.Contains(metrics, m) {
+				metrics = append(metrics, m)
+			}
+		}
+		sort.Strings(metrics)
+		kw := slices.Clone(d.Keywords)
+		for _, m := range metrics {
+			for _, name := range o.SourceNames(m) {
+				for _, verb := range o.SourceVerbs {
+					if k := name + " " + verb; !slices.Contains(kw, k) {
+						kw = append(kw, k)
+					}
+				}
+			}
+		}
+		hit[i].Keywords = kw
+	}
+	s.hit = hit
+}
+
+// hitDefs là tập ý định dùng để ĐẾM TỪ KHOÁ: ý định của pack kèm cụm "<tên nguồn> <động từ>" sinh ở SetOptions (cùng thứ tự và chỉ số với s.defs). Các chỗ khác (chữ của từ khoá ở a2, ownMetric…)
+// vẫn dùng từ khoá do pack khai: cụm sinh ra không thêm "mảnh từ khoá" nào cho a2 hiểu.
+func (s *Set) hitDefs() []Def {
+	if s.hit != nil {
+		return s.hit
+	}
+	return s.defs
+}
 
 // SlotDef là một khe của ý định.
 type SlotDef struct {
@@ -132,6 +175,7 @@ type SlotDef struct {
 // Set là tập ý định đã kiểm.
 type Set struct {
 	defs []Def
+	hit  []Def // defs kèm cụm "<tên nguồn> <động từ>" sinh ở SetOptions (nil khi pack không khai); chỉ dùng để đếm từ khoá
 	opt  Options
 }
 
@@ -392,7 +436,7 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
-		if focus, _, fp := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
+		if focus, _, fp := keywordHits(s.hitDefs(), in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
 			counts, phrases = focus, fp
 			w.reason("từ khoá lấy trong mệnh đề hỏi %s (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", contracts.Quote(in.Raw[fs:fe]))
 		}
@@ -509,7 +553,7 @@ func (s *Set) asksData(text string) bool {
 		return true
 	}
 	for _, clause := range clausesOf(text) {
-		counts, _, _ := keywordHits(s.defs, clause, s.opt.IgnorePhrases)
+		counts, _, _ := keywordHits(s.hitDefs(), clause, s.opt.IgnorePhrases)
 		data, knowledge := 0, 0
 		for i, d := range s.defs {
 			switch contracts.RouteKind(d.Route) {
@@ -595,7 +639,7 @@ func (s *Set) comparison(matched []Def, text string, in contracts.NormalizedInpu
 	if !ok {
 		return Result{}, false
 	}
-	counts, firsts, _ := keywordHits(s.defs, text[cs:ce], s.ignored())
+	counts, firsts, _ := keywordHits(s.hitDefs(), text[cs:ce], s.ignored())
 	var named, derived []Def
 	metrics, first := map[string]string{}, map[string]int{}
 	for i, d := range s.defs {
@@ -664,7 +708,7 @@ func (s *Set) comparison(matched []Def, text string, in contracts.NormalizedInpu
 // danh sách chỉ số cách nhau bằng dấu phẩy cùng thuộc "chênh lệch"); không thì MỆNH ĐỀ đầu tiên có cụm so sánh bậc hơn / kém của pack ("đội báo cao hơn kho xuất bao nhiêu": hai chỉ số
 // và từ so sánh phải ở cùng mệnh đề, từ so sánh của mệnh đề khác không biến hai chỉ số ở đây thành phép so sánh).
 func (s *Set) comparisonScope(text string) (start, end int, ok bool) {
-	counts, _, _ := keywordHits(s.defs, text, s.ignored())
+	counts, _, _ := keywordHits(s.hitDefs(), text, s.ignored())
 	for i, d := range s.defs {
 		if d.Derived != "" && counts[i] > 0 {
 			return 0, len(text), true
@@ -1547,11 +1591,11 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 // hitsBG đếm từ khoá như keywordHits, nhưng đoạn mục đích chỉ được che với ý định SỐ LIỆU (route SQL_QUERY / CALCULATION): đoạn đó không nói chỉ số nào ("… để em báo cáo gấp" không biến câu về
 // kho xuất thành câu về đội báo), còn ý định khác (quy trình, chào hỏi) đếm trên câu chưa che — "để làm gì theo quy trình" chính là câu hỏi quy trình (masked: câu đã che đoạn mục đích; keep: chưa che).
 func (s *Set) hitsBG(masked, keep string, ignore []string) (counts, first []int, phrases [][]string) {
-	counts, first, phrases = keywordHits(s.defs, masked, ignore)
+	counts, first, phrases = keywordHits(s.hitDefs(), masked, ignore)
 	if masked == keep {
 		return counts, first, phrases
 	}
-	kc, kf, kp := keywordHits(s.defs, keep, ignore)
+	kc, kf, kp := keywordHits(s.hitDefs(), keep, ignore)
 	for i, d := range s.defs {
 		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {
 			counts[i], first[i], phrases[i] = kc[i], kf[i], kp[i]

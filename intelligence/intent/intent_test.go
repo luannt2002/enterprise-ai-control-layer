@@ -541,3 +541,20 @@ func TestNghiaChuaHoTro(t *testing.T) {
 		}
 	}
 }
+
+// aliasCandidates (N1): ứng viên của mọi bí danh mơ hồ, mỗi thực thể MỘT lần theo thứ tự nhắc — hai bí danh cùng có DZ-03 và EX-03 không nhân đôi danh sách hỏi lại, và nguồn (S3) của
+// mỗi ứng viên chỉ ghi một bản.
+func TestAliasCandidatesKhuTrung(t *testing.T) {
+	dz, ex, rl := ent("DZ-03", "equipment"), ent("EX-03", "equipment"), ent("RL-02", "equipment")
+	res := contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{
+		alias("may 3", "equipment", dz, ex), alias("máy 03", "equipment", ex, dz, rl),
+	}}
+	var w Why
+	got := aliasCandidates(res, &w)
+	if want := []string{"DZ-03", "EX-03", "RL-02"}; !slices.Equal(ids(got), want) {
+		t.Errorf("ứng viên = %v, muốn %v (mỗi thực thể một lần, theo thứ tự nhắc)", ids(got), want)
+	}
+	if len(w.Origins) != 3 {
+		t.Errorf("nguồn ứng viên = %+v, muốn đúng 3 bản (mỗi ứng viên một)", w.Origins)
+	}
+}

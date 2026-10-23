@@ -240,3 +240,14 @@ m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarker
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'
 m $I '			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(ct, m) }) {' '			if false {' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
 m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
+
+# ---- S4AS-06: kiểm nạp pack của nghĩa chưa hỗ trợ và khử trùng ứng viên
+m core/tenant/pack.go '				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {' '				if false {' 'S139 pack không đòi name / template / cues của nghĩa chưa hỗ trợ'
+m core/tenant/pack.go '		needed = append(needed, "unsupported_meaning")' '		_ = "unsupported_meaning"' 'S140 pack không đòi mẫu chung unsupported_meaning'
+m core/tenant/pack.go '			needed = append(needed, u.Template)' '			_ = u.Template' 'S141 pack không đòi mẫu riêng của từng nghĩa chưa hỗ trợ'
+m $I '	case kind == "asked_unit" && arg != "" && dimensionKnown(arg):' '	case kind == "asked_unit":' 'S142 pack nhận chiều đo không có trong lexicon cho tín hiệu asked_unit'
+m $I '			if !slices.ContainsFunc(out, func(o contracts.EntityRef) bool { return o.ID == c.ID }) {
+				out = append(out, c)
+				w.addOrigin' '			if true {
+				out = append(out, c)
+				w.addOrigin' 'S143 ứng viên của hai bí danh cùng thực thể bị liệt kê hai lần'

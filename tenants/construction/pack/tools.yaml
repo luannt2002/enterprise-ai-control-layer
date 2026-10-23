@@ -1,0 +1,11 @@
+# Tool (lệnh có tác dụng phụ) của tenant tham chiếu #01 — ADR-0011 D8, HOP-DONG §4.3 và §5.
+# Pack khai CẤU HÌNH; hành vi nằm trong mã (execution/commands). Mỗi tool có MỘT route lệnh POST /v1/commands/<name> ở cmd/eais (chỉ serve -dev),
+# đăng ký lúc khởi động. Tệp hỏng (không capability, vai có capability của tool mà thiếu metrics.read, chỉ số không phải chỉ số dẫn xuất ở
+# metrics.yaml, khoá lạ, tên tool chưa cài...) thì ứng dụng KHÔNG khởi động.
+tools:
+  - name: open_discrepancy_ticket # tạo MỘT phiếu kiểm tra chênh lệch nhiên liệu của một máy trong một ngày đã qua
+    capability: tickets.create # quyền tạo; policy.yaml cấp cho director, accountant, project_manager (Q-P1-1). Vai nào có nó phải có cả metrics.read
+    metrics: [issue_vs_measured] # chỉ số dẫn xuất được phép (Q-P1-3: Phase 1 chỉ chênh lệch dầu kho xuất và dầu tiêu thụ đo được)
+    # Ngưỡng của luật R4: |chênh lệch| phải LỚN HƠN nó (đơn vị lít). Q-P1-2: ngưỡng là cấu hình của pack; 0 = mọi chênh lệch khác 0, đây chỉ là giá trị demo, chưa có giá trị nghiệp vụ (D-RM-03).
+    min_abs_diff: "0"
+    # timeout (hạn chót của cả lệnh C0 → C7) CHƯA chọn, CHƯA đo: vắng nghĩa là chỉ còn hạn của bên gọi và hạn chung của server.

@@ -479,22 +479,36 @@ func textDigest(s string) (runes int, hash string) {
 // tự) không còn khớp mẫu che của traces.Sanitize sau khi cắt, nên mảnh đầu của nó sẽ lọt vào vết.
 func draftHead(s string) string {
 	clean := strings.TrimSpace(traces.Sanitize(s))
+	return cutHead(clean)
+}
+
+// cutHead cắt chữ ĐÃ làm sạch (và, ở draftLedger.settle, đã che phạm vi) xuống tối đa draftHeadRunes ký tự, kèm "…" khi cắt.
+func cutHead(clean string) string {
 	if r := []rune(clean); len(r) > draftHeadRunes {
 		return string(r[:draftHeadRunes]) + "…"
 	}
 	return clean
 }
 
+// draftLine dựng dòng S8 của một bản nháp (noteDraft ghi dạng tạm, draftLedger.settle ghi dạng cuối, cùng một cách): cách sinh, số ký tự, băm ngắn và đoạn đầu trong
+// cặp “…” (để Why.WithholdQuoted che được khi câu hỏi mang bí mật).
+func draftLine(prefix, how string, runes int, hash, head string) string {
+	return fmt.Sprintf("%sbản nháp %s: %d ký tự · băm %s · đầu %s", prefix, how, runes, hash, contracts.Quote(head))
+}
+
 // noteDraft ghi S8: bản nháp NHƯ ĐƯỢC SINH — cách sinh (how), số ký tự, băm ngắn và đoạn đầu (nằm trong cặp “…” để Why.WithholdQuoted che được khi câu hỏi
 // mang bí mật). Gọi ngay sau khi bản nháp có chữ, TRƯỚC khi S9 kiểm: người đọc vết thấy chính thứ S9 đã nhận. Chỉ ghi, không đọc lại để quyết gì.
+// Dòng ghi ở đây là dạng TẠM: đoạn đầu cắt trước khi bộ che phạm vi tồn tại (nó dựng sau cùng, từ mọi thực thể của lượt). Handle gọi draftLedger.settle để ghi lại
+// đúng dòng này ở dạng cuối trước khi dòng rời Handle; vị trí dòng được ghi vào sổ để settle tìm lại.
 func (a *Ask) noteDraft(ctx context.Context, why *traces.Why, prefix, how, text string) {
 	if a.noWhy {
 		return
 	}
 	n := &why.Generate
 	runes, hash := textDigest(text)
-	n.Reason("%sbản nháp %s: %d ký tự · băm %s · đầu %s", prefix, how, runes, hash, contracts.Quote(draftHead(text)))
-	ledgerOf(ctx).add(prefix, text)
+	line := len(n.Reasons)
+	n.Reason("%s", draftLine(prefix, how, runes, hash, draftHead(text)))
+	ledgerOf(ctx).addDraft(prefix, how, text, line)
 }
 
 // noteTemplateDraft ghi S8 cho câu dựng bằng mẫu câu của tenant (route số liệu, hỏi lại, từ chối, chuyển người): tmpl là mẫu THẬT đã dùng, có thể khác
@@ -516,9 +530,12 @@ func (a *Ask) noteModelDraft(ctx context.Context, why *traces.Why, prefix, model
 // thì mọi phương thức của sổ là không làm gì.
 type draftLedger struct{ drafts []ledgerDraft }
 
-// ledgerDraft là một bản nháp trong sổ: prefix như ở dòng S8 của nó ("", "số liệu: ", "tri thức: "), text là chữ gốc, rejected = S9 đã loại nó.
+// ledgerDraft là một bản nháp trong sổ: prefix như ở dòng S8 của nó ("", "số liệu: ", "tri thức: "), how là cách sinh ở dòng đó, line là chỗ của dòng trong
+// Why.Generate.Reasons (chỉ có nghĩa khi how != ""), text là chữ gốc, rejected = S9 đã loại nó.
 type ledgerDraft struct {
 	prefix   string
+	how      string
+	line     int
 	text     string
 	rejected bool
 }
@@ -537,9 +554,30 @@ func ledgerOf(ctx context.Context) *draftLedger {
 	return l
 }
 
-func (l *draftLedger) add(prefix, text string) {
+// add ghi một bản nháp không kèm dòng S8 (chỉ để S10 đối chiếu); addDraft ghi cả cách sinh và chỗ của dòng S8 để settle ghi lại dòng đó.
+func (l *draftLedger) add(prefix, text string) { l.addDraft(prefix, "", text, -1) }
+
+func (l *draftLedger) addDraft(prefix, how, text string, line int) {
 	if l != nil {
-		l.drafts = append(l.drafts, ledgerDraft{prefix: prefix, text: text})
+		l.drafts = append(l.drafts, ledgerDraft{prefix: prefix, how: how, line: line, text: text})
+	}
+}
+
+// settle ghi lại dòng S8 của từng bản nháp trong sổ ở dạng CUỐI, một lần, khi Handle đã dựng xong bộ che phạm vi: đoạn đầu được che phạm vi TRƯỚC rồi mới cắt (V8AS-02).
+// Cắt trước thì khoá / tên thực thể ngoài phạm vi nằm vắt qua ký tự thứ draftHeadRunes chỉ còn mảnh đầu ("Máy ủi DZ", "DZ-0"), bộ che chỉ khớp nguyên token nên không nhận ra
+// và mảnh đó lọt vào vết của chính người hỏi hạn chế. Chữ đi qua bộ làm sạch bí mật rồi bộ che phạm vi khi còn nguyên vẹn; chỉ sau đó mới cắt. Số ký tự và băm giữ nguyên
+// (tính trên chữ làm sạch, không phụ thuộc người hỏi).
+func (l *draftLedger) settle(why *traces.Why, red scopeRedactor) {
+	if l == nil {
+		return
+	}
+	for _, d := range l.drafts {
+		if d.how == "" || d.line < 0 || d.line >= len(why.Generate.Reasons) {
+			continue
+		}
+		runes, hash := textDigest(d.text)
+		head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))
+		why.Generate.Reasons[d.line] = draftLine(d.prefix, d.how, runes, hash, head)
 	}
 }
 

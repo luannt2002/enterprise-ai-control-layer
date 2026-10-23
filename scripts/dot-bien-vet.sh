@@ -341,7 +341,7 @@ m $W 'func draftHead(s string) string {
 	clean := strings.TrimSpace(s)' 'VS8-6 [V8a] đoạn đầu không làm sạch (bí mật lọt vào vết)'
 m $W 'return string(r[:draftHeadRunes]) + "…"' 'return string(r[:draftHeadRunes])' 'VS8-7 [V8a] đoạn đầu bị cắt mà không có dấu "…"'
 m $W 'if r := []rune(clean); len(r) > draftHeadRunes {' 'if r := []rune(clean); len(r) >= draftHeadRunes {' 'VS8-8 [V8a] đoạn đầu đúng 80 ký tự vẫn bị cắt'
-m $W 'ledgerOf(ctx).add(prefix, text)' '_ = ctx' 'VS8-9 [V8a] bản nháp không vào sổ (S10 mất đối chiếu)'
+m $W 'ledgerOf(ctx).addDraft(prefix, how, text, line)' 'if false { ledgerOf(ctx).addDraft(prefix, how, text, line) }' 'VS8-9 [V8a] bản nháp không vào sổ (S10 mất đối chiếu)'
 m $W 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)' 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+" (không gọi model)", text)' 'VS8-10 [V8a] S8 không nói tên mẫu câu'
 m $W 'model = "(không khai tên)"' 'model = "model"' 'VS8-11 [V8a] model không khai tên bị bịa tên'
 m $W 'given := strings.TrimSpace(answer)' 'given := answer' 'VS8-12 [V8a] S10 so cả khoảng trắng đầu / cuối'
@@ -398,6 +398,10 @@ m $ASK 'd := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)' 'if r :=
 	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)' 'VS8-49 [V8b V8AS-01] câu giao bị cắt ở 120 ký tự ngay trước khi dựng Decision (hình lỗi của phép đo 23/10): S10 phải lệch, test lượt khoẻ phải đỏ'
 m $ASK 'if a.beforeDecision != nil {' 'if false && a.beforeDecision != nil {' 'VS8-50 [V8b V8AS-01] điểm móc gieo lỗi không chạy: test gieo lỗi trước Decision phải đỏ'
+m $ASK 'led.settle(&why, red)' 'if false { led.settle(&why, red) }' 'VS8-51 [V8b V8AS-02] Handle không chốt dòng S8 của bản nháp: đoạn đầu còn bản cắt trước khi che'
+m $W 'head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))' 'head := red.line(cutHead(strings.TrimSpace(traces.Sanitize(d.text))))' 'VS8-52 [V8b V8AS-02] đoạn đầu cắt TRƯỚC khi che phạm vi (hình lỗi cũ: mảnh tên / khoá lọt)'
+m $W 'head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))' 'head := cutHead(red.line(strings.TrimSpace(d.text)))' 'VS8-53 [V8b V8AS-02] chốt dòng S8 không qua bộ làm sạch bí mật'
+m $W 'why.Generate.Reasons[d.line] = draftLine(d.prefix, d.how, runes, hash, head)' 'why.Generate.Reasons[0] = draftLine(d.prefix, d.how, runes, hash, head)' 'VS8-54 [V8b V8AS-02] chốt dòng S8 ghi nhầm dòng'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

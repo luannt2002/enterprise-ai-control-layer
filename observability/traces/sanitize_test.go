@@ -386,3 +386,37 @@ func TestSanitizeGopVungVaGiaTriTran(t *testing.T) {
 		}
 	}
 }
+
+// Soát 5a vòng 3 (5a3-1, S1; 5a3-2, S2): dòng Cookie / Set-Cookie có cặp tên-bí-mật mà giá trị trong nháy kéo qua xuống dòng. Giá trị trần
+// của Cookie dừng ở xuống dòng ĐẦU TIÊN (kể cả xuống dòng nằm trong nháy), nên tính vùng một lần trên chữ gốc thì phần sau nháy đóng ở dòng
+// kế tiếp lọt và Sanitize mất luỹ đẳng; main (che tuần tự) che cả dòng. Đầu ra phải đúng từng ký tự như main và luỹ đẳng.
+func TestSanitizeCookieCoNhayQuaXuongDong(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"Cookie: auth_token=\"abc\ndef\"; sid=ZQX1", "Cookie: " + traces.Masked},
+		{"Set-Cookie: session_token='abc\ndef'; sid=ZQX1; Path=/", "Set-Cookie: " + traces.Masked},
+		{"Cookie: auth_token=\"abc\r\ndef\"; sid=ZQX1", "Cookie: " + traces.Masked},
+		{"GET / HTTP/1.1\nCookie: auth_token=\"abc\ndef\"; sid=ZQX1\nAccept: */*", "GET / HTTP/1.1\nCookie: " + traces.Masked + "\nAccept: */*"},
+		{"Cookie=apikey=\"\n\"ZQX", "Cookie=" + traces.Masked},
+		// giá trị trần bắt đầu bằng ";": vẫn là cả dòng (sau khi có kéo tới hết dòng, chỉ hình này phân biệt Cookie trần dừng ở ";")
+		{"Cookie: ;sid=ZQX5", "Cookie: " + traces.Masked},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("Sanitize(%q) = %q, muốn %q", c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("không luỹ đẳng: %q → %q", got, again)
+		}
+	}
+	// hình lai: giá trị kết thúc bằng \ (5a-R1) rồi dòng Cookie có cặp nháy qua xuống dòng — vùng gộp bắt đầu ở cặp TRƯỚC Cookie vẫn phải kéo
+	// tới hết dòng (chỉ khẳng định không lọt và luỹ đẳng: tên "Cookie:" bị nuốt là che thừa đã ghi ở chú thích của Sanitize)
+	for _, in := range []string{"x password=\"a\\\" Cookie: auth_token=\"b\nc\"; sid=ZQX1", "password='a\\' Set-Cookie: session_token='b\r\nc'; sid=ZQX1; Path=/"} {
+		got := traces.Sanitize(in)
+		if strings.Contains(got, "ZQX") {
+			t.Errorf("bí mật Cookie lọt: %q → %q", in, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("không luỹ đẳng: %q → %q", got, again)
+		}
+	}
+}

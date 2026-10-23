@@ -330,3 +330,24 @@ func TestSanitizeGiaTriKetThucBangGachCheo(t *testing.T) {
 		}
 	}
 }
+
+// Đầu ra ĐÚNG TỪNG KÝ TỰ cho các dạng mà test theo chuỗi con không khoá được (soát độc lập 5a-3: đột biến bỏ "@" khỏi dấu che, đòi mật
+// khẩu URL từ 2 ký tự, bỏ xử lý nháy thoát ở Cookie nháy đơn, "\." thay "\[\s\S]" đều sống sót) và các dạng phân biệt hai cách đọc nháy.
+func TestSanitizeDauRaChinhXac(t *testing.T) {
+	for _, c := range []struct{ name, in, want string }{
+		{"URL người dùng rỗng", "lỗi kết nối postgres://:hunter2pw@127.0.0.1:5432/eais", "lỗi kết nối postgres://:" + traces.Masked + "@127.0.0.1:5432/eais"},
+		{"URL mật khẩu 1 ký tự", "dial redis://:p@cache:6379/0 thất bại", "dial redis://:" + traces.Masked + "@cache:6379/0 thất bại"},
+		{"Cookie nháy đơn có nháy thoát", `Cookie: 'sid=abc\'hunter2pw'; next`, `Cookie: '` + traces.Masked + `'; next`},
+		{"nháy thoát sau xuống dòng thật", "{\"password\":\"ab\\\ncd\\\"hunter2pw\",\"n\":1}", `{"password":"` + traces.Masked + `","n":1}`},
+		{"nháy thoát rồi khoảng trắng", `{"password":"ab\" hunter2pw","n":1}`, `{"password":"` + traces.Masked + `","n":1}`},
+		{"nháy không đóng sau nháy thoát", `password="ab\" hunter two`, `password="` + traces.Masked + `"`},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("%s: %q → %q, muốn %q", c.name, c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+}

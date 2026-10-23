@@ -366,3 +366,60 @@ mệnh đề ngữ cảnh; C4: dòng so sánh) — mã nay ghi vết đúng quy�
 - Nghĩa tiền / lệnh ở mệnh đề ngữ cảnh: lệnh nằm ở mệnh đề có con số nhưng cụm ở mệnh đề liền kề không bắt được ("Ghi nhận cho EX-03, dùng 3782 L").
 - "Giá nhân công …" và "nặng bao nhiêu tấn" (tên máy + từ hỏi lượng) vẫn được trả theo ý định chung kèm câu giả định ("Máy xúc EX-03 nặng bao nhiêu tấn?" → số dầu kho xuất): từ khoá yếu "bao nhiêu" — D-OP-16, có từ trước.
 - Bộ giữ lại mới (H6) để chấm vòng sửa này chưa soạn / chưa chạy: vòng này chưa có phép chấm độc lập; số đo trên là bộ phát triển của tác giả (một người soạn, oracle tự đặt).
+
+## Vòng 3 của vòng sửa S4 (23/10 tối) — VÒNG CUỐI theo §9.6; soát vòng 2 KHÔNG ĐẠT (S4BS-01 … S4BS-10); nhánh `m3/s4-vong-sua-2310`, CHƯA gộp main
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Chủ dự án 23/10: **D-AI-02 = a** (luật, không model), **D-OP-18 = c**, **D-OP-11 = b**; **D-AI-04** (bốn họ nghĩa đánh giá / cảnh báo / dự báo / báo giá nhận
+bằng danh sách cụm ở pack) CHỜ chủ dự án (`docs/CHO-QUYET-DINH.md` mục 4) — vòng này KHÔNG tuyên bố "đóng" cho bốn họ ấy. Mỗi phát hiện một commit, test đỏ trước bằng câu viết mới theo cặp tối thiểu (không chép từ
+H1 / H3 / H4), dòng đột biến ở `scripts/dot-bien/n45-y-dinh-s4.sh`. Hết vòng này, phát hiện còn lại là NỢ có mã (§9.6 / §9.10 mục 2), không có vòng 4.
+
+**Gộp main (S4BS-09).** Gộp `origin/main` `59ac0d7` (D-OP-9 (a') sửa `data/normalization`, `data/ingestion`, `core/pipeline/ask.go`; D-AI-04 ở CHO): tự gộp sạch, không xung đột; cổng chạy lại trên cây đã gộp.
+
+| Mã | Luật (theo cấu trúc, từ nối ngữ pháp ở pack — mã Go không có chuỗi nghiệp vụ) | Chỗ trong mã |
+|---|---|---|
+| S4BS-01 | Đoạn MỤC ĐÍCH (từ từ nối `purpose_markers` "để", "nhằm" tới hết mệnh đề) không góp từ khoá chỉ số của ý định SỐ LIỆU và không kích hoạt cụm báo nghĩa — trừ khi chính đoạn đó mang cụm hỏi ("để biết đội báo bao nhiêu dầu?" là câu hỏi). Ý định quy trình vẫn đếm trên câu chưa che ("dùng để làm gì theo quy trình?" là RAG). "xác nhận" (nhờ xác nhận) vào `ignore_phrases`: "nhận" của nó là chữ con của từ ghép. WIN-I-086 trả về `passing.txt` | `backgroundRanges`, `hitsBG`, `classify` |
+| S4BS-03 | (i) lệnh ghi / đánh giá đòi con số ở chính mệnh đề của cụm HOẶC ở mệnh đề kề không phải câu hỏi; (ii) cụm hỏi lượng khớp theo ranh giới từ của câu gốc (`asking` thay cụm báo nghĩa bằng dấu cách trước khi tìm cụm hỏi: "định mức" không nằm trong "nhận định mức"); (iii) yêu cầu KÈM THÊM sau câu hỏi ("…, kèm nhận xét luôn?") không bị bỏ lặng — trừ khi mệnh đề nêu tên nguồn ("theo ghi nhận của cảm biến") | `unsupportedIn`, `asking`, `withoutCues`, `attachedRequest` |
+| D-OP-18 = c | Câu NÊU giá trị = có thực thể + lượng có đơn vị cùng chiều đo với một chỉ số (không tính tên thực thể) + KHÔNG có dấu hiệu hỏi (cụm hỏi của pack, dấu "?", từ phủ định cuối câu `negation_markers`) ⇒ "Trợ lý chưa ghi số liệu", bất kể động từ. Tín hiệu `stated_value` do pack khai cho nghĩa lệnh ghi; chỉ là phương án cuối khi chưa nghĩa khác được báo | `statedValue`, `questioned`, `SignalStatedValue` |
+| S4BS-04 | "bao nhiêu" + (từ chỉ hàng) + (đơn vị tiền) Ở BẤT KỲ ĐÂU trong mệnh đề; chữ liền sau phải là hết mệnh đề / từ trung tính / số chữ / cụm hỏi (loại "đồng hồ", "đồng bộ", "đô thị", "tỷ lệ", "triệu lít"); asked_unit không nhường câu có lượng lít (span:money vẫn nhường). Pack: USD ở chiều đo riêng `currency_usd`; "củ", "tr" là đơn vị tiền khi hỏi | `askedUnit`, `moneyPhraseEnds`, lexicon, `Engine.MultiplierAliases` |
+| S4BS-05 | Cụm báo nghĩa không kích hoạt ở mệnh đề phủ định (từ phủ định không đứng cuối), hoãn / đã xong (`dismiss_markers`), điều kiện (`condition_markers` ở đầu mệnh đề), đoạn mục đích. Cụm quá chung (`weak_cues`: sẽ, dự kiến, dự tính, ước tính) chỉ kích hoạt ở chính mệnh đề hỏi một chỉ số | `unsupportedIn`, `negated`, `conditional` |
+| S4BS-06 | `source_verbs: [báo]`: lúc nạp sinh cụm "<tên nguồn> báo" cho ý định của chỉ số mà nguồn cung cấp (tên nguồn ở `metrics.yaml`, MỌI nguồn); gỡ cụm khai tay "cảm biến báo" | `SetOptions`, `hitDefs`, pack |
+
+**Khác chữ lệnh của chủ dự án (có lý do, đã đo).**
+- "Con số có đơn vị" của D-OP-18 = c là lượng cùng chiều đo với một chỉ số (lít, khối) và không nằm trong tên thực thể. Bản đầu tính mọi lượng có đơn vị làm H4 WIN-I-715 ("Họp giao ban lúc 7h30, anh cho em số lít dầu cho máy 03 được cấp hôm qua với.") xanh → đỏ: "7h30" là
+  giờ họp, "03" của "máy 03" đứng cạnh "dầu" bị bộ chuẩn hoá gắn đơn vị lít. Sửa trước commit.
+- Dấu "?" là dấu hiệu hỏi của luật cấu trúc D-OP-18 (câu nêu giá trị kèm "?" đi đường câu xác nhận sẵn có, đúng chữ lệnh) NHƯNG vòng này KHÔNG khôi phục "?" làm dấu mệnh đề hỏi ở bất biến (b) (`premiseRanges`): chưa làm, chưa đo (nợ C5 bên dưới).
+  Lệnh lịch sự có "?" mà động từ trong danh sách cụm ("Ghi nhận … nhé?") vẫn là lệnh (S4AS-01 giữ nguyên); động từ NGOÀI danh sách + "?" ("Nhập … nhé?") đi đường câu xác nhận và trả số — đánh đổi đúng chữ lệnh.
+- Bản đầu của S4BS-01 che cả từ khoá quy trình trong đoạn mục đích làm H1 WIN-I-319 xanh → đỏ; sửa bằng `hitsBG` (đoạn mục đích chỉ che ý định số liệu) trước commit. Cả hai chỗ này bắt được nhờ chạy winreport TRƯỚC khi commit.
+
+**Đo** (dữ liệu giả lập; mọi số dưới là lệnh đã chạy; `go vet ./...` 0 dòng, `gofmt -l` trên tệp git theo dõi 0):
+- Test ở mã cuối `80012b7`: không PG 992 pass / 0 fail / 72 skip (PG-only); có PG (cơ sở dữ liệu riêng, đã DROP) 1094 pass / 0 fail / 0 skip; so theo tên với mốc main (1062): 0 mất, 0 đổi kết quả, 32 mới (23 của vòng 2 + 9 của vòng 3);
+  `scripts/kiem-skip-test.py` XANH. Cả cổng (vet, gofmt, test hai kiểu, so tên, kiem-skip, winreport 7 lần) chạy 35 giây (13:35:43 → 13:36:18); số agent chạy song song lúc phóng: 5, chưa đo lại lúc chạy (box có tiến trình go của agent khác, load average 2–9); không test chập chờn.
+- Winreport so với mốc main (bộ nhớ trùng PG từng khối ở H1, H3, H4): bộ 117 117/117, **0 dòng khác main** (WIN-I-086 đỏ → xanh so với đầu vòng 3); H1 96/104 (main 91), H3 122/134 (112), H4 109/119 (103). **0 ca xanh → đỏ ở cả bốn bộ.**
+  So với đầu vòng 3 (`637d5f7`) chỉ đổi hai ca: WIN-I-086 đỏ → xanh; H1 WIN-I-263 đỏ → đỏ (từ trả sai nghĩa im lặng "Dầu đội báo của DZ-05 … chưa có dữ liệu" thành hỏi lại nghĩa số liệu). H3 và H4 không đổi.
+- Bộ phát triển của tác giả (232 câu, viết TRƯỚC lần chạy đầu — bộ câu sinh bằng một script ngoài repo, mốc giờ tệp sinh đứng trước mọi lần chạy; theo họ nghĩa của soát vòng 2; KHÔNG độc lập, oracle tự đặt; nhóm câu có họ nghĩa viết khi đã biết phát hiện nên số cải thiện một phần do cách dựng):
+  đúng / sai nghĩa (không nhãn + có nhãn) / hỏi lại hoặc từ chối thừa — nền main 128 / 61 / 39; đầu vòng 3 133 / 57 / 38; cuối 224 / 1 / 3. Theo nhóm (cuối; đầu vòng 3 trong ngoặc):
+  mục đích / nhờ xác nhận 12 / 13 (3); lệnh có con số ở mệnh đề kề 7 / 7 (0); chữ ghép "nhận định mức" 3 / 4 (0); yêu cầu kèm thêm 4 / 4 (0); lệnh ghi bất kể động từ (24 động từ ngoài danh sách + 6 câu nêu giá trị) 30 / 30 (0); tiền theo cấu trúc 19 / 19 (4), ca âm tiền 11 / 11;
+  chữ báo nghĩa ngẫu nhiên ("sẽ", tiền / chi phí bị phủ định / hoãn) 18 / 19 (2); nguồn + "báo" 7 / 7 (3); câu hỏi THƯỜNG (82 câu, đo hỏi thừa) 81 / 82 (80; nền main 78) — câu còn lại là câu hai mốc thời gian ("… so với hôm qua"), hỏi lại đúng, oracle của tác giả sai.
+- Bộ 325 câu của TÁC GIẢ VÒNG 2 (không phải bộ của vòng này, không độc lập), chạy lại ở mã vòng 3 như một phép đối chứng hồi quy: câu trả lời sai nghĩa (không nhãn + có nhãn) nền main 117 → đầu vòng 3 29 → cuối 18; hỏi thừa 45 → 5 → 5. Phép đo này bắt được MỘT hồi quy của chính
+  vòng 3 ("Lưu lại giúp em EX-03 hôm nay tiêu thụ 3782 L dầu được không ạ?": luật phủ định coi "không" trước từ trung tính "ạ" là phủ định, trả số tiêu thụ không nhãn) — đã sửa ở commit riêng (`contentEnd`: bỏ dấu câu và từ trung tính ở cuối trước khi xét từ phủ định), test đỏ trước.
+- Fuzz 3508 câu (token-soup từ khoá / dấu / số, NFD, chữ hoa, không dấu, ký tự vô hình, emoji, câu 1500 từ, 500 dấu "?", 300 chữ "không"): 0 panic; lỗi chỉ là đầu vào rỗng (46), quá 2000 ký tự (1) và route tri thức cần chỉ mục tài liệu (328; khung thử không có chỉ mục, nền 321).
+- Đột biến (bản sao riêng, mỗi dòng "BỊ BẮT"): n43 187 / 187 (mã `18a5479`; các commit sau đó chỉ đổi `contentEnd` ở `intent.go` + test / n45, không chạm cổng phán quyết hay chuẩn hoá số), n44 16 / 16 (cả `18a5479` và `38d915b`), n45 162 / 162 (159 ở `38d915b` + 3 dòng viết lại ở `80012b7`;
+  0 sống sót, 0 không biên dịch, 0 lỗi khôi phục). Lần chạy n45 đầu ở `18a5479` (163 dòng) cho 137 bắt, 15 neo gãy, 7 không biên dịch, 4 sống sót (S82, S122, S169, S179): đã xử lý ở hai commit `test(S4)`; S115 và S132 không còn mã tương ứng (thay bởi S165–S167, S183 / S186), S169 tương đương trên pack cầu đường (ghi lý do trong script).
+  Đột biến mới của vòng này: S147–S188. Chưa có đột biến nào cho `premiseRanges` dùng `asking` thay cụm hỏi trực tiếp ngoài S82 viết lại.
+
+**Đánh đổi có chủ ý.**
+- Dấu "?" làm câu nêu giá trị thành câu xác nhận ⇒ lệnh "Nhập EX-03 hôm nay dùng 3782 L dầu nhé?" (động từ ngoài danh sách) được TRẢ SỐ tiêu thụ (không nhãn). Đây là hệ quả đúng chữ của D-OP-18 = c; chỉ danh sách cụm mới bắt được nó.
+- Mệnh đề điều kiện được nhận theo VỊ TRÍ (mệnh đề bắt đầu bằng "nếu / giả sử / hễ"): mọi cụm báo nghĩa trong mệnh đề ấy, kể cả phần "thì …", không kích hoạt ("Nếu mưa to thì EX-03 dự báo dùng bao nhiêu dầu?" bị trả số hôm nay).
+- Mệnh đề đoạn mục đích mang cụm xác nhận cuối câu ("… 4k dầu để em báo cáo đúng không?") coi là câu hỏi nên "báo cáo" vẫn tính ⇒ hoà ⇒ hỏi lại (an toàn).
+- Mệnh đề ngữ cảnh nêu cụm tiền mà không phủ định / hoãn ("Kế toán đang quyết toán tháng, …") vẫn bị hỏi lại (an toàn, nặng).
+- USD ở chiều đo riêng (không tỷ giá) nên không quy đổi sang đồng; "k" không là đơn vị tiền ("4k lít").
+
+**Nợ còn mở (không sửa ở vòng này, vòng cuối — có TEST ĐỎ chặn khi làm tiếp ở n45 / test của vòng 3).**
+- **S4BS-02 chờ D-AI-04**: họ dự báo / báo giá / cảnh báo / đánh giá vẫn nhận bằng danh sách cụm của pack. Đã đo lại, chưa phủ đồng nghĩa chưa thấy: "Tiên lượng hôm nay EX-03 dùng bao nhiêu dầu?" → số tiêu thụ; "EX-03 hôm nay dùng 3782 L dầu có ổn không?" → số tiêu thụ; "Gọi tôi khi EX-03 dùng quá 4000 L dầu nhé?" → số tiêu thụ
+  (không "?" thì bị luật nêu-giá-trị bắt, sai nhãn "chưa ghi số liệu" nhưng không im lặng). Phần cấu trúc đã đóng: lệnh ghi bất kể động từ khi không "?", tiền, mệnh đề kề, yêu cầu kèm thêm. Độ phủ do H6 độc lập đo; vòng này không có phép chấm độc lập.
+- **S4BS-08**: B5 / B6 (so sánh hai chỉ số: `len(named) == 2 && len(distinct) == 2`, `len(distinct) < 3`) tương đương trên pack cầu đường (mỗi ý định một chỉ số riêng); thiếu test pack tổng hợp có hai ý định cùng chỉ số.
+- **S4BS-10 = S4AS-09**: chữ con của từ ghép khác nghĩa ngoài "xác nhận" (S4BS-01), "<tên nguồn> báo" (S4BS-06), "nhận định mức" (S4BS-03): "đã được cấp phép hoạt động chưa?", "Báo cáo tình trạng máy", "tiêu thụ bao nhiêu xăng?" (vật tư khác dầu) vẫn trả số một chỉ số không nhãn; số nói tắt không đơn vị ("4 củ", "5 tỷ") còn nguyên (WIN-I-010 ghim).
+- **C5 / bất biến (b)**: "?" chưa được khôi phục làm dấu mệnh đề hỏi ở `premiseRanges`: ngữ cảnh + hỏi bằng "thế nào / ra sao / là gì" (không cụm hỏi của pack) vẫn bị hỏi thừa. Chưa đo ở vòng này.
+- **S4BS-05 (iii) phần từ khoá**: từ khoá của chỉ số bị phủ định / phụ ("… không phải số kho xuất, …", "đội trưởng chưa báo") vẫn hoà ⇒ hỏi lại (an toàn); vòng này chỉ xử lý cụm báo nghĩa và đoạn mục đích.
+- **S4BS-06 giới hạn**: bí danh "hóa đơn" (dấu khác "hoá đơn") chưa là bí danh nguồn ở `metrics.yaml` nên "Hóa đơn báo …" vẫn hoà; "Báo em số dầu cảm biến đo được của …" ("báo" là mệnh lệnh) hỏi lại. "Nhận xét định mức tiêu thụ 3782 L …" ("định mức" là danh từ, cụm hỏi lượng của pack) trả số tiêu thụ không nhãn.
+- Câu "không ca nào còn sai nghĩa không nhãn ở S4" chỉ đúng trong phạm vi đã đo: H4 và bộ phát triển 232 câu của tác giả (còn 1 câu sai nghĩa không nhãn: "Nhận xét định mức tiêu thụ …"); nhóm chưa thấy ngoài bộ (tiên lượng, "có ổn không", xăng, "4 củ") còn sai. H6 độc lập chưa chạy.

@@ -254,3 +254,29 @@ func TestSanitizeKhongCheOanNhayVaCookie(t *testing.T) {
 		}
 	}
 }
+
+// Dạng lọt do soát độc lập 23/10 tìm ra: URL có người dùng RỖNG ("postgres://:mật-khẩu@máy", dạng hay gặp của Redis) — mẫu cũ đòi tên
+// người dùng ít nhất một ký tự nên cả mật khẩu lọt.
+func TestSanitizeCheURLNguoiDungRong(t *testing.T) {
+	for _, c := range []struct{ name, in, secret, keep string }{
+		{"DSN người dùng rỗng", "lỗi kết nối postgres://:hunter2pw@127.0.0.1:5432/eais", "hunter2pw", "127.0.0.1:5432/eais"},
+		{"Redis người dùng rỗng", "dial redis://:hunter2pw@cache:6379/0 thất bại", "hunter2pw", "cache:6379/0 thất bại"},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, c.secret) {
+			t.Errorf("%s: bí mật còn trong %q", c.name, got)
+		}
+		if !strings.Contains(got, c.keep) {
+			t.Errorf("%s: mất cả ngữ cảnh %q, được %q", c.name, c.keep, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+	// ca âm: URL không có thông tin đăng nhập thì giữ nguyên
+	for _, s := range []string{"gọi http://example.com:8080/path thất bại", "postgres://db:5432/eais không trả lời"} {
+		if got := traces.Sanitize(s); got != s {
+			t.Errorf("che oan: %q → %q", s, got)
+		}
+	}
+}

@@ -4,13 +4,18 @@
 # không đột biến nào sống sót hay "khác" (nền đỏ rc=5, đỏ sai chỗ rc=6, chuỗi gốc không khớp rc=2…).
 # Mã đổi sau ngày đó thì chuỗi gốc có thể không còn khớp (mutate.sh báo "xuất hiện 0 lần", rc=2):
 # sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
+# Khối SN (cuối tệp, 23/10/2026, việc 5e): sổ nạp load_records — migration 0006, pgstore/load.go, Ready và cách cmd/eais đọc phiên bản dữ liệu. Mỗi dòng khẳng định
+# test NHẮM TỚI (MUTATE_TEST_MUON); đỏ ở test khác là "đỏ sai chỗ" (rc=6, tính vào "khác"). Chạy riêng khối đó: DOT_BIEN_LOC='^SN' (regex trên nhãn).
 cd "$(dirname "$0")/../.." || exit 1
 # DSN lấy từ môi trường nếu đã đặt (ví dụ người soát chạy trên database riêng); mặc định là PG dev của deploy/docker-compose.yml.
 export EAIS_PG_ADMIN_DSN="${EAIS_PG_ADMIN_DSN:-postgres://postgres@127.0.0.1:25432/eais?sslmode=disable}"
 export EAIS_PG_DSN="${EAIS_PG_DSN:-postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable}"
 export PKGS="./platform/... ./tenants/construction/win/winrun/ ./core/..."
 bat=0 song=0 khac=0
+LOC=${DOT_BIEN_LOC:-}
+skip() { [ -n "$LOC" ] && ! [[ $1 =~ $LOC ]]; } # 0 (đúng) khi dòng có nhãn $1 bị DOT_BIEN_LOC lọc bỏ
 m() {
+	skip "$4" && return
 	scripts/mutate.sh "$1" "$2" "$3" "$4"
 	local rc=$?
 	echo "rc=$rc"
@@ -26,6 +31,7 @@ dsn_db() { printf '%s' "$1" | sed -E 's#^([a-z]+://[^/]*)/[^/?]*#\1/'"$2"'#'; }
 # để mutate.sh tự chạy nền ở đó thì nền áp migration GỐC trước đột biến và đột biến migration sống giả.
 nen_mm=""
 mm() {
+	skip "$4" && return
 	fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; khac=$((khac + 1)); return; }
 	local a d
 	a="$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN")" d="$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")"
@@ -65,6 +71,74 @@ mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t); EXECUTE format('ALTER TABLE %I OWNER TO eais_app', t);" 'X9 0002 giao bảng cho eais_app làm chủ'
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t); EXECUTE format('GRANT UPDATE (tenant_id) ON %I TO eais_app', t);" 'X10 0002 cấp UPDATE theo cột'
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t); EXECUTE format('GRANT REFERENCES (tenant_id) ON %I TO eais_app', t);" 'X11 0002 cấp REFERENCES theo cột'
+
+# ---- Khối SN: sổ nạp load_records (migration 0006) và cách phiên bản dữ liệu đi vào vết ----
+# muon <regex> <lệnh m / mm / mpy ...>: đặt MUTATE_TEST_MUON cho đúng một dòng.
+muon() { MUTATE_TEST_MUON=$1; export MUTATE_TEST_MUON; shift; "$@"; unset MUTATE_TEST_MUON; }
+# mpy <tệp> <đoạn Python> <nhãn>: như m nhưng chuỗi gốc và chuỗi đột biến do đoạn Python sinh từ chính tệp (đột biến dời nhiều đoạn mã liền nhau). Đoạn Python đọc tệp ở
+# argv[1], in chuỗi gốc rồi chuỗi đột biến, mỗi chuỗi kết thúc bằng NUL.
+mpy() {
+	skip "$3" && return
+	local -a pair
+	mapfile -d '' -t pair < <(python3 -I -c "$2" "$1")
+	if [ "${#pair[@]}" -ne 2 ]; then
+		echo "[$3] KHÔNG SINH ĐƯỢC ĐỘT BIẾN từ $1 (mã đã đổi, sửa đoạn Python)"; echo "rc=5"; khac=$((khac + 1)); return 0
+	fi
+	m "$1" "${pair[0]}" "${pair[1]}" "$3"
+}
+M6=db/migrations/0006_so_nap_du_lieu.sql
+L=platform/pgstore/load.go
+SCHEMA='TestLoadRecords(Migration0006|TenantChoPhepVaTuChoi)'
+export PKGS=./platform/pgstore/
+nen_mm="" # PKGS đổi ⇒ lượt nền của mm phải tính lại cho PKGS mới (khoá nền gồm PKGS)
+muon "$SCHEMA" mm $M6 "  USING (tenant_id = current_setting('eais.tenant_id', true))" "  USING (true)" 'SN1 sổ nạp: chính sách đọc mở toang'
+muon "$SCHEMA" mm $M6 "  WITH CHECK (tenant_id = current_setting('eais.tenant_id', true));" "  WITH CHECK (true);" 'SN2 sổ nạp: chính sách ghi mở toang (ghi chéo tenant)'
+muon "$SCHEMA" mm $M6 "ALTER TABLE load_records ENABLE ROW LEVEL SECURITY;" "SELECT 1;" 'SN3 sổ nạp: không bật RLS'
+muon "$SCHEMA" mm $M6 "ALTER TABLE load_records FORCE ROW LEVEL SECURITY;" "SELECT 1;" 'SN4 sổ nạp: không FORCE RLS'
+muon "$SCHEMA" mm $M6 "GRANT SELECT, INSERT ON load_records TO eais_app;" "GRANT SELECT, INSERT, UPDATE ON load_records TO eais_app;" 'SN5 sổ nạp: cấp thêm UPDATE'
+muon "$SCHEMA" mm $M6 "GRANT SELECT, INSERT ON load_records TO eais_app;" "GRANT SELECT, INSERT, DELETE ON load_records TO eais_app;" 'SN6 sổ nạp: cấp thêm DELETE'
+muon "$SCHEMA" mm $M6 "GRANT SELECT, INSERT ON load_records TO eais_app;" "GRANT SELECT, INSERT, TRUNCATE ON load_records TO eais_app;" 'SN7 sổ nạp: cấp thêm TRUNCATE (không chịu RLS)'
+muon "$SCHEMA" mm $M6 "GRANT SELECT, INSERT ON load_records TO eais_app;" "GRANT SELECT, INSERT ON load_records TO eais_app, PUBLIC;" 'SN8 sổ nạp: cấp qua PUBLIC'
+muon "$SCHEMA" mm $M6 "REVOKE ALL ON load_records FROM eais_app;" "SELECT 1;" 'SN9 sổ nạp: chạy lại không gỡ quyền thừa của eais_app'
+muon "$SCHEMA" mm $M6 "REVOKE ALL ON load_records FROM PUBLIC;" "SELECT 1;" 'SN10 sổ nạp: chạy lại không gỡ quyền của PUBLIC'
+muon "$SCHEMA" mm $M6 "DROP POLICY IF EXISTS tenant_isolation ON load_records;" "SELECT 1;" 'SN11 sổ nạp: chạy lại không dựng lại được chính sách'
+muon "$SCHEMA" mm $M6 "CONSTRAINT load_records_tenant_khong_rong CHECK (tenant_id <> ''),"  "CHECK (true)," 'SN12 sổ nạp: tenant rỗng được phép'
+muon "$SCHEMA" mm $M6 "PRIMARY KEY (tenant_id, id)," "PRIMARY KEY (id)," 'SN13 sổ nạp: khoá chính không có tenant'
+muon 'TestLoadRecordsRangBuocDB' mm $M6 "CHECK (data_version = '' OR data_version ~ '^[0-9a-f]{64}$')," "CHECK (true)," 'SN14 sổ nạp: phiên bản không cần 64 hex'
+muon 'TestLoadRecordsRangBuocDB' mm $M6 "CHECK ((data_version = '') = (load_id = ''))" "CHECK (true)" 'SN15 sổ nạp: có phiên bản mà mã lần nạp rỗng (hoặc ngược lại)'
+muon 'TestLoadRecords|TestLoadWithVersion' m $L $'`INSERT INTO load_records (tenant_id, load_id, data_version)\n\t\t\tVALUES (current_setting(\'eais.tenant_id\'), $1, $2)`' $'`SELECT current_setting(\'eais.tenant_id\'), $1::text, $2::text`' 'SN16 Load không ghi dòng sổ nạp'
+muon 'TestLoadRecordsCungGiaoDichVoiDuLieu' mpy $L '
+import sys
+s = open(sys.argv[1], encoding="utf-8").read()
+head = "\treturn s.inTenant(ctx, tenant, func(tx pgx.Tx) error {\n\t\tif _, err := tx.Exec(ctx, \"SELECT pg_advisory_xact_lock($1)\""
+ins = "\t\t_, err := tx.Exec(ctx, `INSERT INTO load_records (tenant_id, load_id, data_version)\n\t\t\tVALUES (current_setting(\x27eais.tenant_id\x27), $1, $2)`, info.LoadID, info.DataVersion)\n\t\treturn err\n\t})\n}"
+a = s.index(head)
+b = s.index(ins, a) + len(ins)
+frm = s[a:b]
+to = frm.replace("\treturn s.inTenant(ctx, tenant, func(tx pgx.Tx) error {", "\tif err := s.inTenant(ctx, tenant, func(tx pgx.Tx) error {", 1)
+to = to.replace(ins, "\t\treturn nil\n\t}); err != nil {\n\t\treturn err\n\t}\n\treturn s.inTenant(ctx, tenant, func(tx pgx.Tx) error {\n" + ins, 1)
+sys.stdout.write(frm + "\0" + to + "\0")
+' 'SN17 dòng sổ nạp ghi NGOÀI giao dịch thay dữ liệu (giao dịch riêng, sau commit)'
+muon 'TestLoadDongThoiCungTenant|TestLoadRecordsNapChongNhauKhopDuLieu' m $L '"SELECT pg_advisory_xact_lock($1)"' '"SELECT $1::bigint"' 'SN18 Load bỏ khoá tư vấn: dòng sổ không còn theo thứ tự commit'
+muon 'TestLoadRecordsGhiVaDocLai' m $L 'ORDER BY id DESC LIMIT 1' 'ORDER BY id ASC LIMIT 1' 'SN19 LatestLoad trả lần nạp CŨ NHẤT'
+muon 'TestLoadWithVersionTuChoiPhienBanSai' m $L 'if info.LoadID == "" || !dataVersionFormat.MatchString(info.DataVersion) {' 'if false {' 'SN20 LoadWithVersion nhận phiên bản sai dạng (chạm DB)'
+muon 'TestLoadRecordsChuaNapVaNapKhongPhienBan' m $L $'\t\t_, err := tx.Exec(ctx, `INSERT INTO load_records' $'\t\tif info == (LoadInfo{}) {\n\t\t\treturn nil\n\t\t}\n\t\t_, err := tx.Exec(ctx, `INSERT INTO load_records' 'SN21 Load không kèm phiên bản không ghi dòng "không ghi nhận" (phiên bản cũ đọc ra như còn đúng)'
+muon 'TestReadySoNap' m platform/pgstore/ready.go '{"load_records", []string{"SELECT", "INSERT"}, nil, nil},' '{"load_records", []string{}, nil, nil},' 'SN22 Ready không đòi quyền trên sổ nạp'
+export PKGS=./cmd/eais/
+A=cmd/eais/app.go S=cmd/eais/server.go
+muon 'TestDataVersionCLIIngestWhileServing' m $S 'dv, verr := s.app.loadedVersion(ctx, pr.TenantID)' 'dv, verr := s.app.dataVersionNow(), error(nil)' 'SN23 lượt hỏi không đọc sổ nạp (dùng phiên bản app nhớ)'
+muon 'TestDataVersionNeverLoaded' m $A 'return dataVersionNone, nil' 'return "0000000000000000000000000000000000000000000000000000000000000000", nil' 'SN24 tenant chưa nạp khai một băm bịa thay vì nói chưa nạp'
+muon 'TestDataVersionUnversionedLoadSupersedes' m $A 'case errors.Is(err, pgstore.ErrNotFound), err == nil && rec.DataVersion == "":' 'case errors.Is(err, pgstore.ErrNotFound):' 'SN25 dòng sổ "không ghi nhận" đọc ra phiên bản rỗng thay vì "chưa ghi nhận"'
+muon 'TestDataVersionCLIIngestWhileServing' m $S 's.app.askFor(dv).Handle(ctx, pr, req)' 's.app.ask.Load().Handle(ctx, pr, req)' 'SN26 lượt hỏi dùng Ask nền (phiên bản app nhớ) thay vì Ask của lượt'
+muon 'TestDataVersion(CLIIngestWhileServing|DirChangedAfterIngest)' m $A 'k.Deps.DataVersion = dv' '_ = dv' 'SN27 askFor không gắn phiên bản của lượt'
+muon 'TestDataVersionErrorTurns' m $S 's.app.versions(dv), err)' 's.app.versions(s.app.dataVersionNow()), err)' 'SN28 vết lượt lỗi khai phiên bản app nhớ'
+muon 'TestDataVersionCommandTrace' m $S 'dv, verr := s.app.loadedVersion(vctx, pr.TenantID)' 'dv, verr := s.app.dataVersionNow(), error(nil); _ = vctx' 'SN29 lượt lệnh không đọc sổ nạp (dùng phiên bản app nhớ)'
+muon 'TestDataVersionErrorTurns' m $A 'rec, err := l.LatestLoad(contracts.WithTenant(ctx, tenant))' 'rec, err := l.LatestLoad(contracts.WithTenant(ctx, contracts.TenantID(a.tenantID())))' 'SN30 đọc sổ nạp theo tenant của app thay vì tenant của lượt (vết tenant khác mang phiên bản của tenant này)'
+muon 'TestDataVersionUnreadable' m $S $'\tif verr != nil {\n\t\ts.log.Error("không đọc được phiên bản dữ liệu của lượt",' $'\tif false && verr != nil {\n\t\ts.log.Error("không đọc được phiên bản dữ liệu của lượt",' 'SN31 lượt hỏi vẫn trả lời khi không đọc được phiên bản (mở mặc định)'
+muon 'TestDataVersion' m $A 'if l := ledgerOf(a.st); l != nil {' 'if l := ledgerOf(a.st); false && l != nil {' 'SN32 app.ingest không ghi phiên bản vào sổ nạp'
+muon 'TestDataVersionDirChangedAfterIngest' m $A 'if ledgerOf(st) != nil {' 'if false && ledgerOf(st) != nil {' 'SN33 newApp lấy phiên bản nền từ băm thư mục (kho có sổ)'
+muon 'TestDataVersionStartupLedgerError' m $A 'return nil, fmt.Errorf("không đọc được phiên bản dữ liệu từ sổ nạp của kho: %w", err)' 'dv = ""' 'SN34 khởi động nuốt lỗi đọc sổ nạp'
+
 psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

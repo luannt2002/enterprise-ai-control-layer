@@ -8,8 +8,8 @@ export PKGS="./intelligence/intent/ ./intelligence/router/ ./core/pipeline/ ./co
 I=intelligence/intent/intent.go
 O=intelligence/router/router.go
 A=core/pipeline/ask.go
-m $I 'if len(partial) > 0 || !s.scopeSignal(in, res) {' 'if true {' 'S1 tắt nhánh (a): không khớp ý định vẫn là ngoài phạm vi'
-m $I 'if len(partial) > 0 || !s.scopeSignal(in, res) {' 'if len(partial) > 0 {' 'S2 bỏ tín hiệu phạm vi: câu không thực thể / không thuật ngữ cũng hỏi lại'
+m $I 'if len(partial) > 0 || !s.scopeSignal(in, res, implicit) {' 'if true {' 'S1 tắt nhánh (a): không khớp ý định vẫn là ngoài phạm vi'
+m $I 'if len(partial) > 0 || !s.scopeSignal(in, res, implicit) {' 'if len(partial) > 0 {' 'S2 bỏ tín hiệu phạm vi: câu không thực thể / không thuật ngữ cũng hỏi lại'
 m $I '	if len(res.Entities)+len(res.Ambiguous) == 0 {
 		return false
 	}' '	if false {
@@ -29,10 +29,12 @@ m $I '			if d.MetricByTerm[term] == metric {' '			if true {' 'S11 mọi từ kho
 m $I '		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			continue
 		}
-		for _, k := range d.Keywords {' '		if len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
+		for _, k := range d.Keywords {
+			if d.MetricByTerm[term] == metric {' '		if len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			continue
 		}
-		for _, k := range d.Keywords {' 'S12 từ khoá của chính ý định chung ("hết" của "hết bao nhiêu") thành giải thích được'
+		for _, k := range d.Keywords {
+			if d.MetricByTerm[term] == metric {' 'S12 từ khoá của chính ý định chung ("hết" của "hết bao nhiêu") thành giải thích được'
 m $I '		if whole(p, other) && !whole(p, own) {' '		if whole(p, other) && !whole(p, own) && false {' 'S13 từ trung tính là mảnh từ khoá của chỉ số khác ("đo") vẫn được tha'
 m $I '		if !slices.ContainsFunc(own, func(c string) bool {' '		if false && !slices.ContainsFunc(own, func(c string) bool {' 'S14 a2 bỏ kiểm chữ còn lại (chữ lạ "xài", "hao" vẫn trả số kho xuất)'
 m $I '		cover(e.Start, e.End)
@@ -49,31 +51,33 @@ m $I '			if ws, we, ok := normalization.PeriodWordBefore(raw, sp.Start); ok {
 				cover(ws, we)
 			}
 		case contracts.ValueTerm:' 'S17 a2 không che "ngày" đứng trước mốc số'
-m $I '		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
-			cover(sp.Start, sp.End)' '		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
-			_ = sp' 'S18 a2 không che số trần không đứng cạnh "dầu" (soát S4 vòng 2, F2: nhánh từng bị bỏ nhầm là mã chết)'
-m $I '	for _, p := range s.opt.FocusMarkers {
-		for _, sp := range normalization.PhraseSpans(raw, p) {
-			cover(sp[0], sp[1])
-		}
-	}' '	for _, p := range s.opt.FocusMarkers[:0] {
-		for _, sp := range normalization.PhraseSpans(raw, p) {
-			cover(sp[0], sp[1])
-		}
-	}' 'S19 a2 không che cụm xác nhận'
+m $I '			if s.inRange(metric, sp.Value) {
+				cover(sp.Start, sp.End)
+			}' '			_ = sp' 'S18 a2 không che số trần không đứng cạnh "dầu" (soát S4 vòng 2, F2: nhánh từng bị bỏ nhầm là mã chết)'
+# S19 — tương đương trên pack cầu đường từ vòng s4a (23/10): chữ của cụm xác nhận đã được che theo TỪNG CHỮ (S96); vòng che theo cụm chỉ còn
+# khác khi một chữ của cụm xác nhận cũng là mảnh từ khoá của chỉ số khác (pack cầu đường không có). Giữ vòng che theo cụm cho pack khác.
+# m $I '	for _, p := range s.opt.FocusMarkers {
+#		for _, sp := range normalization.PhraseSpans(raw, p) {
+#			cover(sp[0], sp[1])
+#		}
+#	}' '	for _, p := range s.opt.FocusMarkers[:0] {
+#		for _, sp := range normalization.PhraseSpans(raw, p) {
+#			cover(sp[0], sp[1])
+#		}
+#	}' 'S19 a2 không che cụm xác nhận'
 m $O '	case len(cls.NeedMeaning) > 0:' '	case false:' 'S20 router bỏ nhánh hỏi lại nghĩa số liệu'
 m $A '		return d.Capability != "" && !a.RT.Policy.Allows(pr, d.Capability)' '		return d.Capability != "" && false' 'S21 hỏi lại kể cả ý định người hỏi không có quyền'
 m $A 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))' 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm))' 'S22 câu hỏi lại không kể các nghĩa số liệu'
 m $A '		vars["assumption_note"] = " " + def.Assumption' '		_ = def.Assumption' 'S23 câu trả lời theo ý định chung không nói giả định'
 m $I '	return gen[0], meaning' '	return gen[0], meaning || true' 'S24 a2 không đòi chữ nêu nghĩa (câu xác nhận không nêu chỉ số vẫn trả số kho xuất, trái BR-FUEL-02)'
 m $O '			if !pol.InScope(pr, lineage(e)) {' '			if false {' 'S25 hỏi lại nghĩa số liệu cho cả thực thể ngoài phạm vi dữ liệu'
-m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: s.meaningOptions(), Candidates: cands}' 'S26 câu hỏi lại nghĩa số liệu không mang thực thể đã giải (bỏ kiểm phạm vi)'
-m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands[:0]}' 'S27 câu hỏi lại nghĩa số liệu không kể ứng viên của bí danh mơ hồ'
+m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}' 'return Result{NeedMeaning: s.meaningOptions(), Candidates: aliasCandidates(res)}' 'S26 câu hỏi lại nghĩa số liệu không mang thực thể đã giải (bỏ kiểm phạm vi)'
+m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}' 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)[:0]}' 'S27 câu hỏi lại nghĩa số liệu không kể ứng viên của bí danh mơ hồ'
 # Soát S4 vòng 1 (S4R-01, S4R-06, S4R-08): a2 chỉ che thuật ngữ của ý định chung và lượng cùng chiều đo; khớp chữ theo cả câu; pack kiểm chỗ
 # cho câu giả định.
 m $I '			if slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text) {' '			if true {' 'S28 a2 che mọi thuật ngữ ("đơn giá", "giờ máy" thành trung tính)'
-m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if true {' 'S29 a2 che mọi lượng có đơn vị ("7 tấn" thành trung tính)'
-m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {' '			if false {' 'S30 a2 không che lượng cùng chiều đo ("4 khối" thành chữ lạ)'
+m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {' '			if true {' 'S29 a2 che mọi lượng có đơn vị ("7 tấn" thành trung tính)'
+m $I '			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {' '			if false {' 'S30 a2 không che lượng cùng chiều đo ("4 khối" thành chữ lạ)'
 m $I '		if !slices.ContainsFunc(own, func(c string) bool {' '		if !whole(raw[i:j], own) && !slices.ContainsFunc(own, func(c string) bool {' 'S31 a2 khớp chữ theo từng chữ riêng ("duoc" không dấu thành "được")'
 P=core/tenant/pack.go
 m $P '			if text, ok := tf.Templates[name]; ok && !strings.Contains(text, "{assumption_note}") {' '			if text, ok := tf.Templates[name]; ok && false && !strings.Contains(text, "{assumption_note}") {' 'S32 pack không kiểm chỗ cho câu giả định'
@@ -120,7 +124,7 @@ m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 
 m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if len(r.Ambiguous) > 0 && len(r.Candidates) == 0 {' 'S74 chỉ hoà ý định mang ứng viên, thiếu thuật ngữ thì bỏ rơi'
 m tenants/construction/pack/templates.yaml '  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"' '  clarify_intent: "Bạn muốn hỏi {options}?"' 'S75 mẫu hỏi lại nghĩa số liệu không kể ứng viên (người dùng không thấy máy nào cần chọn)'
 # C5 (bất biến (b), vai mệnh đề): mệnh đề ngữ cảnh nêu con số, đứng trước mệnh đề hỏi có chỉ số riêng, không quyết định ý định.
-m $I 'counts, firsts := keywordHits(s.defs, maskRanges(in.Raw, s.premiseRanges(in, res)), s.opt.IgnorePhrases)' 'counts, firsts := keywordHits(s.defs, in.Raw, s.opt.IgnorePhrases)' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
+m $I '	text := maskRanges(in.Raw, prem)' '	text := in.Raw' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
 m $I '	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {' '	if len(out) == 0 {' 'S77 che mệnh đề trước cả khi mệnh đề hỏi chỉ là cái đuôi không có chỉ số riêng'
 m $I '		if hasFigure(in, res, cl[i][0], cl[i][1]) {
 			out = append(out, cl[i])' '		if true {
@@ -171,15 +175,13 @@ m $I '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, kh�
 			cover(sp.Start, sp.End)' '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
 			_ = sp' 'S95 a2 đòi giải thích cả mã chứng từ'
 m $I '		neutral = append(neutral, strings.Fields(m)...)' '		_ = m' 'S96 chữ của cụm xác nhận ("đúng") không trung tính với a2'
-m $I '		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
-	})
-}
-
-// meaningOptions' '		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w) && false
-	})
-}
-
-// meaningOptions' 'S98 từ trung tính ("được") không được coi là trung tính khi tìm chữ của từ khoá chỉ số'
+m $I '	return slices.ContainsFunc(s.opt.NeutralWords, func(n string) bool {
+		sp := normalization.PhraseSpans(w, n)
+		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
+	})' '	return slices.ContainsFunc(s.opt.NeutralWords, func(n string) bool {
+		sp := normalization.PhraseSpans(w, n)
+		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w) && false
+	})' 'S98 từ trung tính ("được") không được coi là trung tính khi tìm chữ của từ khoá chỉ số'
 m tenants/construction/pack/intents.yaml '    keywords: [chào, hello]' '    keywords: [xin chào, hello]' 'S97 lời chào chỉ là cụm "xin chào"'
 # F6' (nợ S4 sau H4): số không tự viết đơn vị mà ngoài miền một lần đo của chỉ số không phải giá trị của nó.
 m $I '			if s.inRange(metric, sp.Value) {

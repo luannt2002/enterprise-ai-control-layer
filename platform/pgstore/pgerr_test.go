@@ -3,6 +3,7 @@ package pgstore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -40,6 +41,11 @@ func TestPhanLoaiLoiPG(t *testing.T) {
 		{"42501 thiếu quyền / RLS chặn ghi", &pgconn.PgError{Code: "42501"}, false, http.StatusInternalServerError},
 		{"42P01 bảng không có", &pgconn.PgError{Code: "42P01"}, false, http.StatusInternalServerError},
 		{"XX000 lỗi nội bộ", &pgconn.PgError{Code: "XX000"}, false, http.StatusInternalServerError},
+		// lỗi tất định không mang SQLSTATE (soát độc lập 5b-1): thử lại y nguyên vẫn hỏng
+		{"không có dòng", pgx.ErrNoRows, false, http.StatusInternalServerError},
+		{"không có dòng, bọc", fmt.Errorf("đọc phiếu: %w", pgx.ErrNoRows), false, http.StatusInternalServerError},
+		{"commit thành rollback (fn nuốt lỗi)", pgx.ErrTxCommitRollback, false, http.StatusInternalServerError},
+		{"quét sai kiểu cột", pgx.ScanArgError{ColumnIndex: 0, Err: errors.New("cannot scan text into *int")}, false, http.StatusInternalServerError},
 	} {
 		got := classifyPGError(c.err)
 		if contracts.Retryable(got) != c.retryable || contracts.HTTPStatus(got) != c.status {
@@ -95,6 +101,20 @@ func TestLoiPGThatQuaInTenant(t *testing.T) {
 		if contracts.Retryable(err) != c.retryable || contracts.HTTPStatus(err) != c.status {
 			t.Errorf("%s: nhãn %q, thử lại %v, HTTP %d; muốn thử lại %v, HTTP %d (lỗi: %v)", c.name, contracts.FaultOf(err),
 				contracts.Retryable(err), contracts.HTTPStatus(err), c.retryable, c.status, err)
+		}
+	}
+	// lỗi tất định do pgx sinh ở phía khách (không SQLSTATE): không có dòng, quét sai kiểu
+	for _, c := range []struct {
+		name string
+		scan func(tx pgx.Tx) error
+	}{
+		{"không có dòng", func(tx pgx.Tx) error { var n int; return tx.QueryRow(ctx, "SELECT 1 WHERE false").Scan(&n) }},
+		{"quét chữ vào số", func(tx pgx.Tx) error { var n int; return tx.QueryRow(ctx, "SELECT 'abc'::text").Scan(&n) }},
+	} {
+		err := s.inTenant(ctx, "abc-infra", c.scan)
+		if err == nil || contracts.Retryable(err) || contracts.HTTPStatus(err) != http.StatusInternalServerError {
+			t.Errorf("%s: nhãn %q, thử lại %v, HTTP %d; muốn lỗi của mã, không thử lại, HTTP 500 (lỗi: %v)", c.name,
+				contracts.FaultOf(err), contracts.Retryable(err), contracts.HTTPStatus(err), err)
 		}
 	}
 }

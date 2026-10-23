@@ -176,6 +176,11 @@ func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar 
 	}
 	for _, m := range res.Ambiguous {
 		keys := refKeys(m.Candidates)
+		if !fullScope { // danh sách TRƯỚC lọc phạm vi trừ đi danh sách sau lọc = khoá ngoài phạm vi (C9, lệnh ca chiều 23/10): chỉ kể số lượng
+			n.Reason("cụm %s (khoá so khớp %s) khớp %d thực thể — không chọn bừa (vết không kể khoá ứng viên trước khi lọc phạm vi)",
+				contracts.Quote(rawSpan(in.Raw, m.Start, m.End)), contracts.Quote(m.Mention), len(keys))
+			continue
+		}
 		n.Reason("cụm %s (khoá so khớp %s) khớp %d thực thể: %s — không chọn bừa", contracts.Quote(rawSpan(in.Raw, m.Start, m.End)), contracts.Quote(m.Mention),
 			len(keys), contracts.Brief(keys, maxListed, "ứng viên"))
 	}

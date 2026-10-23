@@ -13,8 +13,8 @@
 # Biến tuỳ chọn: PKGS (mặc định ./execution/commands/), MUTATE_SH (mặc định scripts/mutate.sh), DOT_BIEN_CHI="M1 M21" (chỉ chạy các mã đó).
 # Mã thoát 0 chỉ khi không đột biến nào sống sót hay "khác" (như dot-bien-vet.sh); dòng "chờ K3" và "tương đương" có lý do và không tính.
 #
-# Đột biến nào cần cửa HTTP hay đường lưu vết của K3 (M9 ở cửa HTTP, M24 phần vết đã lưu, M25): dòng được viết sẵn ở cuối tệp, tắt bằng dấu #, ghi rõ CHỜ K3
-# (nhánh m4/k3-route, chưa gộp), đã thử trên cây thử gộp. Dòng M5 và M13 có ghi chú giới hạn kèm số đo (xem chỗ đó).
+# Đột biến cần cửa HTTP hay đường lưu vết của K3 (M9 ở cửa HTTP, M24 phần vết đã lưu, M25): ở cuối tệp, chạy với PKGS=./cmd/eais/. Trước khi K3
+# gộp (3892be2) chúng tắt bằng dấu # và ghi CHỜ K3; đã thử trên cây thử gộp K4 + K3. Dòng M5 và M13 có ghi chú giới hạn kèm số đo (xem chỗ đó).
 set -u
 cd "$(dirname "$0")/../.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
@@ -259,23 +259,22 @@ m M26 'tra sổ lệnh chỉ theo (tenant, command_id), bỏ người gọi' $S 
 	"$PG/A05_[^ ]*/results"
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
-# CHỜ K3 (nhánh m4/k3-route, chưa gộp vào main): cần cửa HTTP và đường lưu vết của cmd/eais. Ba dòng dưới được soạn theo m4/k3-route@1a56f9b và ĐÃ THỬ ngày 23/10 trên một cây
-# THỬ GỘP (K4 + K3, không commit, PKGS=./cmd/eais/, mutate.sh bản mới): cả ba "BỊ BẮT" đúng test của K3 (mẫu ghi ở cuối mỗi dòng). Chúng vẫn tắt bằng dấu # vì main chưa có route lệnh:
-# bỏ dấu # khi K3 đã gộp, đặt PKGS=./cmd/eais/ khi chạy, và đối chiếu lại chuỗi gốc (mutate.sh báo "xuất hiện 0 lần" nếu mã đã đổi).
+# Cửa HTTP và đường lưu vết của cmd/eais (K3, đã gộp vào main ở 3892be2; soát K4, K4S-10). Ba dòng soạn theo m4/k3-route@1a56f9b, đã thử trên cây thử
+# gộp K4 + K3 (cả ba "BỊ BẮT" đúng test của K3) và đối chiếu lại chuỗi gốc trên main 3892be2: mỗi chuỗi xuất hiện đúng một lần ở cmd/eais/server.go.
+# Chạy với PKGS=./cmd/eais/ (đặt riêng từng dòng) và mutate.sh bản có MUTATE_TEST_MUON.
 #
 # M9 ở cửa HTTP (A11, A28): thân yêu cầu mang trường tenant / principal / vai được nhận thay vì bị từ chối (bỏ giải mã chặt của decodeCommand).
-# m M9h 'cửa HTTP không còn từ chối trường lạ (tenant, principal, role) trong thân' cmd/eais/server.go \
-#	$'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))\n\tdec.DisallowUnknownFields()' $'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))' \
-#	'TestLenhHTTPThanSai' 'TestLenhHTTPTenTruongLaDuocCat'
+PKGS=./cmd/eais/ m M9h 'cửa HTTP không còn từ chối trường lạ (tenant, principal, role) trong thân' cmd/eais/server.go \
+	$'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))\n\tdec.DisallowUnknownFields()' $'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))' \
+	'TestLenhHTTPThanSai' 'TestLenhHTTPTenTruongLaDuocCat'
 # M24 (phần vết đã lưu, A29 (c)): chi tiết đã nằm ở m M24 phía trên (dữ liệu thô); phần qua eais trace và GET /v1/trace/{id} do K3 kiểm trong TestLenhHTTPVet.
 # M25: không lưu vết cho lượt không phải DONE, hoặc để lỗi lưu vết đổi kết quả đã ghi (A29 (b), (e)):
-# m M25a 'lỗi lưu vết đổi kết quả đã ghi (đổi mã HTTP)' cmd/eais/server.go \
-#	$'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t}' $'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t\tstatus = http.StatusServiceUnavailable\n\t\t}' \
-#	'TestLenhHTTPMatVetKhongDoiKetQua'
-# m M25b 'chỉ lưu vết lượt DONE' cmd/eais/server.go \
-#	'if s.persistTrace(r.Context(), pr, rec) == nil {' 'if out.Result.Status != commands.StatusDone || s.persistTrace(r.Context(), pr, rec) == nil {' \
-#	'TestLenhHTTPVet|TestLenhHTTPKetCuc'
-cho=$((cho + 3)) # M9 (cửa HTTP), M25a, M25b
+PKGS=./cmd/eais/ m M25a 'lỗi lưu vết đổi kết quả đã ghi (đổi mã HTTP)' cmd/eais/server.go \
+	$'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t}' $'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t\tstatus = http.StatusServiceUnavailable\n\t\t}' \
+	'TestLenhHTTPMatVetKhongDoiKetQua'
+PKGS=./cmd/eais/ m M25b 'chỉ lưu vết lượt DONE' cmd/eais/server.go \
+	'if s.persistTrace(r.Context(), pr, rec) == nil {' 'if out.Result.Status != commands.StatusDone || s.persistTrace(r.Context(), pr, rec) == nil {' \
+	'TestLenhHTTPVet|TestLenhHTTPKetCuc'
 
 echo "TỔNG: đúng chỗ $bat · sống sót $song · khác $khac · chờ K3 $cho"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

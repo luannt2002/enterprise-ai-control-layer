@@ -62,3 +62,89 @@ func equalStrs(a, b []string) bool {
 	}
 	return true
 }
+
+// Nhóm nghìn mà con số KHÔNG đứng đầu văn bản là CHƯA PHÂN ĐỊNH (D-OP-9, phương án a'): "bể 2 500 lít" là 2.500 L, hay bể 2 với 500 L?
+// Hệ vẫn gộp thành MỘT lượng — không để phần đầu thành số mồ côi ("12 000 km" không được thành "12" + "000 km") — nhưng gắn cờ, để tầng
+// sau hỏi lại / cách ly thay vì tin một cách đọc. Con số đứng đầu văn bản thì chắc chắn, kể cả khi trước nó có khoảng trắng hay ký tự
+// định dạng vô hình (ZWSP, BOM…): người đọc vẫn thấy con số đứng đầu.
+func TestNhomNghinChuaPhanDinhKhiKhongDungDauVanBan(t *testing.T) {
+	e := mustEngine(t)
+	// ký tự vô hình viết bằng rune: chuỗi thoát \u trong lệnh ghi tệp bị công cụ giải mã thành ký tự thật
+	zwsp, bom, softHyphen := string(rune(0x200B)), string(rune(0xFEFF)), string(rune(0x00AD))
+	for _, c := range []struct {
+		in        string
+		uncertain bool
+	}{
+		// đứng đầu văn bản: chắc chắn
+		{"3 850 lít", false},
+		{"3 850 lít dầu cho máy 03", false},
+		{"  3 850 lít", false},
+		{"\t\n3 850 lít", false},
+		{zwsp + "3 850 lít", false},
+		{bom + "3 850 lít", false},
+		{softHyphen + "3 850 lít", false},
+		{zwsp + " " + bom + " 3 850 lít", false},
+		// không đứng đầu: chưa phân định
+		{"cấp 3 850 lít", true},
+		{"bể 2 500 lít", true},
+		{"bể #2 500 lít", true},
+		{"bể: 2 500 lít", true},
+		{"12 3 850 lít", true},
+		{"máy 03 đổ 1 200 lít", true},
+		{zwsp + "cấp 3 850 lít", true}, // ký tự vô hình không biến chữ đứng trước thành "đầu văn bản"
+	} {
+		in := e.Normalize(c.in, Options{Now: now})
+		var groups []contracts.Span
+		for _, sp := range in.Spans {
+			if SpaceGroup(sp) {
+				groups = append(groups, sp)
+			}
+		}
+		if len(groups) != 1 {
+			t.Errorf("%q: muốn đúng một span nhóm nghìn, được %d (%v)", c.in, len(groups), in.Spans)
+			continue
+		}
+		sp := groups[0]
+		if got := UncertainGroup(sp); got != c.uncertain {
+			t.Errorf("%q: UncertainGroup = %v, muốn %v (rule %q)", c.in, got, c.uncertain, sp.Rule)
+		}
+		if c.uncertain != (sp.Confidence < 1) {
+			t.Errorf("%q: độ tin cậy %.2f, muốn < 1 khi và chỉ khi chưa phân định (%v)", c.in, sp.Confidence, c.uncertain)
+		}
+		if sp.Kind != contracts.ValueQuantity || sp.Value.Unit != "L" {
+			t.Errorf("%q: cờ không được đổi kiểu / đơn vị của span: %+v", c.in, sp)
+		}
+	}
+}
+
+// Cờ chưa phân định KHÔNG làm đổi giá trị hay cờ ước lượng của span, và nguồn có cấu trúc (Options.Cell: văn bản là MỘT ô lượng của bảng /
+// ERP / phiếu) không bao giờ chưa phân định: ô đã tách sẵn lượng khỏi chữ chung quanh, nên "khoảng 3 850 L" ở ô là một lượng ước lượng, không phải
+// "số hiệu 3 rồi 850 L" (soát bản thử (a') đêm 21/10, S3).
+func TestNhomNghinOCoCauTrucLuonChacChan(t *testing.T) {
+	e := mustEngine(t)
+	for _, c := range []struct {
+		in              string
+		approx          bool
+		uncertainInText bool // ở văn bản thường (không phải ô)
+	}{
+		{"3 850 L", false, false},
+		{"khoảng 3 850 L", true, true},
+		{"tầm 3 850 L", true, true},
+		{"cỡ 1 200 000 L", true, true},
+	} {
+		cell := e.Normalize(c.in, Options{Now: now, Cell: true}).SpansOf(contracts.ValueQuantity)
+		text := e.Normalize(c.in, Options{Now: now}).SpansOf(contracts.ValueQuantity)
+		if len(cell) != 1 || len(text) != 1 {
+			t.Fatalf("%q: muốn một lượng ở cả hai chế độ, ô %d, văn bản %d", c.in, len(cell), len(text))
+		}
+		if UncertainGroup(cell[0]) || cell[0].Confidence != 1 {
+			t.Errorf("%q: ô có cấu trúc không được chưa phân định: %+v", c.in, cell[0])
+		}
+		if UncertainGroup(text[0]) != c.uncertainInText {
+			t.Errorf("%q: ở văn bản thường UncertainGroup phải là %v: %+v", c.in, c.uncertainInText, text[0])
+		}
+		if cell[0].Value != text[0].Value || cell[0].Value.Approx != c.approx {
+			t.Errorf("%q: giá trị ô %+v khác giá trị văn bản %+v, hoặc cờ ước lượng không phải %v", c.in, cell[0].Value, text[0].Value, c.approx)
+		}
+	}
+}

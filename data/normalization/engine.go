@@ -29,6 +29,9 @@ type Options struct {
 	// nghiệp vụ (ForbidDimensions). Câu hỏi của người dùng KHÔNG bật: "bao nhiêu lít 7 ngày qua" sẽ bị
 	// đọc nhầm "lít 7" là một lượng.
 	Layout bool
+	// Cell báo văn bản là MỘT ô lượng của nguồn có cấu trúc (bảng, ERP, phiếu): ô đã tách sẵn lượng khỏi chữ chung quanh, nên lượng viết nhóm nghìn
+	// trong đó luôn chắc chắn — không bao giờ mang cờ chưa phân định (xem UncertainGroup). Văn bản chữ tự do (tin nhắn, câu hỏi, dòng báo cáo) không bật.
+	Cell bool
 }
 
 // builtinMultipliers là từ chỉ hàng tiếng Việt đứng sau chữ số: "3 trăm", "4 nghìn".
@@ -105,6 +108,9 @@ func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 			if sp, next, ok := e.matchQuantity(raw, toks, i, opt.Layout); ok {
 				if i <= approxUntil {
 					sp.Value.Approx = true
+				}
+				if !opt.Cell {
+					markUncertainGroup(raw, &sp)
 				}
 				spans, i = append(spans, sp), next
 				continue
@@ -227,7 +233,7 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 			for k := i; k <= n; k += 2 {
 				b.WriteString(toks[k].text)
 			}
-			text, end, rule = b.String(), toks[n].end, "number:digits:space_thousands"
+			text, end, rule = b.String(), toks[n].end, ruleSpaceThousands
 		}
 		v, ambiguousSep, ok := parseLocaleNumber(text)
 		if !ok {
@@ -283,6 +289,42 @@ func (e *Engine) matchQuantity(s string, toks []token, i int, layout bool) (cont
 		Kind: kind, Raw: s[t.start:end], Start: t.start, End: end,
 		Value: value, Confidence: conf, Rule: rule,
 	}, tokenAt(toks, end), true
+}
+
+// Rule của span lượng viết nhóm nghìn ngăn bằng dấu cách ("3 850 lít"). Bản "uncertain" là cờ CHƯA PHÂN ĐỊNH: con số không đứng đầu văn bản
+// (xem markUncertainGroup). Tầng sau đọc cờ qua UncertainGroup, không so chuỗi.
+const (
+	ruleSpaceThousands          = "number:digits:space_thousands"
+	ruleSpaceThousandsUncertain = ruleSpaceThousands + ":uncertain"
+	// uncertainGroupConfidence: hai cách đọc ngang nhau ("bể 2 500 lít": 2.500 L, hay bể 2 với 500 L) nên độ tin cậy 0,5 — hiện ở vết
+	// (core/pipeline/why.go: "độ tin cậy 0.50").
+	uncertainGroupConfidence = 0.5
+)
+
+// SpaceGroup báo span là lượng viết nhóm nghìn ngăn bằng MỘT dấu cách ("3 850 lít"), chắc chắn hay không.
+func SpaceGroup(sp contracts.Span) bool { return strings.HasPrefix(sp.Rule, ruleSpaceThousands) }
+
+// UncertainGroup báo span là lượng viết nhóm nghìn mà hệ CHƯA PHÂN ĐỊNH được cách đọc: con số không đứng đầu văn bản nên phần đầu có thể là số
+// hiệu của chữ / ký hiệu đứng trước ("bể 2 500 lít": 2.500 L, hay bể 2 với 500 L; "bể #2 500 lít"; "bể: 2 500 lít"). Hệ vẫn gộp thành MỘT
+// lượng — không để phần đầu thành số mồ côi ("12 000 km" không được thành "12" + "000 km") — nhưng không tin một cách đọc: luồng hỏi hỏi lại,
+// đường nạp cách ly (P5: không đoán im lặng). Danh sách từ nhãn không phân định được (nó rò: soát C3, C3-02 / C3-05), nên không có danh sách.
+func UncertainGroup(sp contracts.Span) bool {
+	return strings.HasPrefix(sp.Rule, ruleSpaceThousandsUncertain)
+}
+
+// markUncertainGroup gắn cờ chưa phân định cho span lượng viết nhóm nghìn mà con số không đứng đầu văn bản s.
+func markUncertainGroup(s string, sp *contracts.Span) {
+	if !SpaceGroup(*sp) || atTextStart(s, sp.Start) {
+		return
+	}
+	sp.Rule = ruleSpaceThousandsUncertain + strings.TrimPrefix(sp.Rule, ruleSpaceThousands)
+	sp.Confidence = uncertainGroupConfidence
+}
+
+// atTextStart báo trước vị trí pos của s chỉ có khoảng trắng và ký tự định dạng vô hình (ZWSP, BOM, dấu gạch nối mềm…): người đọc thấy con số
+// đứng ĐẦU văn bản. strings.TrimSpace không bỏ các ký tự định dạng, nên "<ZWSP>3 850 lít" bị coi là có chữ đứng trước (soát bản thử (a') đêm 21/10, S3).
+func atTextStart(s string, pos int) bool {
+	return strings.TrimFunc(s[:pos], func(r rune) bool { return unicode.IsSpace(r) || isFormat(r) }) == ""
 }
 
 // identifierBefore báo con số bắt đầu ở pos đứng ngay sau một từ nhãn / từ đếm / từ chỉ kỳ ("đội 3", "phiếu 1", "máy 3",

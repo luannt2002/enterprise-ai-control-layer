@@ -133,9 +133,19 @@ m $T 'if d.Outcome == string(contracts.OutcomeInsufficientEvidence) {' 'if false
 m $T 'if route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'if false && route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'TV22 HYBRID phần tri thức rỗng mà S6 không nói'
 m $T 'StageExecute: {"execute", "retrieve"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'StageExecute: {"execute"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'TV23 span retrieve không gắn vào bước nào (R1-05)'
 m $T 'StageValidate: {"validate"},' 'StageValidate: {"validate", "generate"},' 'TV24 span generate gắn vào hai bước (thời gian đếm đôi)'
-RX_Q=$'(?:(")[^"]*"?|(\')[^\']*\'?|[^\\s"\',;&]+)'
-m $S "$RX_Q" $'(?:(")[^\\s"\',;&]+|(\')[^\\s"\',;&]+|[^\\s"\',;&]+)' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
-m $S "$RX_Q" $'(?:(")[^"]*"|(\')[^\']*\'|[^\\s"\',;&]+)' 'TV27 nháy không đóng không được che'
+# Giá trị trong nháy đọc theo hai cách rồi che hợp (sanitize.go: quotedEscaped / quotedRaw, valueMask) — đột biến từng cách đọc và
+# phép gộp; mỗi dòng có ca phân biệt trong sanitize_test.go (TestSanitizeDauRaChinhXac, TestSanitizeGiaTriKetThucBangGachCheo).
+QE_DQ='"(?:[^"\\]|\\[\s\S])*"?|'
+QE_SQ=$'\'(?:[^\'\\\\]|\\\\[\\s\\S])*\'?'
+m $S "$QE_DQ" '"(?:[^"\\\s]|\\[\s\S])*"?|' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
+m $S "$QE_DQ" '"(?:[^"\\]|\\[\s\S])*"|' 'TV27 nháy không đóng không được che'
+m $S "$QE_DQ" '"[^"]*"?|' 'TV37 nháy kép không đọc nháy thoát (lọt đuôi JSON, 5a(2))'
+m $S "$QE_DQ" '"(?:[^"\\]|\\.)*"?|' 'TV39 nháy thoát ngay trước xuống dòng không được đọc'
+m $S "$QE_SQ" $'\'[^\']*\'?' 'TV38 nháy đơn không đọc nháy thoát (khoá = giá trị và Cookie)'
+m $S 'return maskValues(s, m.escaped, m.raw)' 'return maskValues(s, m.escaped)' 'TV33 chỉ đọc theo nháy thoát (lọt bí mật kế tiếp, 5a-1)'
+m $S 'return maskValues(s, m.escaped, m.raw)' 'return maskValues(s, m.raw)' 'TV34 chỉ đọc thô (lọt đuôi sau nháy thoát)'
+m $S 'cur.end = max(cur.end, spans[i].end)' 'cur.end = max(cur.end, cur.end)' 'TV35 gộp vùng chồng nhau mà không nới vùng'
+m $S $'if q := s[cur.start]; q == \'"\' || q == \'\\\'\' {' 'if q := s[cur.start]; false {' 'TV36 dấu che bỏ nháy bao quanh (phá cấu trúc JSON)'
 m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie / Set-Cookie'
 
 # ---- R2-03: giải thích của vết (đầu vào quyết định, phương án đã xét, lý do bị loại). Test bắt đột biến nằm ở observability/traces (vết

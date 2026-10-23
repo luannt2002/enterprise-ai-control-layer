@@ -19,8 +19,8 @@ import (
 // answerKnowledge ghi) đều đi qua đây trước khi thành bản ghi. Vá từng dòng thì sót: hiệu "ứng viên trước lọc − sau lọc", danh sách "?a|b" ở
 // S3.Output / S4.Input, dòng "khe … thiếu: câu nêu N thực thể (…)" của S4 đều từng lộ khoá ngoài phạm vi.
 //
-// Luật: chỉ thực thể đã xuất hiện trong lượt (Resolution, intent.Result, khe của kế hoạch, ứng viên câu hỏi lại) được xét — không duyệt cả danh
-// mục mỗi lượt. Khoá, mã và tên được xét RIÊNG từng thứ (soát C8–C11 vòng 2, C9-ID-KHAC-KHOA): thứ nào câu hỏi tự chứa (so theo
+// Luật: chỉ thực thể đã xuất hiện trong lượt (Resolution, intent.Result, khe của kế hoạch, ứng viên câu hỏi lại) được xét; danh mục được đọc
+// MỘT lần mỗi lượt để tra tổ tiên (soát C8–C11 vòng 2, C9-CHI-PHI). Khoá, mã và tên được xét RIÊNG từng thứ (soát C8–C11 vòng 2, C9-ID-KHAC-KHOA): thứ nào câu hỏi tự chứa (so theo
 // entityresolution.Key: "dz03", "DZ 03" đều là "DZ-03") thì giữ — người hỏi đã biết nó, và lý do từ chối cần nêu đúng thứ họ hỏi (chốt F4: khoá
 // được kể, tên / loại thì không); thứ còn lại bị che, nên gõ khoá không làm lộ mã nội bộ khi mã khác khoá. Không tra được tổ tiên ⇒ che (đóng
 // mặc định).
@@ -40,6 +40,7 @@ func (a *Ask) newScopeRedactor(ctx context.Context, pr contracts.Principal, ques
 		k := entityresolution.Key(s)
 		return k != "" && strings.Contains(typed, " "+k+" ")
 	}
+	lineage := lineageIndex(ctx, a.Deps.Directory)
 	seen := map[string]bool{}
 	var tokens []string
 	for _, list := range refs {
@@ -48,7 +49,7 @@ func (a *Ask) newScopeRedactor(ctx context.Context, pr contracts.Principal, ques
 				continue
 			}
 			seen[r.ID] = true
-			if keys, err := entityresolution.Lineage(ctx, a.Deps.Directory, r.ID); err == nil && a.RT.Policy.InScope(pr, keys) {
+			if keys, ok := lineage(r.ID); ok && a.RT.Policy.InScope(pr, keys) {
 				continue
 			}
 			// khoá, mã, tên xét riêng: tên không bao giờ kể cho người ngoài phạm vi kể cả khi họ gõ đúng khoá (F4) — trừ khi họ gõ chính tên đó
@@ -61,6 +62,31 @@ func (a *Ask) newScopeRedactor(ctx context.Context, pr contracts.Principal, ques
 	}
 	slices.SortStableFunc(tokens, func(x, y string) int { return len(y) - len(x) })
 	return scopeRedactor{tokens: tokens}
+}
+
+// lineageIndex đọc danh mục MỘT lần rồi trả hàm tra tổ tiên trong bộ nhớ, cùng cách tính với entityresolution.Lineage (khoá của thực thể rồi
+// của các tổ tiên, gần trước xa sau). ok = false khi đọc danh mục lỗi hoặc thực thể không có trong danh mục: nơi gọi che (đóng mặc định).
+func lineageIndex(ctx context.Context, dir entityresolution.Directory) func(id string) ([]string, bool) {
+	all, err := dir.Entities(ctx)
+	if err != nil {
+		return func(string) ([]string, bool) { return nil, false }
+	}
+	byID := make(map[string]entityresolution.Entity, len(all))
+	for _, e := range all {
+		byID[e.ID] = e
+	}
+	return func(id string) ([]string, bool) {
+		if _, ok := byID[id]; !ok {
+			return nil, false
+		}
+		var keys []string
+		seen := map[string]bool{}
+		for cur, ok := byID[id]; ok && !seen[cur.ID]; cur, ok = byID[cur.Parent] {
+			seen[cur.ID] = true
+			keys = append(keys, cur.Key)
+		}
+		return keys, true
+	}
 }
 
 // entityRefs gom mọi thực thể mà một lượt đã thấy, để newScopeRedactor xét.

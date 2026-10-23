@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"testing"
 
@@ -77,19 +78,35 @@ func TestNewScopeRedactorKhoaVaTen(t *testing.T) {
 	}
 }
 
-// Soát C8–C11 vòng 2 (C9-ID-KHAC-KHOA): khoá, mã, tên xét riêng trên danh mục có MÃ KHÁC KHOÁ — gõ khoá không làm lộ mã nội bộ, gõ mã không làm
-// lộ khoá, gõ tên thì giữ tên (và khoá nằm trong tên), bí danh thì che cả ba; thực thể trong phạm vi không bị che.
+// countingDir đếm số lần đọc danh mục; err khác nil thì mọi lần đọc đều lỗi.
+type countingDir struct {
+	entityresolution.MemoryDirectory
+	calls int
+	err   error
+}
+
+func (d *countingDir) Entities(ctx context.Context, types ...string) ([]entityresolution.Entity, error) {
+	d.calls++
+	if d.err != nil {
+		return nil, d.err
+	}
+	return d.MemoryDirectory.Entities(ctx, types...)
+}
+
+// Soát C8–C11 vòng 2 (C9-ID-KHAC-KHOA, C9-CHI-PHI, C9-TEST-CHUA-GHIM): khoá, mã, tên xét riêng trên danh mục có MÃ KHÁC KHOÁ — gõ khoá không làm
+// lộ mã nội bộ, gõ mã không làm lộ khoá, gõ tên thì giữ tên (và khoá nằm trong tên), bí danh thì che cả ba; thực thể trong phạm vi không bị che;
+// danh mục đọc đúng MỘT lần mỗi bộ che; đọc danh mục lỗi ⇒ che cả thực thể trong phạm vi (đóng mặc định).
 func TestNewScopeRedactorKhoaMaTenRieng(t *testing.T) {
 	rt, err := tenant.Load("../../tenants/construction/pack")
 	if err != nil {
 		t.Fatalf("nạp pack: %v", err)
 	}
-	dir := entityresolution.MemoryDirectory{
+	dir := &countingDir{MemoryDirectory: entityresolution.MemoryDirectory{
 		{ID: "PRJ-A", Type: "project", Key: "PRJ-A", Name: "Cầu A"},
 		{ID: "PRJ-B", Type: "project", Key: "PRJ-B", Name: "Đường B"},
 		{ID: "e-0001", Type: "equipment", Key: "EX-03", Name: "Máy xúc EX-03", Parent: "PRJ-A"},
 		{ID: "e-0002", Type: "equipment", Key: "DZ-03", Name: "Máy ủi DZ-03", Parent: "PRJ-B"},
-	}
+	}}
 	a := &Ask{RT: rt, Deps: Deps{Directory: dir}}
 	eng := contracts.Principal{ID: "u-eng", TenantID: "abc-infra", Roles: []string{"site_engineer"}, Attributes: map[string]string{"entity_scope": "PRJ-A"}}
 	ex := contracts.EntityRef{ID: "e-0001", Key: "EX-03", Name: "Máy xúc EX-03", Type: "equipment"}
@@ -103,6 +120,7 @@ func TestNewScopeRedactorKhoaMaTenRieng(t *testing.T) {
 		{"gõ tên: giữ tên và khoá trong tên", "Máy ủi DZ-03 hôm nay được cấp bao nhiêu dầu?", []string{"e-0002"}, []string{"Máy ủi DZ-03", "DZ-03"}},
 		{"bí danh: che cả ba", "máy 03 hôm nay được cấp bao nhiêu dầu?", []string{"DZ-03", "e-0002", "Máy ủi DZ-03"}, []string{"EX-03"}},
 	} {
+		dir.calls = 0
 		got := a.newScopeRedactor(context.Background(), eng, c.q, []contracts.EntityRef{ex, dz, ex}).tokens
 		for _, h := range c.hide {
 			if !slices.Contains(got, h) {
@@ -114,5 +132,13 @@ func TestNewScopeRedactorKhoaMaTenRieng(t *testing.T) {
 				t.Errorf("%s: không được che %q, tokens = %q", c.name, k, got)
 			}
 		}
+		if dir.calls != 1 {
+			t.Errorf("%s: đọc danh mục %d lần, muốn đúng 1", c.name, dir.calls)
+		}
+	}
+	dir.err = errors.New("danh mục hỏng")
+	got := a.newScopeRedactor(context.Background(), eng, "máy 03 hôm nay được cấp bao nhiêu dầu?", []contracts.EntityRef{ex}).tokens
+	if !slices.Contains(got, "EX-03") || !slices.Contains(got, "e-0001") {
+		t.Errorf("đọc danh mục lỗi ⇒ không kết luận được phạm vi ⇒ che cả thực thể trong phạm vi, tokens = %q", got)
 	}
 }

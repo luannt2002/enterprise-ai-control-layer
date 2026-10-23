@@ -9,6 +9,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"maps"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -1170,20 +1171,23 @@ func validateRequest(req contracts.AskRequest) error {
 	return nil
 }
 
+// firstEntitySlot lấy khe thực thể đứng đầu theo TÊN khe — chủ thể truy vấn của S6. Duyệt theo tên đã sắp xếp như router (ADR-0002 D18; soát
+// C8–C11 C10-S3): thứ tự lặp của map ngẫu nhiên mỗi lần chạy, nên với ý định có hai khe thực thể trở lên thì chủ thể (và câu trả lời) sẽ đổi
+// giữa các lần chạy. Pack construction chỉ có một khe thực thể.
 func firstEntitySlot(it contracts.Intent) contracts.Slot {
-	for _, s := range it.Slots {
-		if s.Entity != nil {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Entity != nil {
 			return s
 		}
 	}
 	return contracts.Slot{Entity: &contracts.EntityRef{}}
 }
 
-// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày).
+// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày) — khe kỳ đứng đầu theo TÊN khe, cùng lý do với firstEntitySlot.
 func periodBounds(it contracts.Intent, now time.Time) (time.Time, time.Time, error) {
 	text := now.Format("2006-01-02")
-	for _, s := range it.Slots {
-		if s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
 			text = s.Value.Text
 			break
 		}

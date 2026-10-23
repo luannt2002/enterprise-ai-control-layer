@@ -6,12 +6,13 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 15:11, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go = cây `d43a1bf`
+- **Cập nhật lúc:** 23/10/2026 15:56, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go = cây `d43a1bf`
   của cổng dưới).
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra.
   - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 (`5fd463f`) và C8–C11 (`3aaaf09`) đã gộp; 5b + 5c đã gộp (`32f4930`). 5a (che bí
-    mật trong vết) vòng 3 trên nhánh `m1/gop-5a` (`d669374`: sửa lọt Cookie 5a-R1 với test đỏ trước, test đầu ra chính xác 5a-R2, giới hạn
-    5a-R3; cổng §6 xanh) đang soát độc lập. Đang đo lại người đọc vết trên bộ thẻ mới (lỗi gieo theo tầng, người đọc mù).
+    mật trong vết): vòng 3 soát KHÔNG ĐẠT (`s5a3-soat.json`: gộp vùng một lần mở đường lọt MỚI ở dòng Cookie có cặp bí mật trong nháy qua xuống
+    dòng) ⇒ vòng 4 theo ngoại lệ an ninh §9.6: sửa + test đỏ trước, fuzz 4 × 400.000 chuỗi 0 lọt mà main che; cây tích hợp `m1/gop-5a-v4`
+    (`1ca7288`, cổng §6 xanh) đang soát vòng 4. Đang đo lại người đọc vết trên bộ thẻ mới.
   - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 — vòng 1, 2, 3 soát KHÔNG ĐẠT ⇒ **KHOÁ** sau vòng 3 (luật §9.6), không gộp: vòng 3 có hồi quy S1
     mới S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) dù tốt hơn main ở bộ công bố và bộ mù của người soát. H6 (94 ca, `6734cff`) CHƯA chạy —
     chỉ chạy sau khi S4 gộp. Chờ chủ dự án: **D-AI-05** (khuyến nghị: một vòng ngoại lệ hẹp chỉ sửa hồi quy), D-AI-04.
@@ -25,7 +26,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     bước 3b + kho PG → soát độc lập → gộp → chạy bộ 0a MỘT lần.
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT; S7 NGOÀI MVP (D-AI-03 = a); S9 chưa có bộ ca
     độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT. Lỗi `"≈"` của L1 / S2 đã sửa (`d43a1bf`); cổng L1 chưa đo lại.
-- **Đang làm** (tối đa 5 agent; đang 5): soát / sửa bộ ca 0a (P1 TN0, P2 TN0, P2 TN1), soát vòng 3 của 5a, đo lại người đọc vết (M1).
+- **Đang làm** (tối đa 5 agent; đang 5): soát 5a vòng 4; đo lại người đọc vết (M1); mã Phase 0a bước 3b + kho PG rồi soát (M2); 5e —
+  phiên bản dữ liệu của vết đọc từ PG (nhánh `m1/5e-data-version`); soạn bộ ca độc lập S9 (bảng kịch bản gốc rồi bốn lô).
 - **Xong từ lần trước:** 5b + 5c gộp (`32f4930`, hồ sơ `aabf70d`); sửa năm neo đột biến gãy từ lúc gộp C8–C11 (`98e0168`); X8 32 / 32; bản
   sửa `"≈"` gộp (`d43a1bf`) cùng XXS-01 (so marker bằng đúng) và XXS-04 (test nạp csv / xlsx / PDF).
 - **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: chờ D-AI-05; (2) M2: xong soát / sửa → băm bộ ca 0a → mã 0a (bước 3b) → chạy bộ 0a một lần;

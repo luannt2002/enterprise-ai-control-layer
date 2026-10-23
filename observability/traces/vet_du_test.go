@@ -86,9 +86,13 @@ func TestVetDuS2LuatSinhDoanVaChoMoHo(t *testing.T) {
 
 // S3: thực thể rõ, cụm mơ hồ, và tập ứng viên TRƯỚC / SAU lọc phạm vi — lọc ở router (gỡ mơ hồ) và lọc ở câu hỏi lại.
 func TestVetDuS3UngVienTruocSauLocPhamVi(t *testing.T) {
-	// kỹ sư chỉ được xem PRJ-A: router gỡ "máy 03" về EX-03 bằng phạm vi; DZ-03 (PRJ-B) bị loại và vết nói đúng lý do
+	// kỹ sư chỉ được xem PRJ-A: router gỡ "máy 03" về EX-03 bằng phạm vi; DZ-03 (PRJ-B) bị loại và vết nói đúng lý do — nhưng KHÔNG nêu khoá
+	// DZ-03 ở đâu cả: danh sách trước lọc chỉ còn số lượng (C9, lệnh ca chiều 23/10: hiệu hai danh sách từng lộ khoá ngoài phạm vi)
 	eng := stepOf(t, steps(t, person("site_engineer", "PRJ-A"), "Máy 03 hôm nay được cấp bao nhiêu dầu?"), "S3")
-	wantAll(t, "S3 gỡ bằng phạm vi", eng.Reason, "may 3", "DZ-03", "EX-03", "phạm vi dữ liệu của người hỏi", "chọn EX-03")
+	wantAll(t, "S3 gỡ bằng phạm vi", eng.Reason, "may 3", "khớp 2 thực thể", "EX-03", "phạm vi dữ liệu của người hỏi", "chọn EX-03")
+	if strings.Contains(eng.Reason+strings.Join(eng.Rejected, "\n"), "DZ-03") {
+		t.Errorf("S3 của kỹ sư PRJ-A lộ khoá ngoài phạm vi DZ-03: %s", eng.Reason)
+	}
 	wantAll(t, "S3 ứng viên bị loại", strings.Join(eng.Rejected, "\n"), "1 ứng viên bị loại khi gỡ mơ hồ: ngoài phạm vi dữ liệu của người hỏi")
 
 	// giám đốc xem được cả hai: lọc phạm vi không gỡ được, hỏi lại — cả hai ứng viên còn lại và vết nói đúng điều đó

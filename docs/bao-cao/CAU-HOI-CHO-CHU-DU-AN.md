@@ -25,6 +25,7 @@ dừng chờ khi tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đ
 | Q-P1-11 | `retry` của kết cục UNKNOWN: `none` (bảng §2.4) hay `same_key` (§2.3, §9.2.2) | theo bảng §2.4; khuyến nghị: `same_key` |
 | Q-P1-12 | R4 (không chênh lệch) hay R5 (đã có phiếu mở) thắng khi cả hai đúng | R4 trước, ghim bằng một ca |
 | Q-P1-13 | Bước C6 của lượt DONE sau phân loại lại: "lệch" hay "ok" kèm lý do | "ok" kèm lý do, theo A29(b) |
+| Q-P1-14 | §11.2 / §11.4: đột biến M5 không làm A01, A21 đỏ (R5 tra lại sổ lệnh) — sửa định nghĩa cổng X8 theo đề xuất hay bỏ lần tra lại ở R5 | X8 báo kèm ngoại lệ M5; khuyến nghị: sửa §11.2 / §11.4 theo đề xuất |
 | Q-0A-13…16 | Bản rời nhóm TR3; kế thừa thực thể xuyên lô; ai làm việc ngoài write-set làn 4; chống trùng đơn vị không có `sent_at` | mặc định ở `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` §15 (13: a; 14: a; 15: chờ, các phần đó giữ ĐỎ; 16: a) |
 | D-AI-01 | Ngưỡng của CỔNG TRƯỚC AI | ngưỡng §9.3 giữ nguyên (không hạ) |
 | D-OP-9 (giá đo được, chỉ để biết) | Hàng D-OP-9 nêu giá của (a') là "câu 'được cấp 3 850 lít đúng không?' bị hỏi lại". Soát độc lập 23/10 đo giá thật lớn hơn: 3 ca H (H1 WIN-I-264, H3 WIN-I-509, H4 WIN-I-717) ĐẠT → ĐỎ vì đều dạng thường gặp "đo / dùng / xuất N NNN lít"; trên bộ thử riêng, 39 / 47 tin tự nhiên mà nền nạp nay bị cách ly, 49 / 59 câu xác nhận tự nhiên nay bị hỏi lại. Phương án (b) của D-OP-9 (chắc chắn khi đứng ngay sau từ khoá của ý định đã khớp) sẽ khôi phục 3 ca H | giữ (a') như chủ dự án đã chọn 23/10; không cần trả lời nếu giữ |

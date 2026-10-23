@@ -12,7 +12,9 @@ import (
 )
 
 // Masked thay cho mọi giá trị bí mật bị che. Cố ý không có khoảng trắng: dấu hiệu "key=giá trị" dừng ở khoảng trắng, nên
-// dấu che có khoảng trắng sẽ bị che lần hai thành "[…] che]" — Sanitize phải chạy lại không đổi (idempotent).
+// dấu che có khoảng trắng sẽ bị che lần hai thành "[…] che]" — Sanitize phải chạy lại không đổi (idempotent) trên đầu vào thường.
+// Không phổ quát: fuzz 23/10 ghép mảnh bất thường thấy 3 / 300.000 chuỗi mà Sanitize(Sanitize(x)) ≠ Sanitize(x) (soát độc lập 5a-5);
+// test chỉ khẳng định idempotent trên các ca đã chọn.
 const Masked = "[REDACTED]"
 
 // maxErrorRunes là trần độ dài thông điệp lỗi ghi vào vết: lỗi từ thư viện đôi khi nhúng cả tải trọng.

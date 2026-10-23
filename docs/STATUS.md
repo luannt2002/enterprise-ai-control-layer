@@ -33,12 +33,11 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
   đo đã khoá); Vết: vế ≥ 90% KHÔNG ĐẠT.
-- Cổng cuối (cổng §6 ở cây tích hợp `3aaaf09` = main `1dbee7f` + 12 commit C8–C11 (cherry-pick); sau đó chỉ đổi tài liệu; lúc 23/10 14:25,
-  database PG riêng `lead_c811f`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1
-  -json ./...` có PG: **1198** test pass, 0 fail, 0 skip — so theo tên với cổng `3892be2` (1187): 0 đổi, 0 mất, 11 mới; `python3 -I
-  scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4
-  103/119** (hai đường giống nhau) — mốc so: đầu ra cổng `3892be2`; 0 dòng khác ở cả 7 tệp (vết đổi, câu trả lời không). CI GitHub: chờ
-  lượt của commit gộp.
+- Cổng cuối (cổng §6 ở cây tích hợp `32f4930` = main `d614395` + 15 commit 5b / 5c (11 cherry-pick + 4 sửa theo soát lại); sau đó chỉ đổi tài
+  liệu; lúc 23/10 14:49, database PG riêng `lead_5bcf`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp;
+  `go test -count=1 -json ./...` có PG: **1956** test pass, 0 fail, 0 skip — so theo tên với cổng `b22e1e6` (1942): 0 đổi, 0 mất, 14 mới;
+  `python3 -I scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134,
+  H4 103/119** (hai đường giống nhau) — mốc so: đầu ra cổng `b22e1e6`; 0 dòng khác ở cả 7 tệp. CI GitHub: chờ lượt của commit gộp.
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 

@@ -18,7 +18,9 @@
 --
 -- Số lượng và chênh lệch lưu kiểu numeric (không float: số thập phân giữ nguyên chữ số), ngày kiểu date. created_at / at do đồng hồ
 -- của cơ sở dữ liệu gán (now() của giao dịch), bên gọi không đưa.
--- Chạy lại được: CREATE ... IF NOT EXISTS, chính sách DROP rồi CREATE, quyền REVOKE rồi GRANT.
+-- Chạy lại được: CREATE ... IF NOT EXISTS, chính sách DROP rồi CREATE, quyền REVOKE rồi GRANT. CẢNH BÁO (từ 0005): chạy lại RIÊNG tệp
+-- này cấp lại SELECT mức bảng trên audit_log cho eais_app, tức mở lại quyền đọc reason_detail mà 0005 đã thu — chạy tay thì chạy 0004 rồi
+-- 0005 (bộ chạy migration không bao giờ chạy lại tệp đã áp).
 
 CREATE TABLE IF NOT EXISTS discrepancy_tickets (
   tenant_id    text        NOT NULL,

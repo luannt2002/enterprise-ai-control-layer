@@ -329,7 +329,8 @@ fi
 export PKGS="./core/pipeline/ ./observability/traces/"
 export MUTATE_TEST_MUON='TestVetS8|TestVetS9|TestVetS10|TestVetThoatSom|TestNoteDraft|TestNoteDelivered|TestNoteExit|TestDraftLedger|TestTextDigest|TestDraftHead|TestDongS8|TestFinalWhyPhuS8VaS10|TestQuantityTrigger'
 m $W 'const draftHeadRunes = 80' 'const draftHeadRunes = 81' 'VS8-1 [V8a] đoạn đầu cắt ở 81 ký tự thay vì 80'
-m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' 'return len(clean), hex.EncodeToString(sum[:])[:12]' 'VS8-2 [V8a] số ký tự đếm byte thay vì rune'
+m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' '_ = utf8.RuneCountInString(clean)
+	return len(clean), hex.EncodeToString(sum[:])[:12]' 'VS8-2 [V8a] số ký tự đếm byte thay vì rune'
 m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:11]' 'VS8-3 [V8a] băm ngắn 11 ký tự thay vì 12'
 m $W 'sum := sha256.Sum256([]byte(clean))' 'sum := sha256.Sum256([]byte(s))' 'VS8-4 [V8a] băm tính trên chữ chưa làm sạch'
 m $W 'func textDigest(s string) (runes int, hash string) {

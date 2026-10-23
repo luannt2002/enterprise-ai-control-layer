@@ -81,7 +81,8 @@ const (
 			evidence::text, created_by, pack_version, code_version, command_id
 		FROM discrepancy_tickets WHERE id = $1`
 
-	sqlReadExecuted = `SELECT outcome, reason_code, reason_detail, caller_id, caller_roles, entity_scope, command_id, action,
+	// reason_detail không đọc được bằng vai ứng dụng (migration 0005, C1): đọc lại so mọi cột khác.
+	sqlReadExecuted = `SELECT outcome, reason_code, caller_id, caller_roles, entity_scope, command_id, action,
 			subject_key, metric, to_char(day, 'YYYY-MM-DD'), ticket_id, fingerprint, pack_version, code_version, trace_id
 		FROM audit_log WHERE outcome = 'EXECUTED' AND caller_id = $1 AND command_id = $2 ORDER BY id`
 )
@@ -260,7 +261,7 @@ func (s *PGStore) ReadBack(ctx context.Context, caller, commandID, ticketID stri
 		for rows.Next() {
 			var a Audit
 			var outcome, code string
-			if err := rows.Scan(&outcome, &code, &a.ReasonDetail, &a.Caller.ID, &a.Caller.Roles, &a.Caller.EntityScope, &a.CommandID, &a.Action,
+			if err := rows.Scan(&outcome, &code, &a.Caller.ID, &a.Caller.Roles, &a.Caller.EntityScope, &a.CommandID, &a.Action,
 				&a.SubjectKey, &a.Metric, &a.Day, &a.TicketID, &a.Fingerprint, &a.PackVersion, &a.CodeVersion, &a.TraceID); err != nil {
 				return err
 			}

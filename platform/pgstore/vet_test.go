@@ -703,7 +703,7 @@ func TestVetMigration0003TrenDBTrong(t *testing.T) {
 		versions = append(versions, v)
 	}
 	rows.Close()
-	if got := strings.Join(versions, ","); got != "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql" {
+	if got := strings.Join(versions, ","); got != "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql,0005_audit_va_tenant.sql" {
 		t.Errorf("schema_migrations sau hai lần Migrate: %s", got)
 	}
 	checkVetSchema(t, conn)

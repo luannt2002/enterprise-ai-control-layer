@@ -420,3 +420,33 @@ func TestSanitizeCookieCoNhayQuaXuongDong(t *testing.T) {
 		}
 	}
 }
+
+// Soát 5a vòng 3 (5a3-3): quét tổ hợp nhỏ của họ lọt 5a3-1 — khoá bí mật × nháy kép / đơn × tiêu đề Cookie / Set-Cookie × dấu nối trong
+// nháy (LF, CRLF, khoảng trắng) × vị trí cặp bí mật trong dòng × dòng đứng riêng / giữa khối HTTP: không marker nào lọt, Sanitize luỹ đẳng.
+func TestSanitizeQuetCookieCapBiMatQuaDong(t *testing.T) {
+	n := 0
+	for _, key := range []string{"password", "auth_token", "api_key", "secret"} {
+		for _, q := range []string{`"`, `'`} {
+			for _, hdr := range []string{"Cookie: ", "Set-Cookie: ", "cookie=", "Set-Cookie:"} {
+				for _, nl := range []string{"\n", "\r\n", " "} {
+					pair := key + "=" + q + "ZQX2" + nl + "ZQX3" + q
+					for _, line := range []string{hdr + pair + "; sid=ZQX1; Path=/", hdr + "theme=dark; " + pair + "; sid=ZQX1"} {
+						for _, in := range []string{line, "GET / HTTP/1.1\n" + line + "\nAccept: */*"} {
+							n++
+							got := traces.Sanitize(in)
+							if strings.Contains(got, "ZQX") {
+								t.Errorf("bí mật lọt: %q → %q", in, got)
+							}
+							if again := traces.Sanitize(got); again != got {
+								t.Errorf("không luỹ đẳng: %q → %q → %q", in, got, again)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if n != 384 {
+		t.Fatalf("số tổ hợp = %d, muốn 384", n)
+	}
+}

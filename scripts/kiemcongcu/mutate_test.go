@@ -109,3 +109,24 @@ func TestMutateNenCoSan(t *testing.T) {
 		t.Errorf("có nền đã lưu thì đo bình thường (rc 0): rc %d, %q", rc, out)
 	}
 }
+
+// Khoá của nền phải đổi khi có tệp CHƯA track mới (test mới chưa `git add`): `git diff` không thấy tệp chưa track, nên nền XANH cũ
+// bị dùng lại và đột biến "bị bắt" giả trên nền thật ra đã đỏ.
+func TestMutateNenDoiKhiCoTepChuaTrack(t *testing.T) {
+	d := mod(t, false)
+	for _, c := range [][]string{{"init", "-q"}, {"add", "."}, {"-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "nen"}} {
+		cmd := exec.Command("git", c...)
+		cmd.Dir = d
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", c, err, out)
+		}
+	}
+	env := []string{"MUTATE_NEN_DIR=" + t.TempDir(), "PKGS=./..."}
+	if out, rc := mutate(t, d, env, "--nen"); rc != 0 {
+		t.Fatalf("nền đầu phải xanh: rc %d, %q", rc, out)
+	}
+	write(t, filepath.Join(d, "b_test.go"), "package a\n\nimport \"testing\"\n\nfunc TestDoSan(t *testing.T) { t.Fatal(\"đỏ sẵn\") }\n")
+	if out, rc := mutate(t, d, env, "a.go", "return 1", "return 3", "M-chua-track"); rc != 5 || !strings.Contains(out, "NỀN ĐỎ") {
+		t.Errorf("thêm test đỏ chưa track thì nền phải chạy lại và đỏ (rc 5): rc %d, %q", rc, out)
+	}
+}

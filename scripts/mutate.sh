@@ -6,7 +6,8 @@
 # kiểm sha256 sau khi chạy. Đột biến không biên dịch được thì KHÔNG tính là "bị bắt".
 #
 # Nền xanh (lỗi 5c của soát độc lập 23/10): đột biến chỉ đo được khi CÙNG lệnh test xanh trên cây chưa đột biến — nền đã đỏ thì mọi
-# đột biến đều "bị bắt" giả. Lượt nền chạy trước đột biến và được lưu theo khoá (HEAD + git diff + PKGS + hai DSN của PG) ở
+# đột biến đều "bị bắt" giả. Lượt nền chạy trước đột biến và được lưu theo khoá (thư mục, HEAD, mọi thay đổi kể cả tệp chưa track,
+# PKGS, hai DSN của PG) ở
 # MUTATE_NEN_DIR (mặc định $TMPDIR/eais-mutate-nen), dùng lại trong MUTATE_NEN_PHUT phút (mặc định 60) — một danh mục chỉ tốn một lượt nền.
 # MUTATE_NEN_CO_SAN=1: chỉ dùng kết quả nền đã lưu, không tự chạy (cho đột biến chạy trên database vừa dựng lại: chạy nền ở đó sẽ áp
 # migration GỐC trước đột biến) — runner chạy `scripts/mutate.sh --nen` trên database đó trước.
@@ -23,7 +24,10 @@ fi
 
 # nen in XANH, DO hoặc CHUA_CO cho lệnh test hiện tại trên cây hiện tại (chưa đột biến).
 nen_dir=${MUTATE_NEN_DIR:-${TMPDIR:-/tmp}/eais-mutate-nen}
-nen_file=$nen_dir/$({ git rev-parse HEAD; git diff; echo "${PKGS:-./...}|${EAIS_PG_ADMIN_DSN:-}|${EAIS_PG_DSN:-}"; } 2>/dev/null | sha256sum | cut -c1-32)
+# Khoá: thư mục + HEAD + mọi thay đổi so với HEAD (cả đã stage) + nội dung tệp chưa track (test mới chưa `git add`) + lệnh test.
+# Ngoài git thì khoá chỉ gồm thư mục và lệnh test (không theo dõi nội dung).
+nen_file=$nen_dir/$({ pwd; git rev-parse HEAD; git diff HEAD; git ls-files -z --others --exclude-standard | xargs -0 -r sha256sum
+	echo "${PKGS:-./...}|${EAIS_PG_ADMIN_DSN:-}|${EAIS_PG_DSN:-}"; } 2>/dev/null | sha256sum | cut -c1-32)
 nen() {
 	if [ -f "$nen_file" ] && [ -n "$(find "$nen_file" -mmin -"${MUTATE_NEN_PHUT:-60}" 2>/dev/null)" ]; then
 		cat "$nen_file"

@@ -149,3 +149,100 @@ func TestS4AS02HoNghiaMoRong(t *testing.T) {
 		queryAnswered(t, q)
 	}
 }
+
+// intentOf trả câu trả lời của một câu hỏi thường kèm ý định; đòi route truy vấn số liệu và con số mong đợi (kể cả dạng có dấu chấm nghìn).
+func wantMetric(t *testing.T, q, intent, number string) {
+	t.Helper()
+	r := ask(t, newAsk(t), user("director", ""), q).Response
+	if r.Intent != intent || !strings.Contains(r.Answer, number) || strings.Contains(r.Answer, "Trợ lý chưa") {
+		t.Errorf("%q: muốn ý định %s và số %s, được [%s/%s] %q", q, intent, number, r.Route, r.Intent, r.Answer)
+	}
+}
+
+// askBackMeaning đòi câu bị hỏi lại (không trả con số nào, không từ chối): hoà ý định / thiếu nghĩa số liệu.
+func askBackMeaning(t *testing.T, q string) {
+	t.Helper()
+	r := ask(t, newAsk(t), user("director", ""), q).Response
+	if r.Route != contracts.RouteClarification {
+		t.Errorf("%q: muốn hỏi lại, được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+		return
+	}
+	for _, leak := range []string{"3.782", "3.850", "4.000", "4.100"} {
+		if strings.Contains(r.Answer, leak) {
+			t.Errorf("%q: hỏi lại mà vẫn trả số %s: %q", q, leak, r.Answer)
+		}
+	}
+}
+
+// S4AS-03 (C4, ADR-0010): phép so sánh nhận theo CẤU TRÚC — hai chỉ số khác nhau trong cùng mệnh đề + từ so sánh bậc "hơn / kém" (hay "… và … chênh / lệch") — và câu nêu ≥ 2
+// chỉ số mà không xác định được cặp thì HOÀ ⇒ hỏi lại: số cụm từ khoá khớp không phải tín hiệu nghĩa nên không được quyết định thay người hỏi.
+func TestS4AS03SoSanhTheoCauTruc(t *testing.T) {
+	// dương: từ so sánh ngoài danh sách vòng 1 ("cao hơn", "thấp hơn", "lớn hơn", "kém"), đúng cặp, đúng chiều (vế nhắc trước − vế nhắc sau)
+	for _, c := range []struct{ q, intent, number string }{
+		{"EX-03 hôm nay tiêu thụ đo được cao hơn hoá đơn bao nhiêu?", "fuel_consumed", "318"},
+		{"EX-03 hôm nay hoá đơn thấp hơn tiêu thụ đo được bao nhiêu?", "fuel_billed", "318"},
+		{"EX-03 hôm nay đội báo lớn hơn kho xuất bao nhiêu?", "fuel_reported", "150"},
+		{"EX-03 hôm nay cảm biến kém kho xuất bao nhiêu?", "fuel_consumed", "68"},
+		{"EX-03 hôm nay hoá đơn và cảm biến chênh nhau bao nhiêu?", "fuel_billed", "318"},
+	} {
+		r := ask(t, newAsk(t), user("director", ""), c.q).Response
+		if r.Route != contracts.RouteCalculation || !strings.Contains(r.Answer, c.number) {
+			t.Errorf("%q: muốn phép so sánh ra %s, được [%s/%s] %q", c.q, c.number, r.Route, r.Intent, r.Answer)
+		}
+	}
+	// âm: nêu hai chỉ số mà KHÔNG có từ so sánh / chênh ⇒ hoà ⇒ hỏi lại, dù một vế có nhiều cụm từ khoá hơn ("tiêu thụ" + "đo được" so với "kho xuất")
+	for _, q := range []string{
+		"Cho biết tiêu thụ đo được và kho xuất của EX-03 hôm nay?",
+		"EX-03 hôm nay đội báo tiêu thụ bao nhiêu dầu?",
+		"EX-03 hôm nay cảm biến đo được hay được cấp bao nhiêu dầu?",
+		"EX-03 hôm nay tiêu thụ đo được hay kho xuất bao nhiêu?",
+		"EX-03 hôm nay đội báo, hoá đơn, kho xuất lần lượt bao nhiêu?",
+	} {
+		askBackMeaning(t, q)
+	}
+	// "cảm biến báo" = cảm biến ghi nhận: "báo" là động từ của nguồn, không phải chỉ số đội báo (cụm dài thắng) — cặp tối thiểu với "đội báo", chỉ số thật thứ hai
+	wantMetric(t, "Cảm biến báo EX-03 hôm nay đo được bao nhiêu dầu?", "fuel_consumed", "3.782")
+	askBackMeaning(t, "Đội báo EX-03 hôm nay đo được bao nhiêu dầu?")
+	// từ so sánh ở mệnh đề KHÁC không làm hai chỉ số ở mệnh đề kia thành phép so sánh
+	askBackMeaning(t, "Đội báo và kho xuất của EX-03 hôm nay là bao nhiêu, hơn hôm qua không?")
+}
+
+// S4AS-03 (C3): cụm xác nhận + thực thể + lượng cùng chiều đo là tín hiệu phạm vi đủ — không đòi mảnh từ khoá của chỉ số: câu có động từ lạ ("xài", "bơm") hỏi lại
+// nghĩa số liệu thay vì bị từ chối ngoài phạm vi. Đối chứng: lượng khác chiều đo ("20 tấn") hay không có thực thể vẫn ngoài phạm vi.
+func TestS4AS03PhamViCauXacNhanLuongCungChieuDo(t *testing.T) {
+	for _, q := range []string{
+		"EX-03 hôm nay xài 3850 L đúng không?",
+		"EX-03 hôm nay bơm 3850 L đúng không?",
+		"EX-03 hôm nay đổ 3850 L đúng không?",
+		"RL-02 hôm nay hết 1200 L đúng không?",
+		"Dự án Cầu A hôm nay xài 5050 L đúng không?",
+	} {
+		askBackMeaning(t, q)
+	}
+	for _, q := range []string{
+		"EX-03 hôm nay nặng 20 tấn đúng không?",
+		"Hôm qua máy bay đổ 3850 L đúng không?",
+		"VN-Index hôm nay giảm 3850 điểm đúng không?",
+	} {
+		if r := ask(t, newAsk(t), user("director", ""), q).Response; r.Route != contracts.RouteReject {
+			t.Errorf("%q: muốn từ chối ngoài phạm vi, được [%s] %q", q, r.Route, r.Answer)
+		}
+	}
+}
+
+// S4AS-03 (C5): mệnh đề hỏi nhận theo cấu trúc — cụm hỏi lượng ("mấy lít") cũng đánh dấu mệnh đề hỏi; mệnh đề ngữ cảnh nêu con số cả TRƯỚC lẫn SAU mệnh đề hỏi không
+// quyết định ý định.
+func TestS4AS03MenhDeHoiVaNguCanhTruocSau(t *testing.T) {
+	for _, c := range []struct{ q, intent, number string }{
+		{"EX-03 hôm nay được cấp mấy lít dầu?", "fuel_issued", "3.850"},
+		{"EX-03 hôm nay đốt mấy lít dầu?", "fuel_consumed", "3.782"},
+		{"Phiếu kho ghi 3.850, vậy EX-03 hôm nay đo được mấy lít dầu?", "fuel_consumed", "3.782"},
+		{"EX-03 hôm nay được cấp bao nhiêu dầu, biết đội báo 4000 L?", "fuel_issued", "3.850"},
+		{"EX-03 hôm nay tiêu thụ bao nhiêu dầu, phiếu kho ghi 3.850?", "fuel_consumed", "3.782"},
+		{"EX-03 hôm nay hoá đơn bao nhiêu dầu, cảm biến đo 3.782 L?", "fuel_billed", "4.100"},
+	} {
+		wantMetric(t, c.q, c.intent, c.number)
+	}
+	// mệnh đề sau KHÔNG có con số vẫn là phần bổ nghĩa của câu hỏi, nên ở lại: "đội báo … theo hoá đơn" nêu hai chỉ số ⇒ hỏi lại
+	askBackMeaning(t, "EX-03 hôm nay đội báo bao nhiêu dầu, theo hoá đơn?")
+}

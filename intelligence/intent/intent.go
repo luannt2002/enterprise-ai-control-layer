@@ -348,8 +348,8 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	for _, r := range prem {
 		w.reason("mệnh đề ngữ cảnh %s nêu một con số và đứng trước mệnh đề hỏi — chữ của nó chỉ nguồn của con số, không quyết định ý định (bất biến (b))", contracts.Quote(in.Raw[r[0]:r[1]]))
 	}
-	ignore := append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...) // cụm báo nghĩa chưa hỗ trợ chiếm chỗ: "báo" của "dự báo" không phải từ khoá
-	counts, firsts, phrases := keywordHits(s.defs, text, ignore)
+	ignore := s.ignored()
+	counts, _, phrases := keywordHits(s.defs, text, ignore)
 	if un := s.unsupportedIn(in, res, text, prem, counts); len(un) > 0 {
 		names := make([]string, len(un))
 		for i, u := range un {
@@ -361,8 +361,8 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
-		if focus, f, fp := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
-			counts, firsts, phrases = focus, f, fp
+		if focus, _, fp := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
+			counts, phrases = focus, fp
 			w.reason("từ khoá lấy trong mệnh đề hỏi %s (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", contracts.Quote(in.Raw[fs:fe]))
 		}
 	}
@@ -371,13 +371,11 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 	} else {
 		w.reason("không từ khoá ý định nào khớp (luật khớp dài nhất)")
 	}
-	first := map[string]int{}
 	implicit, other := s.implicitTerm(in, res)
 	if implicit != "" {
 		w.reason("thuật ngữ hiểu ngầm %s (câu nhắc thực thể mà không nói vật tư và không có đại lượng đo được nào khác — chính sách của pack)", implicit)
 	}
 	var matched, partial []Def
-	score := map[string]int{}
 	for i, d := range s.defs {
 		if counts[i] == 0 {
 			continue
@@ -386,7 +384,6 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		switch {
 		case hasTerm(d, in) || (implicit != "" && requires(d, implicit)):
 			matched = append(matched, d)
-			score[d.Name], first[d.Name] = counts[i], firsts[i]
 			via := "không đòi thuật ngữ"
 			switch {
 			case len(d.Terms) > 0 && hasTerm(d, in):
@@ -424,7 +421,6 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 		w.reason("không từ khoá nào khớp — trả lời theo ý định chung %s (D-OP-15 a2): %s", g.Name, why)
 		matched = []Def{g}
-		score[g.Name], first[g.Name] = 1, 0
 	}
 	// Ghép route: ý định DỮ LIỆU (SQL/CALC) và ý định TRI THỨC (RAG) cùng khớp —
 	//   chỉ một nhóm → nhóm đó; cả hai mà ý định dữ liệu điền được thực thể → HYBRID (số liệu +
@@ -439,9 +435,9 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 	}
 	if len(data) == 0 {
-		return s.build(knowledge, score, first, in, res, now, implicit, w)
+		return s.build(knowledge, text, in, res, now, implicit, w)
 	}
-	r := s.build(data, score, first, in, res, now, implicit, w)
+	r := s.build(data, text, in, res, now, implicit, w)
 	if len(knowledge) == 0 || len(r.Ambiguous) > 0 {
 		return r
 	}
@@ -456,9 +452,9 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 			return r
 		}
 		w.reject("%s: ý định số liệu bị bỏ — thiếu khe thực thể và câu không có dấu hiệu hỏi số liệu, coi là câu hỏi quy trình", r.Intent.Name)
-		return s.build(knowledge, score, first, in, res, now, implicit, w)
+		return s.build(knowledge, text, in, res, now, implicit, w)
 	}
-	k := s.build(knowledge, score, first, in, res, now, implicit, &Why{}) // chỉ để biết có hoà không; lời giải thích của nhóm tri thức gói ở dòng dưới
+	k := s.build(knowledge, text, in, res, now, implicit, &Why{}) // chỉ để biết có hoà không; lời giải thích của nhóm tri thức gói ở dòng dưới
 	if len(k.Ambiguous) == 0 {
 		r.Knowledge = k.Intent.Name
 		w.reason("ý định tri thức %s khớp cùng ý định số liệu — router ghép HYBRID nếu đủ khe", k.Intent.Name)
@@ -529,56 +525,53 @@ func missingEntity(d Def, it contracts.Intent) bool {
 }
 
 // build chọn ý định thắng trong một nhóm và điền khe của nó.
-func (s *Set) build(matched []Def, score, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) Result {
-	if r, ok := s.comparison(matched, first, in, res, now, implicit, w); ok {
+func (s *Set) build(matched []Def, text string, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) Result {
+	if r, ok := s.comparison(matched, text, in, res, now, implicit, w); ok {
 		return r
 	}
-	// Ưu tiên cao hơn thắng; cùng ưu tiên thì ý định có NHIỀU cụm từ khoá khớp hơn thắng
-	// ("cảm biến … đo được" hơn "báo"); vẫn hoà thì hỏi lại.
+	// Ưu tiên cao hơn thắng; cùng ưu tiên mà cùng khớp đủ thì HOÀ ⇒ hỏi lại. Số cụm từ khoá khớp không phải tín hiệu nghĩa ("cảm biến … đo được" hai cụm không
+	// thắng được "cấp" một cụm: "đo được" → "đo" đủ lật kết quả) nên không được phân xử thay người hỏi (S4AS-03, ADR-0010 C4).
 	matched = append([]Def(nil), matched...)
-	sort.SliceStable(matched, func(i, j int) bool {
-		if matched[i].Priority != matched[j].Priority {
-			return matched[i].Priority > matched[j].Priority
-		}
-		return score[matched[i].Name] > score[matched[j].Name]
-	})
+	sort.SliceStable(matched, func(i, j int) bool { return matched[i].Priority > matched[j].Priority })
 	top := matched[0]
 	var ambiguous []string
 	for _, d := range matched[1:] {
-		switch {
-		case d.Priority == top.Priority && score[d.Name] == score[top.Name]:
+		if d.Priority == top.Priority {
 			ambiguous = append(ambiguous, d.Name)
-		case d.Priority != top.Priority:
+		} else {
 			w.reject("%s: khớp đủ nhưng bị loại — ưu tiên %d thấp hơn %s (%d)", d.Name, d.Priority, top.Name, top.Priority)
-		default:
-			w.reject("%s: khớp đủ nhưng bị loại — %d cụm từ khoá, ít hơn %s (%d) cùng ưu tiên %d", d.Name, score[d.Name], top.Name, score[top.Name], top.Priority)
 		}
 	}
 	if len(ambiguous) > 0 {
-		w.reason("hoà: %s cùng ưu tiên %d và cùng %d cụm từ khoá — không chọn bừa, hỏi lại", strings.Join(append([]string{top.Name}, ambiguous...), ", "), top.Priority, score[top.Name])
+		w.reason("hoà: %s cùng ưu tiên %d — số cụm từ khoá khớp không phải tín hiệu nghĩa nên không phân xử thay người hỏi, hỏi lại", strings.Join(append([]string{top.Name}, ambiguous...), ", "), top.Priority)
 		return Result{Ambiguous: append([]string{top.Name}, ambiguous...)}
 	}
-	switch {
-	case len(matched) == 1:
+	if len(matched) == 1 {
 		w.reason("chọn %s: ý định duy nhất khớp đủ", top.Name)
-	case matched[1].Priority != top.Priority:
+	} else {
 		w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority)
-	default:
-		w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name])
 	}
 	return s.fill(top, in, res, now, implicit, w)
 }
 
-// comparison xử lý câu SO SÁNH hai chỉ số (ADR-0010, cụm C4). Câu có dấu hiệu so sánh — một ý định dẫn xuất khớp ("chênh", "lệch") hoặc cụm so sánh
-// của pack ("nhiều hơn") — và nêu ĐÚNG hai chỉ số khác nhau là phép so sánh đúng cặp người hỏi nêu (vế nhắc trước − vế nhắc sau): số cụm từ khoá
-// khớp và độ ưu tiên của ý định dẫn xuất không phải tín hiệu nghĩa, nên không được quyết định thay họ ("cảm biến … đo được" hai cụm không thắng "cấp"
-// một cụm; "chênh" không ép cặp mặc định của nó lên cặp khác). Ý định dẫn xuất chỉ trả cặp mặc định khi các chỉ số câu nêu đều nằm trong cặp ấy; câu
-// nêu chỉ số ngoài cặp mà không phải đúng hai chỉ số thì không có cặp nào để trả thay người hỏi: hỏi lại. ok = false: không phải câu so sánh, build
-// chọn như thường.
-func (s *Set) comparison(matched []Def, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) (Result, bool) {
+// comparison xử lý câu SO SÁNH hai chỉ số (ADR-0010, cụm C4) theo CẤU TRÚC: trong MỘT mệnh đề có từ so sánh bậc hơn / kém của pack ("hơn", "kém", "so với") hay từ khoá của
+// ý định dẫn xuất ("chênh", "lệch"), nếu ý định số liệu nêu ở mệnh đề đó cho đúng hai chỉ số KHÁC nhau thì là phép so sánh đúng cặp người hỏi nêu (vế nhắc trước − vế nhắc
+// sau). Số cụm từ khoá khớp và độ ưu tiên của ý định dẫn xuất không phải tín hiệu nghĩa nên không quyết định thay họ. Ý định dẫn xuất chỉ trả cặp mặc định khi mọi chỉ số câu nêu
+// đều nằm trong cặp ấy; nêu chỉ số ngoài cặp mà không phải đúng hai chỉ số, hay ≥ 3 chỉ số, thì không có cặp nào để trả thay người hỏi: hỏi lại. ok = false: không phải câu
+// so sánh hai chỉ số, build chọn như thường.
+func (s *Set) comparison(matched []Def, text string, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) (Result, bool) {
+	cs, ce, ok := s.comparisonScope(text)
+	if !ok {
+		return Result{}, false
+	}
+	counts, firsts, _ := keywordHits(s.defs, text[cs:ce], s.ignored())
 	var named, derived []Def
-	metrics := map[string]string{}
-	for _, d := range matched {
+	metrics, first := map[string]string{}, map[string]int{}
+	for i, d := range s.defs {
+		if counts[i] == 0 || !slices.ContainsFunc(matched, func(m Def) bool { return m.Name == d.Name }) {
+			continue
+		}
+		first[d.Name] = firsts[i]
 		switch m, _ := metricOf(d, in, implicit); {
 		case d.Derived != "":
 			derived = append(derived, d)
@@ -586,7 +579,7 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 			named, metrics[d.Name] = append(named, d), m
 		}
 	}
-	if len(named) == 0 || len(derived) == 0 && !s.comparing(in.Raw) {
+	if len(named) == 0 {
 		return Result{}, false
 	}
 	distinct := map[string]bool{}
@@ -617,7 +610,7 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 		r.Intent.Slots["compare_metric"] = contracts.Slot{Name: "compare_metric", Text: metrics[right.Name]}
 		r.Intent.Rule += "+compare:" + right.Name
 		r.Compare = right.Name
-		w.reason("câu so sánh: %s so với %s (hai chỉ số khác nhau kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ", left.Name, right.Name)
+		w.reason("câu so sánh: %s so với %s (hai chỉ số khác nhau trong cùng mệnh đề kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ", left.Name, right.Name)
 		for _, d := range matched {
 			if d.Name != left.Name && d.Name != right.Name {
 				w.reject("%s: khớp đủ nhưng không phải vế của phép so sánh %s so với %s", d.Name, left.Name, right.Name)
@@ -625,8 +618,8 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 		}
 		return r, true
 	}
-	if len(derived) == 0 {
-		return Result{}, false
+	if len(derived) == 0 && len(distinct) < 3 {
+		return Result{}, false // một chỉ số (hay hai vế cùng chỉ số) + từ so sánh với thứ khác: không phải so sánh hai chỉ số
 	}
 	var names []string
 	for _, d := range slices.Concat(derived, named) {
@@ -634,6 +627,29 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 	}
 	w.reason("câu có dấu hiệu so sánh nhưng các chỉ số nêu (%s) không thành đúng một cặp hai chỉ số khác nhau — không chọn cặp thay người hỏi, hỏi lại", strings.Join(names, ", "))
 	return Result{Ambiguous: names}, true
+}
+
+// comparisonScope trả phạm vi của phép so sánh trong câu (text đã che mệnh đề ngữ cảnh): cả câu khi có từ khoá của ý định dẫn xuất ("chênh lệch dầu cấp, đội báo và hoá đơn":
+// danh sách chỉ số cách nhau bằng dấu phẩy cùng thuộc "chênh lệch"); không thì MỆNH ĐỀ đầu tiên có cụm so sánh bậc hơn / kém của pack ("đội báo cao hơn kho xuất bao nhiêu": hai chỉ số
+// và từ so sánh phải ở cùng mệnh đề, từ so sánh của mệnh đề khác không biến hai chỉ số ở đây thành phép so sánh).
+func (s *Set) comparisonScope(text string) (start, end int, ok bool) {
+	counts, _, _ := keywordHits(s.defs, text, s.ignored())
+	for i, d := range s.defs {
+		if d.Derived != "" && counts[i] > 0 {
+			return 0, len(text), true
+		}
+	}
+	for _, c := range clauseSpans(text) {
+		if s.comparing(text[c[0]:c[1]]) {
+			return c[0], c[1], true
+		}
+	}
+	return 0, 0, false
+}
+
+// ignored là các cụm KHÔNG phải từ khoá: cụm bỏ qua của pack và cụm báo nghĩa chưa hỗ trợ (chiếm chỗ: "báo" của "dự báo" không phải từ khoá).
+func (s *Set) ignored() []string {
+	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)
 }
 
 // comparing báo câu có cụm so sánh của pack.
@@ -780,12 +796,16 @@ func (s *Set) premiseRanges(in contracts.NormalizedInput, res contracts.Resoluti
 	q := slices.IndexFunc(cl, func(c [2]int) bool {
 		return slices.ContainsFunc(markers, func(m string) bool { return normalization.ContainsPhrase(raw[c[0]:c[1]], m) })
 	})
+	if q < 0 {
+		return nil
+	}
 	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
 		q--
 	}
 	var out [][2]int
-	for i := 0; i < q; i++ {
-		if hasFigure(in, res, cl[i][0], cl[i][1]) {
+	for i := range cl {
+		// trước mệnh đề hỏi: nguồn của con số ("phiếu kho ghi 3.850, vậy …"); sau mệnh đề hỏi: phần chú thêm nêu con số ("…, biết đội báo 4000 L?") — cả hai chỉ là ngữ cảnh
+		if i != q && hasFigure(in, res, cl[i][0], cl[i][1]) {
 			out = append(out, cl[i])
 		}
 	}
@@ -915,7 +935,8 @@ func FocusClause(text string, markers []string) (start, end int, ok bool) {
 
 // scopeSignal báo câu có tín hiệu thuộc phạm vi số liệu (ADR-0010 (a), định nghĩa D1s của bước điều tra 22/10): có thực thể (đã giải hay bí danh
 // mơ hồ) VÀ một trong hai: thuật ngữ mà ít nhất một ý định đòi, hoặc — khi câu không nêu thuật ngữ nào và thuật ngữ mặc định của tenant áp được
-// (implicit) — một lượng cùng chiều đo với chỉ số ("3850 L", "1,2 khối") cùng một chữ của từ khoá chỉ số ("xuất", "cấp"). Một trong những thứ đó thì
+// (implicit) — một lượng cùng chiều đo với chỉ số ("3850 L", "1,2 khối") cùng với cụm xác nhận ("đúng không") hay một chữ của từ khoá chỉ số ("xuất", "cấp").
+// Cụm xác nhận + thực thể + lượng cùng chiều đo là đủ (S4AS-03, C3): không đòi mảnh từ khoá, nên động từ lạ ("xài", "bơm") không biến câu thành ngoài phạm vi. Một trong những thứ đó thì
 // chưa đủ: "VN-Index bao nhiêu?", "dầu ăn", tên máy trong chuyện phiếm, "EX-03 chứa 300 lít nước", "EX-03 nặng 20 tấn" vẫn ngoài phạm vi.
 func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution, implicit string) bool {
 	if len(res.Entities)+len(res.Ambiguous) == 0 {
@@ -926,7 +947,12 @@ func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution
 	}) {
 		return true
 	}
-	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)
+	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))
+}
+
+// confirming báo câu có cụm xác nhận của pack ("đúng không"): người hỏi đang kiểm một con số, nên câu có thực thể và lượng cùng chiều đo là câu về số liệu dù động từ lạ.
+func (s *Set) confirming(text string) bool {
+	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }
 
 // volumeFigure báo câu có một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo: lít, khối).

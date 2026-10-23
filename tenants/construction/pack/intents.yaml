@@ -23,11 +23,11 @@ default_terms: [diesel_fuel]
 
 # Cụm cho biết câu hỏi đòi một LƯỢNG. Câu hỏi lượng dầu mà chỉ có tài liệu trả lời ("theo quy trình
 # được cấp tối đa bao nhiêu lít?") thì báo thiếu bằng chứng: tài liệu không phải nguồn của số liệu.
-quantity_markers: [bao nhiêu, định mức]
+quantity_markers: [bao nhiêu, định mức, mấy]
 
-# Câu nhắc HAI nghĩa số liệu kèm cụm dưới đây ("đội báo nhiều hơn kho xuất bao nhiêu") là phép tính
-# hiệu theo thứ tự nhắc (vế trước − vế sau), không phải câu mơ hồ. Không có cụm so sánh thì vẫn hỏi lại.
-comparison_markers: [nhiều hơn, ít hơn, so với]
+# Từ so sánh bậc hơn / kém (cụm đóng của tiếng Việt: "cao hơn", "nhiều hơn", "kém", "so với"). Mệnh đề có từ này mà nêu ĐÚNG hai chỉ số khác nhau ("đội báo nhiều hơn kho xuất
+# bao nhiêu") là phép tính hiệu theo thứ tự nhắc (vế trước − vế sau); nêu hai chỉ số mà không có từ so sánh (hay "chênh / lệch") thì hoà ⇒ hỏi lại, không chọn theo số cụm khớp.
+comparison_markers: [hơn, kém, so với]
 
 # Nghĩa hệ CHƯA hỗ trợ (D-OP-18 = c): câu mang nghĩa này không được trả lời theo chỉ số còn lại ("dự báo" không phải "đội báo", "nhà cung cấp" không phải
 # "cấp", "ghi nhận" không phải "nhận"); hệ hỏi lại và nói rõ nghĩa nào chưa có. Cụm báo nghĩa chiếm chỗ trong luật khớp dài nhất.
@@ -88,8 +88,9 @@ intents:
   - name: fuel_consumed
     label: dầu tiêu thụ đo được
     route: SQL_QUERY
-    # "dùng / sử dụng" = tiêu thụ (ADR-0001 D3)
-    keywords: [tiêu thụ, đốt, đo được, cảm biến, dùng, sử dụng]
+    # "dùng / sử dụng" = tiêu thụ (ADR-0001 D3). "cảm biến báo" = cảm biến ghi nhận: chữ "báo" là động từ của NGUỒN (cảm biến), không phải chỉ số đội báo — cụm dài thắng "báo"
+    # trong luật khớp dài nhất, nên câu không còn hai chỉ số hoà nhau (S4AS-03 bỏ luật số cụm: hai chỉ số hoà thì hỏi lại).
+    keywords: [tiêu thụ, đốt, đo được, cảm biến báo, cảm biến, dùng, sử dụng]
     terms: [diesel_fuel]
     metric_by_term: {diesel_fuel: measured_consumption}
     priority: 20

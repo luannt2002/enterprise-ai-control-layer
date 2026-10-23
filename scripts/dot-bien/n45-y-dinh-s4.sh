@@ -65,14 +65,15 @@ m $I '			if s.inRange(metric, sp.Value) {
 #			cover(sp[0], sp[1])
 #		}
 #	}' 'S19 a2 không che cụm xác nhận'
-m $O '	case len(cls.NeedMeaning) > 0:' '	case false:' 'S20 router bỏ nhánh hỏi lại nghĩa số liệu'
+m $O '	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification, len(cls.NeedMeaning) > 0,' '	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification, false,' 'S20 router bỏ nhánh hỏi lại nghĩa số liệu'
 m $A '		return d.Capability != "" && !a.RT.Policy.Allows(pr, d.Capability)' '		return d.Capability != "" && false' 'S21 hỏi lại kể cả ý định người hỏi không có quyền'
 m $A 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))' 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm))' 'S22 câu hỏi lại không kể các nghĩa số liệu'
 m $A '		vars["assumption_note"] = " " + def.Assumption' '		_ = def.Assumption' 'S23 câu trả lời theo ý định chung không nói giả định'
-m $I '	return gen[0], meaning' '	return gen[0], meaning || true' 'S24 a2 không đòi chữ nêu nghĩa (câu xác nhận không nêu chỉ số vẫn trả số kho xuất, trái BR-FUEL-02)'
-m $O '			if !pol.InScope(pr, lineage(e)) {' '			if false {' 'S25 hỏi lại nghĩa số liệu cho cả thực thể ngoài phạm vi dữ liệu'
-m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}' 'return Result{NeedMeaning: s.meaningOptions(), Candidates: aliasCandidates(res)}' 'S26 câu hỏi lại nghĩa số liệu không mang thực thể đã giải (bỏ kiểm phạm vi)'
-m $I 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}' 'return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)[:0]}' 'S27 câu hỏi lại nghĩa số liệu không kể ứng viên của bí danh mơ hồ'
+m $I '	if !meaning {' '	if false {' 'S24 a2 không đòi chữ nêu nghĩa (câu xác nhận không nêu chỉ số vẫn trả số kho xuất, trái BR-FUEL-02)'
+m $O '			out := !pol.InScope(pr, lineage(e))' '			out := false' 'S25 hỏi lại nghĩa số liệu cho cả thực thể ngoài phạm vi dữ liệu'
+m $I 'return Result{NeedMeaning: opts, Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: opts, Candidates: cands}' 'S26 câu hỏi lại nghĩa số liệu không mang thực thể đã giải (bỏ kiểm phạm vi)'
+m $I 'Mentioned: res.Entities, Candidates: aliasCandidates(res, w)}' 'Candidates: aliasCandidates(res, w)}' 'S26b câu hỏi lại vì nghĩa chưa hỗ trợ không mang thực thể đã giải (bỏ kiểm phạm vi)'
+m $I 'return Result{NeedMeaning: opts, Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: opts, Mentioned: res.Entities, Candidates: cands[:0]}' 'S27 câu hỏi lại nghĩa số liệu không kể ứng viên của bí danh mơ hồ'
 # Soát S4 vòng 1 (S4R-01, S4R-06, S4R-08): a2 chỉ che thuật ngữ của ý định chung và lượng cùng chiều đo; khớp chữ theo cả câu; pack kiểm chỗ
 # cho câu giả định.
 m $I '			if slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text) {' '			if true {' 'S28 a2 che mọi thuật ngữ ("đơn giá", "giờ máy" thành trung tính)'
@@ -93,11 +94,11 @@ m $I '		types = append(types, e.Type)
 	}' '	}' 'S35 a2 không che chữ chỉ loại ("dự án Cầu A" bị hỏi lại)'
 m $I 'slices.Contains(gen[0].Terms, sp.Value.Text) || slices.Contains(types, sp.Value.Text)' 'slices.Contains(gen[0].Terms, sp.Value.Text) || (s.opt.Measurable != nil && !s.opt.Measurable(sp.Value.Text))' 'S36 a2 che mọi thuật ngữ không đo được, bất kể loại của thực thể ("dự án EX-03")'
 m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
-		return Def{}, false
+		return Def{}, false, fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen))
 	}
 	metric := gen[0].MetricByTerm[term]' '	metric := gen[0].MetricByTerm[term]
 	if len(gen) != 1 || metric == "" {
-		return Def{}, false
+		return Def{}, false, fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen))
 	}' 'S37 đọc ý định chung đầu tiên trước khi đếm (sập khi pack không có ý định chung cho thuật ngữ)'
 L=tenants/construction/pack/lexicon.yaml
 m $L 'aliases: [dầu nhớt, nhớt, dầu thủy lực' 'aliases: [nhớt, dầu thủy lực' 'S38 bỏ bí danh "dầu nhớt"'
@@ -126,9 +127,10 @@ m tenants/construction/pack/templates.yaml '  clarify_intent: "Bạn muốn hỏ
 # C5 (bất biến (b), vai mệnh đề): mệnh đề ngữ cảnh nêu con số, đứng trước mệnh đề hỏi có chỉ số riêng, không quyết định ý định.
 m $I '	text := maskRanges(in.Raw, prem)' '	text := in.Raw' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
 m $I '	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {' '	if len(out) == 0 {' 'S77 che mệnh đề trước cả khi mệnh đề hỏi chỉ là cái đuôi không có chỉ số riêng'
-m $I '		if hasFigure(in, res, cl[i][0], cl[i][1]) {
-			out = append(out, cl[i])' '		if true {
-			out = append(out, cl[i])' 'S78 che cả mệnh đề dẫn đề không nêu con số'
+m $I '		if i != q && hasFigure(in, res, cl[i][0], cl[i][1]) {' '		if i != q {' 'S78 che cả mệnh đề dẫn đề không nêu con số'
+m $I '	for i := range cl {
+		// trước mệnh đề hỏi' '	for i := 0; i < q; i++ {
+		// trước mệnh đề hỏi' 'S125 mệnh đề ngữ cảnh SAU câu hỏi ("…, biết đội báo 4000 L?") không bị che (S4AS-03, C5)'
 m $I '	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
 		q--
 	}' '	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
@@ -143,7 +145,7 @@ m $I '	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers
 	q := slices.IndexFunc(cl' 'S82 cụm hỏi lượng ("bao nhiêu") không đánh dấu mệnh đề hỏi'
 # C4: câu nêu đúng hai chỉ số khác nhau kèm dấu hiệu so sánh là phép so sánh đúng cặp người hỏi nêu; ý định dẫn xuất chỉ trả cặp mặc định khi
 # mọi chỉ số câu nêu nằm trong cặp ấy.
-m $I '	if len(named) == 0 || len(derived) == 0 && !s.comparing(in.Raw) {' '	if len(named) == 0 || len(derived) == 0 {' 'S83 cụm so sánh ("nhiều hơn") không còn là dấu hiệu so sánh'
+m $I '		if s.comparing(text[c[0]:c[1]]) {' '		if false {' 'S83 từ so sánh bậc hơn / kém ("cao hơn", "kém") không còn là dấu hiệu so sánh'
 m $I '		if inside {
 			return Result{}, false
 		}' '		if false {
@@ -151,25 +153,15 @@ m $I '		if inside {
 		}' 'S84 ý định dẫn xuất không bao giờ trả cặp mặc định'
 m $I '			inside = inside && slices.ContainsFunc(derived' '			inside = inside || slices.ContainsFunc(derived' 'S85 chỉ cần MỘT chỉ số nằm trong cặp mặc định là trả cặp mặc định (chỉ số ngoài cặp bị bỏ thầm)'
 m $I '	if len(named) == 2 && len(distinct) == 2 {' '	if len(named) >= 2 {' 'S86 so sánh cả khi câu nêu ba chỉ số (lấy hai chỉ số đầu)'
-m $I '		if first[right.Name] < first[left.Name] {
-			left, right = right, left
-		}
-		r := s.fill(left, in, res, now, implicit)
-		r.Intent.Slots["compare_metric"]' '		if false {
-			left, right = right, left
-		}
-		r := s.fill(left, in, res, now, implicit)
-		r.Intent.Slots["compare_metric"]' 'S87 vế so sánh theo thứ tự khai báo ý định, không theo thứ tự nhắc'
-m $I '	if len(derived) == 0 {
-		return Result{}, false
-	}
-	var names []string' '	var names []string' 'S88 câu so sánh không phải hai chỉ số cũng hỏi lại (một chỉ số + "nhiều hơn")'
+m $I '		if first[right.Name] < first[left.Name] {' '		if false {' 'S87 vế so sánh theo thứ tự khai báo ý định, không theo thứ tự nhắc'
+m $I '	if len(derived) == 0 && len(distinct) < 3 {' '	if len(derived) == 0 && false {' 'S88 câu so sánh không phải hai chỉ số cũng hỏi lại (một chỉ số + từ so sánh)'
 m core/tenant/pack.go '					return d.Left, d.Right, ok' '					return d.Left, d.Right, ok && false' 'S89 pack không khai cặp mặc định của chỉ số dẫn xuất'
 # C3 (bất biến (a)): tín hiệu phạm vi không cần chữ "dầu"; lời chào là chữ "chào"; chữ của cụm xác nhận và mã chứng từ là chữ trung tính của a2.
-m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return false' 'S90 câu không có chữ "dầu" luôn ngoài phạm vi'
-m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return s.volumeFigure(in) && s.metricWord(in.Raw)' 'S91 tín hiệu không cần thuật ngữ mặc định áp được ("dầu nhớt" bị hỏi lại)'
-m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return implicit != "" && s.metricWord(in.Raw)' 'S92 tín hiệu không cần lượng cùng chiều đo ("nhận 20 tấn" bị hỏi lại)'
-m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return implicit != "" && s.volumeFigure(in)' 'S93 tín hiệu không cần chữ của từ khoá chỉ số ("300 lít nước" bị hỏi lại)'
+m $I '	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' '	return false' 'S90 câu không có chữ "dầu" luôn ngoài phạm vi'
+m $I '	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' '	return s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' 'S91 tín hiệu không cần thuật ngữ mặc định áp được ("dầu nhớt" bị hỏi lại)'
+m $I '	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' '	return implicit != "" && (s.confirming(in.Raw) || s.metricWord(in.Raw))' 'S92 tín hiệu không cần lượng cùng chiều đo ("nhận 20 tấn" bị hỏi lại)'
+m $I '	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' 'S93 tín hiệu đòi chữ của từ khoá chỉ số như vòng 1 ("xài 3850 L đúng không" bị từ chối, S4AS-03 C3)'
+m $I '	return implicit != "" && s.volumeFigure(in) && (s.confirming(in.Raw) || s.metricWord(in.Raw))' '	return implicit != "" && s.volumeFigure(in) && s.confirming(in.Raw)' 'S127 tín hiệu chỉ nhận cụm xác nhận, bỏ chữ của từ khoá chỉ số ("Hôm nay EX-03 xuất 3850 L?" bị từ chối)'
 m $I '	if len(gen) == 0 && implicit != "" { // câu không nêu thuật ngữ' '	if false { // câu không nêu thuật ngữ' 'S94 a2 không dùng thuật ngữ mặc định (câu không có chữ "dầu" luôn hỏi lại)'
 m $I '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
 			cover(sp.Start, sp.End)' '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
@@ -198,7 +190,7 @@ m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			return nil' 'S105 câu hỏi quy trình về cảnh báo cũng bị hỏi lại'
 m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || qStart >= 0 && !s.asking(text)) {' 'S106 lệnh ghi không cần con số ("EX-03 ghi nhận tiêu bao nhiêu dầu" bị hỏi lại)'
 m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw))) {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
-m $I '	ignore := append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	ignore := slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
+m $I '	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	return slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
 m $I '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 })' '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(in.Raw, c)) > 0 })' 'S109 cụm ở mệnh đề ngữ cảnh cũng báo nghĩa chưa hỗ trợ'
 m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
@@ -226,3 +218,10 @@ m tenants/construction/pack/intents.yaml 'cảnh báo, báo động, nhắc tôi
 m tenants/construction/pack/intents.yaml 'nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu]' ']' 'S122 họ lệnh ghi mất đồng nghĩa ngoài danh sách vòng 1'
 m tenants/construction/pack/intents.yaml 'đánh giá, nhận định, bình luận, phân tích, chấm điểm, cho ý kiến, ý kiến về, kết luận, hợp lý, bất thường, bình thường, quá nhiều, tiết kiệm, cao hay thấp]' 'đánh giá]' 'S123 họ đánh giá mất đồng nghĩa ngoài danh sách vòng 1'
 m tenants/construction/pack/intents.yaml 'giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán]' ']' 'S124 họ tiền mất cụm giá / chi phí ngoài danh sách vòng 1'
+
+# ---- S4AS-03: so sánh theo cấu trúc, bỏ luật số cụm, phạm vi theo cụm xác nhận, hỏi lượng
+m $I '		if d.Priority == top.Priority {' '		if d.Priority == top.Priority && false {' 'S128 hoà ý định cùng ưu tiên không còn hỏi lại (chọn ý định đứng đầu, như luật số cụm)'
+m tenants/construction/pack/intents.yaml 'comparison_markers: [hơn, kém, so với]' 'comparison_markers: [so với]' 'S129 từ so sánh bậc hơn / kém ("cao hơn", "kém") ngoài pack'
+m tenants/construction/pack/intents.yaml 'quantity_markers: [bao nhiêu, định mức, mấy]' 'quantity_markers: [bao nhiêu, định mức]' 'S130 "mấy lít" không đánh dấu mệnh đề hỏi'
+m $I '			return 0, len(text), true' '			return clauseSpans(text)[0][0], clauseSpans(text)[0][1], true' 'S131 phép so sánh có "chênh lệch" chỉ xét mệnh đề đầu (danh sách chỉ số cách nhau bằng dấu phẩy bị cắt)'
+m tenants/construction/pack/intents.yaml 'đo được, cảm biến báo, cảm biến, dùng' 'đo được, cảm biến, dùng' 'S132 "cảm biến báo" không là cụm của nguồn: "báo" thành chỉ số đội báo, hai chỉ số hoà nhau (WIN-I-038, H3 509)'

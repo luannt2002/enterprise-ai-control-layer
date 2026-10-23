@@ -17,7 +17,7 @@ func TestN1HoaYDinhKhongBoRoiUngVienThucThe(t *testing.T) {
 	a := newAsk(t)
 	director := user("director", "")
 	for _, q := range []string{
-		"Cảm biến báo máy 03 hôm qua đo 1.490 lít, đúng không?", // "cảm biến" (tiêu thụ) và "báo" (đội báo) hoà nhau
+		"Đội báo và phiếu kho của máy 03 hôm qua là 1.490 lít, đúng không?", // "đội báo" (đội báo) và "phiếu kho" (kho xuất) hoà nhau
 	} {
 		r := ask(t, a, director, q).Response
 		hoiLai(t, r, q)
@@ -29,7 +29,7 @@ func TestN1HoaYDinhKhongBoRoiUngVienThucThe(t *testing.T) {
 		}
 	}
 	// đối chứng: máy rõ thì hoà ý định vẫn chỉ hỏi nghĩa số liệu, không có ứng viên
-	q := "Cảm biến báo EX-03 hôm qua đo 1.490 lít, đúng không?"
+	q := "Đội báo và phiếu kho của EX-03 hôm qua là 1.490 lít, đúng không?"
 	r := ask(t, a, director, q).Response
 	hoiLai(t, r, q)
 	if got := candidateIDs(r); len(got) != 0 || strings.Contains(r.Answer, "Có thể là") {
@@ -153,6 +153,9 @@ func TestC3PhamViKhongCanChuDau(t *testing.T) {
 		"Hôm nay EX-03 xuất 3850 L?",                // không có cụm xác nhận
 		"Hôm nay EX-03 xuất đo 3782 L phải không?",  // "đo" là mảnh từ khoá của chỉ số khác ("đo được"), không trung tính
 		"Hôm nay EX-03 xuất xài 3782 L đúng không?", // động từ của chỉ số khác, không nằm trong từ khoá
+		// S4AS-03 (C3, đổi có chủ ý — trước đây ghim là giới hạn đã biết "bị từ chối"): cụm xác nhận + thực thể + lượng cùng chiều đo là tín hiệu phạm vi đủ ⇒ hỏi lại nghĩa số liệu
+		"Hôm nay EX-03 xài 3782 L đúng không?",
+		"EX-03 chứa được 300 lít nước đúng không?", // lượng thể tích của chất khác cũng cùng chiều đo: hỏi lại thay vì từ chối (đánh đổi ghi ở ADR-0010)
 	} {
 		r := ask(t, a, director, q).Response
 		hoiLai(t, r, q)
@@ -168,8 +171,6 @@ func TestC3PhamViKhongCanChuDau(t *testing.T) {
 	// ngoài phạm vi thật vẫn từ chối (đối chứng âm): thực thể + lượng nhưng không phải chiều đo của chỉ số, hay không có chữ của từ khoá chỉ số, hay
 	// vật tư khác
 	for _, q := range []string{
-		"EX-03 chứa được 300 lít nước đúng không?",
-		"Hôm nay EX-03 xài 3782 L đúng không?", // giới hạn đã biết: không chữ "dầu", không chữ nào của từ khoá chỉ số ⇒ chưa đủ tín hiệu (ghi nợ)
 		"EX-03 hôm nay chạy 8 tiếng đúng không?",
 		"Máy xúc EX-03 nặng 20 tấn đúng không?",
 		"Cầu A dài 300 mét đúng không?",

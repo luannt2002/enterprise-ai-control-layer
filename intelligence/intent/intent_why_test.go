@@ -61,7 +61,7 @@ func TestClassifyGiaiThichKhopDuVaKhopMotPhan(t *testing.T) {
 		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Priority: 5, Capability: "m"},
 	}, yes, yes)
 	r = tie.Classify(contracts.NormalizedInput{Raw: "cấp và báo"}, contracts.Resolution{}, testNow)
-	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) || !strings.Contains(whyOf(r), "hoà: a, b cùng ưu tiên 5 và cùng 1 cụm từ khoá") {
+	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) || !strings.Contains(whyOf(r), "hoà: a, b cùng ưu tiên 5 — số cụm từ khoá khớp không phải tín hiệu nghĩa nên không phân xử thay người hỏi, hỏi lại") {
 		t.Errorf("hoà: %v\n%s", r.Ambiguous, whyOf(r))
 	}
 
@@ -168,7 +168,7 @@ func TestClassifyTrichMenhDeHoiKhongThoatNhay(t *testing.T) {
 
 // N2 (soát vòng 2: X24, X26): các SỐ trong lý do của S4 khoá nguyên dòng — số ý định yếu đòi thuật ngữ của câu khi ý định chung không chọn được, và số cụm
 // từ khoá của ý định thắng khi hai ý định cùng ưu tiên khớp đủ mà khác số cụm.
-func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
+func TestClassifyGiaiThichSoLuongYDinhYeuVaHoaTheoCumTuKhoa(t *testing.T) {
 	yes := func(string) bool { return true }
 	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
 	in := contracts.NormalizedInput{Raw: "EX-03 dầu đúng không", Spans: []contracts.Span{
@@ -196,7 +196,8 @@ func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
 		}
 	}
 
-	// cùng ưu tiên, khác số cụm từ khoá: ý định nhiều cụm hơn thắng, và ý định kia bị loại KÈM hai con số đúng chỗ
+	// cùng ưu tiên, khác số cụm từ khoá: HOÀ ⇒ hỏi lại (S4AS-03, C4 — số cụm khớp không phải tín hiệu nghĩa; trước đây ý định nhiều cụm hơn thắng và ý định kia bị loại kèm hai
+	// con số: hợp đồng đổi có chủ ý theo ADR-0010)
 	set, err := Compile([]Def{
 		{Name: "a", Route: "SQL_QUERY", Keywords: []string{"cấp", "nhận"}, Priority: 5, Capability: "m"},
 		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Priority: 5, Capability: "m"},
@@ -205,14 +206,14 @@ func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := set.Classify(contracts.NormalizedInput{Raw: "cấp nhận báo"}, contracts.Resolution{}, testNow)
-	if r.Intent.Name != "a" {
-		t.Fatalf("tiền đề: ý định %q", r.Intent.Name)
+	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) {
+		t.Fatalf("tiền đề: hai ý định cùng ưu tiên phải hoà, được %q / %q", r.Intent.Name, r.Ambiguous)
 	}
-	if want := "chọn a: cùng ưu tiên 5 nhưng nhiều cụm từ khoá hơn (2)"; !slices.Contains(r.Why.Reasons, want) {
+	if want := "hoà: a, b cùng ưu tiên 5 — số cụm từ khoá khớp không phải tín hiệu nghĩa nên không phân xử thay người hỏi, hỏi lại"; !slices.Contains(r.Why.Reasons, want) {
 		t.Errorf("thiếu %q trong:\n%s", want, strings.Join(r.Why.Reasons, "\n"))
 	}
-	if want := []string{"b: khớp đủ nhưng bị loại — 1 cụm từ khoá, ít hơn a (2) cùng ưu tiên 5"}; !slices.Equal(r.Why.Rejected, want) {
-		t.Errorf("ý định bị loại: %q, muốn %q", r.Why.Rejected, want)
+	if len(r.Why.Rejected) != 0 {
+		t.Errorf("hoà thì không ý định nào bị loại, được %q", r.Why.Rejected)
 	}
 }
 

@@ -189,7 +189,7 @@ func TestVetDuKhoaDongCauSoSanh(t *testing.T) {
 		"khe period ← “2026-10-19” (mốc “hôm nay” trong câu)",
 		"chỉ số reported_fuel (theo thuật ngữ diesel_fuel (hiểu ngầm) của ý định fuel_reported)",
 		"luật intent:rules+default_term:diesel_fuel",
-		"câu so sánh: fuel_reported so với fuel_issued (hai chỉ số khác nhau kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ")
+		"câu so sánh: fuel_reported so với fuel_issued (hai chỉ số khác nhau trong cùng mệnh đề kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ")
 	wantList(t, "S4 loại (so sánh)", w.Intent.Rejected,
 		"fuel_generic: khớp đủ nhưng không phải vế của phép so sánh fuel_reported so với fuel_issued")
 	wantList(t, "S5 lý do (so sánh)", w.Route.Reasons,

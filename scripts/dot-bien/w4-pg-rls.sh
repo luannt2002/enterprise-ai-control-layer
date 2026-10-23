@@ -15,9 +15,19 @@ DB_DOT_BIEN=${DB_DOT_BIEN:-eais_dot_bien}
 fresh() { psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)" -c "CREATE DATABASE $DB_DOT_BIEN"; }
 # dsn_db <dsn> <database>: thay tên database trong DSN dạng postgres://vai@máy:cổng/<database>[?tham số].
 dsn_db() { printf '%s' "$1" | sed -E 's#^([a-z]+://[^/]*)/[^/?]*#\1/'"$2"'#'; }
+# Nền xanh trên database đột biến (lỗi 5c): chạy `mutate.sh --nen` MỘT lần trên database vừa dựng, rồi dựng lại database cho đột biến —
+# để mutate.sh tự chạy nền ở đó thì nền áp migration GỐC trước đột biến và đột biến migration sống giả.
+nen_mm=""
 mm() {
 	fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; return; }
-	EAIS_PG_ADMIN_DSN="$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN")" EAIS_PG_DSN="$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")" m "$@"
+	local a d
+	a="$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN")" d="$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")"
+	if [ -z "$nen_mm" ]; then
+		nen_mm=$(EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d scripts/mutate.sh --nen)
+		echo "$nen_mm"
+		fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; return; }
+	fi
+	EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d MUTATE_NEN_CO_SAN=1 m "$@"
 }
 m platform/pgstore/pgstore.go '		if _, err := tx.Exec(ctx, "SELECT set_config('"'"'eais.tenant_id'"'"', $1, true)", string(tenant)); err != nil {' '		if _, err := tx.Exec(ctx, "SELECT 1 WHERE $1::text IS NOT NULL", string(tenant)); err != nil {' 'PA không đặt GUC'
 m platform/pgstore/pgstore.go '	t, ok := contracts.TenantFrom(ctx)

@@ -2,7 +2,7 @@
 
 Lệnh ca chiều 23/10 của chủ dự án: "Commit nguyên văn báo cáo soát, không chỉ tóm tắt trong TIEN-DO." Mỗi tệp `.json` là đầu ra có cấu trúc
 của một người soát độc lập (agent chỉ đọc, khác tác giả), chép nguyên văn; chỉ thay đường dẫn máy vì repo công khai: `$S` là thư mục nháp
-của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục tạm của máy, `~` là thư mục nhà. Bằng chứng gốc mà người soát nhắc (tệp ở
+của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục tạm của máy, `~` là thư mục nhà; từ `d5e2-soat.json`, email danh tính commit trong lời người soát thay bằng `<email danh tính commit>`. Bằng chứng gốc mà người soát nhắc (tệp ở
 `$S`) không nằm trong repo. Báo cáo soát của bộ ca giữ lại (H6, 0a…) KHÔNG ở đây: chúng chứa nội dung ca, công bố khi chạy.
 
 | Tệp | Soát việc gì | Câu đầu của kết luận | Trạng thái |
@@ -30,3 +30,4 @@ của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục t�
 | `d5e-soat.json` | 5e — phiên bản dữ liệu của vết đọc từ sổ nạp PG (nhánh m1/5e-data-version, 0e63d5d) | KHÔNG ĐẠT (nhẹ): 0 S1, D5ES-01 S2 (route lệnh đọc sổ theo tenant của lượt không có test), 2 S3, 5 S4 | D5ES-07 sửa trên main (48491f7); vòng 2 đang chạy |
 | `v8a-soat.json` | M1 — vết phân biệt S8 / S9 / S10 (nhánh m1/vet-s8-s10, 9ce8aaa) | KHÔNG ĐẠT (V8AS-01 S2: dấu vân tay câu giao ghi trước khi câu giao chốt; V8AS-02 S1 hẹp: đoạn đầu bản nháp cắt trước bộ che phạm vi; 4 S3, 1 S4) | vòng 2 |
 | `m2b-soat.json` | M2 — mã Phase 0a bước 3b + kho PG (nhánh m2/0a-ma-truoc-dong-bang, ca73f25) | KHÔNG ĐẠT (hẹp: R-01 S2 chết khoá 40P01 trên PG khi nạp chạy cùng quyết định; S1 = 0; 2 S3, 7 S4) | sửa R-01 rồi soát hẹp |
+| `d5e2-soat.json` | 5e vòng 2 (nhánh m1/5e-data-version, 5aad534) | ĐẠT CÓ GHI CHÚ: 0 S1, 0 S2, 1 S3 (số migration 0006 trùng nhánh 0a — ràng buộc thứ tự gộp), 4 S4 tuỳ chọn | gộp main `6fa6ec6` (cherry-pick 9 commit lên main); 5e giữ 0006, nhánh 0a đổi 0007 khi gộp; S4 ở dòng nợ TIEN-DO |

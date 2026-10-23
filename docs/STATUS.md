@@ -11,7 +11,7 @@
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Bảng lệnh và kết quả: báo cáo ca 22/10 mục 7; từng dòng CỔNG TRƯỚC AI:
 `docs/bao-cao/CONG-TRUOC-AI.md`. Từ 23/10, `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra từng khối (chủ dự án 23/10).
 
-- **M1 CHƯA RA** — phần chạy đạt (smoke, CI có PG, vết bền); vế đọc vết KHÔNG ĐẠT (29 / 33 ngày 22/10; đo lại bằng thẻ mới 23/10: 30 / 38 = 78,9%, S10 / S8 không phân biệt được — `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`). Ngày 22/10 ghi "RA theo cổng ra của lệnh ca":
+- **M1 CHƯA RA** — phần chạy đạt (smoke, CI có PG, vết bền); vế đọc vết KHÔNG ĐẠT (29 / 33 ngày 22/10; đo lại bằng thẻ mới 23/10: 30 / 38 = 78,9%, S10 / S8 không phân biệt được — `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`). 5e (R2-01) gộp `6fa6ec6`: phiên bản dữ liệu của vết là của lần nạp đã commit vào PG (sổ nạp, migration 0006). Ngày 22/10 ghi "RA theo cổng ra của lệnh ca":
   mục 3a của lệnh ca 22/10 thiếu vế "người soát chỉ đọc vết chỉ đúng tầng sai đầu tiên ≥ 90%" của §5b; chủ dự án đính chính 23/10 (lỗi của
   lệnh ca, không phải của BUILD). Đã có: `cmd/eais` (POST /v1/ask, POST /v1/ingest, GET /v1/trace/{id}, GET /healthz; principal từ token,
   không lấy tenant từ thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`,

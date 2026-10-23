@@ -300,10 +300,11 @@ func BuildSteps(t Turn) []Step {
 			s.Reason = notRecorded("kết quả truy vấn (sourceoftruth.Result) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("nguồn / bằng chứng bị loại lúc truy vấn chưa xuất khỏi Handle")}
 		} else {
-			// Giới hạn đã biết (V8a, đo 23/10 trên bộ 117 + H1 + H3 + H4, hai người hỏi, 948 lượt): xung đột đã giải HỢP LỆ bằng thẩm quyền (outcome RESOLVED) vẫn bị đánh dấu
-			// LỆCH, nên "BƯỚC LỆCH ĐẦU TIÊN: S6" hiện trên lượt không có gì sai — 30 / 104 lượt RESOLVED chỉ lệch ở S6 (vd "Dự án A tháng 10 xuất tổng cộng bao nhiêu dầu?").
-			// Chưa đổi: người đọc không bị lừa (chỉ nhiễu), và LỆCH ở đây là chủ ý của P5 (không giấu xung đột nguồn); đổi nghĩa dấu này là quyết định của chủ dự án, kèm
-			// TestBuocTuLuotThat (đòi S6 lệch khi có xung đột).
+			// NỢ (V8a, V8AS-04; ngữ nghĩa chưa đổi ở vòng 2): xung đột đã giải HỢP LỆ bằng thẩm quyền (outcome RESOLVED) vẫn bị đánh dấu LỆCH, nên "BƯỚC LỆCH ĐẦU TIÊN: S6" hiện trên
+			// lượt không có gì sai (vd "Dự án A tháng 10 xuất tổng cộng bao nhiêu dầu?"). Số đo của NGƯỜI SOÁT vòng 1 (chưa phải đo độc lập của tác giả vòng 2), 474 lượt = bộ 117 + H1 + H3 + H4
+			// với người hỏi đúng của ca: 120 / 275 lượt RESOLVED (43,6%) chỉ lệch ở S6, và chỉ 148 / 474 lượt ra "Không có bước lệch". Con số 30 / 104 (28,8%, 948 lượt hai người hỏi) của vòng 1
+			// KHÔNG tái lập được (test tạm không commit): đừng trích nó. Người đọc không bị lừa (chỉ nhiễu) và LỆCH ở đây là chủ ý của P5 (không giấu xung đột nguồn). Chủ dự án chọn: (a) giữ;
+			// (b) chỉ LỆCH ở S6 khi xung đột chờ người duyệt hoặc outcome không RESOLVED. Đổi nghĩa dấu này thì đổi kèm TestBuocTuLuotThat (đòi S6 lệch khi có xung đột).
 			s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
 			var reasons []string
 			for _, c := range resp.Conflicts {

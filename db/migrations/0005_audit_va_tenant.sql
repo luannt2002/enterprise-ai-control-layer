@@ -15,6 +15,13 @@ GRANT SELECT (tenant_id, id, at, outcome, reason_code, caller_id, caller_roles, 
 -- C3. tenant_id rỗng bị chặn ở LƯỢC ĐỒ cho ba bảng của 0004 (trước đây chỉ tầng Go từ chối tenant rỗng; vai quản trị hay một đường ghi
 -- khác vẫn ghi được dòng tenant ''). Chạy lại được: bỏ rồi thêm ràng buộc cùng tên. Nợ cùng loại ở các bảng của 0001 (dữ liệu nghiệp vụ)
 -- và 0003 (vết bền): chưa sửa ở đây, ghi nợ ở docs/bao-cao/TIEN-DO-BUILD.md.
+-- Dữ liệu bẩn: database đã có dòng tenant '' thì ADD CONSTRAINT báo "violated by some row" và CẢ tệp hoàn tác (đúng hướng đóng mặc định,
+-- kể cả phần C1). Đếm trước khi áp, bằng vai quản trị:
+--   SELECT 'discrepancy_tickets', count(*) FROM discrepancy_tickets WHERE tenant_id = ''
+--   UNION ALL SELECT 'commands', count(*) FROM commands WHERE tenant_id = ''
+--   UNION ALL SELECT 'audit_log', count(*) FROM audit_log WHERE tenant_id = '';
+-- Ràng buộc theo đúng chữ của lệnh ca (tenant_id <> ''): tenant chỉ gồm dấu cách (' ') vẫn qua — tầng Go không bao giờ cấp tenant như vậy;
+-- muốn chặn cả nó thì đổi sang btrim(tenant_id) <> '' (chưa có quyết định).
 DO $$
 DECLARE t text;
 BEGIN

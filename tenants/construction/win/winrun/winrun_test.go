@@ -268,9 +268,13 @@ func TestLoadKnownApproxSaiDang(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"messages.jsonl#R-001", "messages.jsonl#R-002", "reports/2026-10-19.pdf#1"} {
+	for _, key := range []string{"messages.jsonl#R-001", "messages.jsonl#R-002"} {
 		if known[key] != (knownApprox{got: "false", want: "true"}) {
 			t.Errorf("tệp thật: %s ghim %+v, muốn được=false muốn=true", key, known[key])
 		}
+	}
+	// "≈ 4 m³" của báo cáo PDF đã hết lệch khi bộ chuẩn hoá nhận dấu ước lượng dạng ký hiệu mà pack khai (ratchet: xoá cùng commit sửa)
+	if _, still := known["reports/2026-10-19.pdf#1"]; still {
+		t.Errorf("tệp thật: reports/2026-10-19.pdf#1 đã hết lệch nhưng vẫn còn trong tệp")
 	}
 }

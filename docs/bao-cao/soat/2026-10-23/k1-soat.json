@@ -1,0 +1,164 @@
+{
+ "ket_luan": "KHÔNG ĐẠT (nghi ngờ thì không đạt). Theo chữ định nghĩa: 0 phát hiện S1, 2 S2, 6 S3, 8 S4. Không tìm được đường tới hai phiếu OPEN cùng khoá (trên kho giả có khoá duy nhất), không có DONE khi không ghi, không có FAILED khi lượt này có thể đã ghi (68 tổ hợp lỗi kho, 3 kho nói dối, 4000 yêu cầu ngẫu nhiên), không có vượt quyền với pack §4.2 (0/62 tổ hợp nhiều vai lệch, token dev chỉ đơn vai). Hai S2 đều trái chữ hợp đồng và đều có bản vá thử nhỏ, đã đo ở worktree người soát rồi hoàn nguyên: (1) K1S-01 gửi lại ĐỒNG THỜI của chính một lệnh nhận FAILED/DUPLICATE_OPEN_TICKET thay vì DONE phát lại (trái §6.3 hàng 3, I5, A02, §3 đoạn \"Bên gọi không phân biệt được\"); bộ ca đua chỉ xanh nhờ rào F7; (2) K1S-02 C4 đọc danh mục thực thể 1 lần cho máy không tồn tại nhưng 2 lần cho máy tồn tại: phân biệt được qua thời gian, trái mục đích §4.4. Lời khai tác giả kiểm lại KHỚP: [ĐO] 3 commit, 10 tệp, 3220 dòng; go vet rc=0; gofmt -l rỗng; go test -count=1 ./... (không PG, 28 skip cả hai phía) so theo tên với origin/main f344f50 có 3 commit K1 đặt lên trên: 0 mất, 0 đổi, 97 mới đều pass (597 pass lên 694 pass; tác giả đo 589 lên 686 ở 1ddd10b, chênh 8 là test cmd/eais main thêm sau); go test -count=1 . : 4/4 pass; go test -race -count=2 (và count=6) ./execution/... ok; ca đua x100 không chập chờn. Đột biến của người soát: 79/106 bị bắt (74,5%), 27 sống đều do ca thiếu chứ mã đọc đã so đủ (K1S-05). Sửa K1S-01 và K1S-02 (kèm ca không-rào / đếm lần đọc) rồi soát lại hẹp trước khi K2 dựng lên trên. Tệp ca đối kháng và ghi chú bản vá lưu ở $S/k1s-adv-tests/ (đường dẫn máy, đừng chép vào repo công khai). Worktree k1s-wt, k1s-rb, k1s-mu2 đã gỡ; nhánh m4/k1-loi-lenh vẫn d5166a5; ba commit cherry-pick của tôi còn là đối tượng mồ côi trong kho chung.",
+ "phat_hien": [
+  {
+   "ma": "K1S-01",
+   "muc": "S2",
+   "mo_ta": "Cửa sổ giữa C4b và R5: lượt B gửi lại cùng người gọi, cùng command_id, cùng nội dung với lượt A đang chạy. B tra sổ lệnh (không thấy), A commit, B chạy tới R5 và thấy phiếu OPEN của chính A, nên trả FAILED/DUPLICATE_OPEN_TICKET (retry none) thay vì DONE replayed=true cùng mã phiếu. Trái §6.3 hàng 3 (N lần đồng thời cùng khoá cùng nội dung: mọi lần DONE), I5, A02, và đoạn §3 gọi đúng sự lẫn lộn này là lỗi của cổng. Không sinh phiếu thứ hai, nhưng sai lớp kết cục của một lệnh đã được ghi; reclassify §6.4 chỉ chạy sau 23505 nên không cứu được. A02/A04b dùng rào F7 (mọi lượt qua C4b và C5 trước khi ai ghi) nên bộ ca và bộ giữ lại sẽ xanh: lỗi lọt qua cổng.",
+   "bang_chung": "[CODE] pipeline.go:527-549 (C4b chỉ tra một lần) và :631-641 (nhánh found của R5 refuse thẳng DUPLICATE, không tra lại sổ lệnh). [ĐO] ca tất định TestK1SCuaSoC4bDenR5BanSinhDoi (móc FindLedger cho bản sinh đôi chạy xong trước khi trả lời): lượt B = FAILED/DUPLICATE_OPEN_TICKET, muốn DONE replayed=true; biến thể khác nội dung vẫn đúng IDEMPOTENCY_KEY_REUSED. [ĐO] lịch chạy tự nhiên, không rào, không trễ nhân tạo (TestK1SGuiDoiTuNhienKhongTre): 2 lượt x 2000 vòng: 1307/4000 lượt nhận DUPLICATE_OPEN_TICKET; 6 lượt x 2000 vòng: 4688/12000; có trễ ngẫu nhiên nhỏ trước mỗi lần đọc (300 vòng x 6): 1300/1800 (kho giả trong bộ nhớ, không dự báo tần suất trên PG). Phiếu OPEN luôn = 1 sau mỗi vòng. [ĐO] bản vá thử: 97 test tác giả xanh, ca tất định xanh, 300 vòng x 6: DONE mới 300, phát lại 1500, DUPLICATE 0.",
+   "de_xuat": "Ở nhánh found của R5, gọi lại Store.FindLedger(caller, command_id): thấy cùng vân tay thì đặt r.replay, ghi C4b là 'phát lại', dừng ở C4b (C5 và C6 skipped); thấy khác vân tay thì IDEMPOTENCY_KEY_REUSED; không thấy thì DUPLICATE_OPEN_TICKET như cũ. Thêm hai ca: ca tất định có móc như của người soát và ca N lượt không rào. Đừng dựa vào F7 để chứng minh A02."
+  },
+  {
+   "ma": "K1S-02",
+   "muc": "S2",
+   "mo_ta": "permission() đọc danh mục thực thể hai lần cho máy tồn tại (Directory.Entities rồi entityresolution.Lineage lại gọi Entities) nhưng chỉ một lần cho khoá không tồn tại. Người gọi có tickets.create và phạm vi hẹp phân biệt được 'tồn tại ngoài phạm vi' với 'không tồn tại' bằng độ trễ (với danh mục PG là một vòng truy vấn thừa), trái mục đích §4.4 (không cho dò máy nào tồn tại). Detail, mã, mọi bước vết đều y hệt (đã kiểm), chỉ số lần đọc và thời gian khác. Hai lần đọc còn tạo khe TOCTOU: Load xen giữa có thể làm Lineage rỗng.",
+   "bang_chung": "[CODE] pipeline.go:497 (Entities) và :506 (Lineage), data/entityresolution/resolver.go:251-258 (Lineage tự gọi dir.Entities). [ĐO] TestK1SLoSuTonTaiQuaDetailVetVaThoiGian, trễ nhân tạo 2 ms mỗi lần đọc danh mục, 60 lượt mỗi loại: không tồn tại 1 lần đọc, 2,12 ms/lượt; ngoài phạm vi 2 lần đọc, 4,22 ms/lượt; thiếu capability 0 lần, 11 us. Detail, Entity, Cause và vết (sau khi thay khoá đã gõ) bằng nhau. [ĐO] bản vá thử: 1 và 1 lần đọc, 2,13 ms và 2,19 ms. [REPO] A29(c) chỉ tha khác biệt 'đồng hồ và thời gian' trong nội dung vết, không nói thời gian phản hồi.",
+   "de_xuat": "Đọc danh mục MỘT lần trong C4 và tính Lineage trên ảnh chụp đó: entityresolution.Lineage(ctx, entityresolution.MemoryDirectory(ents), id); với khoá không tồn tại vẫn đi cùng đường đọc. Thêm ca đếm số lần đọc danh mục bằng nhau giữa không tồn tại, ngoài phạm vi và ký tự lạ (hợp đồng nên ghi rõ phạm vi 'không lộ' gồm cả thời gian phản hồi)."
+  },
+  {
+   "ma": "K1S-03",
+   "muc": "S3",
+   "mo_ta": "write() xét errors.Is theo thứ tự ErrUniqueViolation, ErrBeforeCommit, ErrCommitUnknown. Một lỗi kho (K2 viết ẩu) mang cả dấu 'chắc chắn chưa ghi' lẫn dấu 'từ lúc gửi COMMIT' bị báo FAILED, trái nguyên tắc 'nghi ngờ thì UNKNOWN' (§9.2.1, §9.2.4).",
+   "bang_chung": "[CODE] pipeline.go:731-745. [ĐO] TestK1SLoiMoHoHaiLoai: errors.Join(ErrBeforeCommit, ErrCommitUnknown) cho FAILED/STORE_UNAVAILABLE.",
+   "de_xuat": "Xét ErrCommitUnknown trước ErrBeforeCommit (hoặc coi có cả hai là UNKNOWN), và ghi vào giao diện K2 rằng một lỗi chỉ được mang đúng một loại."
+  },
+  {
+   "ma": "K1S-04",
+   "muc": "S3",
+   "mo_ta": "Run không bắt panic. Panic trong Store, Directory hoặc Facts sau khi đơn vị ghi đã commit thoát ra ngoài: không có Result, không audit, không vết, trong khi §2.4 đòi lỗi mã sau BEGIN là UNKNOWN INTERNAL_ERROR. Không thấy đường panic trong mã K1 đã đọc; đây là phòng thủ chiều sâu cho kho K2.",
+   "bang_chung": "[ĐO] TestK1SPanicCuaKhoSauKhiGhi: ReadBack panic sau commit, panic lọt khỏi Run, kho có 1 phiếu. [CODE] pipeline.go:277-287.",
+   "de_xuat": "defer recover trong Run: trước khi gọi WriteTicket thì INTERNAL_ERROR FAILED, từ lúc gọi WriteTicket thì UNKNOWN (kèm Cause). Hoặc ghi rõ K3 phải recover và ánh xạ UNKNOWN."
+  },
+  {
+   "ma": "K1S-05",
+   "muc": "S3",
+   "mo_ta": "Test không chứng minh phần lớn so sánh đọc lại, dù mã có đủ. 27 đột biến không tương đương sống sót: chỉ 1/16 trường của diffTicket (diff) bị bắt; ở chốt phát lại chỉ subject_key bị bắt, còn người tạo, command_id, trạng thái, chỉ số, ngày, dòng sổ lệnh, audit EXECUTED không ca nào canh; ở phiếu mới thiếu ca cho dòng sổ lệnh và audit EXECUTED; vân tay bỏ chỉ số không ai bắt (tool thử chỉ có một chỉ số), nhưng với pack có hai chỉ số, cùng command_id khác chỉ số sẽ bị phát lại thay vì IDEMPOTENCY_KEY_REUSED; đổi chuỗi PERMISSION_DENIED thành FORBIDDEN vẫn xanh vì test so với hằng, không ghim chữ §2.4.",
+   "bang_chung": "[ĐO] bộ đột biến k1s (xem dot_bien): nhóm sống = diffTicket 15, chốt phát lại 7, chốt phiếu mới 2, vân tay chỉ số 1, thứ tự R4/R5 1, chuỗi mã lý do 1. [CODE] mã đã so đủ 16 trường (pipeline.go:905-923) và 9 điều kiện phát lại (:883-898). [ĐO] TestK1SChuoiMaLyDoKhopBangMuc24: 12 chuỗi mã, 3 trị status, 4 retry khớp §2.4 hiện tại.",
+   "de_xuat": "Thêm bảng ca 'ReadBack lệch đúng một trường' cho 16 trường phiếu và 7 điều kiện phát lại (stale mode theo tên trường), ca thiếu audit EXECUTED và lệch dòng sổ lệnh, ca tool hai chỉ số cho vân tay, và ca ghim chữ 12 mã + 3 trị status + 4 retry theo §2.4."
+  },
+  {
+   "ma": "K1S-06",
+   "muc": "S3",
+   "mo_ta": "Principal nhiều vai: Policy.Allows (qua bất kỳ vai) và Policy.InScope (bất kỳ vai scope all) độc lập nhau, hợp đồng §4 chỉ nói 'vai' số ít và không định nghĩa nhiều vai. Với lệnh tạo phiếu, người có vai A (tickets.create, phạm vi hẹp) và vai B (phạm vi all, không có tickets.create) sẽ tạo được phiếu cho máy ngoài phạm vi của A. KHÔNG phải S1 hôm nay: pack không có vai B, và nguồn Principal duy nhất là token dev đơn vai.",
+   "bang_chung": "[CODE] intelligence/router/router.go Allows và InScope; cmd/eais/auth.go:55 (Roles: []string{p.Role}); policy.yaml hiện không có tickets.create; ma trận §4.2: vai scope all duy nhất là director và accountant, cả hai có tickets.create. [ĐO] TestK1SPrincipalNhieuVai: 31 tập vai x 2 máy = 62 tổ hợp với ma trận §4.2: 0 lệch so với ngữ nghĩa 'một vai phải đủ cả capability lẫn phạm vi'; thêm vai giả auditor (all, chỉ metrics.read): 126 tổ hợp, 4 lệch, ví dụ [auditor, project_manager] tạo phiếu cho EX-09 (PRJ-B) khi entity_scope=PRJ-A.",
+   "de_xuat": "Ghi ngữ nghĩa nhiều vai vào §4.1 (hợp hay từng vai). Nếu chọn từng vai: thêm hàm gộp trong router (ví dụ kiểm capability và phạm vi trên cùng một vai) cho K1 gọi, và ca A08 biến thể nhiều vai; việc của làn router, không sửa trong K1. Trước Phase 5 (xác thực thật, có thể cấp nhiều vai) phải quyết xong."
+  },
+  {
+   "ma": "K1S-07",
+   "muc": "S3",
+   "mo_ta": "C3 không đặt cận dưới cho day. '0000-01-01' qua pastDay (Go chấp nhận năm 0) nhưng kiểu date của PostgreSQL không có năm 0, nên truy vấn số liệu thật sẽ lỗi và K1 báo FAILED STORE_UNAVAILABLE retry same_key cho một lỗi đầu vào tất định, mời bên gọi thử lại vô hạn.",
+   "bang_chung": "[CODE] pipeline.go:466-469 (không cận dưới); platform/pgstore/pgstore.go Facts dùng from.Format(time.DateOnly) với $3::date. [SUY] hành vi PG với năm 0000 (chưa chạy PG).",
+   "de_xuat": "Chặn day dưới một cận hợp lý (ví dụ 1900-01-01 hoặc dải date của PG) ở C3 bằng INVALID_REQUEST [day]; thêm ca A13 biến thể ngày quá xa."
+  },
+  {
+   "ma": "K1S-08",
+   "muc": "S3",
+   "mo_ta": "Hợp đồng tự mâu thuẫn ở retry của UNKNOWN: §2.3 và §9.2.2 nói UNKNOWN thì gửi lại cùng command_id (luôn an toàn), nhưng §2.4 đặt INTERNAL_ERROR (cả UNKNOWN) và VERIFY_MISMATCH retry=none. Tác giả theo bảng (khớp chữ), hệ quả: lỗi chưa gói của kho (ngữ cảnh huỷ, hết hạn trong WriteTicket) ra UNKNOWN INTERNAL_ERROR retry none, bên gọi làm theo retry sẽ không bao giờ gửi lại để biết kết quả. Đồng thời §6.3/§7.1 đòi hết hạn khi chờ khoá là FAILED STORE_UNAVAILABLE: chỉ đạt nếu K2 gói mọi lỗi ngữ cảnh thành ErrBeforeCommit.",
+   "bang_chung": "[ĐO] ma trận lỗi (TestK1SMaTranLoiKho, 68 tổ hợp): WriteTicket với lỗi thô, context.Canceled, context.DeadlineExceeded cho UNKNOWN/INTERNAL_ERROR (phiếu 0 hoặc 1); ErrBeforeCommit cho FAILED/STORE_UNAVAILABLE; ErrCommitUnknown cho UNKNOWN/COMMIT_UNKNOWN; 23505 mà không thấy gì cho FAILED/INTERNAL_ERROR. [CODE] command.go:174-178 (retry none).",
+   "de_xuat": "Hỏi chủ hợp đồng: UNKNOWN INTERNAL_ERROR và VERIFY_MISMATCH nên là same_key? (gửi lại cùng khoá luôn an toàn). Ghi vào giao diện K2 rằng mọi lỗi phải được gói vào đúng một trong ba loại, kể cả lỗi ngữ cảnh."
+  },
+  {
+   "ma": "K1S-09",
+   "muc": "S4",
+   "mo_ta": "New chỉ kiểm Tool.MinAbsDiff là số, không kiểm không âm (LoadTools thì kiểm): cấu hình tay âm vô hiệu hoá R4 và tạo phiếu cho chênh lệch 0.",
+   "bang_chung": "[ĐO] TestK1SNewChapNhanNguongAm: min_abs_diff=-1, EX-01 (hai vế bằng nhau) cho DONE. [CODE] pipeline.go:260-265 so với tools.go:138-140.",
+   "de_xuat": "Dùng chung phép kiểm không âm của tools.go trong New."
+  },
+  {
+   "ma": "K1S-10",
+   "muc": "S4",
+   "mo_ta": "Result marshal ra trường fault bằng nhãn đầy đủ (ví dụ infra:postgres); chỉ FaultClass() cắt lớp lỗi. K3 quên gọi thì lộ tên thành phần ra HTTP, trái §2.3 và §2.6.2.",
+   "bang_chung": "[ĐO] JSON FAILED PERMISSION_DENIED in fault=policy; với infra trong tiến trình là nhãn đầy đủ. [CODE] command.go:109, :127-131.",
+   "de_xuat": "Cho Result một MarshalJSON mặc định chỉ in lớp lỗi (hoặc phương thức Public()), nhãn đầy đủ chỉ qua trường riêng không marshal; thêm ca JSON."
+  },
+  {
+   "ma": "K1S-11",
+   "muc": "S4",
+   "mo_ta": "C0 chỉ chặn NUL, không chặn chuỗi UTF-8 hỏng. Qua HTTP không tới được (bộ giải mã JSON đổi thành U+FFFD) nhưng gọi trong tiến trình (bộ chạy ca, K4) có thể làm WriteAudit hoặc WriteTicket lỗi vì PG từ chối, mất dòng audit REFUSED im lặng.",
+   "bang_chung": "[CODE] pipeline.go:383-394. [SUY] hành vi PG với UTF-8 hỏng; fuzz 4000 yêu cầu có chuỗi '\\xff\\xfe' chạy qua kho giả không lỗi.",
+   "de_xuat": "Thêm utf8.ValidString vào shapeProblems (INVALID_REQUEST) hoặc ghi vào giao diện K2/K3."
+  },
+  {
+   "ma": "K1S-12",
+   "muc": "S4",
+   "mo_ta": "Thứ tự R4 trước R5 (NO_DISCREPANCY thắng DUPLICATE_OPEN_TICKET khi cả hai đúng) là chọn của tác giả; hợp đồng chỉ cố định R3 (xung đột trước thiếu vế). Không ca nào ghim thứ tự này (đột biến đổi R5 trước R4 sống).",
+   "bang_chung": "[ĐO] TestK1SR4R5ThuTu: có phiếu OPEN và chênh lệch không vượt ngưỡng cho FAILED/NO_DISCREPANCY; đột biến 'P60' sống.",
+   "de_xuat": "Hỏi chủ hợp đồng rồi ghim bằng một ca; nếu không quan trọng thì ghi 'không đặc tả' vào §5."
+  },
+  {
+   "ma": "K1S-13",
+   "muc": "S4",
+   "mo_ta": "LoadTools nạp tool có tên bất kỳ và Names() trả ra mọi tên, dù gói chỉ cài một lệnh (open_discrepancy_ticket); tools.yaml thiếu (kể cả packDir sai hay gõ nhầm tên tệp) thành tập rỗng im lặng, tắt lệnh mà không báo.",
+   "bang_chung": "[CODE] tools.go:57-66, :77-110, :82-86.",
+   "de_xuat": "K3 kiểm Names() chỉ gồm lệnh đã cài và log cảnh báo khi tập rỗng; hoặc LoadTools từ chối tên lạ."
+  },
+  {
+   "ma": "K1S-14",
+   "muc": "S4",
+   "mo_ta": "Step.Fault của bước lỗi hạ tầng luôn là infra:postgres (đúng chữ bảng §2.4) kể cả khi thành phần hỏng là danh mục hay số liệu; nhãn thật (infra:directory, infra:facts) chỉ nằm ở Step.Error thô, nên bảng vết chỉ nhầm thành phần.",
+   "bang_chung": "[CODE] pipeline.go:962-966 và entityresolution Label(Infra(\"directory\")), sourceoftruth Label(Infra(\"facts\")).",
+   "de_xuat": "Giữ nhãn bảng cho Result; cho Step.Fault mang nhãn thật (qua contracts.FaultOf(err)) khi có."
+  },
+  {
+   "ma": "K1S-15",
+   "muc": "S4",
+   "mo_ta": "verify() dùng r.evidence[:0] rồi append, ghi đè mảng nền mà Steps[C5].Evidence cũng trỏ tới. Hiện vô hại vì nội dung bằng nhau (verifyFresh đã so), nhưng dễ vỡ nếu đổi cách so sánh.",
+   "bang_chung": "[CODE] pipeline.go:663 (Evidence: r.evidence) và :839.",
+   "de_xuat": "Dựng mảng mới thay vì cắt về 0."
+  },
+  {
+   "ma": "K1S-16",
+   "muc": "S4",
+   "mo_ta": "Lượt DONE phát lại sau 23505 (ca đua) có C6 = deviant: §7.5 cho phép (kết cục phân loại lại là deviant) nhưng A29(b) nói lượt DONE kể cả phát lại không có bước lệch; hai chỗ của hợp đồng lệch nhau. A02/A04b không nằm trong danh sách A29 nên chưa vấp; bảng vết sẽ trỏ 'BƯỚC LỆCH ĐẦU TIÊN' = C6 cho một lượt DONE.",
+   "bang_chung": "[CODE] pipeline.go:772-775 (setStep stWrite StepDeviant rồi replay).",
+   "de_xuat": "Hỏi điều phối: DONE sau phân loại lại nên có C6 ok kèm lý do 'phát lại sau 23505' để khớp A29(b)."
+  }
+ ],
+ "quyet_dinh_tac_gia": [
+  "QĐ1 (không đoán theo bộ giữ lại) - KHỚP, không kiểm tuyệt đối được: mọi chỗ chọn đều ở chỗ hợp đồng im lặng và ở phía đóng; không thấy dấu hiệu khớp-đề trong mã; người soát cũng không mở docs/sources/ hay docs/g7/holdout-p1/.",
+  "QĐ2 (C4b ngay sau C4, trước R5; quyền kiểm trước phát lại) - KHỚP §3 và Q-P1-7 mặc định ('Quyền vẫn kiểm trước khi phát lại'); đột biến bỏ tra sổ lệnh và đặt sau luật R đều bị bắt. NÊN ĐỔI một nửa: vì R5 đứng sau C4b nên còn cửa sổ C4b-R5 (K1S-01): R5 trúng phiếu phải tra lại sổ lệnh.",
+  "QĐ3 (invalid_fields theo chặng dừng) - KHỚP chữ §2.3 ('mà chặng từ chối thấy là sai') và bảng §3 (C0 thiếu, UUID, NUL; C3 metric, ngày). Rủi ro diễn giải: ca có hai trường sai ở hai chặng chỉ nêu trường của chặng sớm; A13 chỉ có biến thể một lỗi. Không trái chữ; nên hỏi chủ hợp đồng và ghi thêm một dòng vào §2.3.",
+  "QĐ4 (command_id hoa/thường là một khoá, lưu chữ thường) - KHỚP, hợp đồng im lặng và đây là phía an toàn (UUID không phân biệt hoa thường; cột uuid của PG trả chữ thường). [ĐO] hoa cho DONE; khoảng trắng đầu, khoảng trắng cuối, xuống dòng cuối, chữ số toàn góc, NUL giữa đều cho INVALID_REQUEST [command_id]. Tiểu tiết: Question của vết giữ hoa/thường gốc.",
+  "QĐ5 (Principal.ID rỗng bị C1 từ chối) - KHỚP, hợp đồng im lặng, đóng mặc định, cùng lớp A10. Không vướng K3: devPrincipals từ chối principal thiếu id (cmd/eais/auth.go:48-55). Bộ chạy §12.1 phải gán mã người gọi cho ca một lời gọi.",
+  "QĐ6 (Fault luôn infra:postgres cho STORE_UNAVAILABLE, COMMIT_UNKNOWN, READBACK_UNAVAILABLE) - KHỚP chữ bảng §2.4. Ghi chú S4 (K1S-14): nhãn bước nên mang nhãn thật khi có.",
+  "QĐ7 (lỗi Derive không nhãn infra thì INTERNAL_ERROR FAILED, fault code) - KHỚP, hợp đồng im lặng, FAILED đúng vì chưa mở giao dịch. Lưu ý: lỗi Derive mang nhãn data (đơn vị fact sai) cũng bị đẩy thành fault=code.",
+  "QĐ8 (entity_types rỗng thì không loại nào hợp lệ) - KHỚP §3 C5, A13 và đóng mặc định.",
+  "QĐ9 (CapMetricsRead là hằng, New không kiểm §4.3) - KHỚP §4.1 ('kiểm hai lần') và A09 (dựng Policy bằng tay). Giới hạn: kiểm hằng metrics.read thay vì capability từng vế (§4.1: nếu sau này mỗi chỉ số có capability riêng thì kiểm từng cái); đúng với pack hiện tại.",
+  "QĐ10 (tools.yaml thiếu là tập rỗng; luật phụ) - KHỚP, hợp đồng im lặng, luật phụ chỉ siết thêm (11/11 đột biến tools.go bị bắt). Rủi ro S4 ở K1S-13 (tên lạ, thiếu tệp im lặng).",
+  "QĐ11 (khoá nghiệp vụ theo khoá thực thể; R4 trị tuyệt đối, chênh lệch âm vẫn là chênh lệch) - KHỚP §6.1, R4, §7.4 (A18). [ĐO] A14 tám ca; đột biến bỏ trị tuyệt đối, < thay <=, tìm theo mã thay vì khoá đều bị bắt. Thứ tự R4 trước R5 không được ghim (K1S-12).",
+  "QĐ12 (phân loại đơn vị ghi: ba lỗi mẫu; không phân loại được thì UNKNOWN; 23505 không thấy gì thì FAILED; đọc lại hỏng sau 23505 thì FAILED STORE_UNAVAILABLE) - KHỚP §7.1, §6.4, §9 và an toàn: [ĐO] 68 tổ hợp lỗi kho giữ bất biến (không FAILED khi lượt này đã ghi, DONE thì phiếu có thật, phiếu OPEN <= 1). Hai điểm nên chỉnh: thứ tự errors.Is (K1S-03) và lỗi chưa gói ra UNKNOWN INTERNAL_ERROR retry none (K1S-08, K2 phải gói mọi lỗi).",
+  "QĐ13 (phát lại không tính lại, so với dòng sổ lệnh và với chính yêu cầu, giá trị trả từ phiếu đã lưu) - KHỚP §6.3, §7.2, I3, A18. Test chỉ ghim 1/7 điều kiện so sánh (K1S-05).",
+  "QĐ14 (ghi audit riêng hỏng thì kết quả không đổi) - KHỚP §7.3 ('cố gắng tối đa'). [ĐO] WriteAudit lỗi ở lượt đầu và lượt phát lại: DONE giữ nguyên, ghi chú ở C7.",
+  "QĐ15 (vết PERMISSION_DENIED một lý do chung; VERIFY_FAILED chỉ nêu tên trường) - KHỚP §4.4, §7.5, A29(c): [ĐO] vết của 'không tồn tại' và 'ngoài phạm vi' bằng nhau từng bước sau khi thay khoá đã gõ, detail bằng nhau. Rò qua số lần đọc/thời gian: K1S-02.",
+  "QĐ16 (móc test ở lớp bọc quanh Store; F2 trong memStore; F8 chưa làm) - KHỚP §10 (lớp bọc test-only) và đúng ranh giới K1. F2 'qua lớp bọc ngoài kho' không làm được ở PG nếu chỉ bọc ngoài: K2 cần một núm không xuất trong pgticket.go (xem giao_dien_k2_k4).",
+  "QĐ17 (TraceID cấp ở C0; thêm Malformed, HTTPStatus, FaultClass ngoài danh sách việc) - KHỚP §2.3, §2.6.2, §7.5, nhỏ và hữu ích. NÊN ĐỔI nhẹ (K1S-10): Result marshal ra fault nhãn đầy đủ theo mặc định.",
+  "QĐ18 (Ticket.Approx là *bool) - KHỚP §2.5, R6, A17. [ĐO] JSON DONE luôn có approx; DUPLICATE_OPEN_TICKET chỉ có id và status.",
+  "QĐ19 (INTERNAL_ERROR có hai câu detail cố định theo FAILED/UNKNOWN) - KHỚP §2.3 và §2.4. Mâu thuẫn nằm ở hợp đồng chứ không ở tác giả (K1S-08): UNKNOWN mà retry none; nên đổi hợp đồng sang same_key.",
+  "QĐ20 (Allows và InScope tách rời theo vai) - quan sát ĐÚNG và chưa phải S1. Hợp đồng §4 không có ngữ nghĩa nhiều vai ('vai' số ít); Allows 'qua bất kỳ vai nào', InScope 'bất kỳ vai all'. Pack hiện có 5 vai, vai scope all duy nhất là director và accountant (cả hai có tickets.create theo §4.2) nên không có tổ hợp nguy hiểm: [ĐO] 0/62 lệch; token dev đơn vai (auth.go:55). Với một vai giả (all, chỉ metrics.read): 4/126 lệch. NÊN ghi ngữ nghĩa vào §4.1 và, nếu chọn 'từng vai', thêm hàm gộp ở router (K1S-06, S3)."
+ ],
+ "dot_bien": "Bộ chạy riêng của người soát, cùng luật với scripts/mutate.sh (chuỗi gốc đúng số lần, khôi phục và so sha256, không biên dịch thì KHÔNG tính là bị bắt, go test -count=1 -timeout 90s ./execution/commands/), chạy trên hai worktree song song, 108 mục: pipeline.go 77, command.go 20, tools.go 11. [ĐO] Kết quả: 79 bị bắt, 29 sống; trong 29 sống có 1 đối chứng (chỉ thêm chú thích, phải sống) và 1 tương đương, còn 27 không tương đương. Tỷ lệ bắt trên 106 đột biến thật không tương đương = 79/106 = 74,5% (pipeline.go 50/76, command.go 18/19, tools.go 11/11). Lưu ý: P55 (bỏ hạn chót của tool) 'bị bắt' do test treo tới -timeout chứ không do khẳng định. Đã bắt đúng: M1, M3, M5, M6, M7, M8, M9 (bốn biến thể), M10, M11, M12, M13, M14, M19, M20, M21, M26 của §11.2, cùng đảo C3/C4, R3 thiếu-vế-thắng, R4 (<= và trị tuyệt đối), Derive không lọc thực thể, bỏ hạn chót, bỏ audit REFUSED/REPLAYED/VERIFY_FAILED, đổi bảng mã lý do (12 mục), HTTPStatus, FaultClass, lộ chữ postgres trong detail, thêm trường Tenant vào Request, 9/9 đột biến luật nạp tools.go. Sống sót: (a) TƯƠNG ĐƯƠNG: P09 bỏ so dạng chuẩn ở pastDay; [ĐO] 60984 chuỗi (năm 1999-2031, tháng 0-13, ngày 0-32, 4 kiểu độ rộng) không chuỗi nào time.Parse nhận mà khác dạng chuẩn, nên dòng so này thừa. (b) KHÔNG tương đương, đều làm hành vi yếu đi/sai, nguyên nhân là thiếu ca: diffTicket bỏ so từng trường id, status, entity_id, subject_key, metric, day, left, right, approx, formula, evidence, created_by, pack_version, code_version, command_id (15; chỉ diff bị bắt) - đọc lại sẽ báo DONE dù ReadBack lệch trường đó; chốt phát lại bỏ so created_by, command_id, status, metric, day, dòng sổ lệnh, audit EXECUTED (7); chốt phiếu mới bỏ so dòng sổ lệnh và audit EXECUTED (2); vân tay bỏ chỉ số (1; sai khi tool có >= 2 chỉ số); R5 đứng trước R4 (1; hợp đồng im lặng); đổi chuỗi mã PERMISSION_DENIED thành FORBIDDEN (1; test so với hằng, bộ chạy giữ lại sẽ đỏ). Danh mục chính thức X8 M1-M26: M2, M4 (ở tầng kho), M11 (ngoài bộ nhớ), M15-M18, M22-M23, M25 không thử được ở K1. Đỏ trước (e), bỏ đúng đoạn mã kiểm trong worktree người soát, test đỏ đúng lý do: bỏ kiểm tickets.create thì TestA07ThieuTicketsCreate đỏ ('muốn FAILED/PERMISSION_DENIED, được DONE'); bỏ InScope thì TestA08 đỏ (cùng thông điệp); bỏ so vân tay thì TestA03CungKhoaKhacNoiDung đỏ ('muốn FAILED/IDEMPOTENCY_KEY_REUSED, được UNKNOWN/VERIFY_MISMATCH'); R4 '<=' thành '<' thì TestA14 đỏ ('muốn FAILED/NO_DISCREPANCY, được DONE'); bỏ R5 thì TestA04 và TestA05 đỏ ('bước lệch đầu tiên là C6, muốn C5', bộ đếm write_unit_calls); gộp lỗi COMMIT vào FAILED thì TestA21 đỏ ('muốn UNKNOWN/COMMIT_UNKNOWN, được FAILED/STORE_UNAVAILABLE'); bỏ nhánh xung đột thì TestA16 đỏ ('muốn HUMAN_REVIEW_REQUIRED, được INSUFFICIENT_EVIDENCE'); bỏ đọc lại thì TestA23 đỏ; bỏ phân loại lại sau 23505 thì TestA02 và TestA02b đỏ. Đường dẫn máy (đừng chép vào repo): bộ đột biến $S/k1s-mutants.py, bộ chạy .../k1s-mutrun.py, kết quả .../k1s-mut-all.json.",
+ "giao_dien_k2_k4": "K2 (pgticket.go, migration, hàm mở giao dịch của pgstore): giao diện Store ĐỦ để cài, không buộc đổi chữ ký, nhưng có ràng buộc phải ghi vào hợp đồng giao diện. (1) WriteTicket nguyên tử được: WriteUnit mang đủ cột cho ba bảng (phiếu 16 trường gồm formula, evidence, created_by, pack_version, code_version, command_id; sổ lệnh 4; audit 14), thứ tự INSERT phiếu, sổ lệnh (FK thường), audit EXECUTED, tenant từ ctx. (2) ReadBack phải trả ĐÚNG mọi trường vì verifyFresh so chuỗi 16 trường + dòng sổ lệnh + đòi >= 1 EXECUTED (pipeline.go:864-880, 905-923): lưu số thập phân dạng TEXT (numeric có thang cố định, ví dụ numeric(18,2), sẽ trả '68' thành '68.00' và gây VERIFY_MISMATCH giả); day kiểu date phải đọc ra 'YYYY-MM-DD'; evidence JSONB phải đi-về đúng thứ tự và Authority là số nguyên (so bằng slices.Equal); command_id uuid trả chữ thường (K1 đã hạ chữ thường); audit REFUSED có ticket_id rỗng phải là NULL; Caller.Roles là mảng. (3) ReadBack bắt buộc giao dịch MỚI từ nơi ghi, không RETURNING, không cache trong tiến trình: [ĐO] kho noop, chỉ-ghi-phiếu, ghostLedger đều bị bắt (UNKNOWN VERIFY_MISMATCH), nhưng một kho 'echo' lại bản đã gửi thì K1 không bắt được. (4) Ánh xạ lỗi pgx làm được [CODE pgx v5.11.0 tx.go:191-214, pgconn/errors.go:12-19]: lỗi trước COMMIT (Begin, Exec) thì ErrBeforeCommit; *pgconn.PgError mã 23505 thì ErrUniqueViolation (sau rollback), PgError khác thì ErrBeforeCommit; Commit() trả *PgError hoặc pgx.ErrTxCommitRollback thì ErrBeforeCommit (server đã rollback); Commit() trả lỗi không phải PgError (IO, ngữ cảnh) thì ErrCommitUnknown; dùng pgconn.SafeToRetry(err) để coi 'ngữ cảnh đã hết trước khi gửi gì' là ErrBeforeCommit. PHẢI gói mọi lỗi kể cả lỗi ngữ cảnh (K1S-08) và không để một lỗi mang hai loại (K1S-03). U1 (hành vi thật khi ngữ cảnh hết đúng lúc COMMIT) vẫn cần PG. (5) F2 (INSERT audit hỏng giữa giao dịch) không chèn được từ lớp bọc ngoài Store ở PG: cần một núm không xuất trong pgticket.go (cùng gói commands, chỉ _test.go đặt); không đổi giao diện nhưng §10 'lớp bọc quanh lớp lưu trữ' không còn đúng chữ cho F2. (6) 23505 đến từ khoá chính sổ lệnh hoặc chỉ mục phiếu mở; K1 phân loại bằng đọc lại (sổ lệnh rồi phiếu mở) nên K2 không cần phân biệt, nhưng FindLedger/FindOpenTicket phải chạy giao dịch mới (READ COMMITTED) sau rollback. (7) day năm 0000 làm truy vấn date của PG lỗi (K1S-07). K3 (route HTTP): không buộc đổi giao diện K1. Dùng Run cho thân đọc được; Malformed(tên trường lạ đầu tiên) cho JSON hỏng hoặc trường lạ; 415/413 là việc của K3 (HTTPStatus() chỉ trả 400 cho INVALID_REQUEST). PHẢI đặt fault = FaultClass() (K1S-10, nên có MarshalJSON), header X-Trace-Id = Result.TraceID, recover panic (K1S-04), kiểm Names() chỉ gồm lệnh đã cài (K1S-13), đặt trần thân như maxAskBody. Dựng Deps: Tenant = rt.Meta.Tenant, Directory và Facts là pgstore dùng ctx tenant, Now = đồng hồ -now world, Tool từ LoadTools; policy.yaml thêm tickets.create cho director, accountant, project_manager (luật nạp 2 đạt vì cả ba có metrics.read) và giữ phép toàn quyền dữ liệu của auth.go:104 (A27). K4 (vết, bộ chạy ca): traces.Step có Ms/Timed nhưng K1 không đo từng bước nên đặt Timed=false ('chưa đo'), Record.TotalMs do K3 đo quanh Run; Step.Evidence của K1 là []string còn traces.Step.Evidence là []EvidenceRef{ID, Source}: để Source trống (Validate không đòi); Step.Error là lỗi thô, phải qua traces.SanitizeError (Record.Validate đòi có Fault khi có Error, K1 luôn đặt cùng nhau); PackVersion, CodeVersion, DataVersion không nằm trong Outcome: lấy từ Deps, DataVersion chưa có nguồn; ValidStage phải nhận C0..C7 và C4b; DONE phát lại sau 23505 có C6=deviant nên 'BƯỚC LỆCH ĐẦU TIÊN' trỏ C6 cho một lượt DONE (K1S-16); lưu vết hỏng thì xoá Result.TraceID (audit vẫn mang trace_id cũ, đúng §7.5). Bộ chạy §12.1: probe bọc được MỌI Store nên dùng lại cho PG (bộ đếm write_unit_calls, audit_writes, F1, F3, F5, F6, rào F7); memStore.failAuditInTx là móc riêng của kho giả; phải gán mã người gọi cho ca một lời gọi (QĐ5); ca A02/A04b ép bằng F7 nên không phát hiện K1S-01, cần thêm ca không rào.",
+ "khong_kiem_duoc": [
+  "PostgreSQL thật: không chạy PG nên chưa kiểm U1 (pgx khi ngữ cảnh hết đúng lúc COMMIT), thứ tự báo 23505, chờ khoá, RLS, vòng đi-về của numeric/date/JSONB; phần ánh xạ lỗi pgx chỉ đọc mã nguồn pgx v5.11.0, không chạy.",
+  "Cửa HTTP (A25-A28) và vết qua eais trace / GET /v1/trace (A29 (e) F8): ngoài K1, không có route, không có kho vết để thử; chỉ kiểm phần dữ liệu thô của A29 (a)-(d) trong Outcome.Steps.",
+  "Bộ giữ lại 157 ca: không đọc, không chạy (đúng lệnh), nên không biết tỷ lệ qua; bộ chạy §12.1 chưa có. Lời khai tác giả 'không mở docs/sources/ hay docs/g7/holdout-p1/' chỉ kiểm được gián tiếp (mã không có dấu khớp-đề); người soát không có nhật ký công cụ của tác giả.",
+  "Tần suất thật của K1S-01 và độ lệch thời gian thật của K1S-02 trên PG: các số đo (32,7%, 39,1%, 72,2%; 1 và 2 lần đọc; 2,12 ms và 4,22 ms) lấy trên kho giả trong bộ nhớ, trễ nhân tạo 2 ms mỗi lần đọc, không phải đo hiệu năng hay tấn công thật.",
+  "K1S-07 (năm 0000 với kiểu date của PG) và K1S-11 (UTF-8 hỏng bị PG từ chối) là [SUY] từ hành vi PG đã biết, chưa chạy.",
+  "Đột biến ở tầng kho/DB/đường hỏi/vết (M2, M4, M11 ngoài bộ nhớ, M15-M18, M22, M23, M25) và danh mục chính thức X8 + scripts/dot-bien chưa có nên không thử; 108 đột biến của người soát là tập riêng, không thay cho X8.",
+  "Số 'đỏ trước 37 FAIL / 3 PASS' trên bản khung của tác giả không dựng lại được (không có bản khung); thay bằng đột biến 'bỏ đúng đoạn mã kiểm' cho 8 lớp ca.",
+  "Chỉ đo go1.26.4 linux/amd64, một máy dùng chung (có tiến trình go test của phiên khác chạy cùng lúc); không đo hiệu năng, độ trễ hay thông lượng (hợp đồng §11.3 cũng không đòi).",
+  "Cây chính đang có một thay đổi chưa commit của phiên khác (docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md), người soát không đụng; main đã tiến tới f344f50 nên phép so tên đã đo lại ở cặp (f344f50, f344f50 + 3 commit K1), chưa đo ở mốc nào mới hơn."
+ ],
+ "da_dong": [
+  "Lời khai tác giả được kiểm lại bằng lệnh và KHỚP: nhánh m4/k1-loi-lenh d5166a5, 3 commit, 10 tệp dưới execution/commands (3220 dòng thêm); go vet ./... rc=0; gofmt -l trên tệp .go được git theo dõi rỗng; 97 test mới pass; -race -count=2 và -count=6 ok; ca đua A02, A02b, A04b chạy x100 không chập chờn; so tên toàn repo 0 mất, 0 đổi, 97 mới (tất cả pass) tại origin/main f344f50; go test -count=1 . gồm TestSharedCodeHasNoTenantLiterals, TestRequestTypesHaveNoTenantField và hai cổng danh tính đều pass.",
+  "Bảng mã lý do §2.4: [ĐO] 12 chuỗi mã, ba trị status, bốn trị retry đúng chữ; fault, retry, detail cố định theo mã (không dùng publicMessage của /v1/ask); JSON của DONE, FAILED, DUPLICATE khớp hình §2.5 (DONE có approx, không có fault; DUPLICATE chỉ id và status); mã HTTP lấy từ fault qua contracts.HTTPStatus (400/403/409/503/500, DONE 200).",
+  "Luồng C0-C7 + C4b và cột 'Dừng ở đây thì' §7.5: assertSteps kiểm chín bước đúng thứ tự, C2 luôn skipped, C7 không bao giờ skipped, bước lệch đầu tiên đúng chặng; đảo C3/C4 và đảo C4b với luật R đều bị bắt.",
+  "Ba lớp quyền và §4.4: thiếu tickets.create, thiếu metrics.read lúc chạy, ngoài phạm vi đều bị bắt khi bỏ kiểm; không tồn tại, ngoài phạm vi, ký tự SQL và dấu nháy cùng một detail, cùng một mã, vết y hệt (trừ số lần đọc danh mục: K1S-02).",
+  "Luật nạp §4.3: ba luật cộng luật phụ, lỗi gom đủ thông tin; 11/11 đột biến tools.go bị bắt.",
+  "R1-R6: xung đột ngang thẩm quyền thắng thiếu vế (EX-07), R4 so thập phân chính xác với trị tuyệt đối, R6 giữ approx; Derive lọc đúng thực thể (bỏ lọc làm A01 đỏ).",
+  "Chống trùng §6.1-§6.4: khoá lệnh theo (người gọi, command_id), 8 người gọi đồng thời (có rào F7) cho đúng 1 DONE + 7 DUPLICATE ở cả hai biến thể cùng/khác command_id; gửi đôi có rào cho đúng một replayed=false; phân loại lại sau 23505 (thiếu thì A02, A02b đỏ).",
+  "Đơn vị ghi, đọc lại, audit §7.1-§7.3 và phân loại hỏng §9: 68 tổ hợp lỗi (hàm kho x loại lỗi x trước/sau commit x lượt đầu/lượt gửi lại) giữ bất biến; kho nói dối (noop, chỉ ghi phiếu, ghostLedger) không bao giờ ra DONE hay FAILED; đúng một dòng audit cho mỗi kết cục từ C4 trở đi, không audit cho C0, C1, C3 và kết cục hạ tầng.",
+  "Fuzz 4000 yêu cầu (NUL, 70000 ký tự, Unicode lạ, RTL, khoảng trắng, hoa/thường, ngày biên): không panic, không NUL trong vết hay Question, detail không phản chiếu đầu vào, vết luôn đủ chín bước, phiếu OPEN <= 1.",
+  "Vệ sinh repo công khai: grep 10 tệp không thấy đường dẫn máy, khoá, token hay bí mật; mã dùng chung không có tên ngành hay tenant (cổng kiến trúc xanh); gói không import core/tenant, core/pipeline, intelligence/models, observability/traces (TestA24VaRangBuocImport)."
+ ]
+}

@@ -69,7 +69,7 @@ m $O '	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification
 m $A '		return d.Capability != "" && !a.RT.Policy.Allows(pr, d.Capability)' '		return d.Capability != "" && false' 'S21 hỏi lại kể cả ý định người hỏi không có quyền'
 m $A 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))' 'a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm))' 'S22 câu hỏi lại không kể các nghĩa số liệu'
 m $A '		vars["assumption_note"] = " " + def.Assumption' '		_ = def.Assumption' 'S23 câu trả lời theo ý định chung không nói giả định'
-m $I '	if !meaning {' '	if false {' 'S24 a2 không đòi chữ nêu nghĩa (câu xác nhận không nêu chỉ số vẫn trả số kho xuất, trái BR-FUEL-02)'
+m $I '	if !meaning {' '	if !meaning && false {' 'S24 a2 không đòi chữ nêu nghĩa (câu xác nhận không nêu chỉ số vẫn trả số kho xuất, trái BR-FUEL-02)'
 m $O '			out := !pol.InScope(pr, lineage(e))' '			out := false' 'S25 hỏi lại nghĩa số liệu cho cả thực thể ngoài phạm vi dữ liệu'
 m $I 'return Result{NeedMeaning: opts, Mentioned: res.Entities, Candidates: cands}' 'return Result{NeedMeaning: opts, Candidates: cands}' 'S26 câu hỏi lại nghĩa số liệu không mang thực thể đã giải (bỏ kiểm phạm vi)'
 m $I 'Mentioned: res.Entities, Candidates: aliasCandidates(res, w)}' 'Candidates: aliasCandidates(res, w)}' 'S26b câu hỏi lại vì nghĩa chưa hỗ trợ không mang thực thể đã giải (bỏ kiểm phạm vi)'
@@ -188,26 +188,23 @@ m $I '	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) ==
 m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			return nil' '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG && false {
 			return nil' 'S105 câu hỏi quy trình về cảnh báo cũng bị hỏi lại'
-m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || qStart >= 0 && !s.asking(text)) {' 'S106 lệnh ghi không cần con số ("EX-03 ghi nhận tiêu bao nhiêu dầu" bị hỏi lại)'
-m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw))) {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
+m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if asked {' 'S106 lệnh ghi không cần con số ("ghi nhận dầu" không có con số bị hỏi lại)'
+m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if !hasFigure(in, res, c[0], c[1]) {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
 m $I '	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	return slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
-m $I '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 })' '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(in.Raw, c)) > 0 })' 'S109 cụm ở mệnh đề ngữ cảnh cũng báo nghĩa chưa hỗ trợ'
 m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
 m $I '	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' '	for _, c := range s.cuePhrases()[:0] { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' 'S112 a2 đòi giải thích cả cụm "ghi nhận" trong câu hỏi'
 
 
 # ---- vòng 2 (23/10, soát vòng 1): S4AS-01 — lệnh ghi lịch sự có "?" vẫn là lệnh
-m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
-}' '	return strings.Contains(text, "?") || slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
-}' 'S113 dấu "?" một mình làm câu thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
+m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := strings.HasSuffix(strings.TrimSpace(in.Raw), "?") || s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' 'S113 dấu "?" ở cuối câu làm mệnh đề thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
 m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' '	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' 'S114 cụm hỏi lượng không đánh dấu câu hỏi ("ghi nhận … bao nhiêu" bị coi là lệnh)'
 
 # ---- S4AS-02: nghĩa tiền theo cấu trúc và họ nghĩa
-m $I '				if s.onlyMarkers(text[sp[1]:end], markers) {' '				if true {' 'S115 "bao nhiêu đồng" không đòi mệnh đề kết thúc sau đơn vị ("đồng hồ", "đồng nghiệp" thành tiền)'
-m $I '(!measured && slices.ContainsFunc(u.Signals,' '(slices.ContainsFunc(u.Signals,' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
+m $I '				if s.onlyMarkers(text[sp[1]:end], markers) {' '				if s.onlyMarkers(text[sp[1]:end], markers) || true {' 'S115 "bao nhiêu đồng" không đòi mệnh đề kết thúc sau đơn vị ("đồng hồ", "đồng nghiệp" thành tiền)'
+m $I '		if why == "" && !measured && slices.ContainsFunc(' '		if why == "" && slices.ContainsFunc(' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
 m $I '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })' '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) })' 'S117 tín hiệu span không xét kiểu span (mọi span là tiền)'
 m $I '	case "asked_unit":
 		return s.askedUnit(in.Raw[start:end], arg)' '	case "asked_unit":
@@ -234,7 +231,7 @@ m $I '			ct := in.Raw[c[0]:c[1]]
 				continue
 			}
 			at := -1' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
-m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := s.asking(ct)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
+m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := s.asking(ct) || false && strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
 
 # ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'

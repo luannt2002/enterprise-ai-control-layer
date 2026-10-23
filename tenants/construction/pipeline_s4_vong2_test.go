@@ -223,6 +223,7 @@ func TestS4AS03PhamViCauXacNhanLuongCungChieuDo(t *testing.T) {
 		"EX-03 hôm nay nặng 20 tấn đúng không?",
 		"Hôm qua máy bay đổ 3850 L đúng không?",
 		"VN-Index hôm nay giảm 3850 điểm đúng không?",
+		"Hôm nay EX-03 được 3850 L?", // không cụm xác nhận, và "được" chỉ là từ trung tính (mảnh của "được cấp"): chưa đủ tín hiệu phạm vi
 	} {
 		if r := ask(t, newAsk(t), user("director", ""), q).Response; r.Route != contracts.RouteReject {
 			t.Errorf("%q: muốn từ chối ngoài phạm vi, được [%s] %q", q, r.Route, r.Answer)

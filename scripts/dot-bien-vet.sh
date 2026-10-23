@@ -325,6 +325,8 @@ m $SR 'hide = append(hide, r.Name)' '_ = r.Name' 'XV49 [C9 vòng 2] không che t
 m $SR 'strings.Join(append(keep, hidden...), "|")' 'strings.Join(append(hidden, keep...), "|")' 'XV50 [C9 vòng 2] chỗ che đứng đầu "?a|b" (thứ tự gợi khoá)'
 m $ASK 'why = red.why(why)' '_ = red.why(why)' 'XV51 [C9 vòng 2] không che phần giải thích'
 m $ASK 'red.decision(&d)' '_ = d' 'XV52 [C9 vòng 2] không che Decision.Entities / Slots'
+m $W 'for _, e := range res.Entities {' 'for i, e := range res.Entities { res.Entities[i].ID += "!"' 'XV45 [soát C8–C11 C11-S3, M3] explainResolve sửa mã thực thể của Resolution dùng chung với Decision'
+m $W 'for _, sp := range in.Spans {' 'for i, sp := range in.Spans { in.Spans[i].Raw += "!"' 'XV46 [soát C8–C11 C11-S3, M4] explainNormalize sửa đoạn của NormalizedInput dùng chung với Decision'
 # ---- hết C8–C11 vòng 2
 
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"

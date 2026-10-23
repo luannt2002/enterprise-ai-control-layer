@@ -26,6 +26,20 @@ func mod(t *testing.T, doSan bool) string {
 	return d
 }
 
+// cleanEnv là môi trường của tiến trình test trừ các biến mà mutate.sh đọc (MUTATE_*, PKGS, hai DSN của PG): biến của môi trường gọi
+// không được đổi kỳ vọng của test (soát độc lập 5c-6).
+func cleanEnv() []string {
+	var out []string
+	for _, kv := range os.Environ() {
+		k, _, _ := strings.Cut(kv, "=")
+		if strings.HasPrefix(k, "MUTATE_") || k == "PKGS" || k == "EAIS_PG_ADMIN_DSN" || k == "EAIS_PG_DSN" {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return out
+}
+
 // mutate chạy scripts/mutate.sh trong thư mục d với env thêm; trả đầu ra và mã thoát.
 func mutate(t *testing.T, d string, env []string, args ...string) (string, int) {
 	t.Helper()
@@ -35,7 +49,7 @@ func mutate(t *testing.T, d string, env []string, args ...string) (string, int) 
 	}
 	cmd := exec.Command("bash", append([]string{script}, args...)...)
 	cmd.Dir = d
-	cmd.Env = append(os.Environ(), env...)
+	cmd.Env = append(cleanEnv(), env...)
 	out, err := cmd.CombinedOutput()
 	var ee *exec.ExitError
 	switch {
@@ -128,5 +142,18 @@ func TestMutateNenDoiKhiCoTepChuaTrack(t *testing.T) {
 	write(t, filepath.Join(d, "b_test.go"), "package a\n\nimport \"testing\"\n\nfunc TestDoSan(t *testing.T) { t.Fatal(\"đỏ sẵn\") }\n")
 	if out, rc := mutate(t, d, env, "a.go", "return 1", "return 3", "M-chua-track"); rc != 5 || !strings.Contains(out, "NỀN ĐỎ") {
 		t.Errorf("thêm test đỏ chưa track thì nền phải chạy lại và đỏ (rc 5): rc %d, %q", rc, out)
+	}
+}
+
+// Biến MUTATE_* / PKGS / DSN của môi trường gọi (ví dụ một lượt đột biến chạy ./... trên chính gói này) không được đổi kỳ vọng của test
+// (soát độc lập 5c-6): mỗi lần gọi mutate.sh chỉ thấy đúng env do test đặt.
+func TestMutateKhongKeThuaMoiTruong(t *testing.T) {
+	t.Setenv("MUTATE_NEN_CO_SAN", "1")
+	t.Setenv("MUTATE_TEST_MUON", "^TestZ$")
+	t.Setenv("MUTATE_NEN_PHUT", "abc")
+	d := mod(t, false)
+	env := []string{"MUTATE_NEN_DIR=" + t.TempDir(), "PKGS=./..."}
+	if out, rc := mutate(t, d, env, "a.go", "return 1", "return 3", "M-bat"); rc != 0 || !strings.Contains(out, "BỊ BẮT") {
+		t.Errorf("biến MUTATE_* của môi trường gọi lọt vào mutate.sh: rc %d, %q", rc, out)
 	}
 }

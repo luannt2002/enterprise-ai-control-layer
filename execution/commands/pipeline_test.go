@@ -639,7 +639,9 @@ func TestA23DocLaiHong(t *testing.T) {
 		})
 	}
 	// phát lại: không có bản chụp ý định của lượt gốc, nên so với dòng sổ lệnh và chính yêu cầu — các cột suy ra được từ đó
-	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason", "audit-cmd", "audit-subject", "audit-metric"} {
+	// pack / code: phiếu và dòng EXECUTED cùng một đơn vị ghi nên phiên bản phải bằng nhau — phát lại so với phiếu đọc lại (C17S-07)
+	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason", "audit-cmd", "audit-subject", "audit-metric",
+		"audit-pack", "audit-code"} {
 		t.Run("phát lại, audit EXECUTED lệch: "+mode, func(t *testing.T) {
 			w := newWorld(t)
 			r := req(80, "EX-03", day1)

@@ -989,11 +989,16 @@ func verifyReplay(st Stored, led LedgerRecord, req Request, caller string) []str
 		t.Day != req.Day || t.CommandID != req.CommandID || t.CreatedBy != caller {
 		bad = append(bad, "phiếu: lệch so với yêu cầu đã phát lại")
 	}
-	// Không có bản chụp ý định của lượt gốc: so các cột suy ra được từ dòng sổ lệnh và chính yêu cầu. Vai, phạm vi, phiên bản pack / mã và
-	// trace_id là của lượt gốc (vai có thể đã đổi từ đó) nên không so ở đây.
+	// Không có bản chụp ý định của lượt gốc: so các cột suy ra được từ dòng sổ lệnh, chính yêu cầu và phiếu đọc lại (phiên bản pack / mã).
+	// Vai, phạm vi và trace_id là của lượt gốc (vai có thể đã đổi từ đó) nên không so ở đây.
 	want := Audit{Outcome: AuditExecuted, Caller: Caller{ID: led.Caller}, CommandID: led.CommandID, Action: CommandOpenDiscrepancyTicket,
 		SubjectKey: req.SubjectKey, Metric: req.Metric, Day: req.Day, TicketID: led.TicketID, Fingerprint: led.Fingerprint}
-	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return replayedExecutedMatches(a, want) }) {
+	// phiếu và dòng EXECUTED cùng một đơn vị ghi nên phiên bản pack / mã phải bằng nhau: so với phiếu vừa đọc lại khi có đúng một phiếu (số
+	// phiếu khác một đã là chỗ lệch riêng ở trên) (C17S-07)
+	sameVersions := func(a Audit) bool {
+		return len(st.Tickets) != 1 || a.PackVersion == st.Tickets[0].PackVersion && a.CodeVersion == st.Tickets[0].CodeVersion
+	}
+	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return replayedExecutedMatches(a, want) && sameVersions(a) }) {
 		bad = append(bad, "audit EXECUTED: không thấy")
 	}
 	return bad

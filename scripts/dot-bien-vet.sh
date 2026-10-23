@@ -109,7 +109,7 @@ m $V 'if !stable(u.TraceID) {' 'if false && !stable(u.TraceID) {' 'SV15 usage v�
 
 export PKGS=./observability/traces/
 S=observability/traces/sanitize.go R=observability/traces/record.go T=observability/traces/step.go
-m $S 's = m.re.ReplaceAllString(s, m.repl)' '_ = m' 'TV1 Sanitize không che gì'
+m $S 's = secretMasks[i].re.ReplaceAllString(s, secretMasks[i].repl)' '_ = secretMasks[i]' 'TV1 Sanitize không che gì'
 m $S 'case reflect.Slice, reflect.Array:' 'case reflect.Array:' 'TV2 làm sạch bỏ sót phần tử slice'
 m $S 'if Sanitize(key+"="+val) != key+"="+val && clean == val {' 'if false {' 'TV3 không che giá trị map theo khoá'
 m $S 's = strings.ReplaceAll(s, "\x00", "")' '_ = s' 'TV4 không bỏ byte NUL'
@@ -142,8 +142,9 @@ m $S "$QE_DQ" '"(?:[^"\\]|\\[\s\S])*"|' 'TV27 nháy không đóng không đượ
 m $S "$QE_DQ" '"[^"]*"?|' 'TV37 nháy kép không đọc nháy thoát (lọt đuôi JSON, 5a(2))'
 m $S "$QE_DQ" '"(?:[^"\\]|\\.)*"?|' 'TV39 nháy thoát ngay trước xuống dòng không được đọc'
 m $S "$QE_SQ" $'\'[^\']*\'?' 'TV38 nháy đơn không đọc nháy thoát (khoá = giá trị và Cookie)'
-m $S 'return maskValues(s, m.escaped, m.raw)' 'return maskValues(s, m.escaped)' 'TV33 chỉ đọc theo nháy thoát (lọt bí mật kế tiếp, 5a-1)'
-m $S 'return maskValues(s, m.escaped, m.raw)' 'return maskValues(s, m.raw)' 'TV34 chỉ đọc thô (lọt đuôi sau nháy thoát)'
+m $S 'res = append(res, secretMasks[i].value.escaped, secretMasks[i].value.raw)' 'res = append(res, secretMasks[i].value.escaped)' 'TV33 chỉ đọc theo nháy thoát (lọt bí mật kế tiếp, 5a-1)'
+m $S 'res = append(res, secretMasks[i].value.escaped, secretMasks[i].value.raw)' 'res = append(res, secretMasks[i].value.raw)' 'TV34 chỉ đọc thô (lọt đuôi sau nháy thoát)'
+m $S 'for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {' 'for ; i < len(secretMasks) && secretMasks[i].value != nil && len(res) == 0; i++ {' 'TV40 che lần lượt từng mẫu tên + giá trị (lọt Cookie sau giá trị kết thúc bằng \\, soát lại 5abc 5a-R1)'
 m $S 'cur.end = max(cur.end, spans[i].end)' 'cur.end = max(cur.end, cur.end)' 'TV35 gộp vùng chồng nhau mà không nới vùng'
 m $S $'if q := s[cur.start]; q == \'"\' || q == \'\\\'\' {' 'if q := s[cur.start]; false {' 'TV36 dấu che bỏ nháy bao quanh (phá cấu trúc JSON)'
 m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie / Set-Cookie'

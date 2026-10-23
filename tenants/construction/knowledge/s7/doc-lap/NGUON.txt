@@ -1,0 +1,44 @@
+NGUỒN CỦA BỘ CA ĐỘC LẬP S7 (doc-lap.yaml)
+
+Người soạn: agent soạn độc lập, không đọc mã, không chạy hệ.
+Chỉ đọc: tenants/construction/knowledge/s7/kho/ (các .md + acl.json),
+         docs/tenants/construction/01-business-map.md (§1.1, §4.1, §7),
+         tenants/construction/pack/policy.yaml.
+
+kho/ = bản sao nguyên văn 18 tệp của kho gốc (đối chiếu bằng diff = giống hệt),
+       cộng 5 tệp gây nhiễu dưới đây; acl.json chỉ được THÊM 4 dòng ở cuối.
+
+TÀI LIỆU THÊM (5 tệp, 4 mã) — nội dung GIẢ LẬP, dựa theo business map:
+1. bp-on-c.md  (BP-ON-C v1, approved, từ 2025-09-01, scope [PRJ-C])
+   Biện pháp thi công ống thoát nước Khu đô thị Hoa Sen. Căn cứ: §1.1 PRJ-C
+   "ống thoát nước, vỉa hè; hồ sơ nghiệm thu từng hạng mục". Mục đích: kho gốc
+   không có tài liệu riêng của PRJ-C; tạo nhiễu "lớp dày / độ chặt K / TVGS"
+   gần BP-BT-A và BP-MD-B, và ca ngoài phạm vi cho người PRJ-A.
+   ACL: director, project_manager, site_engineer, site_supervisor, qa_qc_engineer.
+2. qd-at-02-v1.md (QD-AT-02 v1, approved, [2025-01-01, 2026-01-01))
+3. qd-at-02-v2.md (QD-AT-02 v2, approved, từ 2026-01-01)
+   Quy định trang bị bảo hộ khi làm việc trên cao; v1 và v2 khác số (3 m→2 m,
+   kiểm hằng tuần→trước mỗi ca, gió cấp 6→cấp 5). Căn cứ: §3.10 An toàn,
+   BR-SAF-02 (ngã trên cao). Mục đích: ca đổi bản theo ngày, có ca đúng ranh
+   giới 2025-12-31 / 2026-01-01; nhiễu "giàn giáo" cho câu sự cố SOP-AT-01.
+   ACL: director, project_manager, site_engineer, site_supervisor, safety_officer.
+4. SOP-NL-04.md (không phiên bản) Quy trình nhận nhiên liệu nhập kho.
+   Căn cứ: §2 nhà cung cấp (phiếu giao hàng, hoá đơn), §4.1 thủ kho ghi PNK.
+   Mục đích: nhiễu sát SOP-NL-02 (cấp phát) và SOP-NL-01 (ngưỡng lệch):
+   có ngưỡng 0,5% nhưng là lệch phiếu giao hàng ↔ đo bồn, KHÔNG phải ngưỡng gắn
+   cờ kho xuất ↔ máy tiêu thụ (trùng số với bản nháp SOP-NL-01 v3).
+   ACL: director, project_manager, warehouse_keeper, accountant.
+5. SOP-MM-02.md (không phiên bản) Quy trình điều chuyển máy giữa các dự án.
+   Căn cứ: §1 "máy móc điều động giữa dự án", §4.1 equipment_manager "điều máy".
+   Mục đích: nhiễu "giờ máy theo đồng hồ", "phiếu bảo dưỡng mở" sát SOP-MM-01,
+   SOP-NL-02, QD-NL-03.
+   ACL: director, project_manager, equipment_manager.
+
+GIẢ ĐỊNH ĐÃ DÙNG KHI SOẠN (gắn cờ cho người chấm):
+- policy.yaml chỉ khai 5 vai; vai không có trong policy.yaml coi là KHÔNG có
+  scope: all (chỉ đọc được tài liệu có scope khi pham_vi khớp).
+- Chỉ dùng luật ACL + phạm vi + hiệu lực như đề bài; KHÔNG xét capability
+  documents.read của policy.yaml (nếu hệ có xét, các vai ngoài policy và
+  accountant sẽ bị chặn hết, khác với đề bài).
+- Câu khong_co_tai_lieu: đã soát tay mọi dòng đọc được có từ khoá gần; không
+  dòng nào trả lời câu hỏi.

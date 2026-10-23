@@ -1,0 +1,753 @@
+ngay_mac_dinh: "2026-10-20"
+k: 3
+cau:
+  # ---------- SOP-NL-01: chênh lệch nhiên liệu (đổi bản theo ngày) ----------
+  - ma: S7I-01
+    hoi: "Dầu kho xuất với dầu máy đo được lệch bao nhiêu thì thủ kho phải gắn cờ?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "lệch quá 1%, thủ kho gắn cờ chênh lệch"}
+  - ma: S7I-02
+    hoi: "Bên kho gắn cờ lệch dầu cho máy đội tôi rồi, bao lâu thì phải có biên bản đối soát?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "trong vòng 48 giờ kể từ khi gắn cờ"}
+  - ma: S7I-03
+    hoi: "Hồi đó gắn cờ chênh lệch dầu xong thì hạn lập biên bản đối soát là bao lâu?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-C]
+    ngay: "2025-11-15"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 1, chua: "trong vòng 24 giờ kể từ khi gắn cờ"}
+  - ma: S7I-04
+    hoi: "thoi han lap bien ban doi soat chenh lech dau la bao lau"
+    vai: [project_manager]
+    pham_vi: [PRJ-C]
+    ngay: "2026-12-01"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "trong vòng 48 giờ kể từ khi gắn cờ"}
+  - ma: S7I-05
+    hoi: "Biên bản đối soát nhiên liệu có bắt chụp ảnh đồng hồ cột bơm không?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "ảnh chụp đồng hồ cột bơm"}
+  - ma: S7I-06
+    hoi: "bien ban doi soat dau can chu ky cua ai, co can anh cot bom khong"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    ngay: "2025-08-10"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 1, chua: "có chữ ký của người vận hành máy."}
+  - ma: S7I-07
+    hoi: "Kế toán đối chiếu hoá đơn dầu lúc nào, có phải chờ biên bản đối soát ký xong không?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "Kế toán chỉ đối chiếu hoá đơn nhiên liệu sau khi biên bản đối soát đã được ký"}
+  - ma: S7I-08
+    hoi: "Nhận biên bản đối soát dầu thì trưởng dự án được chọn những hướng xử lý nào?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "chấp nhận, yêu cầu đo lại, hoặc chuyển phòng thiết bị kiểm tra máy"}
+  - ma: S7I-09
+    hoi: "Số dầu đội báo với số dầu trên hoá đơn có lấy thay cho nhau được không?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "không lấy số này thay số kia"}
+  - ma: S7I-10
+    hoi: "Lúc lệch dầu thì ai là người lập biên bản đối soát?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    ngay: "2025-03-10"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 1, chua: "Tổ trưởng kho lập biên bản đối soát"}
+  - ma: S7I-11
+    hoi: "Nghe nói giờ lệch dầu 0,5% là phải gắn cờ rồi, đúng không anh?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "lệch quá 1%, thủ kho gắn cờ chênh lệch"}
+  - ma: S7I-12
+    hoi: "Biên bản đối soát dầu phải lập trong bao nhiêu giờ?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-A]
+    ngay: "2026-02-28"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 1, chua: "trong vòng 24 giờ kể từ khi gắn cờ"}
+  - ma: S7I-13
+    hoi: "Biên bản đối soát dầu phải lập trong bao nhiêu giờ?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-A]
+    ngay: "2026-03-01"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-01, ban: 2, chua: "trong vòng 48 giờ kể từ khi gắn cờ"}
+
+  # ---------- SOP-NL-02: cấp phát nhiên liệu ----------
+  - ma: S7I-14
+    hoi: "PXK cấp dầu cần ghi những thông tin gì?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "có số phiếu, mã máy, số lít và chữ ký người nhận"}
+  - ma: S7I-15
+    hoi: "Kho hết dầu mà đội cần gấp, cho xuất âm trước rồi nhập bù sau được không?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "không xuất âm kho trong mọi trường hợp"}
+  - ma: S7I-16
+    hoi: "Máy EX-03 bên tôi được đổ dầu thẳng vào bình thì phiếu phải ghi thêm gì?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "Cấp dầu thẳng vào bình máy thì ghi giờ máy theo đồng hồ tại lúc cấp"}
+  - ma: S7I-17
+    hoi: "Đổ dầu vào bồn chứa phụ chứ không đổ vào máy thì ghi phiếu thế nào?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "cấp vào bồn chứa phụ thì ghi rõ"}
+  - ma: S7I-18
+    hoi: "Một phiếu xuất kho bị nhập vào hệ thống hai lần, cùng số phiếu, thì tính thế nào?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "bị nhập hai lần với cùng số phiếu chỉ được tính một lần"}
+  - ma: S7I-19
+    hoi: "nguoi nhan xin cap nhieu hon dung tich binh cua may thi thu kho xu ly sao"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-02, ban: 0, chua: "Lượng cấp vượt dung tích bình chứa của máy là bất thường"}
+
+  # ---------- QD-NL-03: định mức nhiên liệu (bảng) ----------
+  - ma: S7I-20
+    hoi: "Định mức dầu máy xúc bánh xích 1,2 m³ là bao nhiêu lít một giờ?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "Máy xúc bánh xích 1,2 m³ | 17"}
+  - ma: S7I-21
+    hoi: "xe lu rung 12 tan dinh muc dau bao nhieu lit/gio, dung sai may phan tram"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "Xe lu rung 12 tấn | 12 | +10%"}
+  - ma: S7I-22
+    hoi: "Cẩu bánh lốp 25 tấn bên cầu chạy cả ngày, định mức dầu tính bao nhiêu lít một giờ máy?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "Cần cẩu bánh lốp 25 tấn | 9"}
+  - ma: S7I-23
+    hoi: "Máy khoan cọc nhồi được vượt định mức dầu tối đa bao nhiêu phần trăm?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "Máy khoan cọc nhồi | 26 | +15%"}
+  - ma: S7I-24
+    hoi: "Máy ủi bên Vành Đai Nam ăn dầu bao nhiêu một giờ là đúng định mức?"
+    vai: [equipment_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "Máy ủi bánh xích | 21"}
+  - ma: S7I-25
+    hoi: "Lượng dầu hợp lý của một máy được tính theo công thức nào, vượt thì sao?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-NL-03, ban: 1, chua: "bằng định mức nhân giờ máy theo đồng hồ"}
+
+  # ---------- SOP-BC-01: báo cáo ngày ----------
+  - ma: S7I-26
+    hoi: "Báo cáo ngày phải có đủ những mục nào thì mới nộp được?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "tiến độ, giờ máy, nhiên liệu, nhân công, thời tiết"}
+  - ma: S7I-27
+    hoi: "Ca đêm làm từ 22h hôm nay tới 6h sáng mai thì báo cáo tính vào ngày nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "ca đêm tính vào ngày bắt đầu ca"}
+  - ma: S7I-28
+    hoi: "Mấy giờ là hết hạn nộp báo cáo ngày?"
+    vai: [project_manager]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "Hạn nộp báo cáo ngày là 18:00"}
+  - ma: S7I-29
+    hoi: "Mục nhân công trong báo cáo ngày ghi số người hay ghi số công?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-D]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "Mục nhân công ghi số người có mặt"}
+  - ma: S7I-30
+    hoi: "Báo cáo hôm nay số dầu tăng vọt so với hôm qua thì người lập cần làm gì?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "số tăng giảm bất thường phải có ghi chú giải thích"}
+  - ma: S7I-31
+    hoi: "bc ngay nop tre thi he thong nhac ai, may lan"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-BC-01, ban: 0, chua: "nhắc giám sát một lần và báo trưởng dự án một lần"}
+
+  # ---------- SOP-MM-01: bảo dưỡng ----------
+  - ma: S7I-32
+    hoi: "Máy EX-03 vừa chạy đủ 250 giờ, bảo dưỡng cấp 1 phải làm những gì?"
+    vai: [maintenance_technician]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "thay dầu động cơ và lọc dầu"}
+  - ma: S7I-33
+    hoi: "Bảo dưỡng cấp 2 bao nhiêu giờ máy một lần?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "Bảo dưỡng cấp 2 sau mỗi 1.000 giờ máy"}
+  - ma: S7I-34
+    hoi: "Phiếu bảo dưỡng giao cho anh khác, tôi làm thay thì có tự chuyển trạng thái phiếu được không?"
+    vai: [maintenance_technician]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "Chỉ kỹ thuật viên được gán mới được chuyển trạng thái phiếu"}
+  - ma: S7I-35
+    hoi: "Máy quá hạn bảo dưỡng bao nhiêu giờ thì phải cho dừng?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "quá hạn bảo dưỡng trên 50 giờ máy phải dừng vận hành"}
+  - ma: S7I-36
+    hoi: "Máy xúc rò thuỷ lực đã có phiếu đang mở, giờ mở thêm phiếu nữa cho cùng lỗi đó được không?"
+    vai: [equipment_manager]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "mỗi máy chỉ có một phiếu mở cho cùng một nguyên nhân"}
+  - ma: S7I-37
+    hoi: "Ai lập phiếu bảo dưỡng và giao cho kỹ thuật viên?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-01, ban: 0, chua: "Trưởng bộ phận thiết bị lập phiếu bảo dưỡng"}
+
+  # ---------- SOP-VT-01: đề nghị vật tư ----------
+  - ma: S7I-38
+    hoi: "Phiếu đề nghị vật tư 120 triệu thì những ai phải duyệt?"
+    vai: [procurement_officer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "đến 300 triệu đồng thêm kế toán"}
+  - ma: S7I-39
+    hoi: "Tôi lập phiếu đề nghị vật tư thì tôi tự duyệt luôn được không?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "không được tự duyệt phiếu của chính mình"}
+  - ma: S7I-40
+    hoi: "Nhà cung cấp chưa gửi báo giá thì phiếu đề nghị vật tư có chuyển đi duyệt được không?"
+    vai: [procurement_officer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "thiếu báo giá thì không chuyển sang bước duyệt"}
+  - ma: S7I-41
+    hoi: "Thứ tự duyệt phiếu vật tư là ai trước ai sau?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "Thứ tự duyệt là trưởng dự án, rồi kế toán, rồi giám đốc"}
+  - ma: S7I-42
+    hoi: "Tạo PO trên ERP bị lỗi thì có bấm tạo lại không?"
+    vai: [procurement_officer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "tạo lỗi thì báo người xử lý tay, không tạo lần thứ hai"}
+  - ma: S7I-43
+    hoi: "Kho công trường đã có phiếu đề nghị xi măng đang mở, lập thêm phiếu xi măng nữa được không?"
+    vai: [project_manager]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-VT-01, ban: 0, chua: "Không lập phiếu mới cho cùng vật tư và cùng kho khi đã có phiếu đang mở"}
+
+  # ---------- SOP-TT-01: thanh toán nhà cung cấp ----------
+  - ma: S7I-44
+    hoi: "Duyệt thanh toán cho nhà cung cấp phải khớp những chứng từ nào?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TT-01, ban: 0, chua: "khớp ba chứng từ: đơn đặt hàng, phiếu nhập kho và hoá đơn"}
+  - ma: S7I-45
+    hoi: "Hoá đơn lệch đơn giá so với PO thì có duyệt trước phần khớp không?"
+    vai: [finance_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TT-01, ban: 0, chua: "trả hồ sơ cho phòng vật tư, không duyệt một phần"}
+  - ma: S7I-46
+    hoi: "Khoản trả nhà cung cấp 450 triệu cần ai duyệt?"
+    vai: [finance_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TT-01, ban: 0, chua: "trên 300 triệu đồng cần trưởng phòng tài chính và giám đốc cùng duyệt"}
+  - ma: S7I-47
+    hoi: "de nghi thanh toan phai ghi nhung khoan tien nao"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TT-01, ban: 0, chua: "giá trị trước thuế, tiền thuế và tổng thanh toán"}
+
+  # ---------- SOP-NT-01: nghiệm thu khối lượng ----------
+  - ma: S7I-48
+    hoi: "Khối lượng khi nào mới được chốt là đã nghiệm thu?"
+    vai: [qa_qc_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NT-01, ban: 0, chua: "có đủ xác nhận của TVGS và chữ ký của CĐT"}
+  - ma: S7I-49
+    hoi: "TVGS xác nhận qua email thì bên hồ sơ ghi nhận vào hệ thống thế nào?"
+    vai: [records_clerk]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NT-01, ban: 0, chua: "do nhân viên hồ sơ ghi nhận thay, kèm bản chụp chứng từ"}
+  - ma: S7I-50
+    hoi: "Ai đo khối lượng ngoài hiện trường và lập biên bản đo?"
+    vai: [technical_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NT-01, ban: 0, chua: "Kỹ sư kỹ thuật đo khối lượng tại hiện trường"}
+  - ma: S7I-51
+    hoi: "KL báo cáo với KL NT có phải là một số không?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NT-01, ban: 0, chua: "Khối lượng có bốn số khác nhau"}
+  - ma: S7I-52
+    hoi: "CĐT ký nghiệm thu trước hay TVGS xác nhận biên bản đo trước?"
+    vai: [technical_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NT-01, ban: 0, chua: "xác nhận biên bản đo; chủ đầu tư (CĐT) ký nghiệm thu"}
+
+  # ---------- SOP-AT-01: sự cố an toàn ----------
+  - ma: S7I-53
+    hoi: "Có tai nạn nặng thì phải báo cho ai trước khi điều tra?"
+    vai: [safety_officer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-AT-01, ban: 0, chua: "thông báo giám đốc và cơ quan chức năng trước khi bắt đầu điều tra"}
+  - ma: S7I-54
+    hoi: "Công nhân ngã từ giàn giáo xuống, có phải đợi lập biên bản xong mới đưa đi viện không?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-AT-01, ban: 0, chua: "không chờ hoàn tất biên bản"}
+  - ma: S7I-55
+    hoi: "Biên bản sự cố ATLĐ phải xong trong bao lâu, cần kèm gì?"
+    vai: [safety_officer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-AT-01, ban: 0, chua: "Biên bản sự cố lập trong vòng 24 giờ"}
+  - ma: S7I-56
+    hoi: "Sau sự cố thì khi nào công trường được thi công trở lại?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-AT-01, ban: 0, chua: "Chỉ được thi công lại khi cán bộ an toàn ký xác nhận đã khắc phục"}
+  - ma: S7I-57
+    hoi: "su co nghiem trong thi ai ra lenh dung thi cong"
+    vai: [site_engineer]
+    pham_vi: [PRJ-D]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-AT-01, ban: 0, chua: "chỉ huy trưởng công trường cho dừng thi công"}
+
+  # ---------- SOP-PS-01: phát sinh đào đất đá ----------
+  - ma: S7I-58
+    hoi: "Phát sinh đào đá phải ghi cơ sở đo gì?"
+    vai: [technical_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-PS-01, ban: 0, chua: "nguyên khối hay tơi xốp"}
+  - ma: S7I-59
+    hoi: "Phát hiện có phát sinh đào đất thì trong bao lâu phải gửi hồ sơ cho CĐT?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-PS-01, ban: 0, chua: "trong vòng 7 ngày kể từ khi phát hiện"}
+  - ma: S7I-60
+    hoi: "TVGS chưa duyệt hệ số mà tôi quy đổi đất tơi sang nguyên khối để tính trước được không?"
+    vai: [technical_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-PS-01, ban: 0, chua: "Không quy đổi giữa khối lượng nguyên khối và tơi xốp"}
+  - ma: S7I-61
+    hoi: "Hồ sơ phát sinh đào đất đá phải kèm những bản vẽ gì?"
+    vai: [technical_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-PS-01, ban: 0, chua: "bản vẽ mặt cắt trước và sau khi đào"}
+
+  # ---------- SOP-KHO-02: huỷ phiếu kho ----------
+  - ma: S7I-62
+    hoi: "PXK ghi sổ rồi giờ mới phát hiện sai, xoá đi được không?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-KHO-02, ban: 0, chua: "đã ghi sổ không được xoá; muốn huỷ phải lập đề nghị huỷ"}
+  - ma: S7I-63
+    hoi: "Đề nghị huỷ phiếu kho phải liệt kê những số liệu bị ảnh hưởng nào?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-KHO-02, ban: 0, chua: "tồn kho, tiêu hao nhiên liệu, chi phí dự án"}
+  - ma: S7I-64
+    hoi: "Huỷ phiếu kho thì kế toán điều chỉnh sổ lúc nào?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-KHO-02, ban: 0, chua: "kế toán điều chỉnh sổ sau khi được duyệt"}
+  - ma: S7I-65
+    hoi: "Phiếu kho huỷ rồi thì còn tra lại được không hay mất luôn?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-KHO-02, ban: 0, chua: "Phiếu đã huỷ vẫn được lưu với trạng thái"}
+
+  # ---------- BP-BT-A: bê tông trụ cầu (PRJ-A) ----------
+  - ma: S7I-66
+    hoi: "Đổ bê tông trụ P2 thì mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-BT-A, ban: 1, chua: "theo từng lớp dày không quá 50 cm"}
+  - ma: S7I-67
+    hoi: "Trụ đổ 45 khối bê tông thì lấy mấy tổ mẫu nén?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-BT-A, ban: 1, chua: "mỗi 20 m³ một tổ mẫu"}
+  - ma: S7I-68
+    hoi: "Bê tông trụ cầu Bến Nứa phải bảo dưỡng ẩm mấy ngày?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-BT-A, ban: 1, chua: "Bảo dưỡng ẩm bề mặt bê tông ít nhất 7 ngày"}
+  - ma: S7I-69
+    hoi: "Đổ xong trụ bao lâu thì được tháo cốp pha thành?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-BT-A, ban: 1, chua: "Không tháo cốp pha thành trụ trước 48 giờ"}
+  - ma: S7I-70
+    hoi: "truoc khi do be tong tru can bien ban gi cua TVGS"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-BT-A, ban: 1, chua: "biên bản nghiệm thu cốt thép của TVGS"}
+
+  # ---------- BP-MD-B: móng CPĐD (PRJ-B) ----------
+  - ma: S7I-71
+    hoi: "Lớp CPĐD lu xong mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-MD-B, ban: 1, chua: "chiều dày mỗi lớp sau khi lu lèn không quá 18 cm"}
+  - ma: S7I-72
+    hoi: "Độ chặt móng cấp phối đá dăm yêu cầu K bao nhiêu, kiểm bằng cách nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-MD-B, ban: 1, chua: "Độ chặt yêu cầu K ≥ 0,98"}
+  - ma: S7I-73
+    hoi: "Lu sơ bộ lớp móng đường dùng loại lu gì?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-MD-B, ban: 1, chua: "Lu sơ bộ bằng lu bánh thép 6–8 tấn"}
+  - ma: S7I-74
+    hoi: "TVGS chưa nghiệm thu độ chặt lớp dưới, đội tôi rải tiếp lớp trên được không?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-MD-B, ban: 1, chua: "Không rải lớp tiếp theo khi lớp dưới chưa được TVGS nghiệm thu độ chặt"}
+
+  # ---------- QD-LT-01: thưởng (chỉ nhân sự + giám đốc) ----------
+  - ma: S7I-75
+    hoi: "Đội không có sự cố an toàn cả quý thì mỗi người được thưởng bao nhiêu?"
+    vai: [hr_officer]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-LT-01, ban: 0, chua: "thưởng 5 triệu đồng cho mỗi người"}
+  - ma: S7I-76
+    hoi: "Thưởng năng suất được tối đa bao nhiêu?"
+    vai: [director]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-LT-01, ban: 0, chua: "tối đa 20% lương cơ bản"}
+
+  # ---------- SOP-TL-01: phiên bản tài liệu ----------
+  - ma: S7I-77
+    hoi: "Hai phiên bản quy trình cùng đang có hiệu lực thì xử lý thế nào?"
+    vai: [legal_officer]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TL-01, ban: 0, chua: "báo phòng pháp chế quyết, không tự chọn bản nào"}
+  - ma: S7I-78
+    hoi: "Khi trích dẫn tài liệu nội bộ cần ghi những gì?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TL-01, ban: 0, chua: "ghi mã tài liệu, số phiên bản và vị trí đoạn"}
+  - ma: S7I-79
+    hoi: "Bản quy trình mới bị thiếu ô trong bảng thì có công bố được không?"
+    vai: [legal_officer]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-TL-01, ban: 0, chua: "không đạt thì giữ bản cũ"}
+
+  # ---------- Tài liệu thêm (xem NGUON.txt) ----------
+  - ma: S7I-80
+    hoi: "Mối nối ống thoát nước ai kiểm tra trước khi lấp?"
+    vai: [qa_qc_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-ON-C, ban: 1, chua: "Mối nối ống phải được kỹ sư QA/QC kiểm tra trước khi lấp"}
+  - ma: S7I-81
+    hoi: "lop dem cat day ho ong day bao nhieu"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-ON-C, ban: 1, chua: "lớp đệm cát dày 10 cm"}
+  - ma: S7I-82
+    hoi: "Lấp cát hai bên ống mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-ON-C, ban: 1, chua: "thành từng lớp dày không quá 20 cm"}
+  - ma: S7I-83
+    hoi: "Đoạn ống trước khi nghiệm thu với TVGS phải thử kín bằng gì?"
+    vai: [project_manager]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: BP-ON-C, ban: 1, chua: "Thử kín đoạn ống bằng nước"}
+  - ma: S7I-84
+    hoi: "Làm việc trên cao từ mấy mét thì bắt buộc đeo dây an toàn?"
+    vai: [safety_officer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-AT-02, ban: 2, chua: "ở độ cao từ 2 m trở lên phải đeo dây an toàn toàn thân"}
+  - ma: S7I-85
+    hoi: "Làm việc trên cao từ mấy mét thì bắt buộc đeo dây an toàn?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    ngay: "2025-12-31"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-AT-02, ban: 1, chua: "ở độ cao từ 3 m trở lên phải đeo dây an toàn"}
+  - ma: S7I-86
+    hoi: "Gió cấp mấy thì phải ngừng làm việc trên cao?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    ngay: "2026-01-01"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-AT-02, ban: 2, chua: "gió mạnh từ cấp 5 trở lên"}
+  - ma: S7I-87
+    hoi: "Gió cấp mấy thì phải ngừng làm việc trên cao?"
+    vai: [safety_officer]
+    pham_vi: [PRJ-C]
+    ngay: "2025-10-01"
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-AT-02, ban: 1, chua: "gió mạnh từ cấp 6 trở lên"}
+  - ma: S7I-88
+    hoi: "Dây an toàn bao lâu thì cán bộ an toàn kiểm tra một lần?"
+    vai: [project_manager]
+    pham_vi: [PRJ-D]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: QD-AT-02, ban: 2, chua: "kiểm tra dây an toàn trước mỗi ca làm việc"}
+  - ma: S7I-89
+    hoi: "Xe bồn giao dầu, số trên phiếu giao hàng lệch với số đo bồn bao nhiêu thì phải báo trưởng dự án?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-04, ban: 0, chua: "lệch với phiếu giao hàng quá 0,5% thì ghi chú và báo trưởng dự án"}
+  - ma: S7I-90
+    hoi: "Nhận dầu nhập kho thì PNK ghi số lít theo phiếu giao hàng hay theo đo bồn?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-NL-04, ban: 0, chua: "Số lít nhập kho ghi theo số đo bồn chứa"}
+  - ma: S7I-91
+    hoi: "Điều máy EX-03 từ cầu Bến Nứa sang Vành Đai Nam thì giờ máy với dầu từ hôm bàn giao tính cho bên nào?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-02, ban: 0, chua: "kể từ ngày bàn giao tính cho dự án nhận máy"}
+  - ma: S7I-92
+    hoi: "Máy đang có phiếu bảo dưỡng mở thì có điều sang dự án khác được không?"
+    vai: [project_manager]
+    pham_vi: [PRJ-D]
+    loai: tra_loi
+    dap_an:
+      - {tai_lieu: SOP-MM-02, ban: 0, chua: "Máy đang có phiếu bảo dưỡng mở thì chưa được điều chuyển"}
+
+  # ================= KHÔNG CÓ ĐÁP ÁN =================
+  # --- ngoài quyền: vai không có trong ACL của tài liệu chứa đáp án ---
+  - ma: S7I-K01
+    hoi: "Duyệt thanh toán cho nhà cung cấp cần khớp những chứng từ gì?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7I-K02
+    hoi: "Đội tôi cả quý không có sự cố an toàn thì mỗi người được thưởng bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7I-K03
+    hoi: "Định mức dầu của máy xúc 1,2 khối là bao nhiêu lít một giờ?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7I-K04
+    hoi: "Cấp dầu cho máy thì phiếu xuất kho phải ghi những gì?"
+    vai: [maintenance_technician]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7I-K05
+    hoi: "phieu nhap kho ghi so roi muon huy thi lam the nao"
+    vai: [procurement_officer]
+    pham_vi: [PRJ-C]
+    loai: khong_co
+    bay: ngoai_quyen
+  # --- ngoài phạm vi: vai có trong ACL nhưng dự án không thuộc scope ---
+  - ma: S7I-K06
+    hoi: "Đổ bê tông trụ cầu thì mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-C]
+    loai: khong_co
+    bay: ngoai_pham_vi
+  - ma: S7I-K07
+    hoi: "Độ chặt lớp móng cấp phối đá dăm yêu cầu K bao nhiêu?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_pham_vi
+  - ma: S7I-K08
+    hoi: "Bê tông trụ cầu Bến Nứa phải bảo dưỡng ẩm mấy ngày?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: khong_co
+    bay: ngoai_pham_vi
+  - ma: S7I-K09
+    hoi: "Ống thoát nước khu Hoa Sen lấp cát mỗi lớp dày bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_pham_vi
+  # --- không có tài liệu: nghe gần nghề nhưng kho không nói tới ---
+  - ma: S7I-K10
+    hoi: "Thép chủ cọc khoan nhồi nối chồng bao nhiêu lần đường kính?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: khong_co_tai_lieu
+  - ma: S7I-K11
+    hoi: "Bê tông tươi giao tới công trường được nóng tối đa bao nhiêu độ?"
+    vai: [director]
+    loai: khong_co
+    bay: khong_co_tai_lieu
+  - ma: S7I-K12
+    hoi: "Kho dầu công trường bao lâu thì kiểm kê định kỳ một lần?"
+    vai: [warehouse_keeper]
+    pham_vi: [PRJ-B]
+    loai: khong_co
+    bay: khong_co_tai_lieu
+  - ma: S7I-K13
+    hoi: "Máy xúc thuê ngoài tính một ca máy là mấy tiếng?"
+    vai: [equipment_manager]
+    pham_vi: [PRJ-C]
+    loai: khong_co
+    bay: khong_co_tai_lieu
+  - ma: S7I-K14
+    hoi: "Công nhân tăng ca ngày chủ nhật được trả bao nhiêu phần trăm lương?"
+    vai: [hr_officer]
+    loai: khong_co
+    bay: khong_co_tai_lieu

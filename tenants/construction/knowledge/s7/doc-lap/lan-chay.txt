@@ -1,0 +1,43 @@
+lần chạy DUY NHẤT bộ S7 độc lập · 2026-10-23T11:57:37+07:00 · HEAD 5dd13e7 · cây sạch: 0 mục đổi
+=== RUN   TestS7BoPhatTrien
+    s7_test.go:280: bộ câu: <bộ độc lập>/doc-lap.yaml
+    s7_test.go:282: bộ nhớ: top-3 trúng 87/92 (94.6%) · đoạn ngoài quyền 0 · đoạn không làm căn cứ 0 · thiếu nguồn 0 · câu không có đáp án mà trả đoạn 7 ⇒ dòng S7: ĐẠT
+    s7_test.go:282: bộ nhớ: S7I-32 trượt top-3 ("Máy EX-03 vừa chạy đủ 250 giờ, bảo dưỡng cấp 1 phải làm những gì?") — top-3 []
+    s7_test.go:282: bộ nhớ: S7I-42 trượt top-3 ("Tạo PO trên ERP bị lỗi thì có bấm tạo lại không?") — top-3 []
+    s7_test.go:282: bộ nhớ: S7I-55 trượt top-3 ("Biên bản sự cố ATLĐ phải xong trong bao lâu, cần kèm gì?") — top-3 []
+    s7_test.go:282: bộ nhớ: S7I-65 trượt top-3 ("Phiếu kho huỷ rồi thì còn tra lại được không hay mất luôn?") — top-3 []
+    s7_test.go:282: bộ nhớ: S7I-71 trượt top-3 ("Lớp CPĐD lu xong mỗi lớp dày tối đa bao nhiêu?") — top-3 []
+    s7_test.go:282: bộ nhớ: S7I-K01 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-NL-02#3 BP-BT-A@v1#4 SOP-AT-01#3]
+    s7_test.go:282: bộ nhớ: S7I-K02 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-AT-01#2 SOP-AT-01#0 SOP-AT-01#1]
+    s7_test.go:282: bộ nhớ: S7I-K03 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-NL-04#1 SOP-NL-02#0 SOP-NL-01@v2#1]
+    s7_test.go:282: bộ nhớ: S7I-K04 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-MM-01#0]
+    s7_test.go:282: bộ nhớ: S7I-K10 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [QD-NL-03@v1#7 BP-BT-A@v1#0 SOP-NT-01#2]
+    s7_test.go:282: bộ nhớ: S7I-K11 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [BP-BT-A@v1#2 BP-BT-A@v1#0 QD-LT-01#1]
+    s7_test.go:282: bộ nhớ: S7I-K12 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [SOP-NL-02#0 SOP-NL-02#3 SOP-NL-02#1]
+--- FAIL: TestS7BoPhatTrien (0.08s)
+=== RUN   TestS7BoPhatTrienQuaPG
+    s7_test.go:291: bộ câu: <bộ độc lập>/doc-lap.yaml
+    s7_test.go:308: PG: top-3 trúng 87/92 (94.6%) · đoạn ngoài quyền 0 · đoạn không làm căn cứ 0 · thiếu nguồn 0 · câu không có đáp án mà trả đoạn 7 ⇒ dòng S7: ĐẠT
+    s7_test.go:308: PG: S7I-32 trượt top-3 ("Máy EX-03 vừa chạy đủ 250 giờ, bảo dưỡng cấp 1 phải làm những gì?") — top-3 []
+    s7_test.go:308: PG: S7I-42 trượt top-3 ("Tạo PO trên ERP bị lỗi thì có bấm tạo lại không?") — top-3 []
+    s7_test.go:308: PG: S7I-55 trượt top-3 ("Biên bản sự cố ATLĐ phải xong trong bao lâu, cần kèm gì?") — top-3 []
+    s7_test.go:308: PG: S7I-65 trượt top-3 ("Phiếu kho huỷ rồi thì còn tra lại được không hay mất luôn?") — top-3 []
+    s7_test.go:308: PG: S7I-71 trượt top-3 ("Lớp CPĐD lu xong mỗi lớp dày tối đa bao nhiêu?") — top-3 []
+    s7_test.go:308: PG: S7I-K01 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-NL-02#3 BP-BT-A@v1#4 SOP-AT-01#3]
+    s7_test.go:308: PG: S7I-K02 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-AT-01#2 SOP-AT-01#0 SOP-AT-01#1]
+    s7_test.go:308: PG: S7I-K03 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-NL-04#1 SOP-NL-02#0 SOP-NL-01@v2#1]
+    s7_test.go:308: PG: S7I-K04 (ngoai_quyen) không có đáp án mà nhận đoạn [SOP-MM-01#0]
+    s7_test.go:308: PG: S7I-K10 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [QD-NL-03@v1#7 BP-BT-A@v1#0 SOP-NT-01#2]
+    s7_test.go:308: PG: S7I-K11 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [BP-BT-A@v1#2 BP-BT-A@v1#0 QD-LT-01#1]
+    s7_test.go:308: PG: S7I-K12 (khong_co_tai_lieu) không có đáp án mà nhận đoạn [SOP-NL-02#0 SOP-NL-02#3 SOP-NL-02#1]
+--- FAIL: TestS7BoPhatTrienQuaPG (0.90s)
+=== RUN   TestSoSanhBaHeTrenS7
+    so_sanh_test.go:165: bộ câu: <bộ độc lập>/doc-lap.yaml
+    so_sanh_test.go:202: eais      top-3 87/92  · đoạn ngoài quyền  0 · đoạn không làm căn cứ (nháp / hết hiệu lực / xung đột)  0 · câu không có đáp án mà trả đoạn 7/14
+    so_sanh_test.go:202: rag       top-3 91/92  · đoạn ngoài quyền 20 · đoạn không làm căn cứ (nháp / hết hiệu lực / xung đột) 37 · câu không có đáp án mà trả đoạn 14/14
+    so_sanh_test.go:202: nap-thang top-3 —      · đoạn ngoài quyền 100 · đoạn không làm căn cứ (nháp / hết hiệu lực / xung đột) 222 · câu không có đáp án mà trả đoạn 14/14
+--- PASS: TestSoSanhBaHeTrenS7 (0.16s)
+FAIL
+FAIL	github.com/luannt2002/enterprise-ai-control-layer/evals/rag	1.147s
+FAIL
+rc=1

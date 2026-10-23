@@ -153,6 +153,18 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		plan.Reason = "câu xác nhận nêu mốc thời gian không đọc được"
 		notes = append(notes, "Chưa đọc được mốc thời gian: "+strings.Join(claims.doubts, ", ")+". Bạn cho biết ngày hoặc khoảng ngày cụ thể.")
 	}
+	group := len(claims.groups) > 0
+	if group {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? "lu 2 850 lít": lu 2 với 850 L, hay lu với 2.850 L? Hệ không phán quyết theo một cách đọc
+		// tự chọn, cũng không bỏ lượng im lặng (P5; D-OP-9)
+		plan.Route, plan.Outcome = contracts.RouteClarification, contracts.OutcomeClarificationRequired
+		plan.Template, plan.Steps = "clarify_missing", nil
+		if !slices.Contains(plan.Intent.Missing, "claimed") { // câu nêu nhiều con số khác nhau đã khai khe này
+			plan.Intent.Missing = slices.Concat(plan.Intent.Missing, []string{"claimed"})
+		}
+		plan.Reason = "câu xác nhận có nhóm số chưa phân định"
+		notes = append(notes, "Chưa rõ cách đọc \""+strings.Join(claims.groups, "\", \"")+"\": một lượng, hay số hiệu đứng trước một lượng? Bạn viết lại con số liền (không dấu cách) hoặc có dấu chấm ngăn nghìn.")
+	}
 
 	resp := contracts.AskResponse{
 		Route: plan.Route, Outcome: plan.Outcome, Intent: plan.Intent.Name, PackVersion: a.RT.PackVersion, TraceID: uuid.NewString(),
@@ -170,6 +182,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
 			visible = nil
 			ci.shown, ci.suppressed = nil, "câu hỏi lại về con số hay mốc thời gian, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"
+		}
+		if group {
+			visible, ci.shown, ci.suppressed = nil, nil, "câu hỏi lại về cách đọc nhóm số, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"
 		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
@@ -678,7 +693,7 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, names []mention, metric
 		return contracts.Value{}, false
 	}
 	cs := a.claimNumbers(in, names, def)
-	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 {
+	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 || len(cs.groups) > 0 {
 		return contracts.Value{}, false
 	}
 	return cs.values[0], true
@@ -774,6 +789,10 @@ type claimSet struct {
 	// kỳ nào đã đọc được — kỳ của câu có thể khác kỳ họ nói, nên câu phải hỏi lại, không phán quyết. Mốc nêu thêm KHỚP kỳ đã đọc
 	// ("hôm nay tuần 43", khi hôm nay thuộc tuần 43) là bối cảnh vô hại.
 	doubts []string
+	// groups: chữ của các lượng viết nhóm nghìn CHƯA PHÂN ĐỊNH trong phạm vi hỏi — con số không đứng đầu câu ("bể 2 500 lít": 2.500 L hay bể 2 với
+	// 500 L: normalization.UncertainGroup) hay chồng một phần lên tên thực thể ("lu 2 850 lít": normalization.GroupSplitsName) — câu phải hỏi lại,
+	// không phán quyết theo một cách đọc.
+	groups []string
 }
 
 // claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def, kèm các mốc thời gian không kiểm
@@ -796,12 +815,21 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 	var cands []claimCand
 	skip := 0      // số span còn lại thuộc một cụm ngày dd-mm đã ghi là mốc chưa đọc được
 	labelEnd := -1 // cuối số hiệu vừa bỏ ("phiếu 12-10": phần "-10" thuộc cùng số hiệu)
+	// vị trí các nhóm nghìn chưa phân định (xem claimSet.groups); chỉ giữ cái nằm trong phạm vi hỏi
+	var unsure [][2]int
 	for i, sp := range in.Spans {
 		if skip > 0 {
 			skip--
 			continue
 		}
 		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
+			continue
+		}
+		if slices.ContainsFunc(names, func(m mention) bool { return normalization.GroupSplitsName(sp, m.start, m.end) }) {
+			// nhóm nghìn chồng MỘT PHẦN lên tên ("lu 2 850 lít"): không bỏ im lặng như số trong tên — hỏi lại (không là ứng viên: cách đọc chưa chắc)
+			if _, ok := a.inMetricUnit(sp.Value, def); ok {
+				unsure = append(unsure, [2]int{sp.Start, sp.End})
+			}
 			continue
 		}
 		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
@@ -818,6 +846,9 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		v, ok := a.inMetricUnit(sp.Value, def)
 		if !ok {
 			continue
+		}
+		if normalization.UncertainGroup(sp) {
+			unsure = append(unsure, [2]int{sp.Start, sp.End}) // vẫn là ứng viên: các luật đếm con số bên dưới giữ nguyên
 		}
 		explicit := sp.Kind == contracts.ValueQuantity && !strings.Contains(sp.Rule, "unit_from_term")
 		if explicit && rateAfter(in.Raw, sp.End) {
@@ -849,6 +880,11 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		}
 		if !slices.ContainsFunc(cands, func(c claimCand) bool { return c.start >= lo && c.start < hi }) {
 			lo = sentenceStart(in.Raw, fs)
+		}
+	}
+	for _, u := range unsure {
+		if raw := in.Raw[u[0]:u[1]]; u[0] >= lo && !slices.Contains(cs.groups, raw) {
+			cs.groups = append(cs.groups, raw)
 		}
 	}
 	var primary, trailing []claimCand

@@ -1,0 +1,97 @@
+{
+ "ket_luan": "ĐẠT CÓ GHI CHÚ. Không có S1, không có S2; 5 ghi chú S3 và 5 ghi chú S4 (liệt kê ở phat_hien). Tôi đã dựng worktree riêng ở commit 886b216 và cho thêm 4 phép thử độc lập lên nhánh: (1) đua hỗn hợp qua pipeline và PG thật, (2) fuzz ranh giới COMMIT bằng cầu TCP kèm trigger hoãn, pg_terminate_backend và hạn ngữ cảnh ngẫu nhiên, (3) đầu-cuối với lỗi mạng thật rồi gửi lại cùng khoá, (4) kiểm quyền, RLS, khoá ngoại, CHECK bằng psql với vai eais_app. Kết quả: không lần nào ErrBeforeCommit (FAILED) mà DB có phiếu, không lần nào WriteTicket nil (DONE) mà DB không có phiếu, không lần nào phiếu, sổ lệnh và audit EXECUTED lệch nhau. Lời khai của tác giả về số kiểm, bảng U1 16 dòng, write-set, ba commit đầu đều tái lập đúng. Điểm đáng chú ý nhất (K2S-01, S3): luật \"PG trả lỗi mức ERROR cho COMMIT thì chắc chắn chưa ghi\" chỉ đúng khi đầu bên kia là chính PostgreSQL; một bên trung gian báo ERROR sau khi máy chủ đã commit sẽ bị gán FAILED (đo bằng cầu giả). Hệ quả bị chặn bởi khoá lệnh và chỉ mục nghiệp vụ nên không thành hai phiếu, nhưng nên ghi tiền đề và cứng hoá rẻ. Mã nguồn các phép thử của tôi giữ ở $S/k2s-keep/ (k2s_probe_test.go, k2s_e2e_test.go, k2s-perm.sql, k2s-sosanh.py, k2s-mut.py và các đầu ra). Đã gỡ hai worktree k2s-wt, k2s-base và DROP mọi database k2s*; không còn backend nào mang application_name k2s*. Tôi không sửa gì ở cây chính hay worktree của tác giả.",
+ "phat_hien": [
+  {
+   "ma": "K2S-01",
+   "muc": "S3",
+   "mo_ta": "classifyCommit coi mọi PgError mức ERROR của chính COMMIT là chắc chắn đã huỷ (ErrBeforeCommit, pipeline ra FAILED STORE_UNAVAILABLE retry same_key). Đúng với PostgreSQL nối trực tiếp, nhưng tiền đề 'đầu bên kia là PG' không được ghi trong HOP-DONG và không có test. Một bộ gom kết nối hay proxy phát ErrorResponse mức ERROR sau khi máy chủ đã commit sẽ làm Store báo FAILED trong khi phiếu đã ghi, trái §9.2 nguyên tắc 4 (FAILED chỉ khi chắc chắn không ghi). Giới hạn tác hại: gửi lại cùng khoá thì phát lại; khoá mới thì chỉ mục nghiệp vụ chặn thành DUPLICATE_OPEN_TICKET; không ra hai phiếu, chỉ sai nhãn.",
+   "bang_chung": "[ĐO] Cầu TCP giả thay phản hồi COMMIT (máy chủ ĐÃ commit, DB có 1 phiếu) bằng ErrorResponse: ERROR/08P01 -> ErrBeforeCommit; ERROR/57P01 -> ErrBeforeCommit; ERROR/40001 -> ErrBeforeCommit; FATAL/08P01 -> ErrCommitUnknown. [CODE] execution/commands/pgticket.go: isStatementError chỉ nhìn severity khác FATAL/PANIC, classifyCommit dòng 355. [SUY] bộ gom kết nối thật (vd pgbouncer) có phát ERROR trong tình huống này: chưa đo; HOP-DONG §15 U1 tự khai KHÔNG đo pgbouncer.",
+   "de_xuat": "(a) Ghi tiền đề 'Store nối thẳng PG, chưa đo bộ gom kết nối' vào HOP-DONG §7.1 hoặc §15. (b) Cứng hoá rẻ, theo hướng thận trọng: ở COMMIT coi SQLSTATE lớp 08, 57P và XX là không biết (ErrCommitUnknown) kể cả mức ERROR; PG thật phát các mã này ở mức FATAL nên hành vi hiện có gần như không đổi. (c) Thêm hàng ERROR/08P01 vào bảng thuần TestPGTicketPhanLoaiLoi."
+  },
+  {
+   "ma": "K2S-02",
+   "muc": "S3",
+   "mo_ta": "Tài liệu tự mâu thuẫn sau bước này: HOP-DONG §7.1 vẫn ghi cơ chế của trình điều khiển ở ranh giới COMMIT là 'chưa kiểm (mục 15, U1)' trong khi §15 U1 nay ghi ĐÃ ĐO. Tác giả chỉ được sửa dòng U1 nên không sửa chỗ này (đã tự khai).",
+   "bang_chung": "[REPO] docs/viec/1-hanh-dong/HOP-DONG.md dòng 446 so với dòng 919 (U1).",
+   "de_xuat": "Lead sửa một dòng ở §7.1: dẫn tới kết quả đo ở §15 U1 và quy tắc ba lớp lỗi (chưa gửi / PG trả ERROR / không biết)."
+  },
+  {
+   "ma": "K2S-03",
+   "muc": "S3",
+   "mo_ta": "ADR-0011 mục 'Nơi đặt mã' ghi platform/pgstore chỉ thêm một tệp mới, không sửa tệp cũ, và đòi sửa bảng trong cùng commit nếu chạm tệp ngoài bảng. Commit 28be558 sửa thêm migrate_test.go và vet_test.go (một dòng mỗi tệp, danh sách migration cứng 0001..0003 thành 0001..0004) mà không cập nhật bảng ADR. Việc sửa là hệ quả bắt buộc của migration mới và tác giả đã khai rõ.",
+   "bang_chung": "[REPO] git diff d5166a5 HEAD -- platform/pgstore/migrate_test.go platform/pgstore/vet_test.go: đúng một dòng đổi ở mỗi tệp; git diff --stat: 12 tệp, không có docs/adr/0011-*.",
+   "de_xuat": "Lead thêm hai tệp test này vào bảng 'Tệp ngoài execution/' của ADR-0011 kèm lý do, trong commit gộp hoặc ghi vào MR."
+  },
+  {
+   "ma": "K2S-04",
+   "muc": "S3",
+   "mo_ta": "Store.Ready() chưa biết ba bảng mới nên không báo thiếu migration 0004 hay thiếu quyền; cmd/eais (K3) khởi động được rồi mới hỏng ở lượt lệnh đầu. Tác giả đã đề xuất cho K3.",
+   "bang_chung": "[CODE] platform/pgstore/ready.go: readyNeeds liệt kê 7 bảng (entities, entity_aliases, facts, documents, decision_records, quarantine_records, usage_records), thiếu discrepancy_tickets, commands, audit_log.",
+   "de_xuat": "K3 thêm ba bảng với quyền SELECT, INSERT vào readyNeeds kèm test; đây là việc của K3 vì K2 cam kết không sửa tệp cũ."
+  },
+  {
+   "ma": "K2S-05",
+   "muc": "S3",
+   "mo_ta": "Lỗi tất định của dữ liệu (CHECK 23514, lớp 22 như NUL hoặc UTF-8 sai, numeric sai dạng) đều thành ErrBeforeCommit, tức FAILED STORE_UNAVAILABLE retry same_key: bên gọi thử lại vô hạn thứ không bao giờ thành công. Không làm sai tính toàn vẹn (đúng là chưa ghi), chỉ sai nhãn và gợi ý thử lại. Tác giả đã khai (doi_giao_dien_k1 a).",
+   "bang_chung": "[CODE] pgticket.go classifyStatement: mọi lỗi không phải 23505 trả ErrBeforeCommit. [ĐO] psql vai eais_app: status 'CLOSED', evidence không phải mảng, fingerprint sai dạng, outcome lạ đều bị CHECK 23514. [SUY] khó chạm tới trong ngăn xếp có PG vì C0/C3 chặn NUL và cột text của PG không chứa NUL; chủ yếu qua gọi thư viện trực tiếp.",
+   "de_xuat": "K1/K3 quyết: thêm sentinel thứ tư (vd ErrRejected) hoặc phân theo SQLSTATE lớp 22/23 để ra INTERNAL_ERROR không retry. Không thuộc K2 vì đổi giao diện K1."
+  },
+  {
+   "ma": "K2S-06",
+   "muc": "S4",
+   "mo_ta": "Núm F2 beforeAuditInsert là trường hàm nằm ngay trong struct PGStore của mã sản phẩm (nil ở đường chạy thật; test cấu trúc quét cú pháp để không mã sản phẩm nào gán). HOP-DONG §10 mô tả điểm chèn lỗi là lớp bọc test-only, không phải cờ chạy thật. Có cách sạch hơn: bọc TxBeginner trả pgx.Tx giả làm hỏng lần Exec thứ ba. Không bắt buộc.",
+   "bang_chung": "[CODE] pgticket.go dòng 46-51 và 202-206; export_test.go; TestPGTicketNumF2ChiGanTuTest.",
+   "de_xuat": "Giữ nguyên nếu chấp nhận; nếu muốn mã sản phẩm không mang móc thì thay bằng wrapper Tx trong _test.go."
+  },
+  {
+   "ma": "K2S-07",
+   "muc": "S4",
+   "mo_text": "",
+   "mo_ta": "BeginTenantTx dùng pool.Begin với TxOptions mặc định: không ghim READ COMMITTED mà §7.1 giả định, không đặt lock_timeout, mọi cận thời gian trông vào ngữ cảnh của bên gọi; Tool.Timeout chưa chọn (tác giả đã khai). Nếu vai hoặc database bị đặt default_transaction_isolation cao hơn thì có thể phát sinh 40001 và FAILED thử lại.",
+   "bang_chung": "[CODE] platform/pgstore/tenanttx.go dòng 26. [ĐO] không đo hành vi khi đổi mức cô lập mặc định.",
+   "de_xuat": "Ghim pgx.TxOptions{IsoLevel: pgx.ReadCommitted} hoặc ghi thành tiền đề; K3 bắt buộc truyền hạn chót cho mỗi lượt lệnh."
+  },
+  {
+   "ma": "K2S-08",
+   "muc": "S4",
+   "mo_ta": "Quan sát hành vi, không phải lỗi: khi mạng bị reset ngay sau một COMMIT đã báo thành công, kết nối chết còn nằm trong pool nên lượt đọc lại kế tiếp báo READBACK_UNAVAILABLE (UNKNOWN, an toàn; gửi lại cùng khoá ra DONE replayed). Tần suất thực tế chưa đo.",
+   "bang_chung": "[ĐO] TestK2SUcuoiLoiMang ca cắt sau khi chuyển COMMIT, ba lượt chạy giống nhau: lần 1 = UNKNOWN/READBACK_UNAVAILABLE, DB 1 phiếu, gửi lại = DONE replayed=true, tổng 1 phiếu.",
+   "de_xuat": "Tuỳ chọn: thử lại một lần ở đường đọc khi BEGIN báo 'conn closed' (chưa gửi gì nên an toàn). Chưa cần."
+  },
+  {
+   "ma": "K2S-09",
+   "muc": "S4",
+   "mo_ta": "Cột numeric chuẩn hoá một số dạng số nên ReadBack (so chuỗi) trả khác chữ gốc nếu upstream đưa dạng không chuẩn: sẽ thành VERIFY_MISMATCH. Các dạng thật của hệ (3850, 0.10, số 30 chữ số cộng 18 chữ số thập phân, số âm) khớp từng chữ số.",
+   "bang_chung": "[ĐO] TestK2SVongDiVe: -0 đọc lại 0; +5 đọc lại 5; 007 đọc lại 7; '5.' đọc lại 5; 1e3 đọc lại 1000; .5 đọc lại 0.5; ' 12 ' đọc lại 12. Phiên có TimeZone Pacific/Kiritimati và DateStyle German,DMY vẫn khớp ngày và mọi trường (DeepEqual, kể cả thứ tự bằng chứng, chữ Việt, emoji, nháy, xuống dòng, khoá thù địch kiểu SQL).",
+   "de_xuat": "K1/K3 giữ bất biến 'giá trị ghi luôn qua core/decimal Canonical' bằng một test; tôi không kiểm hết mọi đường sinh số upstream."
+  },
+  {
+   "ma": "K2S-10",
+   "muc": "S4",
+   "mo_ta": "Chú thích migration nói audit_log.id là 'thứ tự ghi trong tenant', nhưng identity cấp số theo thời điểm cấp chứ không theo thứ tự commit: người đọc audit bằng con trỏ id có thể bỏ sót dòng commit muộn. Phase 1 chưa có người đọc như vậy.",
+   "bang_chung": "[CODE] db/migrations/0004_phieu_chenh_lech.sql dòng 71.",
+   "de_xuat": "Sửa chú thích cho đúng nghĩa, hoặc ghi lưu ý trước khi có consumer theo con trỏ (Phase 5)."
+  }
+ ],
+ "da_dong": [
+  "(a) Hai phiếu [ĐO]: TestK2SDuaHonHop, 15 lane trộn (cùng/khác command_id, cùng/khác người gọi, cùng/khác nội dung, hai ngày) qua pipeline và PG thật, F7 giữ rào, 4 lượt chạy x 30 vòng. Mỗi vòng đúng 4 phiếu cho 4 khoá nghiệp vụ, phiếu = sổ lệnh = audit EXECUTED, không khoá nghiệp vụ nào có 2 phiếu OPEN; DONE mới/replayed, IDEMPOTENCY_KEY_REUSED, DUPLICATE_OPEN_TICKET đều khớp sổ lệnh và phiếu ở DB; không INTERNAL_ERROR hay STORE_UNAVAILABLE. Lượt đầu: 330 bên thua (11 mỗi vòng) đều đi qua đường phân loại lại sau 23505. Không thấy deadlock; thứ tự phiếu, sổ lệnh, audit không tạo được chu trình chờ.",
+  "(b) Kết cục sai lớp [ĐO]: fuzz 4 lượt x 360 vòng (cầu TCP có độ trễ, cắt trước COMMIT, cắt sau khi chuyển COMMIT, RST khi phản hồi COMMIT về, giữ phản hồi, cắt ở chunk thứ k, trigger hoãn 80 ms, pg_terminate_backend ngẫu nhiên giới hạn theo database và application_name của tôi, hạn ngữ cảnh log-đều 0,2 đến 120 ms): 0 vi phạm. Bất biến: ErrBeforeCommit thì DB 0 phiếu; nil thì DB 1 phiếu; phiếu = sổ lệnh = audit EXECUTED (0 hoặc 1); gửi lại cùng đơn vị bằng kho khoẻ cho nil hoặc ErrUniqueViolation và luôn đúng 1 phiếu cho khoá đó. Đầu-cuối pipeline với lỗi mạng thật: RST khi phản hồi COMMIT về = UNKNOWN/COMMIT_UNKNOWN, DB 1, gửi lại = DONE replayed; cắt trước khi COMMIT tới máy chủ = UNKNOWN/COMMIT_UNKNOWN, DB 0, gửi lại = DONE mới, tổng 1 phiếu.",
+  "Bảng U1 [ĐO]: chạy lại TestU1RanhGioiCommit (PASS 9,15 s), 16 dòng a1, a1b, a2, b, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, f, g khớp từng dòng lời khai: hình dạng lỗi pgx, SafeToRetry, phân loại Store, sự thật ở DB. Fuzz của tôi tái hiện cùng các hình dạng (đặc biệt c3: hết hạn khi chờ phản hồi COMMIT, DB 1 phiếu; c4: 'conn closed' mang SafeToRetry=true, DB 1 phiếu, bị loại trừ đúng). [CODE] pgconn.MultiResultReader.NextResult bỏ lỗi gốc của peekMessage rồi receiveMessage trả connLockError 'conn closed' nên 'che lỗi gốc' đúng như tác giả viết; ErrConnClosed là sentinel xuất của pgx v5.11.0.",
+  "(c) Cách ly và quyền [ĐO, psql vai eais_app]: eais_app không superuser, không BYPASSRLS, không thuộc vai nào. Không GUC: đọc 0 dòng ở cả ba bảng, ghi bị 42501. GUC=A không ghi được hàng tenant B (42501); GUC=B không thấy hàng của A. UPDATE, DELETE, TRUNCATE trên cả ba bảng: 42501. ALTER ... DISABLE/NO FORCE RLS, DROP/CREATE POLICY, ALTER OWNER, DROP TABLE, CREATE TRIGGER, SET session_replication_role, SET ROLE postgres: đều bị từ chối. has_table_privilege: chỉ SELECT và INSERT; quyền mức cột UPDATE/REFERENCES = 0; PUBLIC không có quyền; không GRANT OPTION. relrowsecurity và relforcerowsecurity đều true; chính sách tenant_isolation USING và WITH CHECK cùng biểu thức GUC. FK: duy nhất commands -> discrepancy_tickets, không DEFERRABLE; sổ lệnh mồ côi, sổ lệnh trỏ phiếu tenant khác, đảo thứ tự INSERT đều 23503; CHECK status, outcome, EXECUTED không có phiếu, fingerprint, evidence không phải mảng đều 23514; trùng khoá nghiệp vụ OPEN và trùng khoá chính sổ lệnh đều 23505.",
+  "Migration [ĐO]: trên database trống áp 0001 rồi 0002, 0003, 0004 bằng psql (rc 0 mỗi tệp); ảnh chụp catalog 107 dòng của mọi đối tượng cũ (bảng, cột, chính sách, ràng buộc, chỉ mục, quyền, vai, quyền mặc định, hàm, trigger) giống hệt trước và sau 0004; áp lại 0004 lần hai vẫn rc 0; qua pgstore.Migrate schema_migrations ghi đúng thứ tự 0001..0004. origin/main hiện chỉ có 0001..0003 nên không trùng số 0004.",
+  "(d) Đúng dữ liệu [ĐO]: ReadBack khớp DeepEqual cho số 30 chữ số cộng 18 chữ số thập phân, 0.10, số âm, ngày nhuận 2024-02-29 và 2026-12-31, thứ tự bằng chứng có phần tử trùng, chữ Việt, emoji, nháy, gạch chéo ngược, xuống dòng, vai nil/rỗng/hai vai, chuỗi thù địch kiểu SQL; ba bảng còn nguyên. [CODE] mọi SQL của pgticket.go và tenanttx.go là hằng chuỗi tham số $n, grep không thấy Sprintf hay ghép chuỗi giá trị.",
+  "(e) Cổng [ĐO, Go 1.26.4, PG 17.11, pgx v5.11.0]: go vet ./... rc 0; gofmt -l trên tệp git theo dõi rỗng. Không PG: HEAD 707 pass + 69 skip, gốc 1ddd10b 589 pass + 28 skip; theo tên: MẤT 0, ĐỔI 0, MỚI 159 (118 pass, 41 skip, 0 fail; 155 ở execution/commands, 4 ở platform/pgstore). Có PG (database riêng): HEAD 806 pass, 0 fail, 0 skip; gốc 631 pass; MẤT 0, ĐỔI 0, MỚI 175 pass (171 ở execution/commands, 4 ở platform/pgstore). scripts/kiem-skip-test.py: XANH (806 test, pass 806, fail 0, skip 0). go test -race -count=1 -p 2 ./execution/commands/ ./platform/pgstore/ có PG: ok (10,676 s và 1,922 s). Ba commit đầu 28be558, 7f5afda, 3bd1310: go vet rc 0, test ok có và không PG ở execution/commands, platform/pgstore và gói gốc. Tất cả lệnh nặng chạy qua taskset, tối đa 3 tiến trình test song song.",
+  "Write-set và hygiene [REPO]: git diff --stat d5166a5 HEAD đúng 12 tệp (+3161/-3) như khai; không đụng command.go, pipeline.go, tools.go hay test của K1; không đổi go.mod, go.sum, core/; HOP-DONG chỉ đổi đúng 1 dòng (U1); migrate_test.go và vet_test.go mỗi tệp 1 dòng. Dòng thêm của diff không chứa đường dẫn máy, email hay bí mật (chỉ trùng chữ 'token' ở import go/token). Cả 6 commit có tác giả luannt và dòng Co-Authored-By: Claude Sonnet 5.5 như khai. git merge-tree --write-tree origin/main m4/k2-kho-pg (origin/main nay là 2758ce9) không báo xung đột.",
+  "Đột biến độc lập [ĐO]: 7 đột biến của riêng tôi, khác danh sách 41 của tác giả, đều bị bộ test bắt: bỏ nhánh 23505 ở classifyCommit (5 ca đỏ); classifyStatement coi DeadlineExceeded là UNKNOWN (4); FindOpenTicket bỏ lọc ngày (1); FindLedger bỏ lọc người gọi (4); chỉ mục duy nhất dùng entity_id thay subject_key (1); cấp thêm DELETE cho eais_app (2); chính sách RLS mở khi GUC là chuỗi rỗng (1). Mỗi đột biến chạy trên database mới, tệp được khôi phục sau đó.",
+  "Dọn: đã gỡ worktree k2s-wt và k2s-base (git worktree list không còn mục k2s-), DROP k2s_kho, k2s_base (các k2s_mut1..7, k2s_mig, k2s_c_* đã DROP ngay sau mỗi lượt), 0 backend mang application_name k2s*, 0 vai eais_test* còn sót, git status cây chính rỗng."
+ ],
+ "khong_kiem_duoc": [
+  "Bộ gom kết nối (pgbouncer hoặc tương tự), TLS, mạng mất gói thật, sao chép đồng bộ (cửa sổ COMMIT dài hơn), failover và HA: chỉ có cầu TCP loopback cùng cầu giả ErrorResponse của tôi; việc bộ gom kết nối thật có phát ERROR sau khi máy chủ commit là [SUY], chưa đo.",
+  "Chưa chạy lại danh mục 41 đột biến của tác giả (chỉ chạy 7 đột biến riêng); chưa chạy danh mục chính thức M1-M26 của X8, bộ giữ lại độc lập 157 ca, A25-A29 và cổng X1-X9 (không thuộc K2). Không đọc docs/sources/, docs/g7/holdout-p1/ và H5 theo luật.",
+  "Chưa chạy bộ test trên kết quả gộp vào origin/main hiện tại (2758ce9): chỉ có merge-tree sạch xung đột; so theo tên 0 mất, 0 đổi tính theo cặp §10 (gốc 1ddd10b, đầu nhánh), không phải so với đầu origin/main hiện tại vì nhánh chưa rebase.",
+  "Chưa kiểm bước 'test đỏ trước khi viết mã' của tác giả (không có commit bản khung trong lịch sử, không đọc tệp đầu ra k2-red-run.txt) và chưa kiểm hai worktree phụ k2-basewt, k2-mut của tác giả (không đụng).",
+  "Chưa đọc mã nguồn PostgreSQL: lời giải thích 'statement_timeout không áp cho công việc của COMMIT' (dòng f) vẫn là [SUY] của tác giả; tôi chỉ tái lập hành vi đo (ca f xanh). Chưa thử PG hay pgx phiên bản khác 17.11 và v5.11.0 (test U1 tự khai sẽ đỏ nếu hình dạng lỗi đổi, chỉ chạy được ở CI có PG).",
+  "Chưa dựng cụm PG mới không có sẵn vai eais_app để thử migration từ đầu (vai đã có ở cấp cụm; chưa kiểm 0002 có tự tạo vai hay không), và chưa đo hiệu năng: số vòng mỗi lượt đọc, chi phí mỗi lần ghi, N lớn hơn 15 lane hay pool lớn hơn 8, tải kéo dài. Chỉ mục audit_log_by_command chưa có ca hành vi (chỉ phục vụ tốc độ).",
+  "Một ảnh hưởng nhỏ ngoài phạm vi chỉ đọc cần lead biết: git merge-tree --write-tree đã ghi một tree object (4959ae5, không được tham chiếu) và git worktree add/remove đã tạo rồi xoá mục .git/worktrees/k2s-* trong kho chung; cây làm việc chính không đổi. Ngoài ra bộ test M1 có sẵn tự tạo database eais_vet_* và vai eais_test_* tạm khi chạy cả bộ có PG; tôi đã kiểm cuối cùng không còn cái nào."
+ ]
+}

@@ -1082,3 +1082,19 @@ func TestLC65_HaiTienTrinhNapDongThoi_CungMaTin(t *testing.T) {
 		}
 	})
 }
+
+// Chính bản vừa đổi nhóm rồi trở lại: cặp đã xét của CHÍNH nó (về nội dung cũ) bị xoá ngay lúc nó đổi nhóm, nên khi nó trở lại cạnh bản kia (không ai đổi gì) thì cặp mới chưa xét và nó bị giữ.
+func TestAmend_BanVuaDoiNhomRoiTroLai_CapDaXetCuaChinhNoKhongPhuLanTroLai(t *testing.T) {
+	forEachStore(t, func(t *testing.T, env storeEnv) {
+		ctx, _ := newCtx("amdr")
+		mustBatch(t, ctx, env.st, mk("a", 0), mk("c", 30))
+		keepBoth(t, ctx, env.st, "c") // cặp (c, a)
+		mustAmend(t, ctx, env.st, "c", mk("c", 30, withValue("2000"), withRaw("c sang 2000")))
+		if got := mustRecord(t, ctx, env.st, "c").ReviewedPairs; len(got) != 0 {
+			t.Errorf("cặp đã xét của c còn sót sau khi c đổi nhóm: %v", got)
+		}
+		mustAmend(t, ctx, env.st, "c", mk("c", 30, withRaw("c trở lại 1000")))
+		wantHeldPD(t, ctx, env.st, "c", "a")
+		wantTotal(t, ctx, env.st, "1000")
+	})
+}

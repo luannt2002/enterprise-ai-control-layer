@@ -109,6 +109,14 @@ func TestLC01_LoCoDonViGiaoTrung_BaoToanKeCaDuplicate(t *testing.T) {
 		if rc.ByOutcome[OutcomeAccepted] != 2 || rc.ByOutcome[OutcomeDuplicate] != 2 || rc.ByOutcome[OutcomeQuarantined] != 1 {
 			t.Errorf("biên nhận %v, muốn A2 D2 Q1", rc.ByOutcome)
 		}
+		// nguồn sự thật của BB1 là sổ ĐÃ LƯU (GA1 đọc thẳng từ kho, không tin giá trị trả về): một lần giao trùng rơi im lặng khỏi sổ phải bị bắt ở đây
+		led, err := env.st.Ledger(ctx, rc.BatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := BuildReceipt(rc.BatchID, led).Conserved(keysOf(items)); err != nil {
+			t.Errorf("sổ đã lưu không bảo toàn: %v", err)
+		}
 		if rs := mustRecords(t, ctx, env.st); len(rs) != 3 {
 			t.Errorf("kho có %d bản ghi, muốn 3", len(rs))
 		}

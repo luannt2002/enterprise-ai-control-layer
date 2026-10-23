@@ -194,3 +194,30 @@ func TestDB26_DiemDungGiuaDocNhomVaGhi_KhoaChanDua(t *testing.T) {
 		}
 	})
 }
+
+// APPLY đính chính mà bản gốc nằm ở ô có khoá NHỎ hơn ô của bản đính chính: khoá thứ hai phá thứ tự tăng dần nên giao dịch phải chạy lại với cả hai ô lấy sẵn (đường getLocked của bản gốc, khác đường settle).
+func TestKhoaTuanTu_ApplyBanGocOOKhacCoKhoaNhoHon_ChayLaiVanDung(t *testing.T) {
+	m := NewMemory(testOptions())
+	ctx, tenant := newCtx("relockap")
+	days := []string{"2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24"}
+	big, small := days[0], days[0]
+	for _, d := range days {
+		if slotLockKey(tenant, slotKey{"E1", d}) > slotLockKey(tenant, slotKey{"E1", big}) {
+			big = d
+		}
+		if slotLockKey(tenant, slotKey{"E1", d}) < slotLockKey(tenant, slotKey{"E1", small}) {
+			small = d
+		}
+	}
+	mustDeliver(t, ctx, m, "b", 1, mk("goc", 0, withDay(small), withValue("3000")))
+	mustDeliver(t, ctx, m, "b", 2, mk("dc", 5, heldFor(ReasonCorrectionUnconfirmed), withKind(KindCorrection), withDay(big), withValue("2000")))
+	attempts := 0
+	m.wrapTx = func(x txn) txn { attempts++; return x }
+	got := mustDecide(t, ctx, m, Command{Key: "dc", Decision: DecApply, Actor: "pm-1", Why: "báo nhầm", Target: "goc"})
+	if attempts < 2 {
+		t.Fatalf("APPLY có bản gốc ở ô khoá nhỏ hơn phải chạy lại (lấy khoá theo thứ tự): %d lần thử", attempts)
+	}
+	if got.Disposition != DispAccepted || mustRecord(t, ctx, m, "goc").Disposition != DispSuperseded {
+		t.Fatalf("sau APPLY: đính chính %+v, bản gốc %+v", got, mustRecord(t, ctx, m, "goc"))
+	}
+}

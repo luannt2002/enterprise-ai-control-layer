@@ -46,6 +46,13 @@ func TestA01GuiDoiTuanTu(t *testing.T) {
 	if o2.Steps[stLedger].Decision != "phát lại" || o2.Steps[stRules].Status != StepSkipped || o2.Steps[stWrite].Status != StepSkipped {
 		t.Fatalf("phát lại: C4b ghi 'phát lại', C5 và C6 skipped; được %+v", o2.Steps[stLedger:stVerify])
 	}
+	// lý do của C5 và C6 ở phát lại thường (bắt ở C4b) đúng điều đã xảy ra: không tính lại, không ghi — không lẫn lý do của phát lại do R5
+	// (soát độc lập C1–C7, C17S-01: bản sửa C6 làm C6 ghi nhầm "R5 thấy phiếu …")
+	for _, st := range []int{stRules, stWrite} {
+		if got := o2.Steps[st].Reason; got != "phát lại ở C4b: không tính lại, không ghi" {
+			t.Errorf("phát lại thường: lý do của %s = %q, muốn %q", o2.Steps[st].Code, got, "phát lại ở C4b: không tính lại, không ghi")
+		}
+	}
 	w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, replayed: 1})
 	w.counters(1, 1)
 }

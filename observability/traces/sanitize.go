@@ -38,7 +38,10 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // che "["); giá trị trần chứa ; , & " (phần sau dấu đó lọt); Cookie có giá trị trong nháy rồi thêm cặp sau ";" (Cookie: "a=1"; sid=…:
 // phần sau nháy đóng không được che). Che thừa: "http://máy:8080,me@x.com" bị coi là mật khẩu URL. Mẫu URL người dùng rỗng nuốt tên khoá
 // đứng ở chỗ mật khẩu ("redis://:secret=x@máy…"), nên phần sau "@" (máy, đường dẫn) không còn bị mẫu "khoá = giá trị" che thừa như trước
-// (fuzz 23/10: 105 / 300.000 chuỗi ghép). Bộ mẫu chỉ là danh sách — dạng nào ngoài danh sách thì chưa có bảo đảm.
+// (fuzz 23/10: 105 / 300.000 chuỗi ghép). Giá trị MỞ bằng nháy thoát (password=\"…\": logfmt / slog lồng, chữ đã qua %q) chỉ che được
+// dấu \ đứng đầu, bí mật sau \" lọt (soát lại 5abc, 5a-R3; có từ trước 5a) — đường chạm tới: tên trường lạ trong thân POST
+// /v1/commands/<công cụ> ghi vào bước C0 dạng "invalid_fields=…", lấy từ lỗi `json: unknown field %q` (bí mật do chính bên gọi gõ).
+// Bộ mẫu chỉ là danh sách — dạng nào ngoài danh sách thì chưa có bảo đảm.
 var secretMasks = []struct {
 	re    *regexp.Regexp
 	repl  string

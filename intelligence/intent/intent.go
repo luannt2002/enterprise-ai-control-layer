@@ -1138,7 +1138,11 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			why = fmt.Sprintf("cụm báo nghĩa ở mệnh đề %s", contracts.Quote(ct))
 			break
 		}
-		if why == "" && !measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return sig != SignalStatedValue && s.signalHit(sig, in, qStart, len(in.Raw)) }) {
+		// span:* (bộ chuẩn hoá thấy một số tiền) nhường câu có lượng cùng chiều đo; asked_unit:* là CHÍNH câu hỏi tiền ("bao nhiêu đồng một lít", "… 3782 L dầu, hết bao nhiêu đồng?") nên không nhường
+		if why == "" && slices.ContainsFunc(u.Signals, func(sig string) bool {
+			kind, _, _ := strings.Cut(sig, ":")
+			return sig != SignalStatedValue && (kind != "span" || !measured) && s.signalHit(sig, in, qStart, len(in.Raw))
+		}) {
 			why = "tín hiệu cấu trúc ở phần quyết định của câu"
 		}
 		if why != "" {
@@ -1245,30 +1249,72 @@ func (s *Set) signalHit(sig string, in contracts.NormalizedInput, start, end int
 	return false
 }
 
-// askedUnit báo câu hỏi lượng đi thẳng vào một đơn vị của chiều đo ("bao nhiêu" + "đồng") và mệnh đề kết thúc ngay sau đó (chỉ còn cụm hỏi / từ trung tính). "đồng hồ",
-// "đồng bộ" không dính vì còn chữ khác sau "đồng"; "bao nhiêu đồng một lít" cũng không dính — đánh đổi ghi ở ADR-0010.
+// askedUnit báo câu hỏi lượng đi thẳng vào đơn vị của một chiều đo: cụm hỏi lượng ("bao nhiêu") rồi — tuỳ chọn — các từ chỉ hàng ("trăm", "nghìn", "triệu", "tỷ") và một đơn vị của chiều đo ("đồng", "đô la",
+// "USD", "củ"), Ở BẤT KỲ ĐÂU trong mệnh đề (S4BS-04): "bao nhiêu đồng cho dầu của EX-03", "bao nhiêu đồng một lít". Phải có ít nhất một từ chỉ hàng hay đơn vị, và chữ liền sau phải là hết mệnh đề, từ
+// trung tính, số chữ hay cụm hỏi (moneyPhraseEnds): chữ đầu của từ ghép ("đồng hồ", "đồng bộ", "đô thị", "tỷ lệ") và đơn vị thể tích viết rõ ("bao nhiêu triệu lít") không phải tiền.
 func (s *Set) askedUnit(text, dimension string) bool {
 	if s.opt.UnitAliases == nil {
 		return false
 	}
-	markers := slices.Concat(s.opt.QuantityMarkers, s.opt.FocusMarkers)
+	units := s.opt.UnitAliases(dimension)
+	slices.SortStableFunc(units, func(a, b string) int { return len(b) - len(a) }) // đơn vị dài trước ("đô la" trước "đô")
 	for _, q := range s.opt.QuantityMarkers {
-		for _, u := range s.opt.UnitAliases(dimension) {
-			for _, sp := range normalization.PhraseSpans(text, q+" "+u) {
-				end := len(text)
-				for i := sp[1]; i < len(text); i++ {
-					if strings.IndexByte(",;.?!", text[i]) >= 0 && (i+1 >= len(text) || text[i+1] == ' ' || text[i+1] == '\n') {
-						end = i
-						break
-					}
+		for _, sp := range normalization.PhraseSpans(text, q) {
+			rest, eaten := text[sp[1]:], false
+			for {
+				trimmed := strings.TrimLeft(rest, " ")
+				if n := leadingAlias(trimmed, units); n > 0 { // đơn vị của chiều đo, rồi hết cụm
+					rest, eaten = trimmed[n:], true
+					break
 				}
-				if s.onlyMarkers(text[sp[1]:end], markers) {
-					return true
+				w := leadingWord(trimmed)
+				if w == "" || !normalization.HasNumberWord(w) { // từ chỉ hàng ("trăm", "nghìn", "triệu", "tỷ"): ăn rồi xét tiếp
+					break
 				}
+				rest, eaten = trimmed[len(w):], true
+			}
+			if eaten && s.moneyPhraseEnds(rest) {
+				return true
 			}
 		}
 	}
 	return false
+}
+
+// leadingAlias trả độ dài (byte) của cách viết đơn vị khớp ngay đầu text (ranh giới từ, cùng luật dấu), 0 nếu không có.
+func leadingAlias(text string, aliases []string) int {
+	for _, a := range aliases {
+		if sp := normalization.PhraseSpans(text, a); len(sp) > 0 && sp[0][0] == 0 {
+			return sp[0][1]
+		}
+	}
+	return 0
+}
+
+// leadingWord trả chữ (dãy chữ cái / chữ số) đứng đầu text, rỗng nếu text không bắt đầu bằng chữ.
+func leadingWord(text string) string {
+	end := 0
+	for end < len(text) {
+		r, n := utf8.DecodeRuneInString(text[end:])
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !unicode.Is(unicode.Mn, r) {
+			break
+		}
+		end += n
+	}
+	return text[:end]
+}
+
+// moneyPhraseEnds báo cụm "bao nhiêu <từ chỉ hàng / đơn vị>" kết thúc ở đó: phần còn lại tới hết mệnh đề không có chữ nào, hoặc bắt đầu bằng từ trung tính của pack ("cho", "vậy", "nhé"), một số chữ
+// ("một lít") hay cụm hỏi. Chữ nội dung khác ("hồ", "bộ", "thị", "lít") nghĩa là đơn vị vừa đọc chỉ là chữ đầu của một từ ghép hay một lượng khác.
+func (s *Set) moneyPhraseEnds(rest string) bool {
+	tail := rest
+	for _, c := range clauseSpans(rest) {
+		tail = rest[c[0]:c[1]]
+		break
+	}
+	trimmed := strings.TrimLeft(tail, " ")
+	w := leadingWord(trimmed)
+	return w == "" || s.isNeutral(w) || normalization.HasNumberWord(w) || s.onlyMarkers(trimmed, slices.Concat(s.opt.QuantityMarkers, s.opt.FocusMarkers))
 }
 
 // asking báo phần câu là một CÂU HỎI: có cụm xác nhận hoặc cụm hỏi lượng của pack. Dấu '?' một mình KHÔNG làm câu thành câu hỏi (S4AS-01): "Ghi nhận

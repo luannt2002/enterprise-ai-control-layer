@@ -135,3 +135,42 @@ func TestDOP18CTheoDungChuLenhGhiBatKeDongTu(t *testing.T) {
 	answered(t, "Cho EX-03 hôm nay xuất bao nhiêu dầu?")
 	askBack(t, "Ghi sổ EX-03 hôm nay xuất 3850 L dầu.", notWrite)
 }
+
+// S4BS-04 (S2): tín hiệu tiền theo cấu trúc rộng hơn. (a) đơn vị tiền ngoài "đồng / vnđ" ("đô", "đô la", "USD", "triệu", "tỷ", "nghìn", "trăm nghìn", "củ") đi với "bao nhiêu"; (b) "bao nhiêu" + đơn vị
+// tiền Ở BẤT KỲ ĐÂU trong mệnh đề, không đòi đơn vị ở cuối; (c) số tiền viết rõ đơn vị ngoài lexicon cũ ("250 USD"). Ca âm: chữ đầu của từ ghép ("đồng hồ", "đồng bộ", "đồng nghiệp", "đô thị", "tỷ
+// lệ") và lượng thể tích viết rõ đơn vị ("1,2 triệu lít", "bao nhiêu triệu lít", "bao nhiêu nghìn lít") không phải tiền.
+func TestS4BS04TinHieuTienMoRong(t *testing.T) {
+	for _, q := range []string{
+		"EX-03 hôm nay đổ dầu hết bao nhiêu đô?",
+		"EX-03 hôm nay đổ dầu hết bao nhiêu USD?",
+		"EX-03 hôm nay đổ dầu hết bao nhiêu đô la?",
+		"EX-03 hôm nay đốt dầu hết bao nhiêu triệu?",
+		"EX-03 hôm nay đốt dầu hết bao nhiêu tỷ?",
+		"EX-03 hôm nay đốt dầu hết bao nhiêu nghìn?",
+		"EX-03 hôm nay đốt dầu hết bao nhiêu trăm nghìn?",
+		"EX-03 hôm nay đốt dầu hết bao nhiêu củ?",
+		"Hết bao nhiêu đồng cho dầu của EX-03 hôm nay?",
+		"Dầu EX-03 hôm nay hết bao nhiêu đồng một lít?",
+		"EX-03 hôm nay đổ dầu hết bao nhiêu đồng vậy anh?",
+		"Tốn bao nhiêu đồng cho EX-03 đổ dầu hôm nay?",
+		"Chi bao nhiêu triệu đồng cho dầu EX-03 hôm nay?",
+		"EX-03 hôm nay đốt dầu hết 250 USD, đúng không?",
+		"EX-03 hôm nay đốt dầu hết 250 đô đúng không?",
+		"EX-03 hôm nay dùng 3782 L dầu, hết bao nhiêu đồng?", // có lượng cùng chiều đo nhưng chính câu hỏi là tiền
+	} {
+		askBack(t, q, notMoney)
+	}
+	for _, q := range []string{
+		"EX-03 hôm nay lắp bao nhiêu đồng hồ đo dầu?",
+		"Dự án Cầu A có bao nhiêu đồng nghiệp dùng dầu của EX-03 hôm nay?",
+		"EX-03 hôm nay có bao nhiêu đồng bộ dữ liệu dầu?",
+		"Hôm nay hạ tầng đô thị C có bao nhiêu đô thị dùng dầu của EX-03?",
+		"EX-03 hôm nay đốt bao nhiêu triệu lít dầu?",
+		"Công trình Cầu A đã dùng bao nhiêu nghìn lít dầu?",
+		"Tháng 9 dự án Cầu A nhận 1,2 triệu lít dầu phải không?",
+		"EX-03 hôm nay dùng 0,004 triệu lít dầu, đúng không?",
+		"Tỷ lệ hao hụt dầu của EX-03 hôm nay là bao nhiêu?",
+	} {
+		answered(t, q)
+	}
+}

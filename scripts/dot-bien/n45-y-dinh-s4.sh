@@ -282,3 +282,14 @@ m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(s
 m tenants/construction/pack/intents.yaml 'needs_value: true, signals: ["stated_value"]}' 'needs_value: true}' 'S163 pack không khai tín hiệu stated_value cho nghĩa lệnh ghi'
 m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if s.statedValue(in, res) {' 'S164 nhãn "chưa ghi số liệu" thêm vào cả câu đã mang nghĩa khác ("nhắc tôi khi … 4000 L" mang hai nhãn)'
 
+# ---- S4BS-04 (vòng 3): tín hiệu tiền theo cấu trúc rộng hơn ("bao nhiêu" + đơn vị tiền ở bất kỳ đâu trong mệnh đề)
+m $I '			if eaten && s.moneyPhraseEnds(rest) {' '			if eaten {' 'S165 "bao nhiêu" + đơn vị tiền không kiểm chữ liền sau ("đồng hồ", "đô thị", "triệu lít" thành tiền)'
+m $I '	return w == "" || s.isNeutral(w) || normalization.HasNumberWord(w) ||' '	return w == "" || normalization.HasNumberWord(w) ||' 'S166 đơn vị tiền chỉ nhận khi hết mệnh đề ("bao nhiêu đồng cho dầu của EX-03" không dính)'
+m $I '	return w == "" || s.isNeutral(w) || normalization.HasNumberWord(w) ||' '	return w == "" || s.isNeutral(w) ||' 'S167 "bao nhiêu đồng một lít" không dính (số chữ sau đơn vị không được tha)'
+m $I '				if w == "" || !normalization.HasNumberWord(w) {' '				if true {' 'S168 từ chỉ hàng ("triệu", "tỷ", "trăm nghìn") không được ăn: "bao nhiêu triệu" không dính'
+m $I '	slices.SortStableFunc(units, func(a, b string) int { return len(b) - len(a) })' '	_ = units' 'S169 đơn vị ngắn trước đơn vị dài ("đô" trước "đô la": "bao nhiêu đô la" bị chữ "la" chặn)'
+m $I '			return sig != SignalStatedValue && (kind != "span" || !measured) && s.signalHit(sig, in, qStart, len(in.Raw))' '			return sig != SignalStatedValue && !measured && s.signalHit(sig, in, qStart, len(in.Raw))' 'S170 câu hỏi tiền nhường câu có lượng lít ("bao nhiêu đồng một lít" trả số lít)'
+m tenants/construction/pack/lexicon.yaml 'aliases: [usd, đô, đô la]}' 'aliases: [usd]}' 'S171 lexicon không có "đô" / "đô la" (250 đô không là tiền)'
+m tenants/construction/pack/intents.yaml 'signals: ["span:money", "asked_unit:currency", "asked_unit:currency_usd"]}' 'signals: ["span:money", "asked_unit:currency"]}' 'S172 pack không khai tín hiệu asked_unit cho ngoại tệ'
+m core/tenant/pack.go '						out = append(out, rt.Normalizer.MultiplierAliases("1000000")...)' '						_ = rt.Normalizer.MultiplierAliases' 'S173 hậu tố nhân cỡ triệu ("củ", "tr") không là đơn vị tiền khi hỏi "bao nhiêu củ"'
+

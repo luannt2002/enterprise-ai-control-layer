@@ -18,6 +18,8 @@ units:
   - {unit: t, kind: quantity, dimension: mass, to_base: "1000", aliases: [tấn]}
   - {unit: "%", kind: quantity, dimension: ratio, to_base: "1", aliases: ["%", phần trăm]}
   - {unit: VND, kind: money, dimension: currency, to_base: "1", aliases: [đ, đồng, vnđ, vnd]}
+  # Tiền ngoại tệ (S4BS-04): chiều đo riêng (không quy đổi được sang VND vì không có tỷ giá) nên "250 USD" là số tiền, không phải lít.
+  - {unit: USD, kind: money, dimension: currency_usd, to_base: "1", aliases: [usd, đô, đô la]}
 
 multipliers:
   - {factor: "1000", aliases: [k]}

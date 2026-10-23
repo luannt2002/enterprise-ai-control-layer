@@ -279,8 +279,13 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				},
 				UnitAliases: func(dim string) []string {
 					var out []string
+					money := false
 					for _, u := range rt.Normalizer.UnitsOf(dim) {
 						out = append(out, u.Aliases...)
+						money = money || u.Kind == "money"
+					}
+					if money { // "bao nhiêu củ": hậu tố nhân cỡ triệu trở lên là cách nói số tiền
+						out = append(out, rt.Normalizer.MultiplierAliases("1000000")...)
 					}
 					return out
 				},

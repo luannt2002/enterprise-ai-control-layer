@@ -50,7 +50,7 @@ purpose_markers: [để, nhằm]
 negation_markers: [không, chưa, hông, ko]
 
 unsupported_meanings:
-  - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency"]}
+  - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency", "asked_unit:currency_usd"]}
   - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến, dự tính, dự phóng, dự trù, ước tính, sẽ]}
   - {name: quote, template: unsupported_quote, cues: [báo giá, hỏi giá, xin giá, chào giá, giá chào]}
   - {name: warning, template: unsupported_warning, cues: [cảnh báo, báo động, nhắc tôi, nhắc em, nhắc mình, nhắc nhở, báo khi, thông báo khi]}

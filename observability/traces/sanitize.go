@@ -30,8 +30,13 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // (xem quotedEscaped, valueMask).
 //
 // Giới hạn đã biết (KHÔNG che): bí mật trần có khoảng trắng ("password=hunter two" chỉ che "hunter"); câu văn xuôi không có dấu : hoặc
-// = ("mật khẩu của tôi là hunter2pw"); chuỗi ngẫu nhiên không có từ khoá và không theo dạng token đã biết. Bộ mẫu chỉ là danh sách —
-// dạng nào ngoài danh sách thì chưa có bảo đảm.
+// = ("mật khẩu của tôi là hunter2pw"); chuỗi ngẫu nhiên không có từ khoá và không theo dạng token đã biết. Thêm (soát độc lập 23/10, 5a-4,
+// đều có từ trước 5a): mật khẩu URL chứa "@" hay "/" thô, không mã hoá % ("postgres://u:ab@xy@máy" chỉ che "ab"; có "/" thì không che);
+// JSON lồng dạng chuỗi ({"msg":"{\"password\":\"…\"}"}: khoá đứng sau \" không được nhận ra); giá trị là mảng ("password":["a","b"] chỉ
+// che "["); giá trị trần chứa ; , & " (phần sau dấu đó lọt); Cookie có giá trị trong nháy rồi thêm cặp sau ";" (Cookie: "a=1"; sid=…:
+// phần sau nháy đóng không được che). Che thừa: "http://máy:8080,me@x.com" bị coi là mật khẩu URL. Mẫu URL người dùng rỗng nuốt tên khoá
+// đứng ở chỗ mật khẩu ("redis://:secret=x@máy…"), nên phần sau "@" (máy, đường dẫn) không còn bị mẫu "khoá = giá trị" che thừa như trước
+// (fuzz 23/10: 105 / 300.000 chuỗi ghép). Bộ mẫu chỉ là danh sách — dạng nào ngoài danh sách thì chưa có bảo đảm.
 var secretMasks = []struct {
 	re    *regexp.Regexp
 	repl  string

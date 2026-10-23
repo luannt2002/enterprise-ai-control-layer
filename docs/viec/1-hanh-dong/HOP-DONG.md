@@ -124,7 +124,7 @@ Người dùng gõ một câu lệnh vào luồng hỏi hôm nay **không đư�
 
 - **Không có** trường nào khác. Giải mã chặt: trường lạ ⇒ `INVALID_REQUEST`. Đặc biệt **không có**: tenant, người gọi, vai, phạm vi, giá trị chênh lệch, trạng thái, mã phiếu, thời gian, chữ tự do (ghi chú, lý do).
 - Tên kiểu kết thúc bằng `Request` để cổng sẵn có `TestRequestTypesHaveNoTenantField` (`architecture_test.go:80`) tự phủ [CODE]. Cổng quét cả `execution` và `cmd` (`sharedRoots`, `architecture_test.go:19` tại `5d69d24`) [CODE], nên kiểu `Request` của gói `execution/commands` và của lớp HTTP đều được phủ, không cần sửa cổng.
-- Độ dài và ký tự: `command_id` đúng dạng UUID; không trường nào chứa ký tự NUL (cùng tinh thần S0, `core/pipeline/ask.go:1058-1070`) [CODE]. Ký tự NUL bị chặn ở C0 bằng `INVALID_REQUEST`, trước mọi tra cứu; mọi chuỗi lạ khác là khoá hợp lệ về cấu trúc và xử lý theo §4.4.
+- Độ dài và ký tự: `command_id` đúng dạng UUID; `subject_key` tối đa 128 byte UTF-8 (thêm 23/10 theo lệnh ca chiều, mục C5: giới hạn cấu trúc, không phải giá trị nghiệp vụ; dài hơn ⇒ `INVALID_REQUEST` ở C0, vết chỉ giữ 128 byte đầu kèm độ dài gốc); không trường nào chứa ký tự NUL (cùng tinh thần S0, `core/pipeline/ask.go:1058-1070`) [CODE]. Ký tự NUL bị chặn ở C0 bằng `INVALID_REQUEST`, trước mọi tra cứu; mọi chuỗi lạ khác là khoá hợp lệ về cấu trúc và xử lý theo §4.4.
 
 ### 2.2 Hệ tự điền
 

@@ -71,6 +71,9 @@ type Ask struct {
 	// beforeDecision chạy ngay trước khi dựng Decision (nil = không làm gì) — chỉ test trong gói đặt, để GIEO lỗi vào câu giao ở đúng vị trí mà vết S10 phải bắt được
 	// (V8AS-01): lỗi đặt ở đây là lỗi mà dấu vân tay ghi sớm hơn bị bỏ sót.
 	beforeDecision func(resp *contracts.AskResponse)
+	// afterDecision chạy ngay sau khi dựng Decision, trước bộ che (nil = không làm gì) — chỉ test trong gói đặt: gieo lỗi vào CÂU GHI TRONG BẢN GHI (Decision.Answer) mà không đổi câu trả về
+	// (Response.Answer), như một lỗi nằm trong a.decision; dấu vân tay S10 lấy từ Decision.Answer nên phải thấy nó (V8AS-01).
+	afterDecision func(d *traces.Decision)
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -255,6 +258,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		a.beforeDecision(&resp)
 	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
+	if a.afterDecision != nil {
+		a.afterDecision(&d)
+	}
 	red.decision(&d)
 	if !a.noWhy {
 		// S10: dấu vân tay của CHÍNH câu giao đã chốt (Decision.Answer, chữ nằm trong bản ghi) — ghi SAU khi Decision dựng xong, không sớm hơn: một bước nào cắt hay đổi câu giao

@@ -413,6 +413,8 @@ m $ST 'if tmpl, _, ok := strings.Cut(rest, TemplateDraftClose); ok && tmpl != ""
 m $ST 'if route.NeedsModel() { // route tri thức' 'if route.NeedsModel() || true { // route tri thức' 'VS8-61 [V8b V8AS-03, E22 của người soát] S6 mọi route không có span đều nói "cần truy xuất nhưng thoát sớm" (hướng ngược của VS8-41)'
 m $D 'Generate  Notes `json:"generate,omitzero"`' 'Generate  Notes `json:"-"`' 'VS8-62 [V8b V8AS-03, E16a] Why.Generate không vào JSON (mất khi vòng JSON)'
 m $D 'Respond   Notes `json:"respond,omitzero"`' 'Respond   Notes `json:"-"`' 'VS8-63 [V8b V8AS-03, E16b] Why.Respond không vào JSON (mất khi vòng JSON)'
+m $ASK 'a.noteDelivered(&why, d.Answer, led)' 'a.noteDelivered(&why, resp.Answer, led)' 'VS8-64 [V8b V8AS-01 bổ sung] S10 lấy dấu vân tay từ resp.Answer thay vì Decision.Answer (câu ghi trong bản ghi): lỗi trong a.decision lọt'
+m $ASK 'if a.afterDecision != nil {' 'if false && a.afterDecision != nil {' 'VS8-65 [V8b V8AS-01 bổ sung] điểm móc gieo lỗi vào câu ghi trong bản ghi không chạy: test phải đỏ'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

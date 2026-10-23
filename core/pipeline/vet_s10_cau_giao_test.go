@@ -119,3 +119,27 @@ func TestVetS10CauGiaoBiCatTruocDecisionThiS10LaBuocLechDauTien(t *testing.T) {
 		})
 	}
 }
+
+// Lỗi nằm TRONG a.decision (hay ngay sau nó): câu ghi trong bản ghi (Decision.Answer) bị cắt còn câu trả về (Response.Answer) nguyên vẹn. Bảng vết đọc bản ghi, nên dấu vân tay S10 phải là của
+// câu ghi trong bản ghi: nếu nó lấy từ resp.Answer thì S10 nói "chứa nguyên văn bản nháp" trong khi cột "ra" của chính bước đó hiện câu đã cắt.
+func TestVetS10CauGhiTrongBanGhiBiCatThiS10Lech(t *testing.T) {
+	const q = "Quy trình xử lý chênh lệch nhiên liệu là gì?"
+	a := vetAsk(t)
+	a.afterDecision = func(d *traces.Decision) {
+		if rs := []rune(d.Answer); len(rs) > 120 {
+			d.Answer = string(rs[:120]) + "…"
+		}
+	}
+	out, rec := vetTurn(t, a, vetDirector, q)
+	if out.Decision.Answer == out.Response.Answer || utf8.RuneCountInString(out.Decision.Answer) != 121 {
+		t.Fatalf("tiền đề: chỉ câu ghi trong bản ghi bị cắt (121 ký tự), câu trả về nguyên vẹn: %q / %q", out.Decision.Answer, out.Response.Answer)
+	}
+	s10, table := vetStep(t, rec, "S10"), traces.FormatTable(rec)
+	want := "câu giao: " + strconv.Itoa(utf8.RuneCountInString(out.Decision.Answer)) + " ký tự · băm " + sha12(out.Decision.Answer)
+	if !strings.Contains(s10.Reason, want) || !strings.Contains(s10.Reason, "câu giao KHÔNG chứa nguyên văn bản nháp ở S8") {
+		t.Errorf("S10 phải mang dấu vân tay của câu ghi trong bản ghi (%q) và nói KHÔNG chứa bản nháp:\n  %s", want, s10.Reason)
+	}
+	if s10.Status != traces.StatusDeviant || !strings.Contains(table, "BƯỚC LỆCH ĐẦU TIÊN: S10 respond") {
+		t.Errorf("S10 phải là bước lệch đầu tiên:\n%s", table)
+	}
+}

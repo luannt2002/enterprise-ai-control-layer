@@ -365,3 +365,25 @@ func TestBoChayF2PGTriggerBanDungChoDungMotLan(t *testing.T) {
 	}
 	rows(1)
 }
+
+// Soát K4, K4S-04: ca không khẳng định gì (expected_state và expected_output_properties rỗng) là ca ĐỎ — không ĐẠT với 0 khẳng định.
+func TestBoChayCaKhongKhangDinhLaDo(t *testing.T) {
+	wd := loadDevWorld(t)
+	for name, mutate := range map[string]func(c evals.Case){
+		"null và null": func(c evals.Case) { c["expected_state"], c["expected_output_properties"] = nil, nil },
+		"{} và {}": func(c evals.Case) {
+			c["expected_state"], c["expected_output_properties"] = map[string]any{}, map[string]any{}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c := goodCase()
+			mutate(c)
+			pc := parseChayCase(c)
+			_, err := execCase(&pc, wd, newMemBackend(wd))
+			var se *shapeError
+			if !errors.As(err, &se) || !strings.Contains(err.Error(), "không có khẳng định nào") {
+				t.Fatalf("ca không khẳng định gì phải ĐỎ, được %v", err)
+			}
+		})
+	}
+}

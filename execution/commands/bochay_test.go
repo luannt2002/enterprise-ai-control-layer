@@ -1543,7 +1543,11 @@ func execCase(pc *chayCase, wd *worlds, be chayBackend) ([]chayCheck, error) {
 	if err := r.execute(); err != nil {
 		return nil, err
 	}
-	return r.evaluate(), nil
+	checks := r.evaluate()
+	if len(checks) == 0 { // ca không khẳng định gì thì không chứng minh được gì: ĐỎ, không ĐẠT với 0 khẳng định (soát K4, K4S-04)
+		return nil, &shapeError{"ca sai hình dạng (ĐỎ): không có khẳng định nào (expected_state và expected_output_properties rỗng)"}
+	}
+	return checks, nil
 }
 
 // runCaseSet chạy mọi ca của tệp trên MỘT nền, mỗi ca một test con và mỗi khẳng định một test con của ca. Trả báo cáo.

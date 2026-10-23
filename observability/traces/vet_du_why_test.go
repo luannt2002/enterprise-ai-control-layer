@@ -14,7 +14,7 @@ func TestVetDuChuMoiQuaBoLamSach(t *testing.T) {
 	secret := "AKIA" + strings.Repeat("Q7", 8)
 	turn := realTurn(t, realAsk(t), person("director", ""), "EX-03 hôm nay được cấp 4k dầu đúng không?")
 	w := &turn.Decision.Why
-	for _, n := range []*traces.Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Context, &w.Validate} {
+	for _, n := range []*traces.Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Context, &w.Validate, &w.Generate, &w.Respond} {
 		if len(n.Reasons) == 0 {
 			t.Fatalf("tiền đề: lượt thật phải mang giải thích ở mọi chặng đã xuất: %+v", w)
 		}
@@ -64,7 +64,7 @@ func TestVetDuBanGhiBenKhongGiuWhyHaiLan(t *testing.T) {
 		t.Fatal("tiền đề: lượt thật phải mang Why")
 	}
 	rec := traces.NewRecord(turn)
-	if got := rec.Decision.Why; len(got.Normalize.Reasons)+len(got.Resolve.Reasons)+len(got.Intent.Reasons)+len(got.Route.Reasons)+len(got.Context.Reasons)+len(got.Validate.Reasons) != 0 {
+	if got := rec.Decision.Why; len(got.Normalize.Reasons)+len(got.Resolve.Reasons)+len(got.Intent.Reasons)+len(got.Route.Reasons)+len(got.Context.Reasons)+len(got.Validate.Reasons)+len(got.Generate.Reasons)+len(got.Respond.Reasons) != 0 {
 		t.Errorf("bản ghi bền không được giữ Why: %+v", got)
 	}
 	if len(turn.Decision.Why.Route.Reasons) == 0 {

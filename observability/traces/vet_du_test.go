@@ -49,19 +49,21 @@ func TestVetDuKhongConODeTrongOCacBuocDaXuat(t *testing.T) {
 		{"xác nhận đúng", director, "EX-03 hôm nay được cấp 3850 L đúng không?"},
 		{"xác nhận bị giữ phán quyết", director, "EX-03 được cấp 3850 L đúng không?"},
 		{"không có dữ liệu", director, "Máy 07 hôm nay được cấp bao nhiêu dầu?"},
+		{"RAG thoát sớm: đòi lượng nghiệp vụ", director, "Theo quy trình thì một máy xúc tiêu thụ bao nhiêu lít dầu mỗi giờ?"},
+		{"RAG thoát sớm: truy xuất rỗng", person("site_engineer", "PRJ-A"), "Quy trình xử lý chênh lệch nhiên liệu là gì?"},
+		{"HYBRID: số liệu không có dữ liệu", director, "EX-07 hôm nay được cấp bao nhiêu dầu, và theo quy trình thì khi lệch phải làm gì?"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			for _, s := range steps(t, c.pr, c.q) {
 				switch s.Stage {
-				case "S2", "S3", "S4", "S5", "S7", "S9":
+				case "S2", "S3", "S4", "S5", "S7", "S8", "S9":
 				default:
 					continue
 				}
-				if s.Status == traces.StatusSkipped {
+				if s.Status == traces.StatusSkipped && s.Stage != "S8" { // S8 chỉ "skipped" khi nhánh thoát sớm: lý do thoát và tên mẫu cũng phải có
 					continue
 				}
 				if traces.IsNotRecorded(s.Reason) || slices.ContainsFunc(s.Rejected, traces.IsNotRecorded) {
-					// S9 kiểm trượt còn một chỗ trống có chủ đích (bản nháp bị loại) — ca nào kiểm trượt thì không nằm trong danh sách này
 					t.Errorf("%s %s còn chỗ trống: lý do %q, loại %q", s.Stage, s.Name, s.Reason, s.Rejected)
 				}
 			}

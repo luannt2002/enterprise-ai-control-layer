@@ -153,3 +153,32 @@ func TestFinalWhyCheTruocKhiCat(t *testing.T) {
 		t.Errorf("dòng sau che + cắt còn mảnh khoá hoặc không báo cắt: …%q", got[len(got)-80:])
 	}
 }
+
+// V8a: hai ô mới của vết (S8 bản nháp, S10 câu giao) đi qua CÙNG MỘT chỗ che và cắt như mọi ô khác — khoá ngoài phạm vi bị che trước khi cắt dòng, dòng dài bị
+// cắt kèm chữ báo (đột biến: Why.apply bỏ sót một ô thì ô đó lọt cả che lẫn trần).
+func TestFinalWhyPhuS8VaS10(t *testing.T) {
+	long := strings.Repeat("x", maxWhyLineRunes-4) + " DZ-03 tiếp"
+	w := finalWhy(traces.Why{
+		Generate: traces.Notes{Reasons: []string{"bản nháp: Máy ủi DZ-03 cần đối soát", long}, Rejected: []string{"loại: DZ-03"}},
+		Respond:  traces.Notes{Reasons: []string{"câu giao: DZ-03", long}, Rejected: []string{"loại: DZ-03"}},
+	}, scopeRedactor{tokens: []string{"DZ-03"}})
+	for name, n := range map[string]traces.Notes{"S8": w.Generate, "S10": w.Respond} {
+		for _, l := range slices.Concat(n.Reasons, n.Rejected) {
+			if strings.Contains(l, "DZ") {
+				t.Errorf("%s: còn mảnh khoá ngoài phạm vi: …%q", name, l[max(0, len(l)-60):])
+			}
+		}
+		if !strings.Contains(n.Reasons[0], traces.OutOfScope) || !strings.Contains(n.Reasons[1], "cắt") {
+			t.Errorf("%s: khoá phải thành %s và dòng dài phải bị cắt: %q", name, traces.OutOfScope, n.Reasons)
+		}
+	}
+	// danh sách quá dài cũng bị cắt số ý (trần maxWhyLines) ở hai ô mới
+	var many traces.Notes
+	for i := range maxWhyLines + 5 {
+		many.Reason("ý %d", i)
+	}
+	c := finalWhy(traces.Why{Generate: many, Respond: many}, scopeRedactor{})
+	if len(c.Generate.Reasons) != maxWhyLines+1 || len(c.Respond.Reasons) != maxWhyLines+1 {
+		t.Errorf("trần số ý ở S8 / S10: %d và %d, muốn %d", len(c.Generate.Reasons), len(c.Respond.Reasons), maxWhyLines+1)
+	}
+}

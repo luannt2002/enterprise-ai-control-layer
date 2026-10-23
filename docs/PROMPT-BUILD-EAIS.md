@@ -340,3 +340,23 @@ Chép từ lời chủ dự án chuyển ngày 23/10 (`docs/CHO-QUYET-DINH.md` m
 3. Nhánh máy: push lên origin (nhánh riêng, không main) khi xong mỗi việc, chậm nhất 2 giờ một lần.
 4. Một phát hiện = một commit (không gộp nhiều phát hiện vào một commit).
 5. Không viết giấy cho việc chưa tới lượt; hợp đồng việc mới ≤ 300 dòng.
+
+#### 9.10b Lệnh ca chiều 23/10 (chủ dự án, áp từ 23/10 chiều; thuộc §9.10)
+
+Chép từ `docs/CHO-QUYET-DINH.md` mục 0, các dòng "23/10 chiều". Thay danh sách 22/10 của team.
+
+1. **Thứ tự:** (1) M3 đường găng — H6 do agent riêng soạn, không đọc nhánh `m3/s4-vong-sua-2310` hay ADR-0010 bản trên nhánh đó; băm H6
+   và bộ đồ nghề TRƯỚC khi bản sửa S4 lên main; nhánh S4 đưa lên main hiện tại, chạy lại cổng, đo trên bộ phát triển; chỉ gộp sau khi H6
+   đã băm; chạy H6 đúng MỘT lần. (2) M2 — bộ ca độc lập 0a (người soạn khác người viết mã) → băm → viết mã; KHÔNG mở mã trước khi bộ ca
+   0a đóng băng: dùng "mặc định" để bỏ điều kiện này là đổi cổng. (3) M4 — K3 ∥ K4 → chạy bộ giữ lại Phase 1 một lần; C1–C7 làm trước
+   hoặc cùng K3. (4) M1 — bộ thẻ mới cho phép đo người đọc vết → đo lại; commit cả thẻ lẫn câu trả lời của người đọc. (5) Gộp 5a, 5b, 5c
+   sau khi soát; 5e. (6) S9.
+2. **Sửa P2 từ soát mã:** C1–C11 (danh sách ở `CHO`), mỗi lỗi test đỏ trước, một commit.
+3. **Nhánh RAG:** BUILD không làm RAG; số migration ai gộp main trước lấy số kế tiếp; không refactor `answerKnowledge`
+   (`core/pipeline/ask.go`) — buộc đổi chữ ký thì ghi `docs/debug-handoff/`.
+4. **Ghi chép:** commit NGUYÊN VĂN báo cáo soát (đã bỏ đường dẫn máy vì repo công khai), không chỉ tóm tắt trong TIEN-DO. Mỗi dòng cổng ghi
+   mã commit của cây đã chạy, lệnh, mốc so winreport. Phép đo thời gian ghi số agent chạy song song lúc đo; test chập chờn thì giảm số
+   agent, không nới thời gian tiếp.
+5. **Cách điều phối thi hành "rebase" (ghi để soát):** nhánh đã push không rebase / force push (luật "Không được: force push"). "Đưa lên
+   main hiện tại" = merge `main` vào nhánh khi đang làm, rồi cherry-pick lên `main` hiện tại ở cây tích hợp lúc gộp — lịch sử `main` thẳng
+   như rebase, nhánh đã push không bị viết lại.

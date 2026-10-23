@@ -19,7 +19,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   `POST /v1/commands/<tool>` ở `cmd/eais` (tools.yaml của pack, vết chín bước C0…C7, `eais trace` đọc lượt lệnh) cùng bảy lỗi P2 C1–C7 —
   migration 0005: vai ứng dụng không đọc được `audit_log.reason_detail`, CHECK `tenant_id <> ''` cho ba bảng của 0004; đọc lại so đủ 15 cột
   của dòng EXECUTED; trần 128 byte cho subject_key; ca quyền A07–A10 trên PG; `classifyCommit` chỉ coi đúng mức ERROR là "chưa ghi"
-  (`3892be2`; hai vòng soát C1–C7, soát K3, soát lại cây gộp — ĐẠT CÓ GHI CHÚ).
+  (`3892be2`; hai vòng soát C1–C7, soát K3, soát lại cây gộp — ĐẠT CÓ GHI CHÚ). K4: bộ chạy ca lệnh chung, chín điểm chèn lỗi, danh mục đột
+  biến, demo (`b22e1e6`). **Bộ giữ lại P1 chạy một lần: 153 / 157** — 4 đỏ cùng một lỗi chuẩn hoá (`"≈"` không là dấu ước lượng); M4 chưa RA.
 - **M1:** R2-03 vết xuất lý do và phương án đã xét (`5fd463f`); `scripts/chay-thu.sh` khoá theo dự án bằng flock (`c97a989`).
 - **M1, bốn lỗi P2 của R2-03 (C8–C11, lệnh ca chiều 23/10), sửa qua hai vòng soát độc lập:** S5 của lượt chuyển người ghi lý do thật của
   việc ghi đè route (C8); vết của người hỏi phạm vi hạn chế không còn mang khoá / tên thực thể ngoài phạm vi mà họ không tự gõ — che ở MỘT

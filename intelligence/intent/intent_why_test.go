@@ -168,7 +168,7 @@ func TestClassifyTrichMenhDeHoiKhongThoatNhay(t *testing.T) {
 
 // N2 (soát vòng 2: X24, X26): các SỐ trong lý do của S4 khoá nguyên dòng — số ý định yếu đòi thuật ngữ của câu khi ý định chung không chọn được, và số cụm
 // từ khoá của ý định thắng khi hai ý định cùng ưu tiên khớp đủ mà khác số cụm.
-func TestClassifyGiaiThichSoLuongYDinhYeuVaHoaTheoCumTuKhoa(t *testing.T) {
+func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
 	yes := func(string) bool { return true }
 	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
 	in := contracts.NormalizedInput{Raw: "EX-03 dầu đúng không", Spans: []contracts.Span{

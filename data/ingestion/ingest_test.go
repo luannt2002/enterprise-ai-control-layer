@@ -54,7 +54,9 @@ func dataset(t *testing.T) string {
 		"R-022,PX-0998,EX-99,2026-10-19,500,L\n"+
 		"R-023,PX-0997,EX-03,2026-10-19,400000000,L\n"+
 		"R-024,PX-0996,EX-03,2026-10-19,5,kg\n"+
-		"R-025,PX-0995,EX03,2026-10-19,abc,L\n")
+		"R-025,PX-0995,EX03,2026-10-19,abc,L\n"+
+		"R-026,PX-0994,EX-03,2026-10-19,khoảng 3 850,L\n"+ // ô có cấu trúc: chữ trước nhóm nghìn không làm nó chưa phân định
+		"R-027,PX-0993,EX-03,2026-10-19,≈ 3 850,L\n")
 	write(t, dir, "erp.json", `[{"record_id":"R-005","doc_no":"ERP-77812","asset_id":"asset-8392","posting_date":"2026-10-19","material":"DIESEL","quantity":"3900","uom":"L"}]`)
 	write(t, dir, "sensor.csv", "record_id,device_id,date,consumed_l\nR-006,EX003,2026-10-19,3782\n")
 	write(t, dir, "messages.jsonl", strings.Join([]string{
@@ -64,6 +66,19 @@ func dataset(t *testing.T) string {
 		`{"record_id":"R-030","sent_at":"2026-10-19T17:00:00+07:00","sender":"Minh","text":"lấy thêm 3k"}`,
 		`{"record_id":"R-031","sent_at":"2026-10-19T17:30:00+07:00","sender":"Lan","text":"máy 07 lấy 500 lít"}`,
 		`{"record_id":"R-032","sent_at":"2026-10-19T18:00:00+07:00","sender":"Tuấn","text":"sáng nay 2k cho máy 03"}`,
+		// nhóm nghìn ngăn bằng dấu cách (D-OP-9): không đứng đầu tin là chưa phân định, chồng lên tên thiết bị là chưa phân định
+		`{"record_id":"R-033","sent_at":"2026-10-19T18:10:00+07:00","sender":"Tuấn","text":"máy 03 đổ bể 2 500 lít"}`,
+		`{"record_id":"R-034","sent_at":"2026-10-19T18:20:00+07:00","sender":"Tuấn","text":"máy 03 lô A 1 200 lít"}`,
+		`{"record_id":"R-035","sent_at":"2026-10-19T18:30:00+07:00","sender":"Tuấn","text":"máy 03 sửa chữa 500 000 đồng"}`,
+		`{"record_id":"R-036","sent_at":"2026-10-19T18:40:00+07:00","sender":"Tuấn","text":"máy 03 đổ bể #2 500 lít"}`,
+		`{"record_id":"R-037","sent_at":"2026-10-19T18:50:00+07:00","sender":"Tuấn","text":"máy 03 đổ bể: 2 500 lít"}`,
+		`{"record_id":"R-038","sent_at":"2026-10-19T19:00:00+07:00","sender":"Tuấn","text":"máy 3 850 lít, phiếu 912"}`,
+		`{"record_id":"R-039","sent_at":"2026-10-19T19:10:00+07:00","sender":"Tuấn","text":"lu 2 850 lít ca 2"}`,
+		`{"record_id":"R-040","sent_at":"2026-10-19T19:15:00+07:00","sender":"Tuấn","text":"máy 03 tiền xe 500 000 đồng"}`, // tiền sau từ đếm "xe"
+		`{"record_id":"R-043","sent_at":"2026-10-19T19:40:00+07:00","sender":"Tuấn","text":"máy 03 tổng số 3 850 lít"}`,    // từ nhãn "số"
+		`{"record_id":"R-044","sent_at":"2026-10-19T19:50:00+07:00","sender":"Tuấn","text":"máy 03 chạy 12 000 km"}`,       // nhóm nghìn KHÁC chiều đo
+		`{"record_id":"R-041","sent_at":"2026-10-19T19:20:00+07:00","sender":"Tuấn","text":"3 850 lít cho máy 03"}`,
+		`{"record_id":"R-042","sent_at":"2026-10-19T19:30:00+07:00","sender":"Tuấn","text":"` + string(rune(0x200B)) + `3 850 lít cho lu 02"}`, // ký tự vô hình đầu tin
 	}, "\n")+"\n")
 
 	x := excelize.NewFile()
@@ -127,6 +142,12 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"messages.jsonl#R-032":     {"EX-03", "reported_fuel", "chat_message", "2026-10-19", "2000"},       // số đứng TRƯỚC tên máy
 		"reports/2026-10-19.pdf#1": {"EX-03", "reported_fuel", "site_report_form", "2026-10-19", "4000"},   // "Machine 03 ≈ 4 m³"
 		"reports/2026-10-19.pdf#2": {"RL-02", "reported_fuel", "site_report_form", "2026-10-19", "1000"},
+		// ô lượng của nguồn có cấu trúc luôn chắc chắn (điều đo thứ 3 của D-OP-9); "≈" ở ô: giữ nguyên cách đọc của bộ chuẩn hoá
+		"warehouse.csv#R-026": {"EX-03", "issued_fuel", "warehouse_slip", "2026-10-19", "3850"},
+		"warehouse.csv#R-027": {"EX-03", "issued_fuel", "warehouse_slip", "2026-10-19", "3850"},
+		// con số đứng đầu tin là chắc chắn, kể cả khi trước nó có ký tự định dạng vô hình (điều đo thứ 2)
+		"messages.jsonl#R-041": {"EX-03", "reported_fuel", "chat_message", "2026-10-19", "3850"},
+		"messages.jsonl#R-042": {"RL-02", "reported_fuel", "chat_message", "2026-10-19", "3850"},
 	}
 	wantQ := map[string]string{
 		"warehouse.csv#R-021":  ingestion.ReasonMissingValue,
@@ -136,6 +157,28 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"warehouse.csv#R-025":  ingestion.ReasonUnparseable,
 		"messages.jsonl#R-030": ingestion.ReasonUnknownEntity,
 		"messages.jsonl#R-031": ingestion.ReasonAmbiguousEntity,
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? Không ghi một cách đọc vào nguồn sự thật — cách ly (soát C3, C3-02; "bể #2 500 lít",
+		// "bể: 2 500 lít" cũng vậy)
+		"messages.jsonl#R-033": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-034": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-036": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-037": ingestion.ReasonUnparseable,
+		// tiền viết nhóm nghìn là một lượng tiền, không bao giờ thành lượng dầu
+		"messages.jsonl#R-035": ingestion.ReasonMissingValue,
+		"messages.jsonl#R-040": ingestion.ReasonMissingValue,
+		// nhóm nghìn chồng lên tên thiết bị ("máy 3" / "lu 2"): cách ly, không loại im lặng rồi lấy số khác ("phiếu 912" thành 912 L, "ca 2"
+		// thành 2 L của RL-02)
+		"messages.jsonl#R-038": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-039": ingestion.ReasonUnparseable,
+		"messages.jsonl#R-043": ingestion.ReasonUnparseable,
+		// nhóm nghìn khác chiều đo ("12 000 km") không thể là lượng dầu: lý do là chiều đo, như trước khi có cờ chưa phân định
+		"messages.jsonl#R-044": ingestion.ReasonUnitDimension,
+	}
+	// quan trọng hơn lý do chung: đúng lý do NHÓM NGHÌN, không phải "có 2 lượng" tình cờ
+	wantDetail := map[string]string{
+		"messages.jsonl#R-033": "nhóm nghìn", "messages.jsonl#R-034": "nhóm nghìn", "messages.jsonl#R-036": "nhóm nghìn",
+		"messages.jsonl#R-037": "nhóm nghìn", "messages.jsonl#R-038": "nhóm nghìn", "messages.jsonl#R-039": "nhóm nghìn",
+		"messages.jsonl#R-043": "nhóm nghìn",
 	}
 	seen := map[string]int{}
 	for _, o := range res.Observations {
@@ -154,6 +197,9 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		seen[q.Key]++
 		if w, ok := wantQ[q.Key]; !ok || w != q.Reason {
 			t.Errorf("cách ly %s lý do %s (%s), muốn %q", q.Key, q.Reason, q.Detail, w)
+		}
+		if w := wantDetail[q.Key]; !strings.Contains(q.Detail, w) {
+			t.Errorf("cách ly %s: chi tiết %q phải nói về %q", q.Key, q.Detail, w)
 		}
 	}
 	// Không bản ghi nào rơi im lặng, không bản ghi nào bị đếm hai lần.

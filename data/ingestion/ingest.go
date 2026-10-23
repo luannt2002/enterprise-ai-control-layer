@@ -216,7 +216,7 @@ func (c *conformer) add(res *Result, rel string, f FileSpec, r map[string]string
 			quarantine(ReasonMissingValue, "ô lượng trống")
 			return
 		}
-		v, reason, detail := c.quantity(strings.TrimSpace(qty+" "+c.field(r, "unit")), nil)
+		v, reason, detail := c.quantity(strings.TrimSpace(qty+" "+c.field(r, "unit")), nil, true)
 		if reason == ReasonMissingValue { // ô có chữ nhưng không đọc ra lượng: không phải "thiếu"
 			reason = ReasonUnparseable
 		}
@@ -286,14 +286,16 @@ func (c *conformer) freeText(text, sender string, on time.Time) (entity string, 
 	default:
 		return "", v, "", ReasonAmbiguousEntity, "một tin nhắc nhiều thiết bị"
 	}
-	v, reason, detail = c.quantity(text, exclude)
+	v, reason, detail = c.quantity(text, exclude, false)
 	return entity, v, note, reason, detail
 }
 
 // quantity đọc đúng MỘT lượng từ chữ (bỏ qua phần nằm trong cụm thực thể); số trần lấy đơn vị
-// mặc định của nguồn; đổi về đơn vị chuẩn của chỉ số.
-func (c *conformer) quantity(text string, exclude [][2]int) (contracts.Value, string, string) {
-	in := c.rt.Normalizer.Normalize(text, normalization.Options{})
+// mặc định của nguồn; đổi về đơn vị chuẩn của chỉ số. cell: text là MỘT ô lượng của nguồn có cấu trúc (bảng, ERP, phiếu) — lượng viết nhóm nghìn
+// trong ô luôn chắc chắn (normalization.Options.Cell); chữ tự do thì nhóm nghìn chưa phân định (không đứng đầu văn bản, hay chồng lên tên thiết bị)
+// bị cách ly, không ghi một cách đọc vào nguồn sự thật (P5; D-OP-9).
+func (c *conformer) quantity(text string, exclude [][2]int, cell bool) (contracts.Value, string, string) {
+	in := c.rt.Normalizer.Normalize(text, normalization.Options{Cell: cell})
 	var cands []contracts.Span
 	for _, sp := range in.Spans {
 		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
@@ -301,6 +303,10 @@ func (c *conformer) quantity(text string, exclude [][2]int) (contracts.Value, st
 		}
 		inside := false
 		for _, x := range exclude {
+			if normalization.GroupSplitsName(sp, x[0], x[1]) {
+				// "máy 3 850 lít": "3" là số hiệu của tên hay phần đầu của lượng? Không loại im lặng rồi lấy số khác ("…, phiếu 912" thành 912 L)
+				return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chồng lên tên thiết bị %q: số đầu là số hiệu hay phần đầu của lượng", sp.Raw, in.Raw[x[0]:x[1]])
+			}
 			inside = inside || (sp.Start < x[1] && sp.End > x[0])
 		}
 		if !inside {
@@ -328,6 +334,11 @@ func (c *conformer) quantity(text string, exclude [][2]int) (contracts.Value, st
 			return contracts.Value{}, ReasonUnitDimension, err.Error()
 		}
 		v = cv
+	}
+	if normalization.UncertainGroup(cands[0]) {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? Không ghi một cách đọc vào nguồn sự thật. Xét SAU đổi đơn vị: nhóm khác chiều đo
+		// ("12 000 km") đã là unit_dimension — lý do đúng hơn "chưa phân định".
+		return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chưa phân định: một lượng, hay số hiệu đứng trước một lượng", cands[0].Raw)
 	}
 	return v, "", ""
 }

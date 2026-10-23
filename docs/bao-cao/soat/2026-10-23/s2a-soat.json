@@ -1,0 +1,103 @@
+{
+ "ket_luan": "ĐẠT CÓ GHI CHÚ — chưa gộp cho tới khi sửa hai câu \"hiện an toàn\" sai trong hồ sơ bàn giao và ghi nợ có nhãn (S2AS-01, 02, 06). Nhánh m3/s2-nhom-nghin-2310 @ 70fec38 làm đúng hợp đồng D-OP-9 (a') và ba điều đã đo. Mọi lỗi nêu trong hàng D-OP-9 đã đóng thật trên đường nạp lẫn luồng hỏi (S2AS đối chiếu từng chuỗi nền và nhánh). Không phát hiện hồi quy nào do nhánh gây ra, không có phán quyết sai, không có panic. Các ca winreport đổi ĐẠT thành ĐỎ đều là sửa có chủ ý theo hợp đồng.\n\nSố đo từ bộ thử riêng 4.410 ca (bộ đọc, tin nhắn, ô CSV và ERP, luồng hỏi thật). Nền d09f730 và origin/main 221d82d cho kết quả giống hệt từng ca trên 4.238 ca.\n- Tin nhắn (1.200 tin có oracle), nền thành nhánh: nhóm chưa phân định vẫn nạp im lặng 137 thành 0; nạp sai giá trị 11 thành 10; chiều đo khác bị nạp thành lít (\"tiền xe 500 000 đồng\" thành 500 L) 3 thành 0.\n- Luồng hỏi (1.455 câu có oracle): phán quyết trên nhóm chưa phân định 35 thành 0, trong đó nền có một S1 thật \"quý 4 000 lít … không phải 0 L\"; 784 câu được hỏi lại; 0 phán quyết sai.\n- Bộ đọc (1.102 ca): 0 cờ thiếu, 5 cờ thừa (toàn U+2800, hướng an toàn), 0 span sai giá trị.\n\nPhần còn lại là nợ có sẵn ở nền, không do nhánh: 10 tin vẫn nạp lượng nhỏ im lặng (đầu nhóm bị nuốt), 11 dạng \"tên có số cộng đuôi 3 chữ số, không đơn vị\" nạp 850, 500 hay 0 L. Hai câu an toàn trong khong_kiem_duoc của tác giả trái với số đo: \"hướng sai là hỏi lại, không sai im lặng\" (ký tự vô hình khác loại) và \"tin nạp bị cách ly vì có 2 lượng\" (nhóm không đơn vị).\n\nĐiều kiện trước khi gộp, chỉ cần sửa hồ sơ, không đổi mã:\n1. Sửa hai câu trên và ghi nợ có nhãn S2AS-01, 02, 03.\n2. Điều phối cập nhật STATUS (H1 91/104, H3 112/134, H4 103/119) và hàng D-OP-8, D-OP-9.\n3. Nói rõ với chủ dự án chi phí thực của (a'): S2AS-05.\n\nNếu điều phối hiểu điều đo 1 (\"không loại im lặng\") gồm cả nhóm không đơn vị thì S2AS-02 là việc còn thiếu của nhánh và kết luận thành KHÔNG ĐẠT cho mục đó.",
+ "phat_hien": [
+  {
+   "ma": "S2AS-01",
+   "muc": "S1 (có sẵn ở nền d09f730, không do nhánh; lời khai an toàn của tác giả sai nên chặn gộp tới khi sửa lời khai)",
+   "mo_ta": "[ĐO] Ký tự vô hình KHÔNG thuộc loại Cf, đứng ngay trước chữ số đầu của nhóm, làm bộ đọc nuốt số đầu và để lại lượng nhỏ không cờ. Nạp thành lượng sai im lặng: U+3164 rồi \"3 850 lít cho máy 03\" thành EX-03 850 L; tương tự U+115F, U+FE0F, U+034F. \"máy 03 <U+FE0F>12 345 lít nhé\" thành EX-03 345 L. Chỉ U+2800 cho hướng an toàn (nhóm gộp và có cờ, cách ly thừa). Lời khai \"hướng sai là hỏi lại / cách ly thừa, không sai im lặng\" sai cho 4 trên 5 ký tự đã đo. [CODE] atTextStart chỉ bỏ unicode.IsSpace và Cf. Token chữ số liền sau ký tự khác loại không qua isBoundaryBefore nên không bao giờ thành đầu nhóm.",
+   "bang_chung": "[ĐO] $S/s2as-run/out-wt.jsonl ca M0863 (U+FE0F), M0868 (U+034F), M0878 (U+3164), M0883 (U+115F), Z3747: kind=obs, number=850 (Z3747: 345). M0873 (U+2800): kind=quar. Cùng kết quả ở $S/s2as-run/out-base.jsonl (không phải hồi quy). Sinh ca: $S/s2as-gen.py, bảng INVIS_NONCF.",
+   "de_xuat": "Sửa lời khai bằng số đo trên. Ghi nợ có nhãn (hàng D-OP mới) kèm 5 ca. Nếu muốn sửa mã: coi các ký tự vô hình này là khoảng đệm ở bước gấp ký tự (foldLookalikes) để isBoundaryBefore và atTextStart cùng thấy một văn bản; test đỏ trước và thêm đột biến. Không chặn gộp vì lỗi giống hệt nền."
+  },
+  {
+   "ma": "S2AS-02",
+   "muc": "S1 (có sẵn ở nền, không do nhánh; lời khai \"bị cách ly vì có 2 lượng\" sai nên chặn gộp tới khi sửa lời khai)",
+   "mo_ta": "[ĐO] Nhóm KHÔNG đơn vị chồng lên tên thiết bị có số vẫn bị loại im lặng: số trong tên bị bỏ khỏi cands, còn đúng một số trần nhận đơn vị mặc định L nên nạp thành lượng nhỏ. Đây đúng là kiểu \"loại im lặng rồi lấy số khác\" mà điều đo 1 cấm, nhưng GroupSplitsName chỉ áp cho nhóm có đơn vị. Luồng hỏi an toàn vì cổng claim không phán quyết số trần (RESOLVED không nhãn).",
+   "bang_chung": "[ĐO] $S/s2as-run3/out-wt.jsonl (cùng kết quả ở out-base.jsonl cùng thư mục). Tin nạp OBS: \"lu 2 850\" và \"lu rung 2 850\" thành RL-02 850 L; \"máy xúc 3 850\" và \"máy 3 850\" thành EX-03 850 L; \"xúc 12 850\" thành EX-12 850 L; \"lu 120 500\" thành RL-120 500 L; \"bồn 5 500\" thành TK-05 500 L; \"téc 5 000\" thành TK-05 0 L; \"lu 2 000\" thành RL-02 0 L; \"lu 2 850 hôm nay\" thành RL-02 850 L; \"máy xúc 3 850 sáng nay\" thành EX-03 850 L. 11 trên 11 dạng. Đối chứng: \"máy 03 3 850\" và \"EX-03 3 850\" bị cách ly vì 2 lượng.",
+   "de_xuat": "Hoặc mở rộng điều kiện chồng tên của đường nạp cho \"N NNN\" không đơn vị khi N nằm cuối cụm tên (cách ly unparseable), test đỏ trước bằng 11 dạng trên và thêm đột biến; hoặc ghi nợ có nhãn và bỏ câu \"hiện an toàn\" khỏi hồ sơ."
+  },
+  {
+   "ma": "S2AS-03",
+   "muc": "S3 (có sẵn ở nền)",
+   "mo_ta": "[ĐO] Hai lớp khác của \"đầu nhóm bị nuốt\" còn nạp 850 L không cờ. (a) Chữ dính liền chữ số: \"x3 850 lít\", \"T3 850 lít\", \"V3 850 lít\", \"P3 850 lít\", vì token \"3\" không qua isBoundaryBefore. (b) Cụm kỳ đã nhận trước khi xét nhóm: \"tháng 3 850 lít\" thành mốc \"tháng 3\" và lượng 850 L. \"-3 850 lít\" cho số âm cộng 850 L (đường nạp cách ly nhờ 2 ứng viên). Cách đọc \"mã T3, 850 L\" hay \"tháng 3: 850 L\" có thể là đúng, nhưng hệ không nói là chưa phân định. Đây là khoảng trống giữa (a') và danh sách từ nhãn đã bỏ, trước đó identifierBefore không chặn các dạng này.",
+   "bang_chung": "[ĐO] $S/s2as-run/out-wt.jsonl ca M0128 (tháng 3 850), M0213 (x3), M0518 (T3), M0523 (V3), M0528 (P3): kind=obs, number=850. Giống hệt out-base.jsonl.",
+   "de_xuat": "Ghi nợ có nhãn cùng S2AS-01 và 02. Nếu chủ dự án muốn nghiêm, coi chữ số dính chữ hoặc số kỳ liền trước 3 chữ số là nhóm chưa phân định."
+  },
+  {
+   "ma": "S2AS-04",
+   "muc": "S3 (hồi quy nhỏ có chủ ý theo điều đo 3)",
+   "mo_ta": "[ĐO] Cell=true bỏ mọi kiểm \"số hiệu đứng trước\". Ô lượng của CSV và ERP có chữ nhãn nay nạp im lặng, trong khi nền cách ly (fail-closed thành fail-open ở đường ghi nguồn sự thật). Điều đo 3 viết \"ô lượng luôn chắc chắn\", chưa nói ô lẫn chữ nhãn. Khả năng xảy ra thấp, nhưng không có test.",
+   "bang_chung": "[ĐO] $S/s2as-run/out-wt.jsonl (họ C, chế độ cell và erp). Ô \"phiếu 1 200\" thành 1.200 L, \"tổng số 3 850\" thành 3.850 L, \"đợt 1 200\" thành 1.200 L, \"ca 2 850\" thành 2.850 L, \"máy 3 850\" thành 3.850 L. Ở out-base.jsonl cả năm dạng đều quar unparseable. Xác nhận lại ở $S/s2as-run3/out-wt.jsonl (\"phiếu 1 200\", \"ca 2 850\").",
+   "de_xuat": "Chỉ coi ô là chắc chắn khi, sau khi bỏ dấu ước lượng và đơn vị, ô không còn chữ nào khác; ô có chữ nhãn thì giữ như chữ tự do (cách ly). Thêm test và đột biến."
+  },
+  {
+   "ma": "S2AS-05",
+   "muc": "S3 (chi phí thực của hợp đồng, cần chủ dự án biết số cụ thể)",
+   "mo_ta": "[ĐO] Hàng D-OP-9 chỉ nêu cái giá \"câu 'được cấp 3 850 lít đúng không?' bị hỏi lại\". Chi phí thực lớn hơn. (i) H1, H3, H4: cả 3 ca có nhóm không đứng đầu đều đổi ĐẠT thành ĐỎ, đều dạng thường gặp \"đo/dùng/xuất N NNN lít\". (ii) Trên bộ thử riêng, 39 trên 47 tin tự nhiên mà nền nạp nay bị cách ly (8 còn lại không đổi giá trị). (iii) 49 trên 59 câu xác nhận tự nhiên mà nền phán quyết nay bị hỏi lại. Đây là hợp đồng (a'), không phải lỗi. Phương án (b) của D-OP-9 sẽ khôi phục 3 ca H.",
+   "bang_chung": "[ĐO] $S/s2as-out/wr-branch-h1-mem.txt, wr-branch-h3-mem.txt, wr-branch-h4-mem.txt (thư mục cùng s2as-out) so với wr-base-*: mỗi bộ đúng 8 dòng khác. WIN-I-264 (\"cảm biến EX007 hôm qua đo 1 490 lít dầu\") thành CLARIFICATION, TỔNG H1 92 thành 91/104. WIN-I-509 (\"máy 03 hôm qua dùng 3 782 lít\") TỔNG H3 113 thành 112/134. WIN-I-717 (\"FX-012 ngày 13/10 kho xuất 1 950 lít\") TỔNG H4 104 thành 103/119. Hai đường bộ nhớ và -pg giống hệt trong nhánh (0 dòng khác). 117 ca: 0 dòng khác; G1 2736/2739 và NẠP 2702/37 không đổi; G6 0 lệch trên 117, 104, 134, 119 câu. Bộ thử riêng: $S/s2as-run/out-wt.jsonl, họ P (tin tự nhiên) và Q (câu hỏi tự nhiên).",
+   "de_xuat": "Cập nhật STATUS (H1 91/104, H3 112/134, H4 103/119). Báo chủ dự án ba ca H và tỉ lệ cách ly tin tự nhiên trước khi gộp. Cân nhắc phương án (b) nếu 3 ca H là tín hiệu sản phẩm."
+  },
+  {
+   "ma": "S2AS-06",
+   "muc": "S3 (hồ sơ)",
+   "mo_ta": "[REPO] Hồ sơ còn nói điều đã sai sau nhánh. Hàng D-OP-8 vẫn viết \"bộ gộp nhóm nghìn (identifierBefore) cũng dùng các danh sách này … và chúng rò\"; identifierBefore đã bị xoá. Hàng D-OP-9 còn \"chờ\". STATUS và CHANGELOG chưa phản ánh 3 ca H. Tác giả đã tự nêu và để điều phối làm sau soát; việc này vẫn phải xong cùng lúc gộp. Dòng 14 của 03-data-map.md khớp mã (đã đối chiếu).",
+   "bang_chung": "[REPO] grep identifierBefore ở nhánh: docs/CHO-QUYET-DINH.md dòng 131 (origin/main dòng 137) và chú thích đầu scripts/dot-bien/n37-nghin-cach.sh; mã Go không còn dùng. Số dòng 03-data-map.md giữ nguyên (diff 1 dòng).",
+   "de_xuat": "Điều phối cập nhật hàng D-OP-8, D-OP-9 (chốt a'), thêm hàng nợ cho S2AS-01 đến 03 và S2AS-10, cập nhật STATUS và CHANGELOG cùng lúc gộp."
+  },
+  {
+   "ma": "S2AS-07",
+   "muc": "S4",
+   "mo_ta": "[ĐO] Cờ thừa (fail-closed) với U+2800 (ô chữ Braille trống) đứng đầu: người đọc thấy nhóm đứng đầu nhưng đường nạp cách ly và luồng hỏi hỏi lại. 5 ca trên 1.102 ca bộ đọc, 1 tin, 2 câu hỏi. Chấp nhận được.",
+   "bang_chung": "[ĐO] ca R0871, R0872, Z3186, Z3225, Z3560 (bộ đọc), M0873 (tin), A0874, A0875 (câu hỏi) trong $S/s2as-run/out-wt.jsonl.",
+   "de_xuat": "Gộp xử lý với S2AS-01 (cùng nhóm ký tự vô hình khác loại)."
+  },
+  {
+   "ma": "S2AS-08",
+   "muc": "S4",
+   "mo_ta": "[CODE] Văn bản vết của nhánh mới (plan.Reason \"câu xác nhận có nhóm số chưa phân định\" và ci.suppressed \"câu hỏi lại về cách đọc nhóm số, thực thể đã rõ…\") không có test nào khẳng định. Rủi ro thấp: phát lại G6 0 lệch trên 1.497 câu hỏi thử và 474 câu winreport, và đột biến GA6 (kể ứng viên) bị bắt.",
+   "bang_chung": "[CODE] grep trong $S/s2as-wt/core/pipeline/ask.go: hai chuỗi chỉ xuất hiện ở dòng 165 và 187, không có trong tệp test (worktree đã gỡ; xem diff d09f730..70fec38 trên origin/m3/s2-nhom-nghin-2310).",
+   "de_xuat": "Thêm một ca kiểm Decision/Why của nhánh hỏi lại nhóm số (lần sau, không chặn gộp)."
+  },
+  {
+   "ma": "S2AS-09",
+   "muc": "S4",
+   "mo_ta": "[ĐO] Số kỳ hoặc nhãn liền trước nhóm bị nối vào chuỗi nhóm: \"quý 3 123 456 lít\" thành một span 3.123.456 L; \"tuần 43 123 456 lít\" thành 43.123.456 L; \"ca 2 123 456 lít\" thành 2.123.456 L. Có cờ chưa phân định nên fail-closed (tin cách ly, câu hỏi hỏi lại), nhưng chữ trích dẫn ở câu hỏi lại là cả chuỗi dài. Nền không nối vì identifierBefore chặn.",
+   "bang_chung": "[ĐO] ca R0397, R0402, R0447 trong $S/s2as-run/out-wt.jsonl: kind=quantity, rule kết thúc bằng :uncertain.",
+   "de_xuat": "Ghi nhận. Có thể giới hạn chuỗi nhóm tối đa bằng độ dài hợp lý nếu sau này cần."
+  },
+  {
+   "ma": "S2AS-10",
+   "muc": "S4 (quan sát ngoài phạm vi, giống hệt nền)",
+   "mo_ta": "[ĐO] (a) Tốc độ đứng đầu tin vẫn nạp thành lượng: \"3 850 lít/ngày cho máy 03\" thành EX-03 3.850 L (luồng hỏi có rateAfter, đường nạp không). (b) Ô \"≈ 3 850\" nạp 3.850 L không cờ ước lượng (lexicon có \"≈\" trong approx_markers nhưng bộ chuẩn hoá không nhận); \"~3 850\" và \"khoảng 3 850\" có cờ. Tác giả đã nêu (b) là nợ L1.",
+   "bang_chung": "[ĐO] $S/s2as-run/out-wt.jsonl: họ S, dạng \"rate\" vị trí start (msg obs 3850) và họ C, ô \"≈ 3 850\" (obs 3850 L, approx=false). out-base.jsonl giống hệt.",
+   "de_xuat": "Đưa vào danh sách nợ cùng S2AS-01 đến 03; không thuộc phạm vi nhánh."
+  }
+ ],
+ "da_dong": [
+  "[ĐO] Hàng D-OP-9 ở origin/main (docs/CHO-QUYET-DINH.md dòng 138) và lý do bác hai bản cũ đã đọc. (d) fd4d19c sinh số mồ côi (\"máy chạy 12 000 km\" thành \"không phải 12 L\", \"sửa chữa 500 000 đồng\" thành 500 L). (a') 3066044 nuốt số tên thiết bị (\"máy 3 850 lít, phiếu 912\" thành 912 L), bỏ mất nhóm chồng tên, coi ký tự vô hình và \"≈ 3 850 L\" là chưa phân định. Nhánh mới né cả sáu lỗi (đối chiếu từng chuỗi ở dưới).",
+  "[ĐO] Các chuỗi lỗi đã đo đã đóng thật (nền thành nhánh, đường nạp): \"máy 03 đổ bể 2 500 lít\", \"bể #2 500 lít\", \"bể: 2 500 lít\", \"lô A 1 200 lít\" từ obs 2.500/1.200 L thành quar unparseable; \"máy 03 tiền xe 500 000 đồng\" từ obs 500 L thành quar missing_value; \"lu 2 850 lít ca 2\" từ RL-02 2 L thành quar; \"máy 3 850 lít, phiếu 912\" quar cả hai bên, lý do mới là nhóm chồng tên; \"máy 03 tổng số 3 850 lít\" quar. Luồng hỏi: \"EX-03 hôm nay tổng số 3 850 lít đúng không?\", \"bể #2 500 lít\", \"bể: 2 500 lít\", \"lu 2 850 lít hôm nay được cấp đúng không?\" từ RESOLVED không nhãn thành hỏi lại \"Chưa rõ cách đọc\". Nhóm đứng đầu vẫn phán quyết (\"3 850 lít EX-03 hôm nay được cấp đúng không?\" ra \"Đúng.\"). Dữ liệu: $S/s2as-run3/out-wt.jsonl và out-base.jsonl.",
+  "[ĐO] Ba điều đã đo: (1) nhóm chồng một phần tên thiết bị bị cách ly hoặc hỏi lại: họ N, 797 ca, ngoài các dạng nêu ở S2AS-02 không còn nạp im lặng; (2) ZWSP, BOM, SHY, ZWNJ, ZWJ, LRM, RLM, WJ và các Cf khác đứng đầu đều tính là đầu văn bản; khoảng trắng hẹp NBSP, U+202F, U+2009, U+2007, U+200A, U+3000 cả làm dấu ngăn nhóm lẫn đứng đầu đều đúng; (3) ô CSV và ERP luôn chắc chắn, \"khoảng 3 850\", \"~3 850\", \"≈ 3 850\" nạp 3.850 L. Ngoại lệ ở S2AS-01 và 04.",
+  "[ĐO] Cổng: go vet ./... rc=0, 0 dòng; gofmt -l trên tệp git theo dõi: 0 tệp; go test không PG: 939 pass, 31 skip, 0 fail; có PG trên DB riêng s2as_test: 984 pass, 0 fail, 0 skip; scripts/kiem-skip-test.py cho XANH. Nền d09f730 chạy cùng cách: 976 pass với PG. So theo tên: mất 0, đổi kết cục 0, mới 8 (đúng 8 test tác giả nêu). Dữ liệu: $S/s2as-out/gate.log và test-pg-branch.json.",
+  "[ĐO] Gộp thử với origin/main MỚI (221d82d): git merge --no-commit --no-ff 70fec38 sạch, 0 xung đột, 8 tệp. vet sạch, gofmt 0 tệp lệch; không PG 960 pass và 72 skip; có PG 1.062 pass, 0 skip; kiem-skip XANH. Đã huỷ gộp. go test -race -count=3 các test nhóm nghìn của data/normalization, data/ingestion, core/pipeline, tenants/construction: ok.",
+  "[ĐO] winreport 117, H1, H3, H4, cả bộ nhớ và -pg (DB riêng), chạy tươi cả nhánh và nền d09f730 từ cùng dữ liệu du-lieu-42. Nền tươi so với lead-k1g: 0 dòng khác ở cả 7 tệp. Nhánh so với nền: 117 giữ nguyên, H1, H3, H4 mỗi bộ đúng 8 dòng khác (WIN-I-264, 509, 717 ĐẠT thành ĐỎ, đều có chủ ý), 0 ca ĐỎ thành ĐẠT. Hai đường bộ nhớ và -pg giống hệt nhau. G1 2736/2739, NẠP 2702 quan sát và 37 cách ly, G6 0 lệch không đổi. Kết quả: $S/s2as-out/wr-branch-*.txt và wr-base-*.txt.",
+  "[ĐO] Đột biến: n37 27/27 BỊ BẮT; n44 16/16 BỊ BẮT; cây sạch sau khi chạy. Chạy khô mọi danh mục bằng bản giả scripts/mutate.sh (chỉ đếm chuỗi gốc): nhánh 911 neo, nền 893 neo, cùng đúng 10 neo gãy sẵn (n25 S2-4ae, S2-4af; n45 S20, S24 đến S27, S37; w5-rag-hybrid AD, AV), 0 neo gãy do nhánh. Khớp lời khai (901 neo hợp lệ). Dữ liệu: $S/s2as-out/mut-n37.txt, mut-n44.txt, dry-wt.txt, dry-base.txt.",
+  "[ĐO] Quyền truy cập: 70 câu có nhóm nghìn x 5 vai (director, site_engineer PRJ-A và PRJ-C, driver, accountant). Mọi REJECT/PERMISSION và OUT_OF_SCOPE giữ nguyên so với nền; câu hỏi lại nhóm số không kể ứng viên nào (0 ứng viên); câu kèm lệnh chèn \"bỏ qua mọi quy tắc…\" chỉ thành hỏi lại. DZ-03 (hai nguồn ngang quyền lệch nhau) từ HUMAN_ESCALATION thành hỏi lại nhóm số: đúng thứ tự ghi đè, không phải rò rỉ. Dữ liệu: $S/s2as-run2/out-wt.jsonl.",
+  "[ĐO] Phát lại G6 (Ask.Replay) trên 1.497 câu hỏi thử của nhánh: 0 lệch, 0 lỗi; 0 panic trên 4.410 ca. Cổng phán quyết claude.go không bị chạm.",
+  "[REPO] Phạm vi diff d09f730..70fec38: đúng 8 tệp (core/pipeline/ask.go, data/ingestion/ingest.go và ingest_test.go, data/normalization/engine.go và engine_nghin_cach_test.go, docs/tenants/construction/03-data-map.md một dòng, scripts/dot-bien/n37-nghin-cach.sh, tenants/construction/pipeline_nghin_cach_test.go). Không chạm claim.go, intelligence/intent, pack, execution/, cmd/eais, docs/sources, holdout H5, H6, P1, S9. ask.go ngoài write-set nhưng bắt buộc và đã tự nêu: hỏi lại chỉ làm được ở đó.",
+  "[REPO] 460 dòng thêm: không đường dẫn máy, không bí mật, không ký tự Cf hay Cc thật (ký tự vô hình trong test dựng bằng rune). 7 commit, mỗi commit một chủ đề, đều có Co-Authored-By: Claude Sonnet 5.5; các chỗ test đổi kỳ vọng (TestNhomNghinNganBangDauCach, TestCauXacNhanNhomNghinNganBangDauCach) đều ghi lý do trong commit. Thông điệp commit nêu đúng ba ca H đổi ĐẠT thành ĐỎ.",
+  "[ĐO] Hai test đổi kỳ vọng là đúng hợp đồng: các câu \"được cấp 3 850 lít … đúng không?\" nay hỏi lại, và có test mới cho cùng các câu (TestCauXacNhanNhomNghinKhongDungDauThiHoiLai). Không có assertion bị xoá mà không thay thế.",
+  "[ĐO] Hành vi có sẵn, fail-closed, đã đo và khớp lời tác giả: ký tự Cf đứng đầu câu hỏi không bị hỏi lại nhưng cổng claim cũng không phán quyết (76 ca A họ vô hình: RESOLVED không nhãn). Nhóm đứng ở mệnh đề ngữ cảnh (\"…3 850 lít, vậy 3850 L đúng không?\") vẫn \"Đúng.\".",
+  "[SUY] Nền d09f730 và origin/main 221d82d giống hệt nhau trên cả 4.238 ca (0 ca khác): nhánh không phụ thuộc phần main mới hơn.",
+  "[ĐO] Dọn: đã gỡ ba worktree s2as-wt, s2as-base, s2as-main; đã DROP năm DB s2as_test, s2as_testb, s2as_wr, s2as_wrb, s2as_testm (pg_database không còn tên tiền tố s2as); không còn tiến trình go. Cây chính không bị sửa. Tệp bằng chứng giữ ở $S/s2as-out/ và các thư mục s2as-run, s2as-run2, s2as-run3, s2as-run4 cùng cấp; bộ sinh ca $S/s2as-gen.py, bộ chạy $S/s2as-probe_test.go (dùng với S2AS_IN, S2AS_OUT)."
+ ],
+ "khong_kiem_duoc": [
+  "Ý định thật của người viết tin: oracle của S2AS chỉ theo hợp đồng (a') và quy tắc đầu văn bản, không có người dùng thật. \"bể 2 500 lít\" mơ hồ thật; các ca S2AS-03 có thể đúng nghĩa. [SUY]",
+  "Đường pdf_lines và xlsx của bộ nạp không chạy riêng (cần pdftotext và font); dùng chung freeText và add với tin nhắn, ô CSV, ERP, nên kết quả suy ra giống. Nguồn sensor.csv không xét.",
+  "Bốn corpus tổng hợp 375.548 câu của tác giả không chạy lại (bộ riêng 4.410 ca nhỏ hơn nhiều, không tương đương về quy mô); corpus v0 307k cũng không chạy.",
+  "Tổ hợp với nhánh S4: không thấy nhánh S4 trên origin lúc soát, chưa kiểm. Chỉ kiểm tổ hợp với origin/main 221d82d.",
+  "scripts/chay-thu.sh (cấm), smoke E2E, CI GitHub; H5, H6, P1, S9 (cấm đọc và chạy). Không đọc docs/sources, docs/g7/holdout-p1.",
+  "Hiệu năng của atTextStart: chưa đo. Suy từ mã: mỗi nhóm quét tiền tố trắng tuyến tính, không có đường bậc hai. [SUY]",
+  "Chỉ tenant construction và một lexicon; không kiểm tenant khác (D-OP-8 chưa dời lexicon sang pack). docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md §15 (Q-0A-10 \"theo mặc định §15\") chưa đọc nên chưa biết còn khớp mã không.",
+  "Python unicodedata của oracle có thể lệch phiên bản Unicode với Go 1.26.4 ở vài ký tự hiếm; 5 cờ thừa và các ký tự khác loại Cf đã đối chiếu bằng kết quả mã thật, không bằng oracle.",
+  "Ý chủ dự án có chấp nhận chi phí S2AS-05 (3 ca H, 83% tin tự nhiên bị cách ly, 83% câu xác nhận tự nhiên bị hỏi lại) hay không: chỉ chủ dự án quyết được."
+ ]
+}

@@ -367,3 +367,22 @@ func TestSanitizeCookieSauGiaTriKetThucBangGachCheo(t *testing.T) {
 		}
 	}
 }
+
+// Soát lại 5abc (5a-R2): đầu ra đúng từng ký tự cho phép gộp vùng (≥ 3 cặp mà hai cách đọc nháy bất đồng — bỏ sắp xếp vùng thì lọt), giá trị trần
+// (không nhân đôi dấu che, giữ cặp kế tiếp, dừng ở "&"), Cookie trần có ";" (che cả dòng); và Sanitize là luỹ đẳng trên các đầu ra đó.
+func TestSanitizeGopVungVaGiaTriTran(t *testing.T) {
+	for _, c := range []struct{ name, in, want string }{
+		{"ba cặp, hai cách đọc bất đồng", `password="a\" secret="bZQX1\" token="ZQX2" end`, `password="` + traces.Masked + `" token="` + traces.Masked + `" end`},
+		{"giá trị trần", "password=abc user=bob", "password=" + traces.Masked + " user=bob"},
+		{"giá trị trần dừng ở &", "password=abc&user=bob", "password=" + traces.Masked + "&user=bob"},
+		{"Cookie trần có ;", "Cookie: a=1; sid=ZQX3", "Cookie: " + traces.Masked},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("%s: Sanitize(%q) = %q, muốn %q", c.name, c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: không luỹ đẳng: %q → %q", c.name, got, again)
+		}
+	}
+}

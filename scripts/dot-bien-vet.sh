@@ -358,7 +358,7 @@ m $W 'a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_no_knowledge", a.fra
 m $W 'if a.noWhy || rejected {' 'if a.noWhy {' 'VS8-20 [V8a] S9 loại bản nháp bị kể là nhánh thoát sớm'
 m $W 'ledgerOf(ctx).reject(prefix, text)' '_ = ctx' 'VS8-21 [V8a] S9 loại bản nháp mà sổ không biết'
 m $ASK 'ctx, led = withLedger(ctx)' '_, led = withLedger(ctx)' 'VS8-22 [V8a] sổ bản nháp không đi theo ctx'
-m $ASK 'a.noteDelivered(&why, resp.Answer, led)' 'if false { a.noteDelivered(&why, resp.Answer, led) }' 'VS8-23 [V8a] S10 không ghi dấu vân tay câu giao'
+m $ASK 'a.noteDelivered(&why, d.Answer, led)' 'if false { a.noteDelivered(&why, d.Answer, led) }' 'VS8-23 [V8a] S10 không ghi dấu vân tay câu giao'
 m $ASK 'a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}' 'if false { a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer) }
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}' 'VS8-24 [V8a] S8 hỏi lại không ghi bản nháp'
@@ -392,6 +392,12 @@ m $ST 'const RejectedDraft = "bản nháp bị loại"' 'const RejectedDraft = "
 m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Generate} {' 'VS8-46 [V8a] Why.apply bỏ sót ô S10 (không che, không cắt)'
 m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Respond} {' 'VS8-47 [V8a] Why.apply bỏ sót ô S8 (không che, không cắt)'
 m $ST 'if strings.Contains(joinReasons(rep), DeliveredMismatch) {' 'if false && strings.Contains(joinReasons(rep), DeliveredMismatch) {' 'VS8-48 [V8a] S10 không lệch khi câu giao không chứa bản nháp đã qua S9'
+# ---- V8b (vòng 2 của V8a, soát vòng 1 V8AS-*): mỗi dòng dưới đây chứng minh một test thêm ở vòng 2 đỏ được.
+m $ASK 'd := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)' 'if r := []rune(resp.Answer); len(r) > 120 {
+		resp.Answer = string(r[:120]) + "…"
+	}
+	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)' 'VS8-49 [V8b V8AS-01] câu giao bị cắt ở 120 ký tự ngay trước khi dựng Decision (hình lỗi của phép đo 23/10): S10 phải lệch, test lượt khoẻ phải đỏ'
+m $ASK 'if a.beforeDecision != nil {' 'if false && a.beforeDecision != nil {' 'VS8-50 [V8b V8AS-01] điểm móc gieo lỗi không chạy: test gieo lỗi trước Decision phải đỏ'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

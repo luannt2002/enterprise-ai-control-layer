@@ -67,6 +67,9 @@ type Ask struct {
 	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
 	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
 	noWhy bool
+	// beforeDecision chạy ngay trước khi dựng Decision (nil = không làm gì) — chỉ test trong gói đặt, để GIEO lỗi vào câu giao ở đúng vị trí mà vết S10 phải bắt được
+	// (V8AS-01): lỗi đặt ở đây là lỗi mà dấu vân tay ghi sớm hơn bị bỏ sót.
+	beforeDecision func(resp *contracts.AskResponse)
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -235,7 +238,6 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
 		why.Intent = explainIntent(cls, ci)
 		why.Route = a.explainRoute(routed, plan)
-		a.noteDelivered(&why, resp.Answer, led)
 	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
@@ -247,9 +249,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
 	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá.
 	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
+	if a.beforeDecision != nil {
+		a.beforeDecision(&resp)
+	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
 	red.decision(&d)
 	if !a.noWhy {
+		// S10: dấu vân tay của CHÍNH câu giao đã chốt (Decision.Answer, chữ nằm trong bản ghi) — ghi SAU khi Decision dựng xong, không sớm hơn: một bước nào cắt hay đổi câu giao
+		// giữa chừng (vd ngay trước a.decision) thì dấu vân tay ghi sớm vẫn là của câu CŨ, và bảng vết nói "câu giao trùng bản nháp" trong khi câu đã khác (V8AS-01)
+		a.noteDelivered(&why, d.Answer, led)
 		d.Why = finalWhy(why, red)
 	}
 	return Outcome{

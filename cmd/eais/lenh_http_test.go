@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -684,5 +685,44 @@ func TestLenhHTTPProjectManagerTheoPhamVi(t *testing.T) {
 	}
 	if details[0] != details[1] {
 		t.Errorf("máy ngoài phạm vi và máy không tồn tại phải cùng thông báo: %q / %q", details[0], details[1])
+	}
+}
+
+// ctxSpyStore ghi lại ngữ cảnh mà handler lệnh đưa xuống đơn vị ghi phiếu (C6) rồi chuyển tiếp cho kho phiếu trong bộ nhớ.
+type ctxSpyStore struct {
+	*cmdStore
+	mu          sync.Mutex
+	calls       int
+	hasDeadline bool
+	cancellable bool
+	left        time.Duration
+}
+
+func (s *ctxSpyStore) WriteTicket(ctx context.Context, u commands.WriteUnit) error {
+	s.mu.Lock()
+	s.calls++
+	dl, ok := ctx.Deadline()
+	s.hasDeadline, s.cancellable, s.left = ok, ctx.Done() != nil, time.Until(dl)
+	s.mu.Unlock()
+	return s.cmdStore.WriteTicket(ctx, u)
+}
+
+// Soát lại M4 (M4R-04), §3 của HOP-DONG: handler chạy pipeline lệnh dưới ngữ cảnh CỦA BÊN GỌI cộng hạn askTimeout — đơn vị ghi phiếu tôn trọng
+// việc bên gọi huỷ (COMMIT_UNKNOWN / FAILED đúng nghĩa, không phiếu đôi) và không chạy quá hạn chung của server. Chỉ phần audit riêng và việc
+// lưu vết mới tách khỏi việc huỷ (K3S-01). Ngữ cảnh tới C6 phải huỷ được (Done khác nil) và có hạn trong (0, askTimeout].
+func TestLenhHandlerChayDuoiNguCanhBenGoiCoHan(t *testing.T) {
+	spy := &ctxSpyStore{cmdStore: &cmdStore{memStore: newMemStore(), ticketMem: newTicketMem()}}
+	e := newEnv(t, spy)
+	wantResult(t, e.cmd(tokPM, cmdReq(71, "EX-03", dayAgo)), 200, commands.StatusDone, "", "", commands.RetryNone)
+	spy.mu.Lock()
+	defer spy.mu.Unlock()
+	if spy.calls != 1 {
+		t.Fatalf("muốn đúng 1 lần ghi phiếu, được %d", spy.calls)
+	}
+	if !spy.cancellable {
+		t.Errorf("ngữ cảnh tới đơn vị ghi phiếu không huỷ được: client ngắt kết nối thì C6 vẫn ghi")
+	}
+	if !spy.hasDeadline || spy.left <= 0 || spy.left > e.srv.askTimeout {
+		t.Errorf("ngữ cảnh tới C6: có hạn=%v, còn %v — muốn có hạn trong (0, %v]", spy.hasDeadline, spy.left, e.srv.askTimeout)
 	}
 }

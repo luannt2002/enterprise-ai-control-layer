@@ -64,8 +64,9 @@ type Deps struct {
 type Ask struct {
 	RT   *tenant.Runtime
 	Deps Deps
-	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
-	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
+	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle, answerMetric và các hàm note* mà answerKnowledge gọi (S8, S9, S10) — chỉ test trong gói đặt, để so route / outcome / câu trả
+	// lời giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn tự ghi phần S7 (noteRetrieved và dòng "bản nháp bị loại ở S9 nên không đoạn nào được trích dẫn") ở cả
+	// hai chế độ (nhánh RAG đang sửa hàm đó).
 	noWhy bool
 	// beforeDecision chạy ngay trước khi dựng Decision (nil = không làm gì) — chỉ test trong gói đặt, để GIEO lỗi vào câu giao ở đúng vị trí mà vết S10 phải bắt được
 	// (V8AS-01): lỗi đặt ở đây là lỗi mà dấu vân tay ghi sớm hơn bị bỏ sót.

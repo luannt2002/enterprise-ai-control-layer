@@ -469,6 +469,12 @@ const draftHeadRunes = 80
 // textDigest trả số ký tự (rune) và băm ngắn (12 ký tự hex đầu của SHA-256) của một đoạn chữ: dấu vân tay để người đọc vết thấy bước nào đổi chữ — bản nháp
 // ở S8 và câu giao ở S10 trùng băm thì không bước nào ở giữa đổi một chữ. Tính trên chữ ĐÃ qua traces.Sanitize (đúng dạng chữ nằm trong vết bền, nên số ký
 // tự khớp chữ người đọc thấy dù câu có đoạn bị che) và đã bỏ khoảng trắng đầu / cuối (mẫu câu cắt chúng khi dựng câu giao).
+//
+// NỢ chi phí (V8AS-07; chưa tối ưu ở vòng 2): textDigest và draftHead chạy traces.Sanitize (regex) trên TOÀN chữ. Đo vi mô MỘT hàm trên máy này (taskset một nhân, 200 vòng × 3 lần; CHƯA đo cả
+// Handle): chữ 300 ký tự ≈ 53–71 µs, 20 KB ≈ 4,6–4,8 ms, 200 KB ≈ 46 ms; draftHead 20 KB ≈ 4,6–4,9 ms (người soát vòng 1 đo cùng cỡ: 47 µs, 3,5 ms, 36 ms). Theo mã, mỗi bản nháp bị Sanitize 5 lần
+// trong một lượt (nhận: noteDraft 2, draftLedger.settle 2, noteDelivered 1; loại: noteDraft 2, noteRejected 1, settle 1, noteDelivered 1), cộng 1 lần cho câu giao. Nhân số đo vi mô với số lần
+// đếm được: bản nháp 300 ký tự ≈ 0,3–0,4 ms mỗi lượt (cỡ mẫu câu của bộ 117), bản nháp model 20 KB ≈ 24 ms (ước, chưa đo thật). Trả nợ khi cần: làm sạch MỘT lần ở noteDraft, lưu chữ đã sạch,
+// số ký tự và băm vào sổ rồi dùng lại cho đoạn đầu, settle và S10 — không đổi chữ nào của vết.
 func textDigest(s string) (runes int, hash string) {
 	clean := strings.TrimSpace(traces.Sanitize(s))
 	sum := sha256.Sum256([]byte(clean))

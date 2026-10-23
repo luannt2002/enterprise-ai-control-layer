@@ -580,7 +580,7 @@ func cleanupPGRows() {
 		return
 	}
 	defer conn.Close(ctx)
-	for _, table := range []string{"usage_records", "quarantine_records", "decision_records", "entity_aliases", "facts", "documents", "entities"} {
+	for _, table := range []string{"usage_records", "quarantine_records", "decision_records", "load_records", "entity_aliases", "facts", "documents", "entities"} {
 		if _, err := conn.Exec(ctx, "DELETE FROM "+table+" WHERE tenant_id = ANY($1)", tenants); err != nil {
 			fmt.Fprintln(os.Stderr, "dọn dòng test:", table, err)
 		}

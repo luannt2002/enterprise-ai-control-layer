@@ -64,6 +64,17 @@ func TestAnhXaBoCau(t *testing.T) {
 	}{
 		{"Đơn giá 1.250.000 đồng", "1250000", true}, {"Trụ sở ở Hà Nội", "ha noi", true}, {"Phạm vi điều chỉnh", "phạm vi", true},
 		{"Phí 124 giờ", "24 giờ", false}, {"Nộp phạt", "phát", false}, {"Mã 1 2", "12", false}, {"abc", "xyz", false},
+		{"Tối thiểu 6 tháng một lần", "sáu tháng một lần", true}, {"lưu 90 ngày", "chín mươi ngày", true}, {"báo cáo trong 24 giờ", "hai mươi bốn giờ", true},
+		{"mật khẩu từ sáu ký tự", "6 ký tự", true}, {"mười lăm ngày", "15 ngày", true}, {"ba mươi mốt ngày", "31 ngày", true},
+		// Soát độc lập 23/10: các khớp SAI của bản đầu — chữ thường trùng khoá bỏ dấu ("sau", "từ", "nam"), "năm" (thời hạn / năm lịch)
+		// đọc thành 5, bỏ số 0 sau dấu thập phân, số ghép qua dấu câu, dạng bỏ dấu "hai muoi tu" (bỏ hẳn: lỏng hơn là khớp sai).
+		{"có hiệu lực sau ngày ký", "6 ngày", false}, {"Sau tháng đầu tiên", "sáu tháng", false}, {"Tỷ lệ phạt 2,05%", "2,5%", false},
+		{"0,05 mg/l", "0,5 mg/l", false}, {"Việt Nam năm 2020", "5 năm", false}, {"tháng 05 năm 2024", "5 năm", false},
+		{"từ ngày ký", "4 ngay", false}, {"mười năm", "15 năm", false}, {"15 năm", "mười năm", false}, {"mười năm", "10 năm", true}, {"hai mươi năm", "20 năm", true},
+		{"mười. Ba bên", "13", false}, {"lưu chín mươi ngày", "90", true}, {"hai muoi tu gio", "24 gio", false}, {"giá 2.050.000 đồng", "2.50.000", false},
+		{"dòng một\nsáu tháng", "6 tháng", true}, {"thời hạn\nhai năm", "thời hạn hai năm", false},
+		{"trong 5 ngày làm việc", "05 ngày làm việc", true}, {"hiệu lực từ 01/01/2021", "01 tháng 01 năm 2021", true}, {"hiệu lực từ 1/1/2021", "01 tháng 01 năm 2021", true},
+		{"hiệu lực từ 01/01/2022", "01 tháng 01 năm 2021", false}, {"Mã 105", "05", false}, {"Tối thiểu 7 tháng", "sáu tháng", false},
 	} {
 		if khop(c.text, c.want) != c.ok {
 			t.Errorf("khop(%q, %q) = %v", c.text, c.want, !c.ok)

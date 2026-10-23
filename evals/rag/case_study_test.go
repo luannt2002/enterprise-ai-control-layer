@@ -405,7 +405,7 @@ type bangChungNgan struct {
 // "1.250.000"; "12" không khớp "1 2"). shortcut: không hiểu phủ định ("không có X" vẫn chứa "có X") — bộ ca cần khuong_chua cho ý đó.
 func khop(text string, want string) bool {
 	t, w := strings.ToLower(normalization.NFC(text)), strings.ToLower(normalization.NFC(strings.TrimSpace(want)))
-	if w == normalization.Fold(w) {
+	if w == normalization.Fold(w) && strings.ContainsFunc(w, unicode.IsLetter) { // kỳ vọng toàn chữ số: giữ dấu để còn đọc số bằng chữ
 		t = normalization.Fold(t)
 	}
 	if w == "" {
@@ -414,7 +414,95 @@ func khop(text string, want string) bool {
 	if chuaTu(t, w) {
 		return true
 	}
-	return strings.Trim(w, "0123456789") == "" && chuaTu(boNhomSo(t), w)
+	if strings.Trim(w, "0123456789") == "" && chuaTu(boNhomSo(t), w) {
+		return true
+	}
+	// Cách viết số khác nhau ("sáu tháng" ↔ "6 tháng", "05 ngày" ↔ "5 ngày", "01 tháng 01 năm 2021" ↔ "1/1/2021"): đưa CẢ HAI phía
+	// về một dạng nên phép so đối xứng.
+	ts, ws := chuanSo(t), chuanSo(w)
+	return (ts != t || ws != w) && chuaTu(ts, ws)
+}
+
+var (
+	ngayChu  = regexp.MustCompile(`(\d{1,2})\s+th[aá]ng\s+(\d{1,2})\s+n[aă]m\s+(\d{4})`)
+	thangChu = regexp.MustCompile(`th[aá]ng\s+(\d{1,2})\s+n[aă]m\s+(\d{4})`)
+	soKhong  = regexp.MustCompile(`(^|[^\d.,])0+(\d)`) // không bỏ số 0 sau dấu thập phân / nhóm nghìn: "2,05" ≠ "2,5"
+)
+
+// chuanSo: ngày "d tháng m năm y" → "d/m/y", "tháng m năm y" → "m/y", số bằng chữ → chữ số, bỏ số 0 đứng đầu.
+func chuanSo(t string) string {
+	t = thangChu.ReplaceAllString(ngayChu.ReplaceAllString(t, "$1/$2/$3"), "$1/$2")
+	return soKhong.ReplaceAllString(soBangChu(t), "$1$2")
+}
+
+// soDon: chữ số đứng một mình được; soDonVi: thêm các dạng chỉ là số khi đứng sau "mươi" / "mười" (mốt, tư, lăm). KHÔNG có "năm"
+// ("5 năm" thời hạn, "năm 2020") và không có khoá bỏ dấu ("sau", "từ", "nam" là chữ thường): khớp sót hơn khớp sai.
+var (
+	soDon   = map[string]int{"một": 1, "hai": 2, "ba": 3, "bốn": 4, "sáu": 6, "bảy": 7, "tám": 8, "chín": 9}
+	soDonVi = map[string]int{"mốt": 1, "tư": 4, "lăm": 5}
+)
+
+// soBangChu thay chuỗi số đếm bằng chữ (≤ 99: "hai mươi bốn", "mười lăm", "chín mươi") bằng chữ số. Chỉ ghép qua MỘT dấu cách trong
+// cùng một dòng, dừng ở dấu câu ("mười. Ba" không là 13); mọi khoảng trắng khác giữ nguyên.
+// shortcut: không đọc "trăm" / "nghìn" / "năm"; câu có các số đó thì khớp như chữ thường.
+func soBangChu(t string) string {
+	lines := strings.Split(t, "\n")
+	for k, line := range lines {
+		words := strings.Split(line, " ")
+		out := make([]string, 0, len(words))
+		for i := 0; i < len(words); {
+			v, n := docSo(words[i:])
+			if n == 0 {
+				out = append(out, words[i])
+				i++
+				continue
+			}
+			last := words[i+n-1]
+			out = append(out, strconv.Itoa(v)+last[len(strings.TrimRight(last, ",.;:")):])
+			i += n
+		}
+		lines[k] = strings.Join(out, " ")
+	}
+	return strings.Join(lines, "\n")
+}
+
+// docSo đọc số ở đầu words, trả giá trị và số từ đã dùng (0 = không phải số).
+func docSo(words []string) (int, int) {
+	at := func(i int) (string, bool) { // từ thứ i bỏ dấu câu đuôi; true = có dấu câu: số dừng ở từ này
+		w := strings.TrimRight(words[i], ",.;:")
+		return w, w != words[i]
+	}
+	unit := func(i int) (int, bool) {
+		if i >= len(words) {
+			return 0, false
+		}
+		w, _ := at(i)
+		if v, ok := soDon[w]; ok {
+			return v, true
+		}
+		v, ok := soDonVi[w]
+		return v, ok
+	}
+	w0, stop := at(0)
+	if w0 == "mười" {
+		if v, ok := unit(1); ok && !stop {
+			return 10 + v, 2
+		}
+		return 10, 1
+	}
+	v, ok := soDon[w0]
+	if !ok {
+		return 0, 0
+	}
+	if len(words) > 1 && !stop {
+		if w1, stop1 := at(1); w1 == "mươi" {
+			if u, ok := unit(2); ok && !stop1 {
+				return v*10 + u, 3
+			}
+			return v * 10, 2
+		}
+	}
+	return v, 1
 }
 
 // chuaTu: w xuất hiện trong t mà hai bên không dính chữ / số ("24 giờ" không khớp "124 giờ").

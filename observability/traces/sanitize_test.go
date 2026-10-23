@@ -307,3 +307,26 @@ func TestSanitizeCheGiaTriCoNhayThoat(t *testing.T) {
 		t.Errorf("che oan: %q → %q", s, traces.Sanitize(s))
 	}
 }
+
+// Hồi quy do bản đọc nháy thoát gây ra (soát độc lập 5a-1): chữ KHÔNG phải JSON có giá trị trong nháy kết thúc bằng \ (đường dẫn
+// Windows, chữ chép tay) — đọc theo nháy thoát thì "\"" không đóng giá trị, nháy mở của bí mật KẾ TIẾP bị nuốt làm nháy đóng và
+// bí mật đó lọt. Đọc thô (nháy kế là nháy đóng) che được ca này nhưng lại lọt ca JSON ở test trên, nên phải che HỢP hai cách đọc.
+func TestSanitizeGiaTriKetThucBangGachCheo(t *testing.T) {
+	for _, c := range []struct{ name, in string }{
+		{"nháy kép rồi khoá kế", `ghi: password="ab\" token="ZQX77pw" xong`},
+		{"dạng phẩy", `ghi: password="ab\", api_key="ZQX77pw" xong`},
+		{"nháy đơn", `ghi: password='ab\' token='ZQX77pw' xong`},
+		{"đường dẫn Windows", `ghi: secret="C:\share\" owner=bob token="ZQX77pw" xong`},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, "ZQX77pw") {
+			t.Errorf("%s: bí mật kế tiếp còn trong %q", c.name, got)
+		}
+		if !strings.HasPrefix(got, "ghi: ") || !strings.HasSuffix(got, " xong") {
+			t.Errorf("%s: mất ngữ cảnh ngoài vùng bí mật: %q", c.name, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+}

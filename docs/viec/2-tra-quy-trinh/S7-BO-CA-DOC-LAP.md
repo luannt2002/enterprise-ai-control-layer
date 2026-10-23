@@ -149,7 +149,27 @@ EAIS_S7_BO=<thư mục bộ>/doc-lap.yaml go test -count=1 -v -run 'TestS7BoPhat
   không mở nội dung câu hỏi (đóng băng chỉ in băm và số đếm).
 - Người soạn ghi rủi ro: các vai ngoài `policy.yaml` coi như không có scope "all"; bộ chấm đo TRUY XUẤT nên không xét capability
   `documents.read` (accountant và vai ngoài policy không có capability này ở pipeline — đúng: S7 là dòng của truy xuất).
-- **Chưa chạy.** Chạy đúng một lần sau khi manifest được commit.
+- **Đã chạy ĐÚNG MỘT LẦN** 23/10 11:57, HEAD `5dd13e7` (manifest commit ở chính commit đó, trước lần chạy), cây sạch, băm khớp manifest.
+  Nội dung + log công bố ở `tenants/construction/knowledge/s7/doc-lap/` (log: `lan-chay.txt`). Chạy lại để kiểm:
+  `EAIS_S7_BO=../../tenants/construction/knowledge/s7/doc-lap/doc-lap.yaml go test -count=1 -v -run 'TestS7BoPhatTrien|TestSoSanhBaHeTrenS7' ./evals/rag/`
+  (test đỏ ở 5 câu trượt là đúng — bộ độc lập không có cờ).
+
+**Số của cổng (bộ độc lập, một lần):**
+
+| Hệ | Top-3 trúng | Đoạn ngoài quyền | Đoạn không làm căn cứ | Câu `khong_co` nhận đoạn |
+|---|---|---|---|---|
+| **EAIS** (bộ nhớ = PG) | **87/92 = 94,6%** | **0** | **0** | 7/14 |
+| RAG thường | 91/92 | 20 | 37 | 14/14 |
+| Nạp thẳng | — | 100 | 222 | 14/14 |
+
+**Dòng S7: ĐẠT** (≥ 90%, 0 ngoài quyền, 0 không căn cứ, 0 thiếu nguồn) — trên dữ liệu giả lập, kho do người làm soạn, câu do agent
+riêng soạn; chưa có người nghiệp vụ (D-RM-03).
+
+**Chẩn đoán SAU lần chạy (không dùng để chỉnh rồi chạy lại bộ này):** cả 5 câu EAIS trượt đều là top-3 rỗng do luật "biết im" (2')
+— bỏ chủ đề thì cả 5 trúng. Luật coi từ cách hỏi ("vừa chạy đủ", "bấm tạo lại") và viết tắt chưa có trong kho (CPĐD, ATLĐ) là chủ đề. Đánh
+đổi đo được: luật đổi 5/92 câu trả lời được thành "chưa có tài liệu" (hỏng an toàn), đổi lại câu `khong_co` nhận đoạn 7/14 thay vì 14/14
+như RAG thường. 7 câu `khong_co` còn nhận đoạn: 4 `ngoai_quyen`, 3 `khong_co_tai_lieu` (không lộ gì ngoài quyền, nhưng là đoạn lạc đề).
+Bộ này nay đã công bố: lần đo S7 sau phải dùng một bộ độc lập MỚI.
 
 ## 4. Còn mở
 

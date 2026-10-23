@@ -327,7 +327,7 @@ fi
 # Mỗi dòng "bị bắt" chỉ khi một test NHẮM TỚI đỏ (MUTATE_TEST_MUON): đỏ ở test khác không tính. Mọi câu ghi giải thích MỘT dòng của why.go (n.Reason / n.Reject) còn có
 # đột biến bỏ-dòng do bộ sinh LV; dưới đây là những chỗ bộ sinh không với tới: băm / số ký tự / đoạn đầu, chọn trường hợp của S10, và chỗ luồng hỏi gọi các hàm ghi.
 export PKGS="./core/pipeline/ ./observability/traces/"
-export MUTATE_TEST_MUON='TestVetS8|TestVetS9|TestVetS10|TestVetThoatSom|TestNoteDraft|TestNoteDelivered|TestNoteExit|TestDraftLedger|TestTextDigest|TestDraftHead|TestDongS8|TestFinalWhyPhuS8VaS10|TestQuantityTrigger'
+export MUTATE_TEST_MUON='TestVetS8|TestVetS9|TestVetS10|TestVetThoatSom|TestNoteDraft|TestNoteDelivered|TestNoteExit|TestDraftLedger|TestTextDigest|TestDraftHead|TestDongS8|TestFinalWhyPhuS8VaS10|TestQuantityTrigger|TestVetS6|TestVetWhy'
 m $W 'const draftHeadRunes = 80' 'const draftHeadRunes = 81' 'VS8-1 [V8a] đoạn đầu cắt ở 81 ký tự thay vì 80'
 m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' '_ = utf8.RuneCountInString(clean)
 	return len(clean), hex.EncodeToString(sum[:])[:12]' 'VS8-2 [V8a] số ký tự đếm byte thay vì rune'
@@ -410,6 +410,9 @@ m $W 'ledgerOf(ctx).reject(prefix, text)' 'ledgerOf(ctx).reject(prefix, text+" "
 m $ST 's.Decision = "mẫu câu của tenant " + usedTemplate(d.Why.Generate, plan.Template)' 's.Decision = "mẫu câu của tenant " + plan.Template' 'VS8-58 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 lại in mẫu của router thay vì mẫu thật'
 m $ST 'strings.CutPrefix(r, "bản nháp "+TemplateDraftOpen)' 'strings.CutPrefix(r, TemplateDraftOpen)' 'VS8-59 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 không nhận ra dòng mẫu thật (rơi về mẫu của router)'
 m $ST 'if tmpl, _, ok := strings.Cut(rest, TemplateDraftClose); ok && tmpl != "" {' 'if tmpl, _, ok := strings.Cut(rest, ")"); ok && tmpl != "" {' 'VS8-60 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 cắt tên mẫu sai chỗ'
+m $ST 'if route.NeedsModel() { // route tri thức' 'if route.NeedsModel() || true { // route tri thức' 'VS8-61 [V8b V8AS-03, E22 của người soát] S6 mọi route không có span đều nói "cần truy xuất nhưng thoát sớm" (hướng ngược của VS8-41)'
+m $D 'Generate  Notes `json:"generate,omitzero"`' 'Generate  Notes `json:"-"`' 'VS8-62 [V8b V8AS-03, E16a] Why.Generate không vào JSON (mất khi vòng JSON)'
+m $D 'Respond   Notes `json:"respond,omitzero"`' 'Respond   Notes `json:"-"`' 'VS8-63 [V8b V8AS-03, E16b] Why.Respond không vào JSON (mất khi vòng JSON)'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

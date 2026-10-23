@@ -3,7 +3,9 @@ package traces_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -410,7 +412,9 @@ func TestSanitizeCookieCoNhayQuaXuongDong(t *testing.T) {
 	}
 	// hình lai: giá trị kết thúc bằng \ (5a-R1) rồi dòng Cookie có cặp nháy qua xuống dòng — vùng gộp bắt đầu ở cặp TRƯỚC Cookie vẫn phải kéo
 	// tới hết dòng (chỉ khẳng định không lọt và luỹ đẳng: tên "Cookie:" bị nuốt là che thừa đã ghi ở chú thích của Sanitize)
-	for _, in := range []string{"x password=\"a\\\" Cookie: auth_token=\"b\nc\"; sid=ZQX1", "password='a\\' Set-Cookie: session_token='b\r\nc'; sid=ZQX1; Path=/"} {
+	for _, in := range []string{"x password=\"a\\\" Cookie: auth_token=\"b\nc\"; sid=ZQX1", "password='a\\' Set-Cookie: session_token='b\r\nc'; sid=ZQX1; Path=/",
+		// giá trị có nháy thoát qua xuống dòng ở dòng Cookie: che tuần tự (main) cũng lọt phần sau — chỉ kéo vùng gộp tới hết dòng che được
+		"Cookie: x=1; token=\"a\\\"b\nc\"; sid=ZQX1", "password=\"a\\\" Cookie: tok=1\nx\"; sid=ZQX1"} {
 		got := traces.Sanitize(in)
 		if strings.Contains(got, "ZQX") {
 			t.Errorf("bí mật Cookie lọt: %q → %q", in, got)
@@ -448,5 +452,82 @@ func TestSanitizeQuetCookieCapBiMatQuaDong(t *testing.T) {
 	}
 	if n != 384 {
 		t.Fatalf("số tổ hợp = %d, muốn 384", n)
+	}
+}
+
+// sanitizeTuanTu là che TUẦN TỰ của main trước 5a cho hai mẫu mà 5a đổi ("tên + giá trị" rồi Cookie / Set-Cookie, mẫu sau chạy trên chữ đã
+// thay) — trọng tài của TestSanitizeKhongCheItHonCheTuanTu.
+func sanitizeTuanTu(s string) string {
+	for _, m := range []struct {
+		re   *regexp.Regexp
+		repl string
+	}{
+		{regexp.MustCompile(`(?i)\b([a-z0-9_.\-]*(?:password|passwd|pwd|secret|token|api[_\-]?key|apikey|access[_\-]?key|private[_\-]?key|credential|mật khẩu|mat khau)[a-z0-9_.\-]*)(["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\s"',;&]+)`), "${1}${2}${3}${4}" + traces.Masked + "${3}${4}"},
+		{regexp.MustCompile(`(?i)\b((?:set-)?cookies?["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\r\n]+)`), "${1}${2}${3}" + traces.Masked + "${2}${3}"},
+	} {
+		s = m.re.ReplaceAllString(s, m.repl)
+	}
+	return s
+}
+
+// Soát 5a vòng 4 (5a4-1, S1): gộp vùng một lần không mô phỏng được mọi hiệu ứng của che tuần tự — (A) giá trị Cookie mở bằng nháy chứa cặp
+// bí mật có nháy khác loại / không đóng; (B / C) "Cookie:" nằm trong giá trị của khoá bí mật rồi còn một tiêu đề Cookie nữa (kể cả ở dòng
+// sau). Che tuần tự che các marker đó; Sanitize không được che ÍT hơn. Phần quét: mọi chuỗi tới 5 mảnh của bảng dưới, marker nào che tuần tự
+// che thì Sanitize cũng phải che.
+func TestSanitizeKhongCheItHonCheTuanTu(t *testing.T) {
+	for _, in := range []string{
+		"Cookie: 'sid=QZ1X; token=\"a ' QZ2X\"; tail=QZ3X'",
+		"Cookie: \"sid=QZ1X; token='a \" QZ2X'; tail=QZ3X\"",
+		"password:Cookie: cookie:\nQZ4X",
+		"credential=COOKIE:\"COOKIE:\"QZ5X",
+		"COOKIE = \"credential='QZ1X\"&passwd:'QZ2X, x",
+		"Cookie:\"token='\"'QZ", "Cookie:'token=\"'\"QZ", "token=Cookie:\nCookie:\nQZ", "Set-Cookie: \"password='\"'QZ",
+		"password=Set-Cookie: Set-Cookie: \nQZ",
+	} {
+		if got := traces.Sanitize(in); strings.Contains(got, "QZ") {
+			t.Errorf("che ít hơn che tuần tự: %q → %q (tuần tự: %q)", in, got, sanitizeTuanTu(in))
+		}
+	}
+	frags := []string{"Cookie:", "Cookie:\n", `Cookie:"`, "token=", "token='", `"`, `'`, "QZ", " "}
+	marker := regexp.MustCompile(`QZ\d+X`)
+	n, bad := 0, 0
+	var walk func(parts []string)
+	walk = func(parts []string) {
+		if len(parts) > 0 {
+			var b strings.Builder
+			k := 0
+			for _, p := range parts {
+				if p == "QZ" {
+					fmt.Fprintf(&b, "QZ%dX", k)
+					k++
+					continue
+				}
+				b.WriteString(p)
+			}
+			in := b.String()
+			n++
+			left := map[string]bool{}
+			for _, m := range marker.FindAllString(sanitizeTuanTu(in), -1) {
+				left[m] = true
+			}
+			for _, m := range marker.FindAllString(traces.Sanitize(in), -1) {
+				if !left[m] {
+					if bad++; bad <= 5 {
+						t.Errorf("che ít hơn che tuần tự: %q → %q (tuần tự: %q)", in, traces.Sanitize(in), sanitizeTuanTu(in))
+					}
+					break
+				}
+			}
+		}
+		if len(parts) == 5 {
+			return
+		}
+		for _, f := range frags {
+			walk(append(parts, f))
+		}
+	}
+	walk(nil)
+	if n != 66429 || bad > 0 {
+		t.Errorf("quét %d chuỗi (muốn 66429), %d chuỗi che ít hơn che tuần tự", n, bad)
 	}
 }

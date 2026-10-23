@@ -149,6 +149,8 @@ m $S 'return spans[i].start < spans[j].start' 'return false' 'TV41 không sắp 
 m $S 'if cur.line {' 'if false && cur.line {' 'TV45 vùng gộp chứa giá trị Cookie trần không kéo tới hết dòng (lọt phần sau nháy qua xuống dòng, soát 5a vòng 3 5a3-1)'
 m $S '`[^\r\n]+`, true)}' '`[^\r\n]+`, false)}' 'TV46 mẫu Cookie không đánh dấu là mẫu dòng (5a3-1)'
 m $S 'cur.line = cur.line || spans[i].line' 'cur.line = cur.line' 'TV48 cờ dòng không lan khi vùng gộp bắt đầu ở cặp trước Cookie (hình lai 5a-R1 + 5a3-1)'
+m $S 'spans := sequentialSpans(s, ms)' 'var spans []span' 'TV50 không hợp vùng của che tuần tự (che ít hơn main, soát 5a vòng 4 5a4-1)'
+m $S 'olo, ohi = min(olo, lo[p]), max(ohi, hi[p])' 'olo, ohi = lo[p], hi[p]' 'TV51 ánh xạ vùng của che tuần tự về chữ gốc chỉ theo byte cuối (5a4-1)'
 m $S $'} else {\n\t\t\tb.WriteString(Masked)' $'} else {\n\t\t\tb.WriteString(Masked + Masked)' 'TV42 giá trị trần nhân đôi dấu che (vỡ luỹ đẳng)'
 m $S '[^\r\n]+' '[^\r\n;]+' 'TV43 Cookie trần dừng ở ";" (từ 5a3-1 vùng Cookie trần kéo tới hết dòng: chỉ còn lọt khi giá trị bắt đầu bằng ";")'
 m $S "[^\\s\"',;&]+" "[^\\s\"',;]+" 'TV44 giá trị trần không dừng ở "&" (nuốt cặp kế tiếp)'

@@ -94,6 +94,63 @@ func newValueMask(prefix, bare string, line bool) *valueMask {
 	}
 }
 
+// span là một vùng [start, end) của chữ cần che; line: là giá trị trần của một mẫu dòng (Cookie / Set-Cookie).
+type span struct {
+	start, end int
+	line       bool
+}
+
+// sequentialSpans trả các vùng mà CHE TUẦN TỰ — cách của main trước 5a — che bằng các mẫu dòng (Cookie / Set-Cookie): mẫu "tên + giá trị"
+// đọc thô thay giá trị trước, mẫu dòng chạy trên chữ ĐÃ thay; vùng tính về toạ độ của s (mỗi byte của chữ đã thay nhớ khoảng chữ gốc của nó).
+// maskValues hợp chúng vào vùng của mình, nên bước che giá trị không bao giờ che ít hơn che tuần tự (soát 5a vòng 4, 5a4-1: gộp một lần không
+// mô phỏng được mọi hiệu ứng của che tuần tự — nháy của giá trị Cookie bị giá trị khoá bí mật nuốt, "Cookie:" nằm trong giá trị khoá bí mật).
+func sequentialSpans(s string, ms []*valueMask) []span {
+	cur := s
+	lo, hi := make([]int, len(s)), make([]int, len(s))
+	for i := range s {
+		lo[i], hi[i] = i, i+1
+	}
+	var out []span
+	for _, line := range []bool{false, true} {
+		for _, m := range ms {
+			if m.line != line {
+				continue
+			}
+			v := 2 * m.raw.SubexpIndex("v")
+			var b strings.Builder
+			var nlo, nhi []int
+			last := 0
+			for _, x := range m.raw.FindAllStringSubmatchIndex(cur, -1) {
+				a, e := x[v], x[v+1]
+				if e <= a {
+					continue
+				}
+				olo, ohi := lo[a], hi[a]
+				for p := a; p < e; p++ {
+					olo, ohi = min(olo, lo[p]), max(ohi, hi[p])
+				}
+				if line {
+					out = append(out, span{olo, ohi, false})
+				}
+				tok := Masked
+				if q := cur[a]; q == '"' || q == '\'' {
+					tok = string(q) + Masked + string(q)
+				}
+				b.WriteString(cur[last:a])
+				b.WriteString(tok)
+				nlo, nhi = append(nlo, lo[last:a]...), append(nhi, hi[last:a]...)
+				for range len(tok) {
+					nlo, nhi = append(nlo, olo), append(nhi, ohi)
+				}
+				last = e
+			}
+			b.WriteString(cur[last:])
+			cur, lo, hi = b.String(), append(nlo, lo[last:]...), append(nhi, hi[last:]...)
+		}
+	}
+	return out
+}
+
 // maskValues che hợp các vùng giá trị (nhóm v) mà mọi mẫu trong ms tìm thấy trên s (cả hai cách đọc nháy): vùng chồng nhau gộp thành một,
 // mỗi vùng thay bằng Masked, giữ nháy mở của vùng (nếu có) ở cả hai đầu để cấu trúc JSON không bị phá.
 //
@@ -102,11 +159,7 @@ func newValueMask(prefix, bare string, line bool) *valueMask {
 // trong dòng Cookie, nên phần sau nháy đóng ở dòng kế tiếp vẫn là của tiêu đề Cookie. Che tuần tự (main) thấy phần đó cùng dòng sau khi giá
 // trị nhiều dòng thành một dấu che; không kéo thì phần đó lọt và Sanitize mất luỹ đẳng.
 func maskValues(s string, ms ...*valueMask) string {
-	type span struct {
-		start, end int
-		line       bool // giá trị trần của mẫu dòng
-	}
-	var spans []span
+	spans := sequentialSpans(s, ms)
 	for _, m := range ms {
 		for _, re := range []*regexp.Regexp{m.escaped, m.raw} {
 			v := 2 * re.SubexpIndex("v")

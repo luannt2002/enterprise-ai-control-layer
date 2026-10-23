@@ -363,7 +363,10 @@ func TestLuongTaiLieuTrangTriVaNhanDonViKhongLot(t *testing.T) {
 		"Định mức cấp phát cho máy xúc là 4.000 (đơn vị: lít) mỗi ca.",
 		"Định mức cấp phát cho máy xúc là 4.000 (ĐVT: lít) mỗi ca.",
 		"Định mức cấp phát cho máy xúc là 4.000 (tính bằng lít) mỗi ca.",
-		"| Máy xúc | 4.000 | lít/ca |",
+		// Hàng bảng nêu chủ đề được hỏi: hàng trần "| Máy xúc | 4.000 | lít/ca |" (tài liệu không nói gì về định mức cấp phát) nay
+		// dừng ở truy xuất — chủ đề ngoài kho, INSUFFICIENT_EVIDENCE, không lộ số (nhánh RAG, TestRAGKhongTraLoiBangDoanLacDe) —
+		// nên không còn tới lớp kiểm mà test này canh.
+		"| Định mức cấp phát máy xúc | 4.000 | lít/ca |",
 		"Định mức cấp phát cho máy xúc: 4.000, lít, mỗi ca.",
 	} {
 		a := askVoiTaiLieu(t, body, &models.Extractive{})

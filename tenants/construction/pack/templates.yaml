@@ -33,3 +33,10 @@ templates:
   knowledge_answer: " Trích văn bản quy trình ({title}): {procedure}"
   no_knowledge: "Chưa có tài liệu bạn được xem trả lời được câu hỏi này."
   hybrid_no_knowledge: " Chưa có tài liệu bạn được xem trả lời phần quy trình."
+  # Tài liệu có phiên bản (BR-DOC-01, docs/viec/2-tra-quy-trinh): {title} = tên tài liệu, {reason} = các bản người hỏi
+  # thấy ("v1, v2"). Không hứa "đã chuyển người" khi chưa có việc nào được tạo.
+  knowledge_version_conflict: "Tài liệu {title} đang có nhiều bản cùng hiệu lực ({reason}) nên chưa dùng bản nào làm căn cứ; cần chủ tài liệu xác nhận bản áp dụng."
+  knowledge_no_effective: "Tài liệu {title} chưa có bản nào đã duyệt và đang hiệu lực ({reason}) nên chưa trả lời từ tài liệu này."
+  hybrid_knowledge_version_conflict: " Phần quy trình: tài liệu {title} đang có nhiều bản cùng hiệu lực ({reason}); cần chủ tài liệu xác nhận bản áp dụng."
+  hybrid_knowledge_no_effective: " Phần quy trình: tài liệu {title} chưa có bản đang hiệu lực ({reason})."
+  hybrid_knowledge_error: " Phần quy trình tạm thời chưa tra được."

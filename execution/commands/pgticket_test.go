@@ -881,7 +881,7 @@ func pgErr(code, severity string) error {
 }
 
 // Bảng phân loại khớp bảng ĐO của U1 (HOP-DONG §15): lỗi một câu lệnh trước COMMIT luôn là "chắc chắn chưa ghi"; lỗi của chính
-// COMMIT chỉ là "chắc chắn chưa ghi" khi COMMIT chưa rời máy (SafeToRetry) hoặc PG trả một lỗi không-FATAL (giao dịch đã huỷ); mọi
+// COMMIT chỉ là "chắc chắn chưa ghi" khi COMMIT chưa rời máy (SafeToRetry) hoặc PG trả một lỗi mức ERROR (giao dịch đã huỷ); mọi
 // trường hợp còn lại là không biết. Vi phạm khoá duy nhất 23505 ở đâu cũng là ErrUniqueViolation.
 func TestPGTicketPhanLoaiLoi(t *testing.T) {
 	deadline := context.DeadlineExceeded
@@ -907,6 +907,11 @@ func TestPGTicketPhanLoaiLoi(t *testing.T) {
 		{"conn closed bọc nhiều lớp", fmt.Errorf("COMMIT: %w", lockLikeErr{}), ErrBeforeCommit, ErrCommitUnknown},
 		{"đã gửi một phần (không SafeToRetry)", retryableErr{safe: false}, ErrBeforeCommit, ErrCommitUnknown},
 		{"COMMIT trả tag ROLLBACK", pgx.ErrTxCommitRollback, ErrBeforeCommit, ErrBeforeCommit},
+		// C7 (lệnh ca chiều 23/10): chỉ mức ERROR mới là "chắc chắn chưa ghi"; mức rỗng, lạ hay chỉ có bản dịch ⇒ không biết
+		{"mức nghiêm trọng rỗng", pgErr("40001", ""), ErrBeforeCommit, ErrCommitUnknown},
+		{"mức nghiêm trọng lạ", pgErr("XX000", "WEIRD"), ErrBeforeCommit, ErrCommitUnknown},
+		{"WARNING", pgErr("01000", "WARNING"), ErrBeforeCommit, ErrCommitUnknown},
+		{"chỉ có mức đã dịch", &pgconn.PgError{Code: "40001", Severity: "LỖI", Message: "lỗi giả"}, ErrBeforeCommit, ErrCommitUnknown},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := classifyStatement(c.err)

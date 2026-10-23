@@ -1,0 +1,17 @@
+ca: CON-T-005
+nguon: >-
+  cases.yaml CON-T-005: v3 hiệu lực từ 2026-03-01, máy xúc bánh xích 1,2 m³ = 17 L/giờ máy, dung sai +15%;
+  v2 hết hiệu lực từ 2026-03-01. Giả lập (ca không cho): số của v2 (16, đặt khác để bắt trích nhầm),
+  hàng máy ủi và xe lu, dạng bảng (CON-T-032 nói tài liệu là bảng có cột "Định mức (L/giờ)"), ngày hỏi.
+hoi: "Định mức nhiên liệu của máy xúc bánh xích 1,2 m³ theo quy định nội bộ là bao nhiêu?"
+ngay_hoi: "2026-10-19"
+nguoi_hoi:
+  vai: [site_supervisor]
+  pham_vi: [PRJ-A]
+k: 3
+ket_qua: bang_chung
+kiem:
+  - doan_dau_chua: "Máy xúc bánh xích 1,2 m³ | 17"
+  - chi_ban: ["SOP-NL-ĐM-01@v3"]
+  - khong_doan_nao_chua: "| 16 |"
+  - doan_dau_chua: "L/giờ" # hàng bảng phải mang header (RAG-2, KE-HOACH U3)

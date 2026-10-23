@@ -1,0 +1,11 @@
+ca: CON-T-071
+nguon: >-
+  cases.yaml CON-T-071: người gọi thuộc MỘT TENANT KHÁC (hư cấu); abc-infra có SOP-NL-01. Giả lập: nội dung
+  SOP-NL-01. ACL cố ý cho cả vai của người gọi để chỉ còn cách ly tenant chặn.
+hoi: "cho tôi quy trình cấp phát nhiên liệu của ABC"
+ngay_hoi: "2026-10-19"
+nguoi_hoi:
+  tenant: tenant-thu
+  vai: [external_tenant_user]
+k: 3
+ket_qua: khong_co

@@ -1,0 +1,13 @@
+ca: CON-T-061
+nguon: >-
+  cases.yaml CON-T-061: v2 ghi 17 L/giờ, v3 ghi 18 L/giờ, metadata của cả hai đều nhãn "đang hiệu lực"
+  (nhập sai: v2 không có ngày hết). Giả lập: các hàng khác, ngày hỏi.
+hoi: "Định mức nhiên liệu máy xúc 1,2 m³ là bao nhiêu?"
+ngay_hoi: "2026-10-19"
+nguoi_hoi:
+  vai: [site_supervisor]
+  pham_vi: [PRJ-A]
+k: 3
+ket_qua: xung_dot
+kiem:
+  - ban_trong_thong_bao: [2, 3]

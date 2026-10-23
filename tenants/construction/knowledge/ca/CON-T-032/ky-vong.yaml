@@ -1,0 +1,14 @@
+ca: CON-T-032
+nguon: >-
+  cases.yaml CON-T-032: v3 bị cổng chất lượng giữ lại vì parser làm mất cột "Định mức (L/giờ)";
+  chỉ còn v2, hết hiệu lực từ 2026-03-01. Giả lập: số của v2, các hàng khác, ngày hỏi.
+  Tệp v3 cố ý khai "approved" (như người nạp khai): cổng chất lượng đọc (BR-DOC-03) phải tự giữ lại.
+hoi: "Định mức nhiên liệu của máy xúc bánh xích 1,2 m³ theo quy định nội bộ là bao nhiêu?"
+ngay_hoi: "2026-10-19"
+nguoi_hoi:
+  vai: [site_supervisor]
+  pham_vi: [PRJ-A]
+k: 3
+ket_qua: khong_hieu_luc
+kiem:
+  - ban_trong_thong_bao: [2, 3]

@@ -494,7 +494,9 @@ func TestPGSoKhop_BoNhoVaPG_ChuoiNgauNhien(t *testing.T) {
 	for s := 0; s < 60; s++ {
 		ctx, _ := newCtx("sokhop")
 		gm, gp := newGenRun(31000+int64(s), mem, ctx), newGenRun(31000+int64(s), pg, ctx)
-		for i, steps := 0, gm.steps(); i < steps; i++ {
+		steps := gm.steps()
+		_ = gp.steps() // cùng số số ngẫu nhiên đã dùng: hai bộ sinh đi cùng một đường
+		for i := 0; i < steps; i++ {
 			dm, _, em := gm.step(t)
 			dp, _, ep := gp.step(t)
 			if dm != dp || (em == nil) != (ep == nil) {

@@ -44,8 +44,12 @@ func clip(s string) string {
 
 // refuse ghi một dòng audit "lệnh bị từ chối" lên bản ghi r (bản ghi không đổi) rồi trả lỗi mang nhãn input và dấu audit.
 func (c *opctx) refuse(r *Record, d Decision, actor, why string, err error) error {
+	who := clip(actor)
+	if who == "" {
+		who = "(không nêu người quyết)" // dòng audit luôn có "ai"; lệnh thiếu người quyết vẫn được ghi lại
+	}
 	c.history = append(c.history, HistoryEntry{
-		Tenant: c.tenant, Key: r.Key, At: c.now, Actor: clip(actor), Event: EventRefused, From: r.Disposition, To: r.Disposition, Reason: r.Reason,
+		Tenant: c.tenant, Key: r.Key, At: c.now, Actor: who, Event: EventRefused, From: r.Disposition, To: r.Disposition, Reason: r.Reason,
 		Detail:  fmt.Sprintf("%s bị từ chối: %s; người quyết %q, vì sao %q", d, clip(err.Error()), clip(actor), clip(why)),
 		Version: r.Version, DuplicateOf: r.DuplicateOf, Decision: d, PackVersion: r.PackVersion,
 	})

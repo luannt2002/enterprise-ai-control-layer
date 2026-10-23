@@ -6,6 +6,18 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 23/10/2026 — D-OP-9 (a') nhóm nghìn; H6 đóng băng; K1, K2, R2-03, flock đã gộp
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA.**
+
+- **S2 / M2 (D-OP-9 = (a')):** lượng viết nhóm nghìn bằng dấu cách luôn gộp; không đứng đầu văn bản ⇒ cờ chưa phân định — đường nạp cách
+  ly, luồng hỏi hỏi lại; chồng lên tên thiết bị ⇒ cách ly / hỏi lại; ô lượng của nguồn có cấu trúc luôn chắc chắn (`5392833` … `5744d65`).
+  Đóng C3-02, C3-05 và các lỗi đã đo của hàng D-OP-9. Giá đã đo: H1 92 → 91, H3 113 → 112, H4 104 → 103 (WIN-I-264, 509, 717 hỏi lại thay
+  vì trả số). Nợ S1 có từ trước, ghi ở CỔNG TRƯỚC AI: S2AS-01, S2AS-02.
+- **M3:** bộ giữ lại H6 (94 ca) đóng băng bằng cam kết băm TRƯỚC bản sửa S4 (`6734cff`).
+- **M4:** K1 lõi lệnh `execution/commands` (`e1ce950`), K2 kho PG của phiếu + migration 0004 (`d919ebf`).
+- **M1:** R2-03 vết xuất lý do và phương án đã xét (`5fd463f`); `scripts/chay-thu.sh` khoá theo dự án bằng flock (`c97a989`).
+
 ### 22/10/2026 tối — bộ ca giữ lại Phase 1 đóng băng, ADR-0011 CHỐT; M1 đóng thêm ghi chú soát; bảng lệnh M5; đo người đọc vết lần 1
 
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA.**

@@ -30,13 +30,12 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
   đo đã khoá); Vết: vế ≥ 90% KHÔNG ĐẠT.
-- Cổng cuối (cổng §6 ở cây tích hợp `d919ebf` (mã ở `main` giống hệt tới HEAD; sau đó chỉ đổi tài liệu và manifest H6), lúc 23/10 10:37:
-  `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG: **1054** test (kể cả test con)
-  pass, 0 fail, 0 skip — so theo tên với cổng K1 (`e1ce950`, 976 test): 0 đổi, 0 mất, 78 mới; `python3 -I scripts/kiem-skip-test.py` XANH;
-  winreport (`go build ./tenants/construction/win/winreport`, `-data <du-lieu-42> -v`, đường bộ nhớ và `-pg`): bộ 117 117/117, H1 92/104,
-  H3 113/134, H4 104/119 (hai đường) — mốc so: đầu ra cổng ở `7101b6a` (22/10 20:32, 639 test), 0 dòng khác bỏ hai dòng thời gian. CI
-  GitHub: `baaf834`, `6734cff` success. Ghi chú: các cổng của điều phối tới 23/10 11:1x đặt DSN PG vào database `eais` (`winreport -pg`
-  nạp dữ liệu giả lập vào đó); từ 11:1x cổng dùng database riêng `lead_*`.)
+- Cổng cuối (cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit D-OP-9 (a'); sau đó chỉ đổi tài liệu), lúc 23/10 12:03, database PG
+  riêng `lead_s2g`, 5 agent chạy song song: `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...`
+  có PG: **1062** test pass, 0 fail, 0 skip — so theo tên với cổng K2 (`d919ebf`, 1054): 0 đổi, 0 mất, 8 mới; `python3 -I
+  scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4
+  103/119** (hai đường giống nhau) — mốc so: đầu ra cổng K2 (`d919ebf`); khác đúng 3 ca, đều có chủ ý theo D-OP-9 (a'): WIN-I-264, 509, 717
+  (nhóm nghìn không đứng đầu câu ⇒ hỏi lại). CI GitHub: chờ lượt của commit gộp.)
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 
@@ -122,7 +121,7 @@ Mục tiêu đêm: khôi phục bằng chứng đáng tin rồi mới xác đị
 | Chứng minh lại G2 / G5 / G6 trên H1 | **XONG 01:42** (chạy MỘT lần, sau khi sửa mọi phát hiện S1/S2 của soát lượt 2):<br>- 89/104;<br>- G2' KHÔNG ĐẠT, G5' KHÔNG ĐẠT, G6' ĐẠT (chờ phê);<br>- phần ca của G1 / G3 / G4 cũng KHÔNG ĐẠT (D-H1-1).<br>15 ca đỏ đều ở S4; không sửa mã theo H1 | `56101be`, `d17144f`; `docs/g7/holdout/ket-qua-h1/` |
 | Soát độc lập mã (D-OP-5) | Lượt 1 XONG 21:22: sửa S1-1, S2-1…S2-6, S3-x, S4, test hổng. Lượt 2 XONG trước H1 (pipeline, công cụ bộ giữ lại, harness G7; mỗi chiều có người phản bác). Sau H1 (không ai thấy bộ giữ lại): soát bản sửa A, hai người soát bản sửa R, C2, C3, hai người soát `37e8a08`, một người soát `fd4d19c` + `246eabb` (tìm ra hồi quy S1 / S2 của `fd4d19c` ⇒ revert), hai người soát `3066044` + `15ed135` (hồi quy S1 của `3066044` ⇒ không vào main); người phản bác cuối ba góc | `a94b5fb` … `64daad0`; báo cáo sáng mục 8 |
 | Harness G7: kiểm TRƯỚC khi tiêu tiền | XONG: từ chối trước lời gọi model khi lệch tham số hợp đồng, chấm full, bộ chấm chưa đóng băng, thiếu / không ghi được `-out`, hệ cổng bị chặn hay thiếu; endpoint so theo nghĩa, mọi endpoint không phải loopback đều qua kiểm; trần thử khói 3 ca; log / bằng chứng chỉ ghi `scheme://host` | `a928747` … `2304d93` (C2), `246eabb` (C3) |
-| Câu xác nhận + nhóm nghìn | Luật an toàn (`37e8a08`, sửa hồi quy `64daad0`). Nhóm nghìn: main giữ `8ff3db5` (gộp trừ sau từ nhãn / đếm / kỳ trong danh sách; còn C3-02 S2, C3-05 S3); `fd4d19c` (sinh số mồ côi) revert `2a87e63`; `3066044` (nuốt số tên thiết bị) không vào main — nhánh cục bộ `thu/nhom-nghin-3066044`; D-OP-9 chờ quyết. Câu xác nhận: bản cuối phán quyết sai 15/15 câu thăm dò (đầu đêm 8/15), CHƯA sửa (D-OP-10) | báo cáo sáng mục 8; `docs/CHO-QUYET-DINH.md` D-OP-9, D-OP-10 |
+| Câu xác nhận + nhóm nghìn | Luật an toàn (`37e8a08`, sửa hồi quy `64daad0`). Nhóm nghìn: D-OP-9 = (a') đã gộp 23/10 (`5392833` … `5744d65`; soát độc lập ĐẠT CÓ GHI CHÚ): nhóm hợp lệ luôn gộp, không đứng đầu văn bản ⇒ cờ chưa phân định (đường nạp cách ly, luồng hỏi hỏi lại), chồng tên thiết bị ⇒ cách ly / hỏi lại, ô có cấu trúc luôn chắc chắn; C3-02, C3-05 đã đóng; giá: 3 ca H (264, 509, 717) ĐẠT → ĐỎ có chủ ý. Nợ có từ trước: S2AS-01, S2AS-02 (S1, `docs/bao-cao/CONG-TRUOC-AI.md` dòng S2). Câu xác nhận: bản cuối phán quyết sai 15/15 câu thăm dò (đầu đêm 8/15), CHƯA sửa (D-OP-10) | báo cáo sáng mục 8; `docs/CHO-QUYET-DINH.md` D-OP-9, D-OP-10; `docs/bao-cao/soat/2026-10-23/s2a-soat.json` |
 | Chương trình đo của người soát D5 | Công khai, tái lập đúng số của bản soát | `tenants/construction/win/d5probe` (`d03f962`) |
 | `go mod tidy` (D-OP-2) | DỪNG theo luật (thêm 2 module chỉ cho test của yaml/v3; 0 gói EAIS dùng); build / vet / test sạch sau tidy ⇒ khuyến nghị chấp nhận, chờ chủ dự án | `ba83265` |
 | Câu chờ quyết mới | D-G7-12 (`04` dòng 83 trái D7), D-G7-13 (7 ca lộ: đã loại), D-G7-14 (gấp ký tự nhìn giống cho câu hỏi) | `docs/CHO-QUYET-DINH.md` |

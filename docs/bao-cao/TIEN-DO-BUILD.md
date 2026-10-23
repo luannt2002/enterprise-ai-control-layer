@@ -30,13 +30,12 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
   ngay), 5b phân loại lỗi PG, 5c lượt nền xanh của script đột biến, 5d so số bằng chuỗi con, 5e `data_version` từ PG (sau M2 / M3);
   (6) S9: người soạn + bộ chạy.
 - **Bị chặn:** không còn câu chặn MVP. Dữ liệu / người nghiệp vụ thật: không có (D-RM-03). W-G7 trả tiền: chưa cấp.
-- **Test** (cổng §6 ở cây tích hợp `d919ebf` (mã ở `main` giống hệt tới HEAD; sau đó chỉ đổi tài liệu và manifest H6), lúc 23/10 10:37:
-  `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG: **1054** test (kể cả test con)
-  pass, 0 fail, 0 skip — so theo tên với cổng K1 (`e1ce950`, 976 test): 0 đổi, 0 mất, 78 mới; `python3 -I scripts/kiem-skip-test.py` XANH;
-  winreport (`go build ./tenants/construction/win/winreport`, `-data <du-lieu-42> -v`, đường bộ nhớ và `-pg`): bộ 117 117/117, H1 92/104,
-  H3 113/134, H4 104/119 (hai đường) — mốc so: đầu ra cổng ở `7101b6a` (22/10 20:32, 639 test), 0 dòng khác bỏ hai dòng thời gian. CI
-  GitHub: `baaf834`, `6734cff` success. Ghi chú: các cổng của điều phối tới 23/10 11:1x đặt DSN PG vào database `eais` (`winreport -pg`
-  nạp dữ liệu giả lập vào đó); từ 11:1x cổng dùng database riêng `lead_*`.)
+- **Test** (cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit D-OP-9 (a'); sau đó chỉ đổi tài liệu), lúc 23/10 12:03, database PG
+  riêng `lead_s2g`, 5 agent chạy song song: `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...`
+  có PG: **1062** test pass, 0 fail, 0 skip — so theo tên với cổng K2 (`d919ebf`, 1054): 0 đổi, 0 mất, 8 mới; `python3 -I
+  scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4
+  103/119** (hai đường giống nhau) — mốc so: đầu ra cổng K2 (`d919ebf`); khác đúng 3 ca, đều có chủ ý theo D-OP-9 (a'): WIN-I-264, 509, 717
+  (nhóm nghìn không đứng đầu câu ⇒ hỏi lại). CI GitHub: chờ lượt của commit gộp.)
 - **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN + lời chủ dự án 23/10 (`docs/CHO-QUYET-DINH.md` mục 0); `docs/PROMPT-BUILD-EAIS.md` §9;
   PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết: `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
 

@@ -16,7 +16,7 @@
 ## 0. Đọc nhanh: 8 luật cứng
 
 1. **MVP trước.** Không mở mã RAG mới trước khi MVP ra (D-MVP-00), trừ khi chủ dự án ghi khác vào `CHO`.
-2. **RAG không trả số liệu.** Câu hỏi "bao nhiêu" đi SQL / CALC. RAG chỉ trả lời "theo quy định / quy trình thì sao". S9 phải chặn lượng lấy từ tài liệu (đã có [CODE] `reliability/validation/knowledge.go`).
+2. **Số vận hành không lấy từ văn bản.** Lượng kho xuất, máy đốt, đội báo… đi SQL / CALC; S9 chặn lượng lấy từ tài liệu (đã có [CODE] `reliability/validation/knowledge.go`). Số do văn bản quy định (định mức, dung sai, hạn) là sự thật của văn bản (P4): chỉ lấy từ bản đã duyệt, đang hiệu lực, qua bước trích có kiểm thành dữ liệu có cấu trúc kèm nguồn (`docs/viec/2-tra-quy-trinh/KE-HOACH.md` U4, chờ chốt). Model không tự mang số.
 3. **Quyền là bộ lọc phần mềm, chạy TRƯỚC khi tìm.** Model không bao giờ được thấy đoạn mà người hỏi không có quyền đọc. Không lọc quyền bằng prompt.
 4. **Phiên bản là sự thật nghiệp vụ.** Chỉ tài liệu **đã duyệt và đang hiệu lực** mới được làm căn cứ. Bản cũ giữ lại để truy vết, không dùng để trả lời.
 5. **Không gọi model khi không có gì để nói.** Không có đoạn nào qua lọc thì trả mẫu câu, 0 lời gọi model.
@@ -49,7 +49,7 @@ RAG trong EAIS là **một năng lực** (`CLAUDE.md` §12), không phải sản
 |---|---|---|---|
 | L0 Đưa AI vào một việc | không | — (đây là nơi hỏi "việc này có cần RAG không") | — |
 | L1 Dữ liệu | không | — | lấy số từ tài liệu (P4) |
-| L2 Hỏi (S0–S10) | **chạy trong** | route RAG (hỏi quy trình) và HYBRID (số + quy trình), ở S6–S7 | trả số liệu |
+| L2 Hỏi (S0–S10) | **chạy trong** | route RAG (hỏi quy trình) và HYBRID (số + quy trình), ở S6–S7 | trả số vận hành |
 | L3 Làm (COMMAND) | **chạy trong**, gián tiếp | đưa căn cứ kèm trích dẫn vào phiếu, ví dụ "theo SOP-FUEL-01 bước 1: lập biên bản trong 24 giờ" | quyết định có tạo phiếu hay không; đó là việc của luật và quyền |
 | L4 Quy trình | **chạy trong**, gián tiếp | giải thích bước hiện tại theo quy trình đang hiệu lực | **điều khiển** máy trạng thái. SOP do người dịch thành luật có phiên bản |
 | L5 Sự kiện | không | — | — |
@@ -305,7 +305,7 @@ Luật không lộ, khớp `docs/viec/1-hanh-dong/HOP-DONG.md` §4.4: người h
 ### 6.4 Truy hồi
 
 - **Từ khoá:**
-  - tiếng Việt: NFC, thêm dạng bỏ dấu, tách từ;
+  - tiếng Việt: NFC, thêm dạng bỏ dấu. Tách từ KHÔNG mặc định: một hệ đã đo thấy nó bẻ mã số (truy vấn mã khớp 0/2 so với 2/2) và tốn 826–896 ms mỗi lần nạp [NGOÀI]; chỉ thêm khi đo trên câu văn tiếng Việt thấy hơn;
   - giỏi mã số, "Điều 17", mã phiếu.
   - EAIS hiện có: chấm IDF, bỏ dấu, trong bộ nhớ hoặc Postgres [CODE].
 - **Vector (khi có cổng):** dùng `pgvector` trong cùng Postgres, có RLS.

@@ -403,11 +403,11 @@ tài liệu → đọc / OCR → chia đoạn → chỉ mục → truy xuất (l
 
 | Bước | HIỆN CÓ | Test | Thiếu |
 |---|---|---|---|
-| tài liệu | Markdown + `acl.json` (`intelligence/rag/rag.go:197-219`); bảng `documents` | `TestWinRatchet` (nạp gián tiếp) | phiên bản tài liệu, metadata (loại, hiệu lực) |
+| tài liệu | Markdown + `acl.json` (`intelligence/rag/rag.go:197-219`); bảng `documents` | `TestWinRatchet` (nạp gián tiếp); bản / trạng thái / hiệu lực / phạm vi trên PG: `TestCaTriThucQuaPG`, `TestPhamViQuaPG` (nhánh RAG U6a, migration 0005) | loại tài liệu |
 | đọc / OCR | chỉ `.md` | — | PDF / OCR / bảng cho tài liệu tri thức |
 | chia đoạn | mỗi dòng không rỗng một đoạn (`rag.go:117-126`) | `TestRetrieveTenantVaACL`, `TestRetrieveTatDinh` | chia theo cấu trúc / bảng |
 | chỉ mục | từ khoá + IDF trong bộ nhớ (`rag.go:109-132`); đường PG đọc mọi tài liệu được phép rồi dựng lại chỉ mục mỗi lượt (`platform/pgstore/pgstore.go:164-194`) | `TestRetrieveLuatDauVaCumNghiVan` | embedding, vector, tsvector, hybrid + RRF |
-| truy xuất | lọc tenant + ACL theo vai (`rag.go:147-195`, `allowed` ở `rag.go:134-143`; SQL `WHERE acl && $1::text[]` ở `pgstore.go:175`); capability `documents.read` kiểm ở router | `TestRetrieveACLRongKhongAiDoc`, `TestHoiQuyTrinh`, `TestRetrieveACL` (PG) | ACL theo phạm vi thực thể: `TestHoiQuyTrinh` hiện đang khoá hành vi kỹ sư phạm vi PRJ-B vẫn đọc SOP |
+| truy xuất | lọc tenant + ACL theo vai (`rag.go:147-195`, `allowed` ở `rag.go:134-143`; SQL `WHERE acl && $1::text[]` ở `pgstore.go:175`); capability `documents.read` kiểm ở router | `TestRetrieveACLRongKhongAiDoc`, `TestHoiQuyTrinh`, `TestRetrieveACL` (PG) | tài liệu khai `scope` thì lọc theo phạm vi (U6a, ACL và phạm vi cùng một vai); SOP của seed chưa khai phạm vi nên `TestHoiQuyTrinh` vẫn khoá hành vi kỹ sư phạm vi PRJ-B đọc SOP |
 | (rerank) | — | — | ĐÍCH, có cổng (§9) |
 | ngữ cảnh | 3 đoạn đầu + giá trị có kiểu (`core/pipeline/ask.go:38`, `:514-517`) | `TestHoiQuyTrinh` | khử trùng, ngân sách token, xung đột giữa đoạn |
 | model | 1 lời gọi (`ask.go:519-521`); mọi test dùng model giả tất định | `TestHoiQuyTrinh`, `TestHoiGhepSoLieuVaQuyTrinh` | — |
@@ -604,7 +604,7 @@ type Evidence struct {
 
 Mọi bảng nghiệp vụ có `tenant_id`, bật `ROW LEVEL SECURITY` + `FORCE`, chính sách đọc `current_setting('eais.tenant_id')`. Ứng dụng chạy bằng vai không có `BYPASSRLS`; khởi động **từ chối** chạy nếu vai có quyền vượt RLS.
 
-> **Trạng thái.** HIỆN CÓ: 4 bảng `entities`, `entity_aliases`, `facts`, `documents`, RLS ENABLE + FORCE, chính sách đọc `eais.tenant_id`, vai ứng dụng `eais_app` (`db/migrations/0001_win.sql`, `0002_dinh_danh_eais.sql`). "Từ chối vai vượt RLS" hiện là hàm `pgstore.Open` (`platform/pgstore/pgstore.go:23-45`); chưa có tiến trình dịch vụ khởi động. Các nhóm bảng khác trong bảng dưới: ĐÍCH.
+> **Trạng thái.** HIỆN CÓ: 4 bảng `entities`, `entity_aliases`, `facts`, `documents`, RLS ENABLE + FORCE, chính sách đọc `eais.tenant_id`, vai ứng dụng `eais_app` (`db/migrations/0001_win.sql`, `0002_dinh_danh_eais.sql`); `documents` có bản / trạng thái / hiệu lực / phạm vi từ `0005_tai_lieu_phien_ban.sql`. "Từ chối vai vượt RLS" hiện là hàm `pgstore.Open` (`platform/pgstore/pgstore.go:23-45`); chưa có tiến trình dịch vụ khởi động. Các nhóm bảng khác trong bảng dưới: ĐÍCH.
 
 | Nhóm | Bảng | Ghi chú |
 |---|---|---|

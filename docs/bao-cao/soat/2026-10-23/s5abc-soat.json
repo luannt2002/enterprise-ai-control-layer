@@ -1,0 +1,172 @@
+{
+ "ket_luan": {
+  "5a": "KHÔNG ĐẠT (nhẹ, 2 mục S2 sửa nhỏ). Hai lỗi gốc đã đóng thật: 72 ca tấn công riêng, main 30 cờ, 5a còn 13, 17 ca được đóng. Cả 13 cờ còn lại đều có sẵn trên main và nằm ngoài lỗi gốc. Test mới đỏ trên mã cũ ở cả hai commit. Không hồi quy test và winreport. Nhưng 5a gây hai thứ: (1) quét theo escape làm đảo cặp nháy, bí mật kế tiếp lọt khi giá trị trong nháy kết thúc bằng `\\` (main che, 5a lọt); (2) 5a không cập nhật scripts/dot-bien-vet.sh nên sau gộp hai dòng TV25 và TV27 báo 'chuỗi gốc xuất hiện 0 lần' (rc=2) và mất độ phủ đột biến.",
+  "5b": "ĐẠT CÓ GHI CHÚ. Lỗi gốc đóng thật đến tận HTTP, đo trên PG 17.11 thật: thiếu quyền ghi / RLS (42501) từ 503 thử 3 lần thành 500 thử 1 lần; vi phạm CHECK (23514) thành 409 thử 1 lần; lỗi tạm thời thật (55P03) vẫn 503 và thử 3 lần. Đối chiếu đủ 266 mã SQLSTATE của errcodes.txt PG17: các lớp 08, 40, 53, 57, 58 và 55P03 là hạ tầng, lớp 22 và 23 là dữ liệu, còn lại là lỗi của mã. 0 hồi quy, winreport bộ nhớ và PG không đổi. Chỉ còn S3 và S4: lỗi không có SQLSTATE vẫn bị thử lại (đã ghi trong comment), lớp 25, lộ thông điệp PG ở /v1/ingest, thiếu test lớp 58.",
+  "5c": "ĐẠT CÓ GHI CHÚ. Nền đỏ thật sự chặn đo (rc=5, 0 'BỊ BẮT' giả) và nền được đệm với khoá đúng cho thay đổi đã stage, tệp chưa track (kể cả đổi nội dung), thư mục khác, DSN khác, tệp nhị phân đã track, và quá 60 phút. Hai cây chạy song song không giẫm đệm. Đột biến migration trên database vừa dựng vẫn 'BỊ BẮT' (MV1 thật; w4 26/26). MUTATE_TEST_MUON khớp tên test con. Hạn chế đã đo: chỉ dot-bien-vet.sh đếm rc 5/6 là 'khác' và thoát 1, còn w4-pg-rls.sh với nền đỏ in 26 dòng NỀN ĐỎ nhưng thoát 0; khoá đệm bỏ sót tệp bị .gitignore; 'đỏ ở test nhắm tới' chỉ là tùy chọn, không danh mục nào dùng; hai commit cho một lỗi."
+ },
+ "phat_hien": [
+  {
+   "nhanh": "5a",
+   "ma": "5a-1",
+   "muc": "S2",
+   "mo_ta": "Hồi quy lọt bí mật do 5a: quét nháy theo escape (`\\\\[\\s\\S]`) coi `\\\"` là nháy thoát. Với văn bản KHÔNG phải JSON, khi giá trị trong nháy kết thúc bằng `\\` rồi nháy đóng thì nháy mở của bí mật kế tiếp bị nuốt làm nháy đóng, và bí mật kế tiếp lọt. Main che đúng cả hai. JSON đúng chuẩn (`\\\\\"`) vẫn che đủ. [CODE][ĐO]",
+   "bang_chung": "[ĐO] 6 ca tay, main che đủ 6, 5a lọt 4: `password=\"ab\\\" token=\"ZQX77pw\"` → 5a ra `password=\"[REDACTED]\"ZQX77pw\"`; dạng phẩy `password=\"ab\\\", api_key=\"…\"`; nháy đơn; và `secret=\"C:\\\\share\\\" owner=bob token=\"…\"`. [ĐO] Fuzz tất định 400.000 chuỗi ghép từ 38 token: 8.534 đầu ra khác main; 5a che nhiều hơn ở 969 ca, lộ nhiều marker hơn main ở 69 ca (0,017%). Tệp: scratchpad/s5abc-attack2_test.go, s5abc-fuzz_test.go, s5abc-fuzzcmp.py.",
+   "de_xuat": "Hoặc chấp nhận có chủ đích: ghi vào mục 'Giới hạn đã biết' và thêm test khoá ca này. Hoặc xử lý: sau khi che bằng bản quét theo escape, chạy thêm lượt che các cặp `khoá=\"` còn sót trên phần đuôi; hoặc khi số nháy lẻ thì che tới hết dòng như nhánh 'nháy không đóng'."
+  },
+  {
+   "nhanh": "5a",
+   "ma": "5a-2",
+   "muc": "S2",
+   "mo_ta": "Công cụ đột biến hỏng sau khi gộp 5a: scripts/dot-bien-vet.sh có hai dòng TV25 và TV27 dựng đột biến từ biến RX_Q là dạng regex CŨ `(?:(\")[^\"]*\"?|(')[^']*'?|[^\\s\"',;&]+)`. Dạng này không còn trong sanitize.go sau 5a nên mutate.sh trả 'chuỗi gốc xuất hiện 0 lần' (rc=2). Runner đếm rc=2 là 'khác' nên thoát 1 và mất độ phủ cho 'nháy không đóng' và 'đuôi giá trị có khoảng trắng'. Tiêu đề tệp dặn đây là việc phải làm khi mã đổi. [REPO][ĐO]",
+   "bang_chung": "[REPO] `git diff 146c2b0 86cc8ea --stat` chỉ có sanitize.go và sanitize_test.go. [ĐO] Cây main+5a+scripts của 5c, chạy nguyên văn dòng 110–139 của dot-bien-vet.sh: TV1–TV24 và TV26 'BỊ BẮT'; TV25, TV27: 'chuỗi gốc xuất hiện 0 lần, cần đúng 1' rc=2. [CODE] dot-bien-vet.sh: `*) khac=$((khac + 1))` và dòng cuối `[ \"$khac\" -eq 0 ]`.",
+   "de_xuat": "Cập nhật TV25, TV27 theo regex mới và thêm vào catalog các đột biến thoát nháy (U3, U4, U5, U6 của tôi), cùng commit với 5a."
+  },
+  {
+   "nhanh": "5a",
+   "ma": "5a-3",
+   "muc": "S3",
+   "mo_ta": "Test mới không chứng minh hết điều commit và comment nói. Đột biến tay của tôi: U1, U3, U4, U5 bị hai test mới bắt. U8 (bỏ `?` sau nháy đóng) chỉ bị test cũ bắt. Sống sót: U6 (Cookie nháy đơn bỏ xử lý thoát); U7 (`\\\\.` thay `\\\\[\\s\\S]`, tức lời 'kể cả xuống dòng' không có test); U9 (mật khẩu URL phải từ 2 ký tự); U10 (bỏ `@` khỏi kết quả che, ra `postgres://:[REDACTED]127.0.0.1:5432/eais`) vì test chỉ kiểm chuỗi con `keep`, không kiểm đầu ra đúng từng ký tự.",
+   "bang_chung": "[ĐO] scripts/mutate.sh của 5c, MUTATE_TEST_MUON='TestSanitizeCheURLNguoiDungRong|TestSanitizeCheGiaTriCoNhayThoat': U1 rc=0 (TestSanitizeCheURLNguoiDungRong); U3, U4, U5 rc=0 (TestSanitizeCheGiaTriCoNhayThoat); U8 rc=6 (đỏ ở TestSanitizeCheDuoiGiaTriCoKhoangTrang); U6, U7, U9, U10 rc=3. Tệp: scratchpad/s5abc-5a-mut.py, kết quả s5abc-out/5a-mut.txt.",
+   "de_xuat": "Thêm ca Cookie nháy đơn thoát, ca `\\` + xuống dòng thật, ca mật khẩu 1 ký tự, và so đúng chuỗi đầu ra cho hai ca URL."
+  },
+  {
+   "nhanh": "5a",
+   "ma": "5a-4",
+   "muc": "S3",
+   "mo_ta": "Các đường lọt bí mật CÓ SẴN trên main (không do 5a, ngoài hai lỗi gốc) mà 'Giới hạn đã biết' chưa ghi: (a) mật khẩu URL có `@` thô: `postgres://u:ab@ZQX77pw@h/db` → `…:[REDACTED]@ZQX77pw@h/db`; (b) có `/` thô: không che gì; (c) JSON bị thoát nằm trong chuỗi `{\"msg\":\"{\\\"password\\\":\\\"ZQX77pw\\\"}\"}` không che (khoá đứng sau `\\\"`); (d) mảng `\"password\":[\"a\",\"ZQX77pw\"]` chỉ che `[`; (e) giá trị trần có `; , & \"` lọt đuôi; (f) `Cookie: \"a=1\"; sid=ZQX77pw` lọt. Còn 1 ca che oan `http://host:8080,me@x.com` → `http://host:[REDACTED]@x.com`.",
+   "bang_chung": "[ĐO] 13 cờ còn lại sau 5a đều có mặt trên main (gồm 1 ca do chính tôi dựng sai: json-escaped-sep dùng `\\n` hai ký tự). Tệp: scratchpad/s5abc-attack_test.go, kết quả s5abc-out/atk-main.txt và atk-5a.txt.",
+   "de_xuat": "Ghi vào comment 'Giới hạn đã biết' hoặc mở lượt riêng; ưu tiên (a), (d), (f)."
+  },
+  {
+   "nhanh": "5a",
+   "ma": "5a-5",
+   "muc": "S4",
+   "mo_ta": "Tính idempotent của Sanitize không phổ quát: fuzz 400.000 chuỗi, main 13 và 5a 20 chuỗi mà Sanitize(Sanitize(x)) ≠ Sanitize(x), ví dụ `'[postgres://Authorization:@'api_key@:\\`. Thêm 7 ca do 5a. Test của 5a chỉ khẳng định idempotent cho các ca đã chọn. Thời gian: không đổi so với main (RE2 tuyến tính).",
+   "bang_chung": "[ĐO] s5abc-fuzz_test.go (hạt 12345). Thời gian: 2 MB chữ `a` 356 ms; 4,2 MB `\"password\":\"\\\"` lặp 776 ms (main 777 ms); 2 MB gạch chéo ngược 107 ms. Tất cả 1–4 MB trong 0,1–0,8 s, 5a bằng main.",
+   "de_xuat": "Không cần chặn. Nếu giữ lời hứa idempotent thì ghi 'trên đầu vào thường'."
+  },
+  {
+   "nhanh": "5b",
+   "ma": "5b-1",
+   "muc": "S3",
+   "mo_ta": "Lỗi không mang SQLSTATE vẫn bị gắn hạ tầng, nên tất định mà vẫn thử lại 3 lần và 503: pgx.ErrNoRows (Scan không dòng), lỗi Scan sai kiểu, pgx.ErrTxCommitRollback (fn nuốt lỗi), errors.New của fn, ngữ cảnh huỷ / hết hạn, pool đã đóng. Comment ở pgerr.go đã nêu 'Giới hạn đã biết'. Trong pgstore hiện tại các hàm Save/Load/Decision đều đổi lỗi đã gặp thành nhãn rõ hoặc lỗi từ máy chủ (có SQLSTATE), nên tôi không thấy dữ liệu người dùng nào dẫn tới các đường này. [CODE][ĐO]",
+   "bang_chung": "[ĐO] s5abc-pgcls_test.go chạy qua inTenant trên PG thật: ErrNoRows, Scan sai kiểu, ErrTxCommitRollback, errors.New đều ra 'infra:postgres thử-lại=true HTTP=503'; cổng đóng ⇒ hạ tầng; vai / database không tồn tại ⇒ 'code' 500.",
+   "de_xuat": "Giữ; cân nhắc gắn FaultCode cho ErrNoRows / lỗi Scan / ErrTxCommitRollback."
+  },
+  {
+   "nhanh": "5b",
+   "ma": "5b-2",
+   "muc": "S3",
+   "mo_ta": "Lớp 25 rơi vào 'code' 500 không thử lại: 25006 read_only_sql_transaction (gặp lúc failover sang máy chờ), 25P03 idle_in_transaction_session_timeout, 25P04 transaction_timeout (mới ở PG 17). Ba mã này cùng bản chất với 57014 / 57P05 mà tác giả coi là hạ tầng. Ngược lại 57P04 database_dropped là hạ tầng dù vĩnh viễn (vô hại). Các nhánh còn lại đúng với errcodes.txt (266 mã).",
+   "bang_chung": "[ĐO] /usr/share/postgresql/17/errcodes.txt trong container eais-pg (PG 17.11) qua classifyPGError: hạ tầng = lớp 08, 40, 53, 57, 58 và 55P03; dữ liệu = lớp 22, 23; còn lại 'code'. RAISE ERRCODE trên máy chủ thật: 25006, 25P03, 25P04 đều ra 'code' thử-lại=false HTTP=500.",
+   "de_xuat": "Thêm 25006, 25P03, 25P04 vào hạ tầng nếu muốn chịu được failover và cấu hình timeout."
+  },
+  {
+   "nhanh": "5b",
+   "ma": "5b-3",
+   "muc": "S3",
+   "mo_ta": "5b mở thêm đường lộ thông điệp PG nội bộ: POST /v1/ingest với lỗi lớp 22 / 23 giờ ra 409 kèm thông điệp PG thô (tên bảng, tên ràng buộc, giá trị sai), trước đó là câu chung 'lỗi hệ thống…' 503. Handler cố ý in msg khi fault='data' (chỉ vai toàn quyền). Ngoài ra ask(): lỗi 22 / 23 khi ghi vết do CHÍNH server dựng ⇒ 409, đổ cho client, trong khi ask() đã đổi input / policy thành 500 vì lý do đó nhưng không đổi 'data'.",
+   "bang_chung": "[ĐO] Overlay cmd/eais trên PG thật: ingest + CHECK (23514) ⇒ 409 body `{\"error\":\"ERROR: new row for relation \\\"facts\\\" violates check constraint \\\"s5abc_fchk\\\" (SQLSTATE 23514)\",\"fault\":\"data\"}`; ask + CHECK (23514) ⇒ 409 `fault:data` thân 'không lưu được vết…'. Main: cả hai 503. Tệp: scratchpad/s5abc-http_test.go.",
+   "de_xuat": "Ở ingest, vẫn công bố mã SQLSTATE nhưng không công bố tên bảng, ràng buộc; ở ask() đổi cả FaultData của bản ghi tự dựng sang 500."
+  },
+  {
+   "nhanh": "5b",
+   "ma": "5b-4",
+   "muc": "S3",
+   "mo_ta": "Khoảng trống test: (1) lớp 58 không có ca nào (đột biến bỏ 58 khỏi hạ tầng sống sót, dù comment và commit liệt kê 58); (2) không có test ở cmd/eais cho 'lỗi tất định không bị thử lại' (tôi tự đo ở mức HTTP, xem bảng); (3) biên âm không bị khoá: thêm lớp 25, 28 hay 3D vào hạ tầng vẫn xanh (S4). Đột biến B1–B8, B10–B13, B17 đều bị test mới bắt; B13 (inTenant trả về nhãn hạ tầng cho mọi lỗi) chỉ bị TestLoiPGThatQuaInTenant bắt, tức cần PG.",
+   "bang_chung": "[ĐO] mutate.sh 5c với PKGS=./platform/pgstore/ trên PG riêng, MUTATE_TEST_MUON='TestPhanLoaiLoiPG|TestLoiPGThatQuaInTenant': B9 rc=3, B14, B15, B16 rc=3; còn lại rc=0. Bảng HTTP (main → 5b): A ask 42501: 503 saves=3 → 500 saves=1; B ask 23514: 503 saves=3 → 409 saves=1; C trace GET 42501: 503 → 500; D ingest 42501: 503 → 500; E ingest 23514: 503 → 409; F ask 55P03: 503 saves=3 → 503 saves=3; G đối chứng 200.",
+   "de_xuat": "Thêm ca 58030 (và 58000) vào TestPhanLoaiLoiPG; thêm một test cmd/eais kiểu A / B."
+  },
+  {
+   "nhanh": "5b",
+   "ma": "5b-5",
+   "muc": "S4",
+   "mo_ta": "Chú thích lỗi thời sau gộp: platform/pgstore/tenanttx.go (K2, đã ở main baaf834) viết 'inTenant … gom MỌI lỗi … vào nhãn infra:postgres'. Sau 5b điều đó không còn đúng. Ngoài ra hiện có hai nơi phân loại lỗi PG: pgerr.go (thử lại hay không) và execution/commands/pgticket.go (đã ghi hay chưa); hai việc khác nhau nhưng dễ lệch nhau về sau.",
+   "bang_chung": "[REPO] tenanttx.go, đoạn comment 'Khác inTenant ở đúng một chỗ…'.",
+   "de_xuat": "Sửa câu trong tenanttx.go khi gộp."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-1",
+   "muc": "S3",
+   "mo_ta": "Tiêu chí 'các runner đếm mã thoát 5 / 6 là khác và thoát khác 0' chỉ đúng cho scripts/dot-bien-vet.sh. w4-pg-rls.sh (5c đã sửa) và 15 danh mục scripts/dot-bien/*.sh chỉ in `rc=$?`, không đếm và không có dòng tổng nên với nền đỏ vẫn thoát 0. Không có 'BỊ BẮT' giả nên không phải S1. Nếu chủ dự án coi đây là tiêu chí nhận thì nâng lên S2. [CODE][ĐO]",
+   "bang_chung": "[ĐO] dot-bien-vet.sh thật, DOT_BIEN_CHIA=0/1000, DSN ứng dụng hỏng: 'NỀN ĐỎ', rc=5, 'TỔNG: bị bắt 0 · sống sót 0 · khác 1', thoát 1; nền xanh: MV1 'BỊ BẮT', 'TỔNG: bị bắt 1 · sống sót 0 · khác 0', thoát 0. [ĐO] w4-pg-rls.sh nền xanh: 26/26 'BỊ BẮT', THOAT=0; DSN ứng dụng hỏng: 26 dòng 'NỀN ĐỎ' rc=5, 0 'BỊ BẮT', THOAT=0.",
+   "de_xuat": "Thêm bộ đếm và dòng cuối `[ \"$khac\" -eq 0 ]` cho w4-pg-rls.sh; cân nhắc làm hàm m() dùng chung cho các danh mục."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-2",
+   "muc": "S3",
+   "mo_ta": "Khoá đệm nền bỏ sót tệp bị .gitignore: sau nền XANH, đổi một tệp bị bỏ qua mà test đọc thành đỏ thì không chạy lại nền, và đột biến bị báo 'BỊ BẮT' do test đỏ vì tệp đó chứ không do đột biến. Trong repo này .gitignore chỉ có docs/sources/, tenants/*/real/, **/*.real.*, *.local.md, .env, .claude/worktrees/; tôi không thấy test nào đọc chúng nên đây là lỗ hổng lý thuyết [SUY].",
+   "bang_chung": "[ĐO] T4b trên module tạm: sau nền XANH, `echo bad > ignored.txt` ⇒ 'BỊ BẮT: TestF TestS TestS/sub TestIgn' (rc=0, mong rc=5). Các ca còn lại đúng mong đợi: sửa test đã stage ⇒ 5; thêm test đỏ đã stage ⇒ 5; đổi NỘI DUNG tệp chưa track ⇒ 5; bản sao ở thư mục khác ⇒ 5; DSN khác ⇒ 5; tệp nhị phân đã track ⇒ 5; đệm quá 60 phút ⇒ chạy lại. Tệp: scratchpad/s5abc-mu-run.sh.",
+   "de_xuat": "Thêm `git ls-files -z --others --ignored --exclude-standard` vào khoá, hoặc ghi rõ giới hạn trong phần đầu mutate.sh."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-3",
+   "muc": "S3",
+   "mo_ta": "'Bị bắt chỉ tính khi test đỏ là test nhắm tới' chỉ là tùy chọn (MUTATE_TEST_MUON); không danh mục nào đặt biến này, nên trong các danh mục hiện có, đỏ ở bất kỳ test nào vẫn là 'BỊ BẮT'. Nhờ nền xanh thì mọi đỏ vẫn do đột biến gây ra, chỉ không chắc là test nhắm tới. MUTATE_TEST_MUON khớp đúng tên test con: ^TestS/sub$ ⇒ bắt, ^TestG$ ⇒ rc 6, TestS/oth ⇒ rc 6.",
+   "bang_chung": "[REPO] grep 'MUTATE_TEST_MUON' ở cây 5c: chỉ mutate.sh và mutate_test.go. [ĐO] T9a–T9d trên module tạm.",
+   "de_xuat": "Dần dần khai MUTATE_TEST_MUON cho các dòng quan trọng (ví dụ MV*, SV*), hoặc sinh từ nhãn."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-4",
+   "muc": "S3",
+   "mo_ta": "Tài liệu đã khoá trích sai sau 5c: docs/viec/m5-cong-truoc-ai/S9-HOP-DONG-DO.md:517 nêu mã thoát 0 / 3 / 4 (thiếu 5, 6), :619 nói 'không chạy nền' và trích `scripts/mutate.sh:1-8`, `:25-26`, `:34-35` (dòng đã dời).",
+   "bang_chung": "[REPO] grep trong cây 5c.",
+   "de_xuat": "Cập nhật hai dòng, hoặc ghi 'trước 5c'."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-5",
+   "muc": "S4",
+   "mo_ta": "Trái điều (d) 'mỗi lỗi đúng một commit': 5c có hai commit cho một lỗi. 4a08a1b là sửa chữa khoá đệm của 839ffbd, và trên khoá của 839ffbd test thứ tư đỏ với 'BỊ BẮT: TestF TestDoSan'.",
+   "bang_chung": "[ĐO] chạy mutate_test.go với mutate.sh của 839ffbd: TestMutateNenDoiKhiCoTepChuaTrack FAIL (rc 0, 'BỊ BẮT: TestF TestDoSan'); với mutate.sh cũ của main cả 4 test đỏ; với bản mới xanh. Hai commit không chứa đường dẫn máy hay bí mật; 0 dòng thêm khớp mẫu /home/, /tmp/claude, khoá.",
+   "de_xuat": "Squash hai commit thành một."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-6",
+   "muc": "S4",
+   "mo_ta": "Test mới không kín với môi trường gọi: cmd.Env kế thừa os.Environ() nên biến MUTATE_* ngoài ghi đè kỳ vọng. Chạy dưới MUTATE_NEN_CO_SAN=1 làm 3 test FAIL; dưới MUTATE_TEST_MUON=^TestZ$ làm 2 test FAIL. Chỉ xảy ra nếu PKGS của một lượt đột biến chứa ./scripts/kiemcongcu hoặc dùng ./...; PKGS=./nonexistent/ không ảnh hưởng vì test tự đặt PKGS.",
+   "bang_chung": "[ĐO] go test -count=1 ./scripts/kiemcongcu/ với từng biến.",
+   "de_xuat": "Lọc os.Environ() bỏ MUTATE_* và PKGS trước khi thêm env của test."
+  },
+  {
+   "nhanh": "5c",
+   "ma": "5c-7",
+   "muc": "S4",
+   "mo_ta": "Có từ trước, không do 5c: đột biến gây lỗi cấp gói không có dòng '--- FAIL' (ví dụ panic trong init()) bị báo 'SỐNG SÓT' (rc=3), chiều an toàn nhưng sai nhãn; nền thì dùng mã thoát còn lượt đột biến dùng grep, hai luật khác nhau. Nền 'DO' cũng được đệm 60 phút (lối thoát MUTATE_NEN_PHUT=0 không nêu trong thông báo).",
+   "bang_chung": "[ĐO] T10: đột biến thêm `func init() { panic(\"boom\") }` ⇒ '[T10] SỐNG SÓT — chưa có test nào đỏ' rc=3; T16: MUTATE_NEN_PHUT=0 ⇒ chạy lại nền.",
+   "de_xuat": "Coi 'FAIL\\t<gói>' hay panic là đỏ; nêu MUTATE_NEN_PHUT=0 trong thông báo NỀN ĐỎ."
+  },
+  {
+   "nhanh": "chung",
+   "ma": "X-1",
+   "muc": "S4",
+   "mo_ta": "origin/main đã di chuyển trong lúc soát (ef9c972 → e1ce950 lúc 10:32 → baaf834). 5a dựa trên 146c2b0; 5b, 5c dựa trên ef9c972. Cả ba gộp sạch (merge-tree) vào ef9c972, e1ce950 và baaf834. Tôi ghim so sánh ở ef9c972 rồi kiểm lại cây gộp cả ba trên baaf834.",
+   "bang_chung": "[ĐO] baaf834 vs baaf834 + 5a + 5b + 5c: vet 0 dòng, gofmt -l sạch, go test không PG 1024 → 1032 test (952 → 959 pass, 72 → 73 skip), có PG 1054 → 1062 pass; 0 mất, 0 đổi kết quả (so theo tên). Trên ef9c972: 746 → 754 (không PG) và 760 → 768 (có PG).",
+   "de_xuat": "Không cần làm gì; dán các số trên vào MR."
+  }
+ ],
+ "da_kiem": [
+  "[ĐO] Mỗi nhánh một worktree detached của tôi, gỡ hết sau khi xong; ba nhánh nguồn không đổi (86cc8ea, 7cc8b35, 4a08a1b); repo gốc git status sạch; không push. Database riêng s5abc_main/5a/5b/5c/dbv/w4/k2base/k2all đã DROP; 4 database cấm (eais, eais_giu_lai, moc_h4_7d72e33, eais_m1kiem) còn nguyên, không còn eais_vet_* hay eais_test_vet_* sót.",
+  "[ĐO] (b) Tại ef9c972: go vet ./... 0 dòng và gofmt -l 0 tệp ở cả 4 cây (main, 5a gộp, 5b, 5c) và cây gộp cả ba. go test -count=1 -json ./... so THEO TÊN với main: không PG 746 (715 pass, 31 skip) → 5a 748, 5b 748 (716 pass, 32 skip), 5c 750, cả ba 754; có PG (database s5abc_*) 760 → 762 / 762 / 764 / 768; 0 mất, 0 đổi, 0 gói đổi kết quả. 5a nhánh đơn trên nền 146c2b0 cũng xanh (observability, core, platform).",
+  "[ĐO] winreport: bộ 117, H1, H3, H4 đường bộ nhớ chạy trên 4 cây (main, 5a gộp, 5b, 5c) so với lead-r203g/{117,h1-mem,h3-mem,h4-mem}.txt: 0 dòng khác từ dòng 3; hai dòng đầu chỉ khác thời gian. Thêm đường PG của 5b (117, H1, H3, H4) so với h1-pg, h3-pg, h4-pg (117 so với 117.txt): 0 dòng khác.",
+  "[ĐO] 5a (a): 72 ca tấn công riêng chạy bằng -overlay, không ghi vào worktree: mọi scheme URL, người dùng rỗng và có %, mật khẩu ký tự lạ, nháy thoát lồng, `//`, JSON lồng, Cookie / Set-Cookie nhiều cặp, che oan (URL không thông tin đăng nhập, số, mã, băm, chuỗi thường có nháy thoát), idempotent, thời gian trên chuỗi 1–4 MB; cộng fuzz so lệch 400.000 chuỗi main và 5a. Test mới đỏ trên mã cũ ở cả hai commit (146c2b0 và 66e2ddb).",
+  "[ĐO] 5b (a): toàn bộ 266 mã SQLSTATE của errcodes.txt PG 17.11 qua classifyPGError; 29 mã thật (RAISE ERRCODE) và 8 loại lỗi pgx qua inTenant trên PG thật; lỗi kết nối thật (cổng đóng, vai / database không tồn tại, pool đóng, ngữ cảnh huỷ). Đối chiếu nơi gọi bằng grep: contracts.Retryable chỉ ở retry() trong persist (SaveDecision, SaveUsage); HTTPStatus ở ask, ingest, traceGet. HTTP thật qua cmd/eais (overlay, PG riêng) cho ask, trace GET, ingest: bảng A–G, lỗi tạm thời thật vẫn 503 và thử 3 lần.",
+  "[ĐO] 5c (a): mutate.sh trên module tạm với 16 kịch bản (staged, tệp chưa track mới và đổi nội dung, nhị phân, ignore, thư mục khác, DSN khác, 2 cây song song × 6 lượt: 0 lỗi, 0 tệp .nen.* mồ côi, nền đỏ, MUON với test con, đệm quá hạn); dot-bien-vet.sh thật (MV1, nền xanh và nền đỏ); w4-pg-rls.sh đủ 26 đột biến (nền xanh) và nền đỏ; test của 5c đỏ trên mutate.sh cũ của main (cả 4), đỏ ở test thứ tư trên 839ffbd, xanh trên bản mới; bash -n sạch.",
+  "[ĐO] (c) Đột biến tay: 5a U1–U10 (4 bị test mới bắt, 1 chỉ test cũ, 4 sống); 5b B1–B17 (13 bị bắt, 4 sống: lớp 58 và 3 biên âm); khối TV của catalog trên cây 5a + 5c: 25/27 bị bắt, 2 rc=2.",
+  "[REPO] (d) Commit: 5a 2 (URL, nháy thoát), 5b 1, 5c 2 (trái điều 'mỗi lỗi một commit'). Dòng thêm của cả ba nhánh: 0 khớp /home/, /tmp/claude, AKIA, ghp_, khoá riêng PEM; bí mật trong test chỉ là chuỗi giả (hunter2pw, ZQX…)."
+ ],
+ "khong_kiem_duoc": [
+  "Không kiểm được lỗi PG thật do máy chủ tự gây (57P01 / 57P03 khi PG tắt và khởi động, 08006 đứt mạng giữa chừng, failover làm 25006): container eais-pg đang dùng chung nên tôi không dừng nó. Các mã này chỉ mô phỏng bằng RAISE ERRCODE (trả đúng mã nhưng không phải sự cố thật). Chỉ có PG 17.11, chưa thử phiên bản khác.",
+  "Không chạy toàn bộ catalog scripts/dot-bien-vet.sh (hàng trăm đột biến, gồm các khối R2-03 WV / IV / RV / AV / DV / XV và họ sinh tự động NV / QV / LV). Chỉ chạy MV1 qua runner thật và khối TV (dòng 110–139) tay. Không chạy 15 danh mục scripts/dot-bien/*.sh khác (chỉ đọc mã); không chạy scripts/chay-thu.sh theo luật.",
+  "Không kiểm hành vi mutate.sh khi đệm nằm ở /tmp dùng chung nhiều người dùng (người khác có thể đặt sẵn tệp XANH) hay khi git thiếu hoặc khi gọi từ thư mục con, chỉ đọc mã [SUY]. Không có shellcheck trên máy.",
+  "Không kiểm ảnh hưởng của cổng giữ chữ của vết (core/pipeline/ask.go:213) trên một lượt hỏi thật có chứa URL người-dùng-rỗng hay nháy thoát: winreport không có ca dạng đó nên 'câu trả lời không đổi' chỉ được chứng minh trên bộ 117 / H1 / H3 / H4 [SUY cho phần còn lại]. Cổng chỉ ảnh hưởng chữ trích dẫn trong vết, không ảnh hưởng câu trả lời.",
+  "Không chạy fuzz so lệch cho 5b và 5c, và không đo thời gian regexp trên đầu vào thật của hệ thống; số đo thời gian chạy trên máy dùng chung 16 vCPU (có tải của việc khác) nên chỉ dùng được như so sánh tương đối main so với 5a.",
+  "Không đọc docs/sources/, docs/g7/holdout-p1/, H5 theo luật; chỉ truyền đường dẫn bộ ca H1 / H3 / H4 cho winreport, không mở nội dung. Không kiểm được ý định của tác giả ngoài những gì có trong mã, commit và tài liệu.",
+  "Không đánh giá được tác động vận hành thật của thay đổi 5b lên phía client (cách client xử lý 409 / 500 thay cho 503), chỉ đo mã trạng thái và số lần thử."
+ ]
+}

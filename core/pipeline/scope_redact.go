@@ -20,12 +20,15 @@ import (
 // S3.Output / S4.Input, dòng "khe … thiếu: câu nêu N thực thể (…)" của S4 đều từng lộ khoá ngoài phạm vi.
 //
 // Luật: chỉ thực thể đã xuất hiện trong lượt (Resolution, intent.Result, khe của kế hoạch, ứng viên câu hỏi lại) được xét; danh mục được đọc
-// MỘT lần mỗi lượt để tra tổ tiên (soát C8–C11 vòng 2, C9-CHI-PHI). Khoá, mã và tên được xét RIÊNG từng thứ (soát C8–C11 vòng 2, C9-ID-KHAC-KHOA): thứ nào câu hỏi tự chứa (so theo
-// entityresolution.Key: "dz03", "DZ 03" đều là "DZ-03") thì giữ — người hỏi đã biết nó, và lý do từ chối cần nêu đúng thứ họ hỏi (chốt F4: khoá
-// được kể, tên / loại thì không); thứ còn lại bị che, nên gõ khoá không làm lộ mã nội bộ khi mã khác khoá. Không tra được tổ tiên ⇒ che (đóng
-// mặc định).
-// Người có phạm vi dữ liệu không hạn chế: không che gì. Còn lộ được: SỐ ứng viên ngoài phạm vi (dấu thay thế giữ chỗ) và vị trí của dấu thay
-// thế trong một danh sách đã sắp xếp; luồng hỏi trước nay vẫn kể số ứng viên bị loại.
+// MỘT lần mỗi lượt để tra tổ tiên (soát C8–C11 vòng 2, C9-CHI-PHI). Khoá, mã và tên được xét RIÊNG từng thứ (C9-ID-KHAC-KHOA): thứ nào câu hỏi
+// tự chứa (so theo entityresolution.Key: "dz03", "DZ 03" đều là "DZ-03") thì giữ — người hỏi đã biết nó, và lý do từ chối cần nêu đúng thứ họ hỏi
+// (chốt F4: khoá được kể, tên / loại thì không); thứ còn lại bị che, nên gõ khoá không làm lộ mã nội bộ khi mã khác khoá. Không tra được tổ tiên
+// (đọc danh mục lỗi, thực thể không có trong danh mục) ⇒ che (đóng mặc định). Người có phạm vi dữ liệu không hạn chế: không che gì.
+// Giới hạn đã biết: (1) còn lộ SỐ ứng viên ngoài phạm vi (dấu thay thế giữ chỗ) và thứ tự tương đối của chúng trong dòng lý do (ứng viên của cụm
+// mơ hồ sắp theo khoá; chỉ Decision.Entities dồn dấu thay thế về cuối) — C9-THU-TU-VI-TRI; (2) che theo chuỗi đứng riêng ở MỌI dòng, nên thực
+// thể ngoài phạm vi có khoá thuần số hay tên trùng từ của pack ("10", "erp") làm dòng khác mất chữ ("ưu tiên ‹ngoài phạm vi›") — vết khó đọc,
+// không đổi quyết định hay câu trả lời (C9-CHE-OAN-SO-VA-CHU-THUONG); (3) chỉ có hiệu lực cho bản ghi MỚI: bản ghi đã lưu trước đó không được che
+// lại khi đọc, và Replay một bản ghi cũ báo lệch "resolve" giả (C9-BAN-GHI-CU).
 type scopeRedactor struct {
 	tokens []string // khoá, mã, tên cần che — dài trước ngắn sau, để "PRJ-AB" không bị che dở thành "‹…›B" bởi "PRJ-A"
 }
@@ -94,7 +97,8 @@ func finalWhy(w traces.Why, red scopeRedactor) traces.Why {
 	return red.why(w).Compact(maxWhyLines, maxWhyLineRunes)
 }
 
-// entityRefs gom mọi thực thể mà một lượt đã thấy, để newScopeRedactor xét.
+// entityRefs gom mọi thực thể mà một lượt đã thấy, để newScopeRedactor xét. Nhiều nguồn trùng nhau (vd Mentioned là thực thể rõ, ứng viên câu hỏi
+// lại thuộc ứng viên của cụm mơ hồ): giữ cả, như lớp phòng thủ khi một nguồn đổi cách điền.
 func entityRefs(res contracts.Resolution, cls intent.Result, ci clarifyInfo, plans ...contracts.RoutePlan) [][]contracts.EntityRef {
 	out := [][]contracts.EntityRef{res.Entities, cls.Candidates, cls.Unclear.Entities, cls.Mentioned, ci.before, ci.shown}
 	for _, m := range res.Ambiguous {
@@ -130,7 +134,8 @@ func (r scopeRedactor) why(w traces.Why) traces.Why {
 	return w.Map(r.line)
 }
 
-// decision che Decision.Entities và Decision.Slots. Trong "?a|b|c" (cụm mơ hồ) các ứng viên bị che dồn về cuối, để thứ tự không gợi khoá.
+// decision che Decision.Entities và Decision.Slots. Trong "?a|b|c" (cụm mơ hồ) các ứng viên bị che dồn về cuối (dòng lý do thì chưa — xem giới hạn
+// (1) ở scopeRedactor).
 func (r scopeRedactor) decision(d *traces.Decision) {
 	if len(r.tokens) == 0 {
 		return

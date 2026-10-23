@@ -24,7 +24,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
 - **M1, bốn lỗi P2 của R2-03 (C8–C11, lệnh ca chiều 23/10), sửa qua hai vòng soát độc lập:** S5 của lượt chuyển người ghi lý do thật của
   việc ghi đè route (C8); vết của người hỏi phạm vi hạn chế không còn mang khoá / tên thực thể ngoài phạm vi mà họ không tự gõ — che ở MỘT
   chỗ cho mọi bề mặt của bản ghi (`core/pipeline/scope_redact.go`, dấu `‹ngoài phạm vi›`; khoá người hỏi tự gõ vẫn kể, tên thì không), kiểm
-  bằng test quét toàn bản ghi 2440 lượt (C9); router và luồng hỏi duyệt khe theo tên đã sắp xếp — ADR-0002 D18 (C10); test so route /
+  bằng test quét toàn bản ghi 2440 lượt (C9; vòng 2: khoá, mã, tên xét riêng, danh mục đọc một lần mỗi lượt; KHÔNG hồi tố — bản ghi đã lưu
+  trước đó không được che lại, Replay bản ghi cũ báo lệch "resolve" giả); router và luồng hỏi duyệt khe theo tên đã sắp xếp — ADR-0002 D18 (C10); test so route /
   outcome / câu trả lời / bản ghi quyết định giữa có vết và không vết, có công tắc `noWhy` CHỈ test trong gói đặt (C11).
 
 ### 22/10/2026 tối — bộ ca giữ lại Phase 1 đóng băng, ADR-0011 CHỐT; M1 đóng thêm ghi chú soát; bảng lệnh M5; đo người đọc vết lần 1

@@ -53,6 +53,9 @@ type Unsupported struct {
 	// NeedsValue: chỉ tính khi câu nêu một CON SỐ và không phải câu hỏi (lệnh ghi "Ghi nhận EX-03 tiêu thụ 3782 L"). Không có giá trị, hay là câu hỏi, thì cụm vẫn
 	// chiếm chỗ nhưng câu là câu hỏi số liệu như thường (D-OP-18 = c).
 	NeedsValue bool `yaml:"needs_value"`
+	// Signals: tín hiệu CẤU TRÚC của nghĩa này, ngoài danh sách cụm (xem ValidSignal): câu có nó thì mang nghĩa này dù không có chữ nào trong Cues. Cụm là danh
+	// sách theo HỌ NGHĨA (đánh đổi ghi ở ADR-0010); tín hiệu cấu trúc phủ phần danh sách không với tới (đơn vị tiền sau số, "bao nhiêu đồng", số tiền nói tắt).
+	Signals []string `yaml:"signals"`
 }
 
 // Options là chính sách phân loại do pack khai.
@@ -88,6 +91,8 @@ type Options struct {
 	// thuật ngữ đứng cạnh): "4 củ", "dầu 4,1 triệu" ngoài miền thì không phải giá trị của chỉ số; lượng viết rõ đơn vị ("80000 L" của cả tháng) không bị
 	// chặn. Không khai ⇒ không chặn.
 	ValueInRange func(metric string, v contracts.Value) bool
+	// UnitAliases trả mọi cách viết của các đơn vị thuộc một chiều đo ("currency" → đ, đồng, vnđ, vnd), lấy từ lexicon của pack — cho tín hiệu "asked_unit".
+	UnitAliases func(dimension string) []string
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -926,10 +931,18 @@ func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution
 
 // volumeFigure báo câu có một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo: lít, khối).
 func (s *Set) volumeFigure(in contracts.NormalizedInput) bool {
+	return s.volumeFigureIn(in, 0, len(in.Raw))
+}
+
+// volumeFigureIn là volumeFigure giới hạn ở khoảng byte [start, end) của câu.
+func (s *Set) volumeFigureIn(in contracts.NormalizedInput, start, end int) bool {
 	if s.opt.QuantityFits == nil {
 		return false
 	}
 	return slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool {
+		if sp.Start < start || sp.End > end {
+			return false
+		}
 		return slices.ContainsFunc(s.defs, func(d Def) bool {
 			for _, m := range d.MetricByTerm {
 				if s.opt.QuantityFits(m, sp.Value) {
@@ -996,14 +1009,71 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 	if len(prem) > 0 {
 		qStart = prem[len(prem)-1][1]
 	}
+	// Câu nêu một lượng cùng chiều đo với chỉ số ("3850 L") thì con số tiền kèm theo là phụ, câu vẫn là câu về lượng (cổng phán quyết đã không phán quyết khi
+	// có nhiều con số): tín hiệu cấu trúc của nghĩa tiền chỉ tính khi câu không có lượng như thế; cụm báo nghĩa ("tiền dầu") vẫn tính.
+	measured := s.volumeFigureIn(in, qStart, len(in.Raw))
 	var out []Unsupported
 	for _, u := range s.opt.Unsupported {
-		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 })
+		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 }) ||
+			(!measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return s.signalHit(sig, in, qStart, len(in.Raw)) }))
 		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {
 			out = append(out, u)
 		}
 	}
 	return out
+}
+
+// ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều
+// đo>" ("bao nhiêu" + đơn vị của chiều đo ở cuối mệnh đề: "bao nhiêu đồng"). dimensionKnown báo chiều đo có trong lexicon.
+func ValidSignal(sig string, dimensionKnown func(string) bool) error {
+	kind, arg, _ := strings.Cut(sig, ":")
+	switch {
+	case kind == "span" && (arg == string(contracts.ValueMoney) || arg == string(contracts.ValueQuantity) || arg == string(contracts.ValueNumber)):
+		return nil
+	case kind == "asked_unit" && arg != "" && dimensionKnown(arg):
+		return nil
+	}
+	return fmt.Errorf("tín hiệu %q không hợp lệ (nhận span:<money|quantity|number>, asked_unit:<chiều đo của lexicon>)", sig)
+}
+
+// signalHit báo phần quyết định [start, end) của câu mang một tín hiệu cấu trúc (xem ValidSignal). Tín hiệu chỉ xét ở phần quyết định (từ mệnh đề hỏi trở đi): một
+// con số tiền trong mệnh đề ngữ cảnh ("hoá đơn ghi 4tr đồng, vậy … bao nhiêu lít") là nguồn của con số, không phải điều đang hỏi.
+func (s *Set) signalHit(sig string, in contracts.NormalizedInput, start, end int) bool {
+	kind, arg, _ := strings.Cut(sig, ":")
+	inRange := func(sp contracts.Span) bool { return sp.Start >= start && sp.End <= end }
+	switch kind {
+	case "span":
+		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })
+	case "asked_unit":
+		return s.askedUnit(in.Raw[start:end], arg)
+	}
+	return false
+}
+
+// askedUnit báo câu hỏi lượng đi thẳng vào một đơn vị của chiều đo ("bao nhiêu" + "đồng") và mệnh đề kết thúc ngay sau đó (chỉ còn cụm hỏi / từ trung tính). "đồng hồ",
+// "đồng bộ" không dính vì còn chữ khác sau "đồng"; "bao nhiêu đồng một lít" cũng không dính — đánh đổi ghi ở ADR-0010.
+func (s *Set) askedUnit(text, dimension string) bool {
+	if s.opt.UnitAliases == nil {
+		return false
+	}
+	markers := slices.Concat(s.opt.QuantityMarkers, s.opt.FocusMarkers)
+	for _, q := range s.opt.QuantityMarkers {
+		for _, u := range s.opt.UnitAliases(dimension) {
+			for _, sp := range normalization.PhraseSpans(text, q+" "+u) {
+				end := len(text)
+				for i := sp[1]; i < len(text); i++ {
+					if strings.IndexByte(",;.?!", text[i]) >= 0 && (i+1 >= len(text) || text[i+1] == ' ' || text[i+1] == '\n') {
+						end = i
+						break
+					}
+				}
+				if s.onlyMarkers(text[sp[1]:end], markers) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // asking báo phần câu là một CÂU HỎI: có cụm xác nhận hoặc cụm hỏi lượng của pack. Dấu '?' một mình KHÔNG làm câu thành câu hỏi (S4AS-01): "Ghi nhận

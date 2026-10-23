@@ -212,3 +212,17 @@ m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.Quanti
 m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' '	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' 'S114 cụm hỏi lượng không đánh dấu câu hỏi ("ghi nhận … bao nhiêu" bị coi là lệnh)'
+
+# ---- S4AS-02: nghĩa tiền theo cấu trúc và họ nghĩa
+m $I '				if s.onlyMarkers(text[sp[1]:end], markers) {' '				if true {' 'S115 "bao nhiêu đồng" không đòi mệnh đề kết thúc sau đơn vị ("đồng hồ", "đồng nghiệp" thành tiền)'
+m $I '(!measured && slices.ContainsFunc(u.Signals,' '(slices.ContainsFunc(u.Signals,' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
+m $I '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })' '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) })' 'S117 tín hiệu span không xét kiểu span (mọi span là tiền)'
+m $I '	case "asked_unit":
+		return s.askedUnit(in.Raw[start:end], arg)' '	case "asked_unit":
+		return false' 'S118 bỏ tín hiệu "bao nhiêu" + đơn vị tiền'
+m tenants/construction/pack/intents.yaml 'dự tính, dự phóng, dự trù, ước tính, sẽ]' ']' 'S119 họ dự báo mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'báo giá, hỏi giá, xin giá, chào giá, giá chào]' 'báo giá]' 'S120 họ báo giá mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'cảnh báo, báo động, nhắc tôi, nhắc em, nhắc mình, nhắc nhở, báo khi, thông báo khi]' 'cảnh báo]' 'S121 họ cảnh báo mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu]' ']' 'S122 họ lệnh ghi mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'đánh giá, nhận định, bình luận, phân tích, chấm điểm, cho ý kiến, ý kiến về, kết luận, hợp lý, bất thường, bình thường, quá nhiều, tiết kiệm, cao hay thấp]' 'đánh giá]' 'S123 họ đánh giá mất đồng nghĩa ngoài danh sách vòng 1'
+m tenants/construction/pack/intents.yaml 'giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán]' ']' 'S124 họ tiền mất cụm giá / chi phí ngoài danh sách vòng 1'

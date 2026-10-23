@@ -30,15 +30,20 @@ quantity_markers: [bao nhiêu, định mức]
 comparison_markers: [nhiều hơn, ít hơn, so với]
 
 # Nghĩa hệ CHƯA hỗ trợ (D-OP-18 = c): câu mang nghĩa này không được trả lời theo chỉ số còn lại ("dự báo" không phải "đội báo", "nhà cung cấp" không phải
-# "cấp", "ghi nhận" không phải "nhận"); hệ hỏi lại và nói rõ nghĩa nào chưa có. Cụm báo nghĩa chiếm chỗ trong luật khớp dài nhất. needs_value: chỉ tính khi câu
-# nêu một con số và không phải câu hỏi ("Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay" là lệnh ghi; "EX-03 ghi nhận tiêu bao nhiêu dầu?" là câu hỏi).
+# "cấp", "ghi nhận" không phải "nhận"); hệ hỏi lại và nói rõ nghĩa nào chưa có. Cụm báo nghĩa chiếm chỗ trong luật khớp dài nhất.
+# cues là danh sách theo HỌ NGHĨA (đồng nghĩa trong cùng họ, không theo từng câu của bộ ca nào); độ phủ của danh sách do bộ giữ lại độc lập đo — nghĩa / cụm mới
+# phải thêm ở đây. signals là tín hiệu CẤU TRÚC (không cần chữ trong cues): span:money (bộ chuẩn hoá thấy số + đơn vị tiền), asked_unit:currency ("bao nhiêu" +
+# đơn vị tiền ở cuối mệnh đề); tín hiệu cấu trúc chỉ tính khi câu không nêu lượng cùng chiều đo với chỉ số ("3850 L … 25.000 đồng" vẫn là câu về lượng). Số nói tắt
+# không đơn vị ("1tr dầu", "4 củ") KHÔNG phải tín hiệu: ca WIN-I-010 ghim câu trả lời theo nguồn có thẩm quyền. Không dùng thuật ngữ "giá" của lexicon làm tín hiệu: nó khớp
+# cả "giá trị" ("báo cáo giá trị" không phải hỏi tiền) — "đơn giá", "giá dầu" là cụm. needs_value: chỉ tính khi câu nêu một con số và không phải câu hỏi (cụm xác nhận / cụm hỏi lượng) — dấu "?" một mình không làm câu thành
+# câu hỏi ("Ghi nhận EX-03 tiêu thụ 3782 L dầu nhé?" là lệnh ghi; "EX-03 ghi nhận tiêu bao nhiêu dầu?" là câu hỏi).
 unsupported_meanings:
-  - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, triệu, chi phí, thành tiền]}
-  - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến]}
-  - {name: quote, template: unsupported_quote, cues: [báo giá]}
-  - {name: warning, template: unsupported_warning, cues: [cảnh báo]}
-  - {name: write, template: unsupported_write, cues: [ghi nhận, ghi lại, cập nhật, lưu lại], needs_value: true}
-  - {name: evaluation, template: unsupported_evaluation, cues: [nhận xét, đánh giá], needs_value: true}
+  - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency"]}
+  - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến, dự tính, dự phóng, dự trù, ước tính, sẽ]}
+  - {name: quote, template: unsupported_quote, cues: [báo giá, hỏi giá, xin giá, chào giá, giá chào]}
+  - {name: warning, template: unsupported_warning, cues: [cảnh báo, báo động, nhắc tôi, nhắc em, nhắc mình, nhắc nhở, báo khi, thông báo khi]}
+  - {name: write, template: unsupported_write, cues: [ghi nhận, ghi lại, ghi sổ, ghi vào, ghi chép, cập nhật, lưu lại, nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu], needs_value: true}
+  - {name: evaluation, template: unsupported_evaluation, cues: [nhận xét, đánh giá, nhận định, bình luận, phân tích, chấm điểm, cho ý kiến, ý kiến về, kết luận, hợp lý, bất thường, bình thường, quá nhiều, tiết kiệm, cao hay thấp], needs_value: true}
 
 intents:
   - name: fuel_variance

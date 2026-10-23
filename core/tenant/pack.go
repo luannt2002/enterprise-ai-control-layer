@@ -201,6 +201,11 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {
 					problems = append(problems, fmt.Sprintf("intents.yaml: unsupported_meanings %q cần name, template và ít nhất một cụm (cues)", u.Name))
 				}
+				for _, sig := range u.Signals {
+					if err := intent.ValidSignal(sig, func(dim string) bool { return len(rt.Normalizer.UnitsOf(dim)) > 0 }); err != nil {
+						problems = append(problems, fmt.Sprintf("intents.yaml: unsupported_meanings %q: %v", u.Name, err))
+					}
+				}
 			}
 			set.SetOptions(intent.Options{
 				Unsupported: inf.UnsupportedMeanings,
@@ -241,6 +246,13 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				DerivedOperands: func(id string) (string, string, bool) {
 					d, ok := rt.Metrics.Derived(id)
 					return d.Left, d.Right, ok
+				},
+				UnitAliases: func(dim string) []string {
+					var out []string
+					for _, u := range rt.Normalizer.UnitsOf(dim) {
+						out = append(out, u.Aliases...)
+					}
+					return out
 				},
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)

@@ -25,6 +25,7 @@ Không còn câu nào (23/10 sáng).
 | Q-0A-13…16 | Bản rời nhóm TR3; kế thừa thực thể xuyên lô; ai làm việc ngoài write-set làn 4; chống trùng đơn vị không có `sent_at` | mặc định ở `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` §15 (13: a; 14: a; 15: chờ, các phần đó giữ ĐỎ; 16: a) |
 | Q-0A-17 | Mã Phase 0a viết TRƯỚC khi bộ ca 0a đóng băng (nhánh cất `m2/0a-ma-truoc-dong-bang`): có dùng lại sau khi đóng băng không | không: viết lại từ `main` sau khi đóng băng; người viết mã không đọc nhánh cất |
 | D-AI-01 | Ngưỡng của CỔNG TRƯỚC AI | ngưỡng §9.3 giữ nguyên (không hạ) |
+| D-OP-9 (giá đo được, chỉ để biết) | Hàng D-OP-9 nêu giá của (a') là "câu 'được cấp 3 850 lít đúng không?' bị hỏi lại". Soát độc lập 23/10 đo giá thật lớn hơn: 3 ca H (H1 WIN-I-264, H3 WIN-I-509, H4 WIN-I-717) ĐẠT → ĐỎ vì đều dạng thường gặp "đo / dùng / xuất N NNN lít"; trên bộ thử riêng, 39 / 47 tin tự nhiên mà nền nạp nay bị cách ly, 49 / 59 câu xác nhận tự nhiên nay bị hỏi lại. Phương án (b) của D-OP-9 (chắc chắn khi đứng ngay sau từ khoá của ý định đã khớp) sẽ khôi phục 3 ca H | giữ (a') như chủ dự án đã chọn 23/10; không cần trả lời nếu giữ |
 
 ## 3. BUILD đã tự quyết khi chờ (đảo lại được)
 

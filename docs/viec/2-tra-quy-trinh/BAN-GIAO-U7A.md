@@ -63,3 +63,15 @@ thật, cần bật tay), so theo tên 0 mất / 0 đổi; winreport 117 / H1 / 
 **Phát hiện cho phần S4 của team:** đo luồng trọn với động cơ thật, route tri thức chỉ nhận 7/92 câu S7 độc lập (OUT_OF_SCOPE 39,
 CLARIFICATION_REQUIRED 26, PERMISSION_DENIED 19) dù truy hồi trúng 83/92 — chi tiết `docs/ROADMAP-RAG.md` §10.2. Chưa sửa: đổi ranh
 giới S4 cần chủ dự án quyết.
+
+## U3b cắt đoạn (23/10 khuya) — chỉ trong `intelligence/rag/`
+
+> Viết cho: team build. Chỉ để biết — không cần gộp hay so lúc này.
+
+| Tệp | Đổi gì | Ảnh hưởng tới phần của team |
+|---|---|---|
+| `intelligence/rag/rag.go` | dòng tiêu đề markdown trong THÂN tài liệu thành đường dẫn mục của các đoạn bên dưới (bản thân không còn là đoạn, trừ tiêu đề không có nội dung hoặc chỉ có bảng); câu dẫn kết thúc bằng ":" + các mục con ngay sau (kể cả mục lồng) thành một đoạn | không với kho hiện có: 48/48 tài liệu ở `tenants/construction/knowledge` không có tiêu đề trong thân lẫn câu dẫn nên đoạn y như cũ. Tài liệu MỚI có tiêu đề / danh sách thì điểm rerank đổi → chọn lại `EAIS_RAG_MIN_SCORE` (ROADMAP-RAG §6.3) |
+| `intelligence/rag/source.go`, `platform/pgstore/knowledge_sql.go` | trường cấu hình nguồn `tieu_de` (mẫu → cấp; nguồn postgres: khai là lỗi, chưa hỗ trợ) | không: trống = như cũ |
+
+Cổng của cây này (so với `17213ce`): `go test -json ./...` có PG 2045 pass + 2 skip (hai lệnh đo động cơ thật, bật tay), so theo tên
+0 mất / 0 đổi / 5 test mới; winreport 117 / H1 / H3 / H4 × bộ nhớ / PG 0 dòng khác ngoài dòng thời gian; smoke 21/21.

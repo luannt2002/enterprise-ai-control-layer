@@ -935,12 +935,13 @@ type rtState struct {
 
 // caseRun là một lần chạy một ca: các runtime, điểm chèn lỗi và kết quả nhận được.
 type caseRun struct {
-	pc  *chayCase
-	wd  *worlds
-	be  chayBackend
-	ctl *faultCtl
-	rts map[string]*rtState
-	res []callResult
+	pc    *chayCase
+	wd    *worlds
+	be    chayBackend
+	ctl   *faultCtl
+	rts   map[string]*rtState
+	res   []callResult
+	saver traceSaver // chỗ lưu vết sau C7 (F8)
 }
 
 func (r *caseRun) tenantsInvolved() []string {
@@ -1007,6 +1008,7 @@ func (r *caseRun) execute() error {
 		return err
 	}
 	r.ctl, r.rts = ctl, map[string]*rtState{}
+	r.saver = &faultTraceSaver{inner: &memTraceSaver{}, ctl: ctl}
 	if err := r.be.reset(r.tenantsInvolved()); err != nil { // mỗi ca bắt đầu từ trạng thái sạch
 		return err
 	}
@@ -1049,7 +1051,7 @@ func (r *caseRun) execute() error {
 		}
 		o := r.rts[c.Runtime].pipe.Run(ctx, principalOf(c.Caller), c.Req)
 		res := callResult{Label: c.Label, Runtime: c.Runtime, Received: true, Out: o}
-		if ctl.reach(fpTraceSaveFail) { // F8: kho vết hỏng SAU C7; kết quả đã ghi không đổi, chỉ mất trace_id (HOP-DONG §7.5, "Mất vết")
+		if err := r.saver.Save(ctx, o); err != nil { // F8: kho vết hỏng SAU C7; kết quả đã ghi không đổi, chỉ mất trace_id (HOP-DONG §7.5, "Mất vết")
 			res.Out.Result.TraceID = ""
 			ctl.mu.Lock()
 			ctl.traceSaveFailures++

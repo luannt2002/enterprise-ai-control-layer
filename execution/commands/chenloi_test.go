@@ -12,9 +12,9 @@ package commands
 // Bộ đếm của lớp bọc thuộc harness, tích luỹ suốt ca (kể cả qua lần dựng pipeline mới của F4) và tách theo runtime: mỗi runtime
 // một faultStore, nhưng chung MỘT faultCtl của ca.
 //
-// Ghi nợ: F8 (trace_save_fail) cần đường lưu vết thật của K3 (cmd/eais). Chưa có thì bộ chạy dùng một đường nối giả (traceSeam
-// trong bochay_test.go): lượt bị F8 mất trace_id, kết quả đã ghi không đổi, bộ đếm lỗi lưu vết tăng. Khi K3 gộp, nối đường nối đó
-// vào chỗ lưu vết thật.
+// Ghi nợ: F8 (trace_save_fail) cần đường lưu vết thật của K3 (cmd/eais). Chưa có thì bộ chạy dùng chỗ lưu giả (memTraceSaver)
+// (traceSaver, bên dưới): lượt bị F8 mất trace_id, kết quả đã ghi không đổi, bộ đếm lỗi lưu vết tăng. Khi K3 gộp, bọc persistTrace của
+// cmd/eais bằng cùng faultTraceSaver.
 
 import (
 	"context"
@@ -247,6 +247,39 @@ func (s *faultStore) ReadBack(ctx context.Context, caller, commandID, ticketID s
 func (s *faultStore) WriteAudit(ctx context.Context, a Audit) error {
 	s.bump(func() { s.auditWrites++ })
 	return s.inner.WriteAudit(ctx, a)
+}
+
+// traceSaver là chỗ lưu vết của một lượt, SAU C7 (HOP-DONG §7.5, "Mất vết"): lưu hỏng thì kết quả đã ghi KHÔNG đổi, chỉ mất trace_id và tăng bộ đếm lỗi lưu vết.
+// Đường lưu vết thật (persistTrace ở cmd/eais, kho decision_records) là của K3; bộ chạy dùng memTraceSaver làm chỗ lưu giả, và faultTraceSaver bọc nó theo ĐÚNG giao
+// diện này để F8 bắn ở chỗ lưu. Khi K3 gộp, bọc persistTrace bằng cùng faultTraceSaver (ghi nợ: chưa nối).
+type traceSaver interface {
+	Save(ctx context.Context, out Outcome) error
+}
+
+// memTraceSaver ghi nhớ trace_id đã lưu.
+type memTraceSaver struct {
+	mu    sync.Mutex
+	saved []string
+}
+
+func (m *memTraceSaver) Save(_ context.Context, out Outcome) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.saved = append(m.saved, out.Result.TraceID)
+	return nil
+}
+
+// faultTraceSaver bọc một traceSaver: F8 (trace_save_fail) làm lần lưu ĐẦU TIÊN hỏng (đúng một lần), các lần sau chạy thường.
+type faultTraceSaver struct {
+	inner traceSaver
+	ctl   *faultCtl
+}
+
+func (f *faultTraceSaver) Save(ctx context.Context, out Outcome) error {
+	if f.ctl.reach(fpTraceSaveFail) {
+		return errors.New("F8 trace_save_fail: kho vết lỗi khi lưu vết của lượt")
+	}
+	return f.inner.Save(ctx, out)
 }
 
 // ---------------------------------------------------------------------------
@@ -564,5 +597,24 @@ func TestChenLoiF2PGBanGiuaInsertSoLenhVaInsertAudit(t *testing.T) {
 	mustWrite(t, e, tn, u) // gửi lại: móc đã bắn rồi, chạy thường
 	if ctl.reachedCount(fpInTxAuditInsert) != 2 || e.openTickets(tn) != 2 {
 		t.Fatalf("lần gửi lại ghi bình thường: móc được gọi %d lần, phiếu=%d", ctl.reachedCount(fpInTxAuditInsert), e.openTickets(tn))
+	}
+}
+
+// F8: bắn ở chỗ lưu vết, ở lần lưu đầu tiên, đúng một lần; lần hỏng không để lại trace_id đã lưu.
+func TestChenLoiF8BanOLanLuuVetDauTien(t *testing.T) {
+	ctl, err := newFaultCtl(fpTraceSaveFail, 0, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := &memTraceSaver{}
+	var sv traceSaver = &faultTraceSaver{inner: mem, ctl: ctl}
+	if err := sv.Save(context.Background(), Outcome{Result: Result{TraceID: "t-1"}}); err == nil {
+		t.Fatal("lần lưu vết đầu tiên phải hỏng")
+	}
+	if err := sv.Save(context.Background(), Outcome{Result: Result{TraceID: "t-2"}}); err != nil {
+		t.Fatalf("lần lưu sau chạy thường: %v", err)
+	}
+	if len(mem.saved) != 1 || mem.saved[0] != "t-2" || ctl.reachedCount(fpTraceSaveFail) != 2 {
+		t.Fatalf("chỉ lượt sau được lưu: %v (đi tới %d lần)", mem.saved, ctl.reachedCount(fpTraceSaveFail))
 	}
 }

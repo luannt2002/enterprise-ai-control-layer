@@ -1,0 +1,31 @@
+# Bộ S7 độc lập — cam kết băm (ADR-0006 §10): chỉ băm và số đếm, nội dung giữ ở máy tới lần chạy duy nhất
+frozen_at: 2026-10-23T11:53:02+07:00
+nguoi_soan: agent riêng của phiên RAG — chỉ đọc kho/, 01-business-map.md, policy.yaml; không đọc mã RAG, bộ phát triển; không chạy hệ
+so_cau: 106 · tra_loi: 92 · khong_co: 14 · khong_co_tai_lieu: 5 · ngoai_pham_vi: 4 · ngoai_quyen: 5
+so_tep_kho: 23
+4a2c85bf6c98deb49659efff5228884fac2afbadd22a464fa51bce2247b6551e doc-lap.yaml
+548c02dac46956375cdb2843601187bd9d473acaa6cbb5305dd1f6cef2b9a6a5 NGUON.txt
+b029d48d6441d8fb8ad4c18380b18afe1f5f67fdb1c552c588c9ba3680ab59c1 kho/QD-LT-01.md
+3927e4b1e4a623f0e155daa52881b9ff0bd09d162d05850cee33f0586598feb2 kho/SOP-AT-01.md
+44d28ff9bc787dcb8f7f975ef6755238983dddc5a81618d417e7c4e1afdd530f kho/SOP-BC-01.md
+5bcb1ab39353117fee15cfd9bbfc57f597e329c0490a13d6a2219e6eac17d6f1 kho/SOP-KHO-02.md
+dfc5876747fa7550c4be8fe27796d2488ca0c0ba835a62bf545ba490b03abe67 kho/SOP-MM-01.md
+926f90ffce8ad5ea15b47aba657ae4084c09e44e5e0e2945fd6bf8307bb7d1f9 kho/SOP-MM-02.md
+9d686f9c1b949d675ccbe7c511b40934ae07c6194292bfa2c02386d4ef88c9b5 kho/SOP-NL-02.md
+085bb9a1c83c696b961d6cae5983cc5936c67fd9515dc4de5a7c562401ac77f9 kho/SOP-NL-04.md
+508dd721c3a599159a1c0b60d7a339ffc1dc60b6699a9ecda84c44f4cab06b9c kho/SOP-NT-01.md
+8d34690547d77c1298ddc7039e44f45519112a278328b8a196d6fc7fa4e56cec kho/SOP-PS-01.md
+b765db6bceb70e17777f0472b36a83470ef0d125b07ee9494131f9f5ef316ac5 kho/SOP-TL-01.md
+606084adcd5b34b9081cf71fca3f1d22f438d25de70c2dadc43f13e4e6eb4030 kho/SOP-TT-01.md
+85486eb268ca95f0d641df52d44daf4c17555c4e2db202bca8b162ae34856626 kho/SOP-VT-01.md
+addaf6981f89f5917e299f634aeea81ee4e7df0859df4c73d2c32cea78d57b86 kho/acl.json
+1b47d498573da3e8a2ee22c726858c8585e59f7f2b135852b2da649e71559a1d kho/bp-bt-a.md
+4b2f141db232d83cbbb884f7e714b6292baaf0daa695e252c7bebf587076319b kho/bp-md-b.md
+a4b3596852331cb6bcdc63072b40c756e63774902c7bbe072d82c0d477e4866f kho/bp-on-c.md
+5850aae24b1293754f5cb4a89f6dc2224689c3a6c71589f199004e66f3cbb504 kho/qd-at-02-v1.md
+c1b0205dfeb0e926bb983aa74332c92f950927a83b5ba792097c7938b788a48e kho/qd-at-02-v2.md
+3d0a7f6e9a751530618ae79bf9fe60ea8455835571e7b9f0b7500638eee75a79 kho/qd-nl-03.md
+0585ffe287da999b33d6860d578f342a9c3d90391f9460004405900a8dee2121 kho/sop-nl-01-v1.md
+da8b11247b0cda7a0878fda02e235465668a2f5a64ac60460ac31317ac56a21e kho/sop-nl-01-v2.md
+29f5e998c143f46a104a2aed32efb86d06d1c9afb2944a88a34d8d4262d5ce69 kho/sop-nl-01-v3-nhap.md
+tong: 2759dd227a35cabf6097da253a25a83677b6563b497311bfe9dd89ca264400fe

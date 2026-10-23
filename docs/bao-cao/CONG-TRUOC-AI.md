@@ -4,7 +4,7 @@
 > Cổng ra M5 (`docs/ROADMAP-DAY-DU.md` §5b): mọi dòng có lệnh chứng minh ⇒ ghi "CỔNG TRƯỚC AI ĐẠT" vào TIEN-DO.
 > Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt** (D-RM-03).
 >
-> Cập nhật: 23/10/2026 10:4x (nhãn sửa theo lời chủ dự án 23/10: nhãn phải khớp số; S7 ngoài MVP). Bảng chi tiết ở mục 2 đo ngày 22/10 ở `269a539`. **Trạng thái tổng: CHƯA ĐẠT** — không ghi "CỔNG TRƯỚC AI ĐẠT".
+> Cập nhật: 23/10/2026 10:02 (nhãn sửa theo lời chủ dự án 23/10: nhãn phải khớp số; S7 ngoài MVP). Bảng chi tiết ở mục 2 đo ngày 22/10 ở `269a539`. **Trạng thái tổng: CHƯA ĐẠT** — không ghi "CỔNG TRƯỚC AI ĐẠT".
 
 ## 1. Tóm tắt
 

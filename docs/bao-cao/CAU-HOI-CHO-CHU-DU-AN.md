@@ -5,7 +5,7 @@
 > Trong lúc chờ, BUILD chạy theo **mặc định an toàn, đảo lại được** ghi ở cột "Đang chạy".
 > Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt** (D-RM-03).
 
-Cập nhật: 23/10/2026 10:3x. Sáng 23/10 chủ dự án đã trả lời mọi câu chặn MVP và nhóm câu đang chạy theo mặc định (`docs/CHO-QUYET-DINH.md`
+Cập nhật: 23/10/2026 09:58. Sáng 23/10 chủ dự án đã trả lời mọi câu chặn MVP và nhóm câu đang chạy theo mặc định (`docs/CHO-QUYET-DINH.md`
 mục 0, các dòng "23/10 sáng"). Từ 23/10 có luật mới ở brief §9: câu có mặc định an toàn và đảo lại được thì BUILD làm theo mặc định ngay, chỉ
 dừng chờ khi tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đè dữ liệu thật, đổi quyền.
 
@@ -37,4 +37,4 @@ Không còn câu nào (23/10 sáng).
 | 22/10 21:2x | Giấy M2 (Phase 0a) làm tiếp vòng 7 | luật dừng §9.6, ngoại lệ mất dữ liệu | (đảo ngày 23/10 theo luật mới của chủ dự án: giấy khoá ở vòng 6; vòng 7 dừng giữa chừng, bản vòng 7 giữ ở nhánh `m2/phase0a-vong7-bo`, không gộp) |
 | 22/10 21:2x | R2-03 làm tiếp vòng 4 | luật dừng §9.6, ngoại lệ an ninh: N1' | (chủ dự án xác nhận ngày 23/10: mã, an ninh, được làm vòng 4) |
 | 23/10 09:5x | Bộ đồ nghề H6: tài liệu nghiệp vụ lấy bản hiện hành, riêng `03-data-map.md` và ADR-0002 dùng bản lúc soạn H4 | bản hiện hành của hai tệp có thêm ghi chú về cách mã đang xử lý (nhóm nghìn; đính chính kiểm toán), người soạn không được thấy | dựng lại bộ đồ nghề trước khi băm H6 |
-| 23/10 10:3x | Mã Phase 0a mở song song với việc soạn bộ ca độc lập Phase 0a (HOP-DONG 0a §14.1 điều kiện 5 đòi bộ ca đóng băng trước mã) | lệnh 23/10 mục F2 "mã Phase 0a theo giấy đã khoá"; giữ độc lập bằng: người viết mã không đọc thư mục bộ ca (kiểm nhiễm nhật ký), bộ ca băm và đóng băng TRƯỚC khi mã 0a lên main | dừng mã, chờ bộ ca đóng băng |
+| 23/10 09:58 | Mã Phase 0a mở song song với việc soạn bộ ca độc lập Phase 0a (HOP-DONG 0a §14.1 điều kiện 5 đòi bộ ca đóng băng trước mã) | lệnh 23/10 mục F2 "mã Phase 0a theo giấy đã khoá"; giữ độc lập bằng: người viết mã không đọc thư mục bộ ca (kiểm nhiễm nhật ký), bộ ca băm và đóng băng TRƯỚC khi mã 0a lên main | dừng mã, chờ bộ ca đóng băng |

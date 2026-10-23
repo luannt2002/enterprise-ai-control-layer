@@ -6,7 +6,7 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 10:4x, ca 23/10 (09:00 → 21:30) sau lời chủ dự án 23/10 · **HEAD:** commit chứa dòng này (mã giống `7101b6a`;
+- **Cập nhật lúc:** 23/10/2026 10:08, ca 23/10 (09:00 → 21:30) sau lời chủ dự án 23/10 · **HEAD:** commit chứa dòng này (mã giống `7101b6a`;
   sau đó chỉ đổi tài liệu).
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Từ 23/10, `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của
   cổng ra (chủ dự án 23/10).
@@ -19,7 +19,7 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     (bộ ca băm trước khi mã lên main).
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm; S7 NGOÀI MVP
     ("MVP không gồm câu hỏi quy trình (RAG)"); S9 chưa có bộ ca độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
-- **Đang làm** (tối đa 5 agent): R2-03 vòng 4 (soát), `flock` vòng 2 (soát), K1 vòng 2 (tác giả), K2 (tác giả), vòng sửa S4 (tác giả). Nhánh
+- **Đang làm** (tối đa 5 agent): R2-03 vòng 4 (soát), K1 vòng 2 (tác giả), K2 (tác giả), vòng sửa S4 (tác giả), người soạn H6 phần A1. `flock` vòng 2 đã gộp (`c97a989`). Nhánh
   máy push lên origin từ 23/10 (nhánh riêng, không main; chậm nhất 2 giờ một lần).
 - **Xong từ lần trước:** câu trả lời 23/10 ghi vào `CHO`; luật làm việc mới vào brief §9.10; nhãn khớp số (STATUS, CONG-TRUOC-AI, đính chính
   báo cáo ca 22/10); giấy M2 vòng 7 dừng (nhánh `m2/phase0a-vong7-bo`, không gộp); 7 nhánh máy đã push.
@@ -100,3 +100,5 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 10:2x | `51eb393` | Brief §9.10: năm luật làm việc bổ sung của chủ dự án; §9.6 trỏ sang | Cổng danh tính xanh | — |
 | 23/10 10:2x | (nhánh, không main) | Push 7 nhánh máy lên origin: `m1/r203-vet-du`, `m4/k1-loi-lenh`, `m2/phase0a-sua-f` (khoá ở vòng 6), `m2/phase0a-vong7-bo` (vòng 7 dừng, không gộp), `m1/r5-01-flock`, `lead/no-s4-sau-h4`, `thu/nhom-nghin-3066044` | Quét riêng tư diff từng nhánh: 0 dòng nghi (2 dòng là thư mục khoá mặc định `/tmp` của script), 0 ký tự ẩn; không force | Từ nay nhánh đã push không rebase |
 | 23/10 10:4x | commit chứa dòng này | Nhãn khớp số theo lời chủ dự án 23/10: M1 CHƯA RA (§5b); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm; G1 KHÔNG ĐẠT 2.736/2.739; L1 KHÔNG ĐẠT; S7 ngoài MVP; "0 đổi theo tên; kỳ vọng đổi có chủ ý ở `f0e1e93`, `723a570`" (kiểm: hai commit đó sửa `claim_test.go`, `pipeline_cong_phan_quyet_test.go`, `construction_test.go`); đính chính ở báo cáo ca 22/10 | — | Không đổi mã |
+| 23/10 10:0x | `7ce6095`, `f4565d0`, `d455720`, `c97a989` | M1: khoá `flock` theo dự án cho `scripts/chay-thu.sh` (R5-01, R5-02; vòng 2 R6-01…05) gộp lên main bằng cherry-pick (nhánh đã push nên không rebase); hai sửa chữ R7-01, R7-02 mỗi cái một commit | Soát vòng 2 ĐẠT (0 S1 / S2 / S3, 3 S4). Cổng §6 của điều phối trên cây tích hợp: vet 0, gofmt 0, test có PG 639 → 648 (theo tên 0 đổi / 0 mất / 9 mới — đúng các ca khoá), kiem-skip XANH, 117 / H1 / H3 / H4 hai đường 0 dòng khác; quét riêng tư sạch | Commit vòng 2 gom R6-01…05 vì làm trước luật "một phát hiện một commit" (23/10); nhánh `m1/r5-01-flock` đã xoá (git cherry: 2 / 2 đã có trên main) |
+| 23/10 10:08 | (đính chính) | Giờ ghi ở các dòng 23/10 phía trên là ước, đi trước giờ thật. Giờ commit thật: `a9ce6ed` 09:42, push 7 nhánh 09:52, `cb54bc8` 09:58, `51eb393` 09:59, `8fabf33` 10:02, `146c2b0` 10:03 (`git log --date=format:%H:%M`) | — | Từ nay ghi giờ bằng `date` lúc viết |

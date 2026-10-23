@@ -563,10 +563,21 @@ func (l *draftLedger) addDraft(prefix, how, text string, line int) {
 	}
 }
 
+// rejectedDraftLine dựng dòng S8 của bản nháp mà S9 đã LOẠI: cách sinh, số ký tự và băm, KHÔNG có chữ nào của bản nháp (V8AS-06, quyết định của chủ dự án — mặc định an
+// toàn). Chữ bị loại có thể là lệnh chèn nằm trong tài liệu và người đọc vết có thể là một tác nhân AI; S9 đã chặn chính chữ đó nên dòng S8 không đưa lại nó. Người đọc vẫn nối
+// được S8 với S9 và S10 bằng băm. Đoạn đầu chỉ có ở dòng của bản nháp S9 nhận (draftLine). Giới hạn đã biết: chi tiết vi phạm của S9 do validator viết (vd CLAIM_UNBOUND nêu
+// claim "…") không do hàm này quản; chi tiết đó cũng nằm trong AskResponse.Verdict nên đổi nó là đổi câu trả lời (nợ).
+func rejectedDraftLine(prefix, how string, runes int, hash string) string {
+	return fmt.Sprintf("%sbản nháp %s: %d ký tự · băm %s · %s", prefix, how, runes, hash, draftWithheld)
+}
+
+// draftWithheld là chữ thay cho đoạn đầu ở dòng S8 của bản nháp bị S9 loại.
+const draftWithheld = "chữ không in: S9 đã loại bản nháp này"
+
 // settle ghi lại dòng S8 của từng bản nháp trong sổ ở dạng CUỐI, một lần, khi Handle đã dựng xong bộ che phạm vi: đoạn đầu được che phạm vi TRƯỚC rồi mới cắt (V8AS-02).
 // Cắt trước thì khoá / tên thực thể ngoài phạm vi nằm vắt qua ký tự thứ draftHeadRunes chỉ còn mảnh đầu ("Máy ủi DZ", "DZ-0"), bộ che chỉ khớp nguyên token nên không nhận ra
 // và mảnh đó lọt vào vết của chính người hỏi hạn chế. Chữ đi qua bộ làm sạch bí mật rồi bộ che phạm vi khi còn nguyên vẹn; chỉ sau đó mới cắt. Số ký tự và băm giữ nguyên
-// (tính trên chữ làm sạch, không phụ thuộc người hỏi).
+// (tính trên chữ làm sạch, không phụ thuộc người hỏi). Bản nháp S9 đã loại (noteRejected đánh dấu trong sổ TRƯỚC khi Handle chốt) không có đoạn đầu (V8AS-06).
 func (l *draftLedger) settle(why *traces.Why, red scopeRedactor) {
 	if l == nil {
 		return
@@ -576,6 +587,10 @@ func (l *draftLedger) settle(why *traces.Why, red scopeRedactor) {
 			continue
 		}
 		runes, hash := textDigest(d.text)
+		if d.rejected {
+			why.Generate.Reasons[d.line] = rejectedDraftLine(d.prefix, d.how, runes, hash)
+			continue
+		}
 		head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))
 		why.Generate.Reasons[d.line] = draftLine(d.prefix, d.how, runes, hash, head)
 	}
@@ -594,8 +609,9 @@ func (l *draftLedger) reject(prefix, text string) {
 	}
 }
 
-// noteRejected ghi S9 khi loại bản nháp text: số ký tự và băm của bản bị loại (KHÔNG in chữ — chữ bị loại không rời Handle ngoài đoạn đầu đã nằm ở S8), nằm cạnh
-// lý do loại (các vi phạm ở lý do của S9). Đồng thời đánh dấu trong sổ để S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó.
+// noteRejected ghi S9 khi loại bản nháp text: số ký tự và băm của bản bị loại (KHÔNG in chữ), nằm cạnh lý do loại (các vi phạm ở lý do của S9). Đồng thời đánh dấu trong sổ để
+// S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó, và để draftLedger.settle ghi dòng S8 của bản nháp này không có đoạn đầu (V8AS-06): dòng S8
+// tạm do noteDraft ghi lúc dựng, TRƯỚC khi S9 quyết, còn đoạn đầu.
 func (a *Ask) noteRejected(ctx context.Context, why *traces.Why, prefix, text string) {
 	if a.noWhy {
 		return

@@ -55,7 +55,7 @@ func TestVetS9BanNhapBiLoaiRouteSoLieu(t *testing.T) {
 		t.Fatalf("tiền đề: S9 phải loại bản nháp mẫu, route %s outcome %s", turn.Plan.Route, turn.Decision.Outcome)
 	}
 	steps := traces.NewRecord(turn).Steps
-	m := regexp.MustCompile(`: (\d+) ký tự · băm ([0-9a-f]{12}) · đầu`).FindStringSubmatch(stepOf(t, steps, "S8").Reason)
+	m := regexp.MustCompile(`: (\d+) ký tự · băm ([0-9a-f]{12}) · chữ không in`).FindStringSubmatch(stepOf(t, steps, "S8").Reason)
 	if m == nil {
 		t.Fatalf("tiền đề: S8 phải ghi bản nháp: %s", stepOf(t, steps, "S8").Reason)
 	}

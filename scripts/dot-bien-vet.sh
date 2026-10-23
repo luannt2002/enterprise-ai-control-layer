@@ -402,6 +402,11 @@ m $ASK 'led.settle(&why, red)' 'if false { led.settle(&why, red) }' 'VS8-51 [V8b
 m $W 'head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))' 'head := red.line(cutHead(strings.TrimSpace(traces.Sanitize(d.text))))' 'VS8-52 [V8b V8AS-02] đoạn đầu cắt TRƯỚC khi che phạm vi (hình lỗi cũ: mảnh tên / khoá lọt)'
 m $W 'head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))' 'head := cutHead(red.line(strings.TrimSpace(d.text)))' 'VS8-53 [V8b V8AS-02] chốt dòng S8 không qua bộ làm sạch bí mật'
 m $W 'why.Generate.Reasons[d.line] = draftLine(d.prefix, d.how, runes, hash, head)' 'why.Generate.Reasons[0] = draftLine(d.prefix, d.how, runes, hash, head)' 'VS8-54 [V8b V8AS-02] chốt dòng S8 ghi nhầm dòng'
+m $W 'if d.rejected {
+			why.Generate.Reasons[d.line] = rejectedDraftLine' 'if false && d.rejected {
+			why.Generate.Reasons[d.line] = rejectedDraftLine' 'VS8-55 [V8b V8AS-06] bản nháp S9 đã loại vẫn có đoạn đầu ở S8 (chữ bị loại lọt vào vết)'
+m $W 'const draftWithheld = "chữ không in: S9 đã loại bản nháp này"' 'const draftWithheld = "chữ không in: S9 đã loại bản nháp này!"' 'VS8-56 [V8b V8AS-06] chữ thay cho đoạn đầu của bản nháp bị loại bị đổi'
+m $W 'ledgerOf(ctx).reject(prefix, text)' 'ledgerOf(ctx).reject(prefix, text+" ")' 'VS8-57 [V8b V8AS-06] S9 loại bản nháp mà sổ đánh dấu sai chữ (S8 vẫn in đoạn đầu)'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

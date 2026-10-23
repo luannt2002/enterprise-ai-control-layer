@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
 )
 
@@ -31,7 +33,10 @@ type versionRow struct {
 // txn là phần của một kho mà engine cần, trong MỘT giao dịch đã đặt tenant. Engine không biết kho là bộ nhớ hay PG: cùng một luật chạy
 // trên cả hai, nên hai kho không thể lệch nhau về logic. Engine gom mọi thay đổi vào opctx rồi ghi MỘT lượt ở cuối (flush).
 type txn interface {
-	getRecord(key string) (*Record, error) // nil khi chưa có
+	// getRecord đọc một bản ghi (nil khi chưa có). forUpdate: khoá hàng (PG: FOR UPDATE) để hai thao tác cùng một bản ghi xếp hàng.
+	getRecord(key string, forUpdate bool) (*Record, error)
+	// lock lấy khoá tư vấn mức giao dịch theo khoá k (§5.6 mục 2), nhả khi giao dịch kết thúc; kho bộ nhớ không cần (khoá toàn kho đã giữ).
+	lock(k int64) error
 	versionsOf(key string) ([]versionRow, error)
 	findByFingerprint(fp string) (string, error) // unit_key nhỏ nhất (so byte) có phiên bản mang vân tay này; rỗng khi không có
 	slotRecords(entity, day string) ([]*Record, error)
@@ -50,6 +55,30 @@ func slotOf(r *Record) (slotKey, bool) {
 		return slotKey{}, false
 	}
 	return slotKey{Entity: r.Entity, Day: r.OccurredOn}, true
+}
+
+func slotOfItem(it Item) (slotKey, bool) {
+	if it.Entity == "" || it.OccurredOn == "" {
+		return slotKey{}, false
+	}
+	return slotKey{Entity: it.Entity, Day: it.OccurredOn}, true
+}
+
+// slotLockKey là khoá tư vấn của một ô (§5.6 mục 2): băm FNV-64a của (tenant, thực thể, ngày xảy ra), tính ở phía Go để khoá tất định và đọc được
+// (cùng kiểu loadLockKey của platform/pgstore). Hai ô khác nhau có thể trùng khoá (va chạm băm): chỉ làm hai ô xếp hàng nhau, không sai. Thứ tự khoá
+// TĂNG DẦN là thứ tự lấy khoá, để hai giao dịch chạm cùng hai ô không chờ vòng tròn nhau.
+func slotLockKey(tenant string, s slotKey) int64 {
+	h := fnv.New64a()
+	h.Write([]byte("eais.reports.tr3:" + tenant + "\x00" + s.Entity + "\x00" + s.Day))
+	return int64(h.Sum64())
+}
+
+// relockError báo giao dịch phải bị bỏ và chạy lại với các ô này lấy khoá SẴN, theo thứ tự khoá tăng dần: lấy một khoá nhỏ hơn khoá đã giữ sẽ phá thứ
+// tự và có thể chết khoá (deadlock). Việc chạy lại do kho làm (retryOp); gói nào cũng không để lỗi này lọt ra ngoài.
+type relockError struct{ slots []slotKey }
+
+func (e *relockError) Error() string {
+	return "cần lấy khoá ô theo thứ tự tăng dần: chạy lại giao dịch"
 }
 
 // groupKey là khoá nhóm nghi trùng TR3 (§5.1): (thực thể, loại, ngày xảy ra, giá trị, đơn vị) trong một tenant, bất kể người gửi và chữ.
@@ -94,6 +123,14 @@ type opctx struct {
 	slots   map[slotKey]bool // các ô đã chạm (cả ô cũ lẫn ô mới của bản ghi bị đổi): settle chạy trên đúng các ô này
 	loaded  map[slotKey]bool
 
+	locked      map[int64]bool // khoá tư vấn đã giữ (theo khoá)
+	lockedSlots []slotKey
+	maxLock     int64
+	hasLock     bool
+
+	cause    string          // lý do của thao tác đang chạy, ghi vào chi tiết các lần chuyển do TR3 ("bản b-3 đến", "quyết định CHOOSE trên …"): không có mã lô (BB5)
+	returned map[string]bool // bản vừa quay lại HELD trong thao tác này: không ghi thêm dòng nối lại duplicate_of
+
 	versions []versionRow
 	history  []HistoryEntry
 	ledger   []DeliveryEntry
@@ -105,8 +142,104 @@ func newOpctx(tenant string, opt Options, tx txn) *opctx {
 	return &opctx{
 		tenant: tenant, opt: opt, tx: tx, now: opt.now(),
 		cache: map[string]*Record{}, missing: map[string]bool{}, isNew: map[string]bool{}, dirty: map[string]bool{},
-		slots: map[slotKey]bool{}, loaded: map[slotKey]bool{},
+		slots: map[slotKey]bool{}, loaded: map[slotKey]bool{}, locked: map[int64]bool{}, returned: map[string]bool{},
 	}
+}
+
+// ensureLock giữ khoá của ô s (§5.6 mục 2) nếu chưa giữ. Nếu khoá nhỏ hơn khoá đã giữ thì trả relockError để chạy lại giao dịch với mọi ô lấy sẵn theo
+// thứ tự. Mỗi lần mới lấy được khoá, các bản ghi của ô đang nằm trong bộ nhớ (đọc trước khi có khoá, có thể cũ) bị bỏ để đọc lại.
+func (c *opctx) ensureLock(s slotKey) error {
+	k := slotLockKey(c.tenant, s)
+	if c.locked[k] {
+		return nil
+	}
+	if c.hasLock && k < c.maxLock {
+		return &relockError{slots: append(append([]slotKey(nil), c.lockedSlots...), s)}
+	}
+	if err := c.tx.lock(k); err != nil {
+		return err
+	}
+	c.locked[k] = true
+	c.lockedSlots = append(c.lockedSlots, s)
+	c.maxLock, c.hasLock = k, true
+	for key, r := range c.cache {
+		if c.dirty[key] || c.isNew[key] {
+			continue
+		}
+		if rs, ok := slotOf(r); ok && rs == s {
+			delete(c.cache, key)
+		}
+	}
+	return nil
+}
+
+// ensureLocks lấy khoá nhiều ô một lượt, theo thứ tự khoá tăng dần; nếu một ô chưa giữ có khoá nhỏ hơn khoá đã giữ thì trả relockError mang CẢ tập ô, để
+// giao dịch chạy lại một lần là đủ.
+func (c *opctx) ensureLocks(slots []slotKey) error {
+	type pair struct {
+		s slotKey
+		k int64
+	}
+	var need []pair
+	seen := map[int64]bool{}
+	for _, s := range slots {
+		k := slotLockKey(c.tenant, s)
+		if c.locked[k] || seen[k] {
+			continue
+		}
+		seen[k] = true
+		need = append(need, pair{s, k})
+	}
+	sort.Slice(need, func(i, j int) bool { return need[i].k < need[j].k })
+	if len(need) > 0 && c.hasLock && need[0].k < c.maxLock {
+		all := append([]slotKey(nil), c.lockedSlots...)
+		for _, p := range need {
+			all = append(all, p.s)
+		}
+		return &relockError{slots: all}
+	}
+	for _, p := range need {
+		if err := c.ensureLock(p.s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getLocked đọc bản ghi cho một thao tác GHI: đọc thường để biết ô của nó, giữ khoá ô TRƯỚC khi đọc nhóm, rồi đọc lại có khoá hàng, vì trong lúc chờ khoá bản ghi
+// có thể đã đổi (kể cả đổi ô: khi đó khoá cả ô mới). Khoá ô luôn đứng trước khoá hàng, nên không có chuỗi chờ vòng giữa hai loại khoá.
+func (c *opctx) getLocked(key string) (*Record, error) {
+	r, err := c.get(key)
+	if err != nil || r == nil {
+		return r, err
+	}
+	for i := 0; i < 4; i++ {
+		s, hasSlot := slotOf(r)
+		if hasSlot {
+			if err := c.ensureLock(s); err != nil {
+				return nil, err
+			}
+		}
+		if c.dirty[key] || c.isNew[key] {
+			return r, nil // đã đổi trong chính thao tác này: bản trong bộ nhớ là bản mới nhất
+		}
+		fresh, err := c.tx.getRecord(key, true)
+		if err != nil {
+			return nil, err
+		}
+		if fresh == nil {
+			delete(c.cache, key)
+			c.missing[key] = true
+			return nil, nil
+		}
+		c.cache[key] = fresh
+		s2, has2 := slotOf(fresh)
+		if has2 == hasSlot && s2 == s {
+			return fresh, nil
+		}
+		r = fresh // ô đổi trong lúc chờ khoá: lặp để khoá ô mới
+	}
+	return nil, contracts.Errorf(contracts.FaultData, "bản ghi "+key+" liên tục đổi ô trong lúc chờ khoá")
 }
 
 // get trả bản ghi theo khoá (con trỏ dùng chung trong thao tác); nil khi chưa có.
@@ -117,7 +250,7 @@ func (c *opctx) get(key string) (*Record, error) {
 	if c.missing[key] {
 		return nil, nil
 	}
-	r, err := c.tx.getRecord(key)
+	r, err := c.tx.getRecord(key, false)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +265,9 @@ func (c *opctx) get(key string) (*Record, error) {
 // slotRecs trả mọi bản ghi của một ô, theo unit_key. Bản đã nằm trong cache (đã đổi hoặc mới tạo) thắng bản đọc từ kho; bản đổi ô thì
 // theo ô MỚI của nó.
 func (c *opctx) slotRecs(s slotKey) ([]*Record, error) {
+	if err := c.ensureLock(s); err != nil { // khoá TRƯỚC khi đọc nhóm: điểm duy nhất đọc nhóm nên không có đường nào quên khoá (DB26)
+		return nil, err
+	}
 	if !c.loaded[s] {
 		rs, err := c.tx.slotRecords(s.Entity, s.Day)
 		if err != nil {
@@ -266,6 +402,12 @@ func (c *opctx) deliver(batchID string, ordinal int, it Item) (DeliveryEntry, er
 	if err := it.validate(); err != nil {
 		return DeliveryEntry{}, err
 	}
+	if s, ok := slotOfItem(it); ok { // khoá ô NGAY ĐẦU giao dịch, trước mọi lần đọc (§5.6 mục 2)
+		if err := c.ensureLock(s); err != nil {
+			return DeliveryEntry{}, err
+		}
+	}
+	c.cause = "bản " + it.Key + " đến (thứ tự " + strconv.Itoa(ordinal) + " trong lô)"
 	orig := it.Key
 	hash, fp := contentHashOf(it.Raw), fingerprintOf(c.tenant, it)
 	hit, err := c.tr12(&it, hash, fp)
@@ -422,4 +564,37 @@ func deliverBatch(ctx context.Context, st Store, items []Item) (Receipt, error) 
 		entries = append(entries, e)
 	}
 	return BuildReceipt(batch, entries), nil
+}
+
+// maxAttempts là số lần thử tối đa của một thao tác: mỗi lần chạy lại do va chạm khoá duy nhất (errKeyRace) hoặc do cần lấy khoá ô theo thứ tự (relockError).
+// Va chạm khoá duy nhất chỉ xảy ra khi hai giao dịch cùng tạo một unit_key ở hai ô khác nhau; mỗi lần chạy lại, bên thua thấy bản của bên thắng và đi theo đường TR1.
+const maxAttempts = 8
+
+func mergeSlots(a, b []slotKey) []slotKey {
+	seen := map[slotKey]bool{}
+	var out []slotKey
+	for _, s := range append(append([]slotKey(nil), a...), b...) {
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// retryOp chạy attempt, và chạy lại khi nó báo errKeyRace hoặc relockError (với các ô cần lấy khoá sẵn). Hai kho dùng chung để cùng một luật chạy lại.
+func retryOp(attempt func(want []slotKey) error) error {
+	var want []slotKey
+	for i := 0; i < maxAttempts; i++ {
+		err := attempt(want)
+		var rl *relockError
+		switch {
+		case errors.As(err, &rl):
+			want = mergeSlots(want, rl.slots)
+		case errors.Is(err, errKeyRace):
+		default:
+			return err
+		}
+	}
+	return contracts.Errorf(contracts.FaultData, "thao tác bị bỏ và chạy lại quá "+strconv.Itoa(maxAttempts)+" lần vì va chạm khoá")
 }

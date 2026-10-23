@@ -12,6 +12,10 @@ type Memory struct {
 	mu   sync.Mutex
 	opt  Options
 	data map[string]*memTenant
+
+	// Chỉ test đặt (xem tr3_lock_test.go): bọc giao dịch để ghi lại thứ tự khoá và đọc nhóm; điểm dừng giữa lúc đọc nhóm và lúc ghi (DB26).
+	wrapTx        func(txn) txn
+	afterSlotRead func()
 }
 
 type memTenant struct {
@@ -44,9 +48,19 @@ func (m *Memory) run(ctx context.Context, fn func(c *opctx) error) error {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	c := newOpctx(tenant, m.opt, &memTx{t: m.tenantData(tenant)})
-	_, err = c.close(fn(c))
-	return err
+	return retryOp(func(want []slotKey) error {
+		var tx txn = &memTx{t: m.tenantData(tenant)}
+		if m.wrapTx != nil {
+			tx = m.wrapTx(tx)
+		}
+		c := newOpctx(tenant, m.opt, tx)
+		c.afterSlotRead = m.afterSlotRead
+		if err := c.ensureLocks(want); err != nil {
+			return err
+		}
+		_, err := c.close(fn(c))
+		return err
+	})
 }
 
 func (m *Memory) read(ctx context.Context, fn func(t *memTenant) error) error {
@@ -76,11 +90,9 @@ func (m *Memory) DeliverBatch(ctx context.Context, items []Item) (Receipt, error
 func (m *Memory) Decide(ctx context.Context, cmd Command) (Record, error) {
 	var out Record
 	err := m.run(ctx, func(c *opctx) error {
-		if err := c.decide(cmd); err != nil {
-			return err
-		}
-		out = c.cache[cmd.Key].clone()
-		return nil
+		r, err := c.decide(cmd)
+		out = r
+		return err
 	})
 	return out, err
 }
@@ -156,7 +168,9 @@ func (m *Memory) Totals(ctx context.Context) ([]Total, error) {
 // memTx cài txn trên một tenant của kho bộ nhớ. Đọc trả bản chép; ghi chép vào kho: engine không giữ con trỏ vào dữ liệu của kho.
 type memTx struct{ t *memTenant }
 
-func (x *memTx) getRecord(key string) (*Record, error) {
+func (x *memTx) lock(int64) error { return nil } // khoá toàn kho (Memory.mu) đã giữ suốt thao tác
+
+func (x *memTx) getRecord(key string, forUpdate bool) (*Record, error) {
 	if r, ok := x.t.recs[key]; ok {
 		c := r.clone()
 		return &c, nil

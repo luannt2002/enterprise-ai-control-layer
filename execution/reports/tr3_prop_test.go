@@ -183,6 +183,16 @@ func newGenRun(seed int64, st Store, ctx context.Context) *genRun {
 
 func (g *genRun) pick(xs []string) string { return xs[g.rng.Intn(len(xs))] }
 
+// steps là số sự kiện của một chuỗi: 6 đến 15.
+func (g *genRun) steps() int { return 6 + g.rng.Intn(10) }
+
+// coreItem: ba sự kiện đầu của mỗi chuỗi là ba lần nạp ACCEPTED cùng nhóm (cùng thực thể, ngày, giá trị) ở các giờ gần nhau, để chuỗi nghi trùng ba bản (a, b, c) và các đường bản được giữ rời
+// nhóm xảy ra thường xuyên: nếu để hoàn toàn ngẫu nhiên thì chuỗi này hiếm.
+func (g *genRun) coreItem() Item {
+	g.n++
+	return mk(fmt.Sprintf("k%d", g.n), []int{0, 20, 40, 55, 70}[g.rng.Intn(5)])
+}
+
 func (g *genRun) newItem() Item {
 	g.n++
 	key := fmt.Sprintf("k%d", g.n)
@@ -218,6 +228,23 @@ func (g *genRun) records(t *testing.T) []Record {
 	return rs
 }
 
+// chooseKept như choose nhưng nửa số lần ưu tiên bản đang là "bản được giữ" của một bản REJECTED bởi MARK_DUPLICATE: bộ sinh phải thật sự đẩy các bản đó rời nhóm, vì chuỗi này hiếm
+// khi tự dựng ngẫu nhiên (số đo của chính hợp đồng: "bộ sinh hiếm khi dựng chuỗi này").
+func (g *genRun) chooseKept(rs []Record, pred func(*Record) bool) *Record {
+	keptKeys := map[string]bool{}
+	for i := range rs {
+		if rs[i].Disposition == DispRejected && rs[i].Decision == DecMarkDuplicate {
+			keptKeys[rs[i].DuplicateOf] = true
+		}
+	}
+	if g.rng.Intn(100) < 55 {
+		if r := g.choose(rs, func(r *Record) bool { return keptKeys[r.Key] && pred(r) }); r != nil {
+			return r
+		}
+	}
+	return g.choose(rs, pred)
+}
+
 func (g *genRun) choose(rs []Record, pred func(*Record) bool) *Record {
 	var c []*Record
 	for i := range rs {
@@ -243,8 +270,13 @@ func (g *genRun) step(t *testing.T) (string, map[string]bool, error) {
 	live := func(r *Record) bool { return r.Disposition != DispRetracted && r.Disposition != DispSuperseded }
 	roll := g.rng.Intn(100)
 	switch {
-	case roll < 30 || len(rs) == 0:
-		it := g.newItem()
+	case g.n < 3 || roll < 30 || len(rs) == 0:
+		var it Item
+		if g.n < 3 {
+			it = g.coreItem()
+		} else {
+			it = g.newItem()
+		}
 		allow[it.Key] = true
 		g.log = append(g.log, "deliver "+it.Key)
 		_, err := g.st.Deliver(g.ctx, fmt.Sprintf("lo-%d", g.n), 1, it)
@@ -255,7 +287,7 @@ func (g *genRun) step(t *testing.T) (string, map[string]bool, error) {
 			return "bỏ qua (không có bản HELD possible_duplicate)", allow, nil
 		}
 		d := DecKeepBoth
-		if g.rng.Intn(2) == 0 {
+		if g.rng.Intn(100) < 62 {
 			d = DecMarkDuplicate
 		}
 		seen := r.DuplicateOf
@@ -289,7 +321,7 @@ func (g *genRun) step(t *testing.T) (string, map[string]bool, error) {
 		if q == nil {
 			return "bỏ qua (không có đính chính chờ)", allow, nil
 		}
-		tgt := g.choose(rs, func(r *Record) bool { return r.Key != q.Key && live(r) })
+		tgt := g.chooseKept(rs, func(r *Record) bool { return r.Key != q.Key && live(r) })
 		cmd := Command{Key: q.Key, Decision: DecApply, Actor: "pm-1", Why: "ngẫu nhiên"}
 		if tgt != nil {
 			cmd.Target = tgt.Key
@@ -301,13 +333,13 @@ func (g *genRun) step(t *testing.T) (string, map[string]bool, error) {
 		_, err := g.st.Decide(g.ctx, cmd)
 		return fmt.Sprintf("%s %s → %s", cmd.Decision, q.Key, cmd.Target), allow, err
 	case roll < 76: // thu hồi (nguyên thủy áp dụng: cũng là cách người APPLY một lần giao thu hồi)
-		r := g.choose(rs, live)
+		r := g.chooseKept(rs, live)
 		if r == nil {
 			return "bỏ qua (không có bản còn sống)", allow, nil
 		}
 		return "retract " + r.Key, allow, g.st.Retract(g.ctx, r.Key, "ingest", "thu hồi ngẫu nhiên")
 	default: // sửa tin
-		r := g.choose(rs, live)
+		r := g.chooseKept(rs, live)
 		if r == nil {
 			return "bỏ qua (không có bản còn sống)", allow, nil
 		}
@@ -375,7 +407,7 @@ func runRandomSequences(t *testing.T, st Store, seed int64, sequences int) {
 	for s := 0; s < sequences; s++ {
 		ctx, _ := newCtx("prop")
 		g := newGenRun(seed+int64(s), st, ctx)
-		steps := 4 + g.rng.Intn(10)
+		steps := g.steps()
 		var trail []string
 		for i := 0; i < steps; i++ {
 			before := g.records(t)
@@ -393,7 +425,7 @@ func runRandomSequences(t *testing.T, st Store, seed int64, sequences int) {
 // ngay trước, không máy nhả, lệnh bị từ chối không đổi bản ghi, tổng khớp tính lại.
 func TestR601_PhepKiemTinhChat_SauMoiSuKien_BoSinhNgauNhien(t *testing.T) {
 	forEachStore(t, func(t *testing.T, env storeEnv) {
-		n := 3000
+		n := 20000
 		if env.name != "bonho" {
 			n = 80
 		}
@@ -409,7 +441,7 @@ func TestR601_BoSinhCoChamDuongRoiNhom(t *testing.T) {
 	for s := 0; s < 3000; s++ {
 		ctx, _ := newCtx("cover")
 		g := newGenRun(20261023+int64(s), st, ctx)
-		for i, steps := 0, 4+g.rng.Intn(10); i < steps; i++ {
+		for i, steps := 0, g.steps(); i < steps; i++ {
 			if _, _, err := g.step(t); err != nil {
 				continue
 			}
@@ -445,7 +477,7 @@ func TestBoSinh_TatDinh_CungHatGiongCungKetQua(t *testing.T) {
 		out := map[string]string{}
 		for s := 0; s < 200; s++ {
 			g := newGenRun(777+int64(s), st, ctx)
-			for i, steps := 0, 4+g.rng.Intn(10); i < steps; i++ {
+			for i, steps := 0, g.steps(); i < steps; i++ {
 				_, _, _ = g.step(t)
 			}
 			for k, v := range dispOf(g.records(t)) {
@@ -468,7 +500,7 @@ func TestSettle_LaDiemBatDong(t *testing.T) {
 	for s := 0; s < 600; s++ {
 		ctx, tenant := newCtx("fix")
 		g := newGenRun(555+int64(s), m, ctx)
-		for i, steps := 0, 4+g.rng.Intn(10); i < steps; i++ {
+		for i, steps := 0, g.steps(); i < steps; i++ {
 			_, _, _ = g.step(t)
 		}
 		before := g.records(t)

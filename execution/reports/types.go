@@ -144,7 +144,11 @@ const (
 	EventRetracted      = "RETRACTED"
 	EventAmended        = "AMENDED"
 	EventSuperseded     = "SUPERSEDED"
+	EventPairReset      = "PAIR_RESET" // cặp đã xét bị xoá vì nội dung của một bên đổi (chỉ siết)
 )
+
+// ActorTR3 là "người" ghi các dòng lịch sử do luật TR3 tự chạy (hold, nối lại duplicate_of, quay lại HELD): máy, không phải người quyết.
+const ActorTR3 = "tr3"
 
 // DefaultRecipient là người nhận khi không xác định được máy (§6.3 mục 2).
 const DefaultRecipient = "director"

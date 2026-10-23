@@ -200,7 +200,7 @@ func TestVetDuChatCauHoiLaiCuaKySu(t *testing.T) {
 	w := whyOfTurn(t, realAsk(t), person("site_engineer", "PRJ-A"), "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?")
 	wantList(t, "S3 lý do", w.Resolve.Reasons,
 		"cụm “RL-02” (khoá so khớp “rl 2”) khớp RL-02",
-		"cụm “máy 03” (khoá so khớp “may 3”) khớp 2 thực thể — không chọn bừa (vết không kể khoá ứng viên trước khi lọc phạm vi)",
+		"cụm “máy 03” (khoá so khớp “may 3”) khớp 2 thực thể: "+traces.OutOfScope+", EX-03 — không chọn bừa", // DZ-03 (PRJ-B) bị che (C9 vòng 2)
 		"ứng viên của câu hỏi lại: trước lọc phạm vi 3 ứng viên → sau lọc 2 ứng viên [RL-02, EX-03]")
 	wantList(t, "S3 loại", w.Resolve.Rejected, "1 ứng viên bị loại khỏi câu hỏi lại: ngoài phạm vi dữ liệu của người hỏi (vết không nêu trạng thái phạm vi của từng ứng viên)")
 	wantLine(t, "nguồn RL-02", w.Intent.Reasons, "ứng viên hỏi lại RL-02 ← do S4 gộp thêm: thực thể rõ “rl 2” ở S3, S4 gộp vào danh sách vì khe subject chỉ nhận một thực thể mà câu nêu 3")

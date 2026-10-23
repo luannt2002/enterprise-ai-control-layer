@@ -98,6 +98,24 @@ func (w Why) WithholdQuoted() Why {
 	})
 }
 
+// OutOfScope thay cho khoá, mã hay tên của một thực thể NGOÀI phạm vi dữ liệu của người hỏi trong vết của chính người hỏi (core/pipeline che ở
+// một chỗ cho mọi bề mặt của bản ghi — C9). Không dùng dấu “ ” để không lẫn với chữ của người hỏi (Withheld).
+const OutOfScope = "‹ngoài phạm vi›"
+
+// Map áp f lên MỌI dòng lý do và bị loại của mọi chặng, trả bản mới (w không đổi).
+func (w Why) Map(f func(string) string) Why {
+	return w.apply(func(lines []string) []string {
+		if len(lines) == 0 {
+			return lines
+		}
+		out := make([]string, len(lines))
+		for i, l := range lines {
+			out[i] = f(l)
+		}
+		return out
+	})
+}
+
 // Compact gộp các ý GIỐNG HỆT nhau thành một ý kèm "(×N)" (câu dài nhắc lại một cụm nhiều lần không in lặp từng lần), cắt mỗi ý dài hơn maxRunes
 // ký tự (kèm chữ báo đã cắt), rồi cắt mỗi danh sách còn tối đa limit ý, ý cuối nói còn bao nhiêu ý không in: phần giải thích có trần cả theo số ý
 // lẫn theo độ dài từng ý, không phình theo độ dài câu hỏi hay số thực thể khác nhau trong câu. maxRunes <= 0 là không cắt theo độ dài.

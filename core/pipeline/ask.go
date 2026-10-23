@@ -234,7 +234,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {
 		why = why.WithholdQuoted()
 	}
+	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
+	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá.
+	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
+	why = red.why(why)
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
+	red.decision(&d)
 	if !a.noWhy {
 		d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
 	}

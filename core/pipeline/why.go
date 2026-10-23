@@ -161,7 +161,9 @@ func explainNormalize(in contracts.NormalizedInput) traces.Notes {
 
 // explainResolve giải thích S3: thực thể rõ, cụm mơ hồ, và tập ứng viên TRƯỚC / SAU lọc phạm vi — lọc của router khi gỡ mơ hồ (nar) và lọc
 // của luồng hỏi khi dựng câu hỏi lại (ci). Vết do chính người hỏi đọc, nên: KHÔNG kể trạng thái phạm vi của TỪNG ứng viên ngoài phạm vi (chỉ số
-// lượng bị loại và lý do chung), và chỉ kể tên + loại thực thể khi fullScope (người hỏi có phạm vi dữ liệu không hạn chế).
+// lượng bị loại và lý do chung), và chỉ kể tên + loại thực thể khi fullScope (người hỏi có phạm vi dữ liệu không hạn chế). Khoá của thực thể
+// ngoài phạm vi KHÔNG được lọc ở đây mà ở scopeRedactor, một chỗ cho mọi dòng của mọi chặng (C9 vòng 2): dòng ở đây vẫn kể khoá ứng viên, và
+// với người không toàn quyền, khoá ngoài phạm vi mà họ không tự gõ thành traces.OutOfScope trước khi vào bản ghi.
 func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar contracts.Narrowing, ci clarifyInfo, fullScope bool) traces.Notes {
 	var n traces.Notes
 	if len(res.Entities)+len(res.Ambiguous) == 0 {
@@ -176,11 +178,6 @@ func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar 
 	}
 	for _, m := range res.Ambiguous {
 		keys := refKeys(m.Candidates)
-		if !fullScope { // danh sách TRƯỚC lọc phạm vi trừ đi danh sách sau lọc = khoá ngoài phạm vi (C9, lệnh ca chiều 23/10): chỉ kể số lượng
-			n.Reason("cụm %s (khoá so khớp %s) khớp %d thực thể — không chọn bừa (vết không kể khoá ứng viên trước khi lọc phạm vi)",
-				contracts.Quote(rawSpan(in.Raw, m.Start, m.End)), contracts.Quote(m.Mention), len(keys))
-			continue
-		}
 		n.Reason("cụm %s (khoá so khớp %s) khớp %d thực thể: %s — không chọn bừa", contracts.Quote(rawSpan(in.Raw, m.Start, m.End)), contracts.Quote(m.Mention),
 			len(keys), contracts.Brief(keys, maxListed, "ứng viên"))
 	}

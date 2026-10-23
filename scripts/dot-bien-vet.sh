@@ -314,6 +314,19 @@ if [ "${DOT_BIEN_SINH:-1}" != 0 ]; then
 fi
 # ---- hết R2-03 vòng 3
 
+# ---- C8–C11 vòng 2 (soát độc lập C8–C11, 23/10). C9 vòng 2: bộ che khoá / tên thực thể ngoài phạm vi ở một chỗ (core/pipeline/scope_redact.go);
+# test bắt nằm ở core/pipeline (TestScopeRedactorDungRieng, TestNewScopeRedactorKhoaVaTen), observability/traces (dòng S3 / S4 của kỹ sư PRJ-A) và
+# tenants/construction (TestVetKhongLoThucTheNgoaiPhamVi quét toàn bản ghi). C11-S3: giải thích không được sửa dữ liệu dùng chung với Decision.
+export PKGS="./core/pipeline/ ./observability/traces/ ./tenants/construction/"
+SR=core/pipeline/scope_redact.go
+m $SR 'if a.RT.Policy.InScope(pr, nil) {' 'if true {' 'XV47 [C9 vòng 2] bộ che tắt với mọi người hỏi'
+m $SR 'k == "" || !strings.Contains(typed, " "+k+" ")' 'k == "" && false' 'XV48 [C9 vòng 2] không bao giờ che khoá / mã'
+m $SR 'hide = append(hide, r.Name)' '_ = r.Name' 'XV49 [C9 vòng 2] không che tên'
+m $SR 'strings.Join(append(keep, hidden...), "|")' 'strings.Join(append(hidden, keep...), "|")' 'XV50 [C9 vòng 2] chỗ che đứng đầu "?a|b" (thứ tự gợi khoá)'
+m $ASK 'why = red.why(why)' '_ = red.why(why)' 'XV51 [C9 vòng 2] không che phần giải thích'
+m $ASK 'red.decision(&d)' '_ = d' 'XV52 [C9 vòng 2] không che Decision.Entities / Slots'
+# ---- hết C8–C11 vòng 2
+
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"
 [ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

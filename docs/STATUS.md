@@ -23,8 +23,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   sai nghĩa không nhãn). Chủ dự án 23/10: D-AI-02 = a — vòng sửa S4 bằng luật đang chạy (gộp D-OP-18 = c, D-OP-11 = b); chấm trên H6 do người
   soạn khác soạn, băm trước khi bản sửa lên main, chạy một lần.
 - **M4**: ADR-0011 CHỐT; bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG bằng cam kết băm (`1ddd10b`, `docs/g7/holdout-p1/holdout-manifest.json`,
-  157 ca / 23 lớp) ⇒ đủ điều kiện mở mã. K1 (lõi lệnh `execution/commands`) và K2 (kho PG) ở nhánh riêng trên origin, chưa gộp main: K1 soát
-  vòng 1 KHÔNG ĐẠT (0 S1, 2 S2), đang sửa vòng 2.
+  157 ca / 23 lớp) ⇒ đủ điều kiện mở mã. K1 (lõi lệnh `execution/commands`, kho giả) đã gộp (`e1ce950`; soát vòng 2 ĐẠT CÓ GHI CHÚ);
+  K2 (kho PG, migration 0004) ở nhánh riêng trên origin, đang soát; còn K3 (route `cmd/eais`), K4 (vết, bộ chạy ca, đột biến), rồi chạy bộ P1.
 - **M2**: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10: giấy tối đa 3 vòng soát); R6-01, R6-02 thành nợ có mã, chặn bằng test đỏ trong mã Phase 0a.
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy

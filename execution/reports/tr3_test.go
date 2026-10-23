@@ -1019,3 +1019,66 @@ func TestAmend_DoiNhom_XoaCapDaXet(t *testing.T) {
 		wantTotal(t, ctx, env.st, "2000")
 	})
 }
+
+// Bản kia của cặp đã xét đổi nội dung rồi TRỞ LẠI nội dung cũ: cặp người đã xét là về nội dung cũ trước khi nó đổi, nên không phủ lần trở lại (chỉ siết: hỏi người lần nữa còn hơn
+// để hai bản liền kề cùng vào tổng không ai xét).
+func TestAmend_BanKiaDoiNoiDungRoiTroLai_CapDaXetKhongPhuLanTroLai(t *testing.T) {
+	forEachStore(t, func(t *testing.T, env storeEnv) {
+		ctx, _ := newCtx("amdq")
+		mustBatch(t, ctx, env.st, mk("a", 0), mk("c", 30))
+		keepBoth(t, ctx, env.st, "c") // cặp (c, a)
+		wantTotal(t, ctx, env.st, "2000")
+		mustAmend(t, ctx, env.st, "a", mk("a", 0, withValue("2000"), withRaw("a sang 2000")))
+		if len(mustRecord(t, ctx, env.st, "c").ReviewedPairs) != 0 {
+			t.Errorf("cặp đã xét với a còn sót sau khi a đổi nhóm: %v", mustRecord(t, ctx, env.st, "c").ReviewedPairs)
+		}
+		mustAmend(t, ctx, env.st, "a", mk("a", 0, withRaw("a trở lại 1000")))
+		wantHeldPD(t, ctx, env.st, "c", "a") // a trở lại nhóm của c, cách 30 phút, cặp mới chưa ai xét
+		wantTotal(t, ctx, env.st, "1000")
+	})
+}
+
+// LC65: hai tiến trình nạp ĐỒNG THỜI (§7.5). (i) cùng một tệp: một bản ghi, một dòng ACCEPTED và một dòng DUPLICATE. (ii) hai tệp có đơn vị cùng mã tin: cùng nội dung thì một bản ghi
+// và một DUPLICATE; KHÁC nội dung (và khác ô nên không nhờ khoá ô xếp hàng) thì một bản ghi và một HELD id_conflict, hai bản không chung unit_key; không lần nào mất đơn vị.
+func TestLC65_HaiTienTrinhNapDongThoi_CungMaTin(t *testing.T) {
+	forEachStore(t, func(t *testing.T, env storeEnv) {
+		for round := 0; round < 60; round++ {
+			ctx, _ := newCtx("lc65")
+			same := mk("X-1", 0, withRaw("cùng tệp"))
+			raceDeliver(t, ctx, env.st, same, same)
+			recs := mustRecords(t, ctx, env.st)
+			led, _ := env.st.Ledger(ctx, "")
+			if len(recs) != 1 || len(led) != 2 {
+				t.Fatalf("(i) vòng %d: %d bản ghi, %d dòng sổ; muốn 1 và 2", round, len(recs), len(led))
+			}
+			outs := map[Outcome]int{led[0].Outcome: 1}
+			outs[led[1].Outcome]++
+			if outs[OutcomeAccepted] != 1 || outs[OutcomeDuplicate] != 1 {
+				t.Fatalf("(i) vòng %d: kết cục %v, muốn một ACCEPTED và một DUPLICATE", round, outs)
+			}
+
+			ctx2, _ := newCtx("lc65b")
+			a, b := mk("X-1", 0, withRaw("nội dung một")), mk("X-1", 10, withRaw("nội dung hai"), withEntity("E2"))
+			if round%2 == 1 {
+				a, b = b, a
+			}
+			raceDeliver(t, ctx2, env.st, a, b)
+			recs = mustRecords(t, ctx2, env.st)
+			if len(recs) != 2 {
+				t.Fatalf("(ii) vòng %d: %d bản ghi, muốn 2 (một giữ khoá X-1, một mang khoá có hậu tố băm): không mất đơn vị", round, len(recs))
+			}
+			held, accepted := 0, 0
+			for _, r := range recs {
+				switch {
+				case r.Key == "X-1" && r.Disposition == DispAccepted:
+					accepted++
+				case strings.HasPrefix(r.Key, "X-1~") && r.Disposition == DispHeld && r.Reason == ReasonIDConflict:
+					held++
+				}
+			}
+			if accepted != 1 || held != 1 {
+				t.Fatalf("(ii) vòng %d: %v, muốn một bản ACCEPTED giữ khoá X-1 và một HELD id_conflict khoá có hậu tố", round, dispOf(recs))
+			}
+		}
+	})
+}

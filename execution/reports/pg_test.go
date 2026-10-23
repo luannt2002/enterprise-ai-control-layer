@@ -292,6 +292,16 @@ func TestPGRangBuoc_LuocDoChanBanGhiSai(t *testing.T) {
 	if err := rawExec(t, st, ctx, led("DUPLICATE", "duplicate_key", "d", "co")); err != nil {
 		t.Errorf("dòng sổ hợp lệ bị từ chối: %v", err)
 	}
+	// tenant rỗng bị chặn ở LƯỢC ĐỒ cho cả bốn bảng, kể cả với vai quản trị (đóng mặc định; như 0005 cho ba bảng của phiếu)
+	_, admin := pgSetup(t)
+	for _, q := range []string{
+		`INSERT INTO report_records (tenant_id, unit_key, kind, raw, disposition, fingerprint, content_sha256, version) VALUES ('', 'x', 'OCCURRED', ''::bytea, 'RETRACTED', 'f', 'c', 1)`,
+		`INSERT INTO delivery_ledger (tenant_id, batch_id, ordinal, unit_key, outcome, record_ref, recorded_at) VALUES ('', 'b', 1, 'u', 'ACCEPTED', 'u', now())`,
+	} {
+		if _, err := admin.Exec(context.Background(), q); sqlState(err) != "23514" {
+			t.Errorf("tenant rỗng: muốn 23514 (CHECK), được %v", err)
+		}
+	}
 }
 
 func adminCount(t *testing.T, admin *pgxpool.Pool, table, tenant string) int {
@@ -304,7 +314,7 @@ func adminCount(t *testing.T, admin *pgxpool.Pool, table, tenant string) int {
 }
 
 // Nhiều lô CÙNG tenant đồng thời: khoá tuần tự hoá TR3 làm kết cục là hàm của TẬP bản (như nạp tuần tự trên kho bộ nhớ), mỗi lô bảo toàn (BB1), phép kiểm tính chất đúng.
-func TestPGNhieuLoCungTenant_DongThoi_KhoaTuanTuTR3(t *testing.T) {
+func TestPG_LC74_NhieuLoCungTenant_DongThoi_KhoaTuanTuTR3(t *testing.T) {
 	st, _ := pgSetup(t)
 	pg := NewPG(st, testOptions())
 	ctx, _ := newCtx("nhieulo")
@@ -356,7 +366,7 @@ func TestPGNhieuLoCungTenant_DongThoi_KhoaTuanTuTR3(t *testing.T) {
 }
 
 // LC67: PG ngắt giữa lô (backend bị kết thúc ngay trước dòng sổ của đơn vị thứ ba): lỗi mang nhãn hạ tầng; không ghi nửa đơn vị (bản ghi, phiên bản, lịch sử, sổ cùng số); chạy lại (lô mới) hội tụ.
-func TestPGLoiGiuaGiaoDich_KhongNuaGhi_ChayLaiHoiTu(t *testing.T) {
+func TestPG_LC67_LC64_LoiGiuaGiaoDich_KhongNuaGhi_ChayLaiHoiTu(t *testing.T) {
 	st, admin := pgSetup(t)
 	items := []Item{mk("u1", 0, withEntity("E1")), mk("u2", 0, withEntity("E2")), mk("u3", 0, withEntity("E3")), mk("u4", 0, withEntity("E4")), mk("u5", 0, withEntity("E5"))}
 
@@ -436,7 +446,7 @@ func TestPGLoiGiuaGiaoDich_KhongNuaGhi_ChayLaiHoiTu(t *testing.T) {
 }
 
 // LC53, LC64, CL3: HELD và QUARANTINED sống sót qua khởi động lại (Store mới, pool mới) y nguyên từng trường.
-func TestPGBenVung_QuaKhoiDongLai_HeldVaQuarantinedConNguyen(t *testing.T) {
+func TestPG_LC53_LC64_BenVung_QuaKhoiDongLai_HeldVaQuarantinedConNguyen(t *testing.T) {
 	_, app := pgstore.EnvDSN()
 	_, _ = pgSetup(t)
 	ctx, _ := newCtx("khoidong")

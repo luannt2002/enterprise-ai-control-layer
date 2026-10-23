@@ -146,7 +146,7 @@ func raceDeliver(t *testing.T, ctx context.Context, st Store, items ...Item) {
 		go func(i int, it Item) {
 			defer wg.Done()
 			<-start
-			_, errs[i] = st.Deliver(ctx, "lo-"+it.Key, 1, it)
+			_, errs[i] = st.Deliver(ctx, fmt.Sprintf("lo-%s-%d", it.Key, i), 1, it) // mã lô cấp mới cho mỗi lần gọi (§3.8), kể cả khi hai bên giao cùng một khoá
 		}(i, it)
 	}
 	close(start)

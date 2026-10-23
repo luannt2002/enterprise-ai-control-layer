@@ -610,6 +610,16 @@ func evidenceOf(c *chunk, score float64) contracts.Evidence {
 // tên tệp, không phiên bản. Phần đầu sai (khoá lạ, trạng thái lạ, ngày sai, thiếu bản, trùng id@bản) thì
 // báo lỗi: tài liệu khai sai không được lặng lẽ công bố.
 func LoadMarkdown(dir, tenant string) ([]Document, error) {
+	out, err := loadMarkdown(dir, tenant)
+	if err != nil {
+		return nil, err
+	}
+	qualityGate(out)
+	return out, nil
+}
+
+// loadMarkdown là LoadMarkdown chưa chạy cổng chất lượng (Collect chạy cổng một lần trên cả kho).
+func loadMarkdown(dir, tenant string) ([]Document, error) {
 	acl := map[string][]string{}
 	if b, err := os.ReadFile(filepath.Join(dir, "acl.json")); err == nil {
 		if err := json.Unmarshal(b, &acl); err != nil {
@@ -626,28 +636,9 @@ func LoadMarkdown(dir, tenant string) ([]Document, error) {
 		if err != nil {
 			return nil, err
 		}
-		d := Document{ID: strings.TrimSuffix(filepath.Base(p), ".md"), Tenant: tenant}
-		// Tệp lưu kèm BOM hay CRLF vẫn phải nhận ra phần đầu: lỡ thì bản nháp nạp như tài liệu không phiên bản
-		// (coi như đã duyệt) và bị phục vụ.
-		text := strings.ReplaceAll(strings.TrimPrefix(string(b), "\ufeff"), "\r\n", "\n")
-		if rest, ok := strings.CutPrefix(text, "---\n"); ok {
-			head, body, closed := "", "", false
-			if body, closed = strings.CutPrefix(rest, "---\n"); !closed {
-				head, body, closed = strings.Cut(rest, "\n---\n")
-			}
-			if !closed {
-				return nil, fmt.Errorf("%s: phần đầu thiếu dòng đóng \"---\"", p)
-			}
-			fm, err := parseFrontMatter(head)
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", p, err)
-			}
-			if fm.ID != "" {
-				d.ID = fm.ID
-			}
-			d.Version, _ = strconv.Atoi(fm.Version) // parseFrontMatter đã kiểm
-			d.Status, d.EffectiveFrom, d.EffectiveTo, d.Scope, d.RemovedColumns = fm.Status, fm.EffectiveFrom, fm.EffectiveTo, fm.Scope, fm.RemovedColumns
-			text = body
+		d, _, err := parseDocText(p, string(b), tenant, true)
+		if err != nil {
+			return nil, err
 		}
 		key := fmt.Sprintf("%s@%d", d.ID, d.Version)
 		if prev, dup := seen[key]; dup {
@@ -659,12 +650,46 @@ func LoadMarkdown(dir, tenant string) ([]Document, error) {
 			return nil, fmt.Errorf("%s: tài liệu %s vừa có tệp không phiên bản vừa có tệp khai phiên bản", p, d.ID)
 		}
 		versioned[d.ID] = d.Version == 0
-		title, body, _ := strings.Cut(text, "\n")
-		d.Title, d.Body, d.ACL = strings.TrimSpace(strings.TrimPrefix(title, "#")), body, acl[d.ID]
+		d.ACL = acl[d.ID]
 		out = append(out, d)
 	}
-	qualityGate(out)
 	return out, nil
+}
+
+// parseDocText dựng tài liệu từ chữ của MỘT tệp: mã = tên tệp bỏ đuôi; khi allowFM, phần đầu giữa hai dòng "---" (nếu có, fm = true)
+// khai mã / bản / trạng thái / hiệu lực / phạm vi; dòng đầu của thân là tiêu đề ("# " tuỳ chọn). Chưa gắn ACL.
+func parseDocText(p, raw, tenant string, allowFM bool) (d Document, fm bool, err error) {
+	d = Document{ID: strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)), Tenant: tenant}
+	// Tệp lưu kèm BOM hay CRLF vẫn phải nhận ra phần đầu: lỡ thì bản nháp nạp như tài liệu không phiên bản
+	// (coi như đã duyệt) và bị phục vụ.
+	text := strings.ReplaceAll(strings.TrimPrefix(raw, "\ufeff"), "\r\n", "\n")
+	if rest, ok := strings.CutPrefix(text, "---\n"); ok && allowFM {
+		head, body, closed := "", "", false
+		if body, closed = strings.CutPrefix(rest, "---\n"); !closed {
+			head, body, closed = strings.Cut(rest, "\n---\n")
+		}
+		if !closed {
+			return d, false, fmt.Errorf("%s: phần đầu thiếu dòng đóng \"---\"", p)
+		}
+		f, err := parseFrontMatter(head)
+		if err != nil {
+			return d, false, fmt.Errorf("%s: %w", p, err)
+		}
+		if f.ID != "" {
+			d.ID = f.ID
+		}
+		d.Version, _ = strconv.Atoi(f.Version) // parseFrontMatter đã kiểm
+		d.Status, d.EffectiveFrom, d.EffectiveTo, d.Scope, d.RemovedColumns = f.Status, f.EffectiveFrom, f.EffectiveTo, f.Scope, f.RemovedColumns
+		text, fm = body, true
+	}
+	title, body, _ := strings.Cut(text, "\n")
+	d.Title, d.Body = strings.TrimSpace(strings.TrimPrefix(title, "#")), body
+	return d, fm, nil
+}
+
+func validDate(s string) bool {
+	_, err := time.Parse(dateLayout, s)
+	return err == nil
 }
 
 const dateLayout = "2006-01-02"

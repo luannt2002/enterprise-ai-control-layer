@@ -26,6 +26,9 @@
 # cổng trống do hệ điều hành chọn (chỉ được tạo khi script sai); cuối cùng gỡ cả dự án.
 # Mỗi kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
 # Tệp khoá của script (eais-chay-thu-<KEEP_NAME>.lock, 0 byte, không bao giờ bị script xoá) nằm ở /tmp thật của máy sau kịch bản lock; xoá đúng tệp đó nếu muốn dọn.
+# Đột biến LOCK-12 (bỏ qua EAIS_LOCK_DIR, luôn khoá ở /tmp) cho CẢ bộ test chạy với tệp khoá ở /tmp thật, gồm tệp của dự án mặc định
+# eais: đừng chạy LOCK-12 khi trên máy đang có lần chạy thật của scripts/chay-thu.sh; chạy xong thì dọn các tệp eais-chay-thu-*.lock
+# mà các ca test tạo, sau khi kiểm không tiến trình nào giữ.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
 : "${EAIS_PG_DSN:?đặt EAIS_PG_DSN (PG riêng của bạn)}"

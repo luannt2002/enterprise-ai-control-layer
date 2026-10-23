@@ -280,3 +280,30 @@ func TestSanitizeCheURLNguoiDungRong(t *testing.T) {
 		}
 	}
 }
+
+// Dạng lọt do soát độc lập 23/10 tìm ra: giá trị trong nháy có NHÁY THOÁT ("password":"ab\"pw") — mẫu cũ dừng ở nháy thoát đầu tiên nên
+// đuôi sau nó lọt. Áp cho "khoá = giá trị" (nháy kép, nháy đơn) và tiêu đề Cookie.
+func TestSanitizeCheGiaTriCoNhayThoat(t *testing.T) {
+	for _, c := range []struct{ name, in, secret, keep string }{
+		{"JSON nháy thoát", `{"password":"ab\"hunter2pw","model":"m1"}`, "hunter2pw", `"model":"m1"`},
+		{"JSON hai nháy thoát", `{"token":"a\"b\"SECRETVALUE99","n":1}`, "SECRETVALUE99", `"n":1`},
+		{"JSON gạch chéo thoát rồi nháy", `{"api_key":"x\\\"QWERTY123456","n":2}`, "QWERTY123456", `"n":2`},
+		{"nháy đơn thoát", `password='ab\'hunter2pw' host=db`, "hunter2pw", "host=db"},
+		{"Cookie trong nháy có nháy thoát", `Cookie: "sid=abc\"hunter2pw"; next`, "hunter2pw", "Cookie"},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, c.secret) {
+			t.Errorf("%s: bí mật còn trong %q", c.name, got)
+		}
+		if !strings.Contains(got, c.keep) {
+			t.Errorf("%s: mất cả ngữ cảnh %q, được %q", c.name, c.keep, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+	// ca âm: nháy thoát ở khoá KHÔNG phải bí mật thì giữ nguyên
+	if s := `{"note":"anh ấy nói \"chào\"","model":"m1"}`; traces.Sanitize(s) != s {
+		t.Errorf("che oan: %q → %q", s, traces.Sanitize(s))
+	}
+}

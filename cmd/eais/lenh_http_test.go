@@ -644,3 +644,45 @@ func TestLenhPGDauCuoi(t *testing.T) {
 		}
 	}
 }
+
+// K3S-03 (soát K3): ba chỗ nối dây của K3 mà hành vi đúng nhưng không test nào ghim (đột biến sống sót).
+
+// (a) persistTrace lưu vết bằng ngữ cảnh KHÔNG huỷ theo client: client ngắt kết nối không được làm mất vết của lượt đã chạy.
+func TestLenhPersistTraceKhiClientHuy(t *testing.T) {
+	e, cs := newCmdEnv(t)
+	pr := e.principal(tokDirector)
+	out := e.app.cmds["open_discrepancy_ticket"].Malformed()
+	rec := commands.NewRecord(commands.Request{}, out, pr, e.app.now(), e.app.versions(), 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := e.srv.persistTrace(ctx, pr, rec); err != nil {
+		t.Fatalf("persistTrace với ngữ cảnh đã huỷ: %v", err)
+	}
+	if got := cs.decisionCount(e.tenantA); got != 1 {
+		t.Errorf("client ngắt mà có %d dòng vết, muốn 1", got)
+	}
+}
+
+// (b) lệnh dùng ĐỒNG HỒ CỦA APP (-now world / clockForTest: 20/10/2026), không đồng hồ thật: "hôm nay" của tenant chưa qua nên bị từ chối ở C3.
+func TestLenhNgayHomNayTheoDongHoApp(t *testing.T) {
+	e, _ := newCmdEnv(t)
+	res := wantResult(t, e.cmd(tokDirector, cmdReq(60, "EX-03", "2026-10-20")), 400, commands.StatusFailed, commands.ReasonInvalidRequest, "input", commands.RetryFixRequest)
+	if !slices.Equal(res.InvalidFields, []string{"day"}) {
+		t.Errorf("invalid_fields = %v, muốn [day]", res.InvalidFields)
+	}
+}
+
+// (c) project_manager (phạm vi PRJ-A) trên pack thật qua HTTP: máy trong phạm vi ⇒ DONE; máy ngoài phạm vi và máy không tồn tại ⇒ cùng 403, cùng
+// thông báo (§4.4).
+func TestLenhHTTPProjectManagerTheoPhamVi(t *testing.T) {
+	e, _ := newCmdEnv(t)
+	wantResult(t, e.cmd(tokPM, cmdReq(61, "EX-03", dayAgo)), 200, commands.StatusDone, "", "", commands.RetryNone)
+	var details []string
+	for i, key := range []string{"DZ-05", "EX-99"} { // DZ-05 thuộc PRJ-B trong thế giới của test (world.yaml); EX-99 không tồn tại
+		res := wantResult(t, e.cmd(tokPM, cmdReq(62+i, key, dayAgo)), 403, commands.StatusFailed, commands.ReasonPermissionDenied, "policy", commands.RetryNone)
+		details = append(details, res.Detail)
+	}
+	if details[0] != details[1] {
+		t.Errorf("máy ngoài phạm vi và máy không tồn tại phải cùng thông báo: %q / %q", details[0], details[1])
+	}
+}

@@ -135,6 +135,7 @@ const (
 	tokEng        = "t-eng"        // tenant A, site_engineer, phạm vi PRJ-A
 	tokDriver     = "t-driver"     // tenant A, driver: không capability nào
 	tokDirectorB  = "t-director-b" // tenant B, vai director
+	tokPM         = "t-pm"         // tenant A, project_manager, phạm vi PRJ-A (có tickets.create; soát K3, K3S-03)
 )
 
 type syncBuffer struct {
@@ -177,6 +178,7 @@ func newEnv(t *testing.T, st store) *env {
 		tokEng:        user("u-eng-a", a, "site_engineer", "PRJ-A"),
 		tokDriver:     user("u-driver", a, "driver", "EX-03"),
 		tokDirectorB:  user("u-b-director", b, "director", ""),
+		tokPM:         user("u-pm-a", a, "project_manager", "PRJ-A"),
 	}, log)
 	srv.hostGuard = true
 	ts := httptest.NewServer(srv.handler())

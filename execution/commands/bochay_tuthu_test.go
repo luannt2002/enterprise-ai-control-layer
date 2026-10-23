@@ -9,9 +9,13 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/evals"
@@ -385,5 +389,44 @@ func TestBoChayCaKhongKhangDinhLaDo(t *testing.T) {
 				t.Fatalf("ca không khẳng định gì phải ĐỎ, được %v", err)
 			}
 		})
+	}
+}
+
+// Soát K4, K4S-03: lỗi của evals.Validate gắn được vào ca ("ca #N") làm ĐỎ đúng ca đó (không chạy), ca khác không bị kéo theo; lỗi không gắn
+// được vào ca làm ĐỎ mọi cổng của báo cáo (trừ X8, ngoài bộ chạy).
+func TestBoChayLoiValidateLamDoDungCa(t *testing.T) {
+	good := goodCase()
+	bad := goodCase()
+	bad["id"] = "CON-T-901"
+	delete(bad, "severity")
+	b, err := yaml.Marshal(map[string]any{"suite": "lenh", "cases": []any{map[string]any(good), map[string]any(bad)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "ca.yaml")
+	if err := os.WriteFile(path, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cs, err := loadCaseSet(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cs.Problems) == 0 || len(cs.FileProblems) != 0 {
+		t.Fatalf("muốn lỗi Validate gắn vào ca, được Problems %v, FileProblems %v", cs.Problems, cs.FileProblems)
+	}
+	if len(cs.Cases[0].Errs) != 0 || !slices.ContainsFunc(cs.Cases[1].Errs, func(e string) bool { return strings.HasPrefix(e, "evals.Validate: ca #2") }) {
+		t.Fatalf("lỗi phải nằm ở đúng ca thứ hai: ca 1 %v, ca 2 %v", cs.Cases[0].Errs, cs.Cases[1].Errs)
+	}
+	rp := newReport("bo_nho", nil)
+	rp.add(caseOutcome{ID: "CON-T-900", Scenario: "A01", OK: true})
+	rp.FileProblems = []string{"lỗi cả tệp"}
+	rp.finish()
+	for _, g := range rp.Gates {
+		if g.ID != "X8" && !strings.HasPrefix(g.Status, "ĐỎ") {
+			t.Errorf("tệp có lỗi không gắn được vào ca: cổng %s phải ĐỎ, được %q", g.ID, g.Status)
+		}
+	}
+	if !strings.Contains(rp.render(), "TỆP CA SAI HÌNH DẠNG: lỗi cả tệp") {
+		t.Errorf("báo cáo chữ phải in lỗi của tệp")
 	}
 }

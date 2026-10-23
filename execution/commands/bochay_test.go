@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -264,6 +266,20 @@ type chayCase struct {
 	Errs                 []string // lỗi hình dạng: ca ĐỎ, không chạy
 }
 
+type caseSet struct {
+	Path     string
+	SHA      string
+	Tenant   string
+	Cases    []chayCase
+	Problems []string // lỗi của evals.Validate (cả tệp)
+	// FileProblems: lỗi của evals.Validate KHÔNG gắn được vào một ca ("ca #N" không đọc được): làm ĐỎ mọi cổng của báo cáo. Lỗi gắn được
+	// vào ca thì thành lỗi hình dạng của đúng ca đó (ca ĐỎ, không chạy) — soát K4, K4S-03.
+	FileProblems []string
+}
+
+// validateCaseRe đọc số thứ tự ca ở đầu một lỗi của evals.Validate ("ca #N (id): …", N tính từ 1).
+var validateCaseRe = regexp.MustCompile(`^ca #(\d+) `)
+
 // knownScenario là các mã lớp ca hợp lệ của khoá scenario (§12.1: "mã lớp ca ở §10"): mọi lớp của bảng cổng chayGates, cộng A29e — chỉ ở bộ
 // ca phát triển (F8 ở chỗ lưu vết giả của bộ chạy), không thuộc cổng nào. Mã lạ hay gõ nhầm ("A02B") là lỗi hình dạng: không thì ca rơi khỏi
 // bảng cổng mà báo cáo vẫn không đổi (soát K4, K4S-09 (iv)). Đây là kiểm hình dạng, không phải rẽ nhánh hành vi theo mã ca.
@@ -276,14 +292,6 @@ var knownScenario = func() map[string]bool {
 	}
 	return m
 }()
-
-type caseSet struct {
-	Path     string
-	SHA      string
-	Tenant   string
-	Cases    []chayCase
-	Problems []string // lỗi của evals.Validate (cả tệp)
-}
 
 // normAny chuẩn hoá mọi bản đồ lồng nhau về map[string]any (§12.1): yaml.v3 giải mã bản đồ lồng trong evals.Case thành chính kiểu evals.Case,
 // và khoá không phải chuỗi (true, 12) thành map[any]any.
@@ -355,6 +363,15 @@ func loadCaseSet(path string) (*caseSet, error) {
 	cs.Problems = evals.Validate(doc.Cases, cs.Tenant)
 	for _, c := range doc.Cases {
 		cs.Cases = append(cs.Cases, parseChayCase(c))
+	}
+	for _, p := range cs.Problems {
+		if m := validateCaseRe.FindStringSubmatch(p); m != nil {
+			if i, err := strconv.Atoi(m[1]); err == nil && i >= 1 && i <= len(cs.Cases) {
+				cs.Cases[i-1].Errs = append(cs.Cases[i-1].Errs, "evals.Validate: "+p)
+				continue
+			}
+		}
+		cs.FileProblems = append(cs.FileProblems, p)
 	}
 	return cs, nil
 }
@@ -1373,11 +1390,12 @@ type gateReport struct {
 }
 
 type chayReport struct {
-	Backend string                `json:"backend"`
-	Files   map[string]string     `json:"sha256"`
-	Cases   []caseOutcome         `json:"cases"`
-	Classes map[string]classTally `json:"by_class"`
-	Gates   []gateReport          `json:"by_gate"`
+	Backend      string                `json:"backend"`
+	Files        map[string]string     `json:"sha256"`
+	FileProblems []string              `json:"file_problems,omitempty"` // lỗi evals.Validate không gắn được vào ca: mọi cổng ĐỎ
+	Cases        []caseOutcome         `json:"cases"`
+	Classes      map[string]classTally `json:"by_class"`
+	Gates        []gateReport          `json:"by_gate"`
 }
 
 func newReport(backend string, files map[string]string) *chayReport {
@@ -1417,6 +1435,8 @@ func (rp *chayReport) finish() {
 		switch {
 		case g.ID == "X8":
 			gr.Status = "NGOÀI BỘ CHẠY (danh mục đột biến scripts/dot-bien/)"
+		case len(rp.FileProblems) > 0:
+			gr.Status = fmt.Sprintf("ĐỎ (tệp ca sai hình dạng: %d lỗi evals.Validate không gắn được vào ca)", len(rp.FileProblems))
 		case red:
 			gr.Status = "ĐỎ"
 		case present == 0:
@@ -1436,6 +1456,9 @@ func (rp *chayReport) render() string {
 	rp.finish()
 	var b strings.Builder
 	fmt.Fprintf(&b, "BỘ CHẠY CA LỆNH (HOP-DONG §12.1) — nền %s\n", rp.Backend)
+	for _, p := range rp.FileProblems {
+		fmt.Fprintf(&b, "TỆP CA SAI HÌNH DẠNG: %s\n", p)
+	}
 	keys := make([]string, 0, len(rp.Files))
 	for k := range rp.Files {
 		keys = append(keys, k)
@@ -1554,8 +1577,9 @@ func execCase(pc *chayCase, wd *worlds, be chayBackend) ([]chayCheck, error) {
 func runCaseSet(t *testing.T, cs *caseSet, wd *worlds, be chayBackend) *chayReport {
 	t.Helper()
 	rp := newReport(be.label(), wd.files)
+	rp.FileProblems = cs.FileProblems
 	t.Run("hinh_dang_tep", func(t *testing.T) {
-		for _, p := range cs.Problems {
+		for _, p := range cs.FileProblems { // lỗi gắn được vào ca đã làm ĐỎ đúng ca đó ở test con của ca
 			t.Errorf("evals.Validate: %s", p)
 		}
 	})

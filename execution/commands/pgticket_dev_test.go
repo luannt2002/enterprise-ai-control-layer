@@ -530,3 +530,17 @@ func TestPGA10TenantKhacVoiRuntime(t *testing.T) {
 	w.check(otherTenant, want{})
 	w.counters(0, 0)
 }
+
+// K3S-01 (soát K3): bên gọi ngắt kết nối (ngữ cảnh bị huỷ) sau khi lượt đã quyết từ chối thì dòng audit REFUSED vẫn phải được ghi — audit là
+// dấu kiểm toán của quyết định, không thuộc quyền huỷ của client. Ngữ cảnh huỷ sẵn: C0…C4 chạy trong bộ nhớ (vai driver bị từ chối ở C4),
+// rồi C7 ghi audit bằng kho PG thật (pgx tôn trọng ngữ cảnh).
+func TestPGAuditTuChoiKhongMatKhiBenGoiHuy(t *testing.T) {
+	w := newPGWorld(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	o := w.pipe.Run(ctx, w.user("p-tx", "driver", "EX-03"), req(43, "EX-03", day1))
+	wantFail(t, o, StatusFailed, ReasonPermissionDenied)
+	if n := w.env.auditRows(w.tenant, AuditRefused, ReasonPermissionDenied, ""); n != 1 {
+		t.Fatalf("bên gọi huỷ ngữ cảnh: %d dòng audit REFUSED, muốn 1 (bước C7: %+v)", n, o.Steps[stVerify])
+	}
+}

@@ -1110,10 +1110,17 @@ func (r *run) auditRow(outcome AuditOutcome, code ReasonCode, detail string, tic
 	return a
 }
 
+// auditTimeout là hạn riêng của một lần ghi audit ngoài đơn vị ghi phiếu (chặn treo khi kho không trả lời).
+const auditTimeout = 5 * time.Second
+
 // writeAudit ghi một dòng audit bằng giao dịch riêng, cố gắng tối đa: hỏng thì kết quả KHÔNG đổi, chỉ để lại ghi chú ở vết
-// (nhãn infra:postgres) và lỗi gốc ở Cause.
+// (nhãn infra:postgres) và lỗi gốc ở Cause. Ghi bằng ngữ cảnh KHÔNG huỷ theo bên gọi, có hạn riêng: quyết định của lượt đã có, bên gọi
+// ngắt kết nối không được xoá dấu kiểm toán của nó (soát K3, K3S-01: 300 lượt bị từ chối rồi ngắt RST chỉ còn 2 dòng REFUSED). Tenant vẫn
+// đi theo ngữ cảnh (WithoutCancel giữ các giá trị).
 func (r *run) writeAudit(ctx context.Context, a Audit) string {
-	if err := r.p.d.Store.WriteAudit(ctx, a); err != nil {
+	actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), auditTimeout)
+	defer cancel()
+	if err := r.p.d.Store.WriteAudit(actx, a); err != nil {
 		if r.cause == nil {
 			r.cause = err
 		}

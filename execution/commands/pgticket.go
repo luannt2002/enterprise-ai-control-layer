@@ -319,8 +319,9 @@ func isUniqueViolation(err error) bool {
 	return ok && pe.Code == sqlstateUniqueViolation
 }
 
-// isStatementError báo err là một lỗi mức ERROR do PG TRẢ LỜI cho một lệnh (giao dịch bị huỷ, không có gì được commit), khác với
-// FATAL / PANIC (backend chết) và với lỗi không phải của PG (đứt kết nối, hết hạn).
+// isStatementError báo err là một lỗi mức ERROR do PG TRẢ LỜI cho một lệnh (giao dịch bị huỷ, không có gì được commit). Chỉ đúng
+// mức ERROR (bản không dịch; không có thì bản đã dịch): FATAL / PANIC (backend chết), mức rỗng, mức lạ hay chỉ có bản đã dịch khác
+// "ERROR" đều KHÔNG phải — classifyCommit coi chúng là không biết (C7, lệnh ca chiều 23/10). Lỗi không phải của PG cũng không phải.
 func isStatementError(err error) bool {
 	pe, ok := pgError(err)
 	if !ok {
@@ -330,7 +331,7 @@ func isStatementError(err error) bool {
 	if sev == "" {
 		sev = pe.Severity
 	}
-	return sev != "FATAL" && sev != "PANIC"
+	return sev == "ERROR"
 }
 
 // classifyStatement phân loại lỗi của MỘT câu lệnh trong giao dịch, tức trước khi COMMIT được gửi: chắc chắn chưa ghi (giao dịch chưa
@@ -343,9 +344,9 @@ func classifyStatement(err error) error {
 }
 
 // classifyCommit phân loại lỗi của chính lệnh COMMIT. "Chắc chắn chưa ghi" chỉ khi COMMIT chưa rời máy (notSentYet), khi PG trả tag
-// ROLLBACK, hoặc khi PG trả một lỗi mức ERROR cho COMMIT (giao dịch bị huỷ, ví dụ ràng buộc hoãn, CancelRequest).
+// ROLLBACK, hoặc khi PG trả một lỗi đúng mức ERROR cho COMMIT (giao dịch bị huỷ, ví dụ ràng buộc hoãn, CancelRequest).
 // Mọi lỗi còn lại xảy ra SAU khi COMMIT đã gửi mà không có câu trả lời "đã huỷ" của PG nên không biết: lỗi kết nối, backend bị kết thúc
-// (FATAL), ngữ cảnh hết hạn khi đang đợi.
+// (FATAL), mức nghiêm trọng rỗng hay lạ, ngữ cảnh hết hạn khi đang đợi.
 func classifyCommit(err error) error {
 	switch {
 	case err == nil:

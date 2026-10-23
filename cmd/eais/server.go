@@ -11,6 +11,7 @@ import (
 	"mime"
 	"net/http"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/pipeline"
+	"github.com/luannt2002/enterprise-ai-control-layer/execution/commands"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
@@ -29,6 +31,9 @@ const (
 	saveTimeout   = 5 * time.Second
 	ingestTimeout = 15 * time.Minute
 )
+
+// maxCommandBody: thân lệnh chỉ có bốn trường ngắn (commands.Request); trần này chỉ để không đọc vô hạn.
+const maxCommandBody = 8 << 10
 
 // counters là bộ đếm của những gì KHÔNG có dòng vết theo tenant hoặc thất bại ngoài vết (xem platform/pgstore/vet.go: lượt chưa xác
 // thực được tenant nằm ngoài kho vết nên cần bộ đếm riêng; chỉ tiêu "mọi lượt có vết" tính trên lượt đã có tenant). In ra log khi
@@ -77,6 +82,13 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("POST /v1/ask", s.authed(s.ask))
 	mux.HandleFunc("POST /v1/ingest", s.authed(s.ingest))
 	mux.HandleFunc("GET /v1/trace/{id}", s.authed(s.traceGet))
+	// Mỗi tool khai trong tools.yaml có MỘT route lệnh, đăng ký lúc khởi động (HOP-DONG §2.6.2). Tên lạ rơi vào 404 và sai phương thức rơi vào 405 của
+	// mux, cả hai trước xác thực nên không có vết (chưa có yêu cầu hợp lệ). Không có kho phiếu (bản dựng thử bằng kho bộ nhớ) thì không route nào.
+	for _, name := range s.app.tools.Names() {
+		if p := s.app.cmds[name]; p != nil {
+			mux.HandleFunc("POST /v1/commands/"+name, s.authed(s.command(p)))
+		}
+	}
 	return s.logged(s.guardHost(mux))
 }
 
@@ -352,6 +364,97 @@ func unknownFieldMessage(name string) string {
 		}
 	}
 	return fmt.Sprintf("trường lạ %q: thân chỉ nhận text, conversation_id, message_id", name)
+}
+
+// command xử lý một lượt lệnh (HOP-DONG §2.6.2): giải mã chặt thân thành commands.Request, chạy pipeline C0 → C7 với Principal của token, lưu vết chín bước
+// rồi trả CommandResult. MỌI lượt đã xác thực để lại vết, kể cả lượt thân sai (dừng ở C0). Thân phản hồi luôn là CommandResult (commands.Result): bên gọi
+// dựa vào status và reason_code, mã HTTP lấy từ nhãn fault qua contracts.HTTPStatus và trường fault chỉ mang lớp lỗi (Result.MarshalJSON). KHÁC luồng hỏi:
+// không lưu được vết thì kết quả KHÔNG đổi (§7.5, "Mất vết"): phiếu đã commit và đã đọc lại là sự thật không rút lại được, đổi DONE thành lỗi chỉ khiến bên
+// gọi thử lại mù; trace_id để rỗng, bộ đếm TraceSaveFailed tăng và có log. Lệnh chạy dưới hạn chót: cái đến trước giữa ngữ cảnh của bên gọi, Timeout của
+// tool và hạn chung của server (§3).
+func (s *server) command(p *commands.Pipeline) func(http.ResponseWriter, *http.Request, contracts.Principal) {
+	return func(w http.ResponseWriter, r *http.Request, pr contracts.Principal) {
+		deadline(w, 2*s.askTimeout)
+		start := time.Now()
+		req, status, bad, err := decodeCommand(w, r)
+		var out commands.Outcome
+		if err != nil {
+			s.log.Warn("thân lệnh bị từ chối ở lớp HTTP", "lý do", traces.Sanitize(err.Error()), "tenant", pr.TenantID, "principal", pr.ID)
+			out = p.Malformed(bad...)
+		} else {
+			ctx, cancel := context.WithTimeout(r.Context(), s.askTimeout)
+			defer cancel()
+			out = p.Run(ctx, pr, req)
+			status = out.Result.HTTPStatus()
+		}
+		if out.Cause != nil { // lỗi gốc của hạ tầng hoặc mã: CHỈ để log, không bao giờ ra khỏi tiến trình qua kết quả
+			fault, msg := traces.SanitizeError(out.Cause)
+			s.log.Error("lệnh gặp lỗi hạ tầng hoặc mã", "trace_id", out.Result.TraceID, "tenant", pr.TenantID, "principal", pr.ID, "fault", fault, "lỗi", msg)
+		}
+		rec := commands.NewRecord(req, out, pr, s.app.now(), s.app.versions(), time.Since(start).Milliseconds())
+		res := out.Result
+		if s.persistTrace(r.Context(), pr, rec) == nil {
+			w.Header().Set("X-Trace-Id", res.TraceID)
+		} else {
+			res.TraceID = ""
+		}
+		writeJSON(w, status, res)
+	}
+}
+
+// persistTrace lưu bản ghi vết của một lượt lệnh bằng ngữ cảnh không huỷ theo client và có hạn riêng (như persist): client ngắt kết nối giữa chừng không
+// được làm mất vết của lượt đã chạy. Thử lại CHÍNH bản ghi đó khi lỗi hạ tầng tạm thời (hợp đồng ở platform/pgstore/vet.go). Không có usage để lưu: đường
+// lệnh không gọi model (I2). Lỗi trả về để nơi gọi bỏ trace_id khỏi kết quả; kết quả lệnh không vì thế mà đổi.
+func (s *server) persistTrace(ctx context.Context, pr contracts.Principal, rec traces.Record) error {
+	sctx, cancel := context.WithTimeout(context.WithoutCancel(contracts.WithTenant(ctx, pr.TenantID)), saveTimeout)
+	defer cancel()
+	err := retry(sctx, func() error { _, err := s.st.SaveDecision(sctx, rec); return err })
+	if err != nil {
+		s.cnt.TraceSaveFailed.Add(1)
+		fault, msg := traces.SanitizeError(err)
+		s.log.Error("KHÔNG lưu được vết của lệnh (kết quả lệnh không đổi)", "trace_id", rec.Decision.TraceID, "tenant", pr.TenantID, "fault", fault, "lỗi", msg)
+	}
+	return err
+}
+
+// decodeCommand đọc thân lệnh một cách NGHIÊM, cùng luật với decodeAsk: đúng application/json, có trần kích thước, trường lạ bị từ chối (kể cả mọi trường kiểu
+// tenant / principal / vai: định danh chỉ đến từ token), không có nội dung thừa sau đối tượng. Lỗi trả kèm mã HTTP (415, 413, 400) và tên trường mà bên gọi
+// cần sửa (trường lạ đầu tiên, hoặc trường đúng tên nhưng sai kiểu); lỗi không quy về một trường (thân rỗng, JSON hỏng, nội dung thừa, sai Content-Type) thì
+// không có tên trường. Nơi gọi biến lỗi này thành INVALID_REQUEST dừng ở C0 (commands.Pipeline.Malformed).
+func decodeCommand(w http.ResponseWriter, r *http.Request) (req commands.Request, status int, bad []string, err error) {
+	if mt, _, perr := mime.ParseMediaType(r.Header.Get("Content-Type")); perr != nil || mt != "application/json" {
+		return req, http.StatusUnsupportedMediaType, nil, inputErr("Content-Type phải là application/json")
+	}
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))
+	dec.DisallowUnknownFields()
+	if derr := dec.Decode(&req); derr != nil {
+		var tooBig *http.MaxBytesError
+		var typeErr *json.UnmarshalTypeError
+		switch {
+		case errors.As(derr, &tooBig):
+			return req, http.StatusRequestEntityTooLarge, nil, inputErr(fmt.Sprintf("thân yêu cầu quá %d byte", maxCommandBody))
+		case errors.Is(derr, io.EOF):
+			return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu rỗng")
+		case strings.HasPrefix(derr.Error(), "json: unknown field "):
+			name := strings.Trim(strings.TrimPrefix(derr.Error(), "json: unknown field "), `"`)
+			return req, http.StatusBadRequest, []string{clipRunes(name, 64)}, inputErr(fmt.Sprintf("trường lạ %q: thân chỉ nhận command_id, subject_key, metric, day", clipRunes(name, 64)))
+		case errors.As(derr, &typeErr) && slices.Contains([]string{"command_id", "subject_key", "metric", "day"}, typeErr.Field):
+			return req, http.StatusBadRequest, []string{typeErr.Field}, inputErr("trường " + typeErr.Field + " phải là chuỗi")
+		}
+		return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu không phải JSON hợp lệ: " + derr.Error())
+	}
+	if _, terr := dec.Token(); !errors.Is(terr, io.EOF) {
+		return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu có nội dung thừa sau đối tượng JSON")
+	}
+	return req, 0, nil, nil
+}
+
+// clipRunes cắt s còn tối đa n ký tự (không cắt giữa một ký tự nhiều byte): tên trường lạ do client đặt có thể dài tới trần của thân.
+func clipRunes(s string, n int) string {
+	if r := []rune(s); len(r) > n {
+		return string(r[:n]) + "…"
+	}
+	return s
 }
 
 // fullAccess: principal của đúng tenant mà tiến trình này phục vụ VÀ có toàn quyền dữ liệu theo policy của pack (xem fullAccess ở

@@ -20,9 +20,10 @@ import (
 // S3.Output / S4.Input, dòng "khe … thiếu: câu nêu N thực thể (…)" của S4 đều từng lộ khoá ngoài phạm vi.
 //
 // Luật: chỉ thực thể đã xuất hiện trong lượt (Resolution, intent.Result, khe của kế hoạch, ứng viên câu hỏi lại) được xét — không duyệt cả danh
-// mục mỗi lượt. Khoá / mã của thực thể mà câu hỏi có khoá đó (so theo entityresolution.Key: "dz03", "DZ 03" đều là "DZ-03") giữ nguyên: người
-// hỏi đã biết khoá, và lý do từ chối cần nêu đúng thứ họ hỏi (chốt F4: khoá được kể, tên / loại thì không); TÊN vẫn bị che trừ khi câu chứa chính
-// tên đó. Không tra được tổ tiên ⇒ che (đóng mặc định).
+// mục mỗi lượt. Khoá, mã và tên được xét RIÊNG từng thứ (soát C8–C11 vòng 2, C9-ID-KHAC-KHOA): thứ nào câu hỏi tự chứa (so theo
+// entityresolution.Key: "dz03", "DZ 03" đều là "DZ-03") thì giữ — người hỏi đã biết nó, và lý do từ chối cần nêu đúng thứ họ hỏi (chốt F4: khoá
+// được kể, tên / loại thì không); thứ còn lại bị che, nên gõ khoá không làm lộ mã nội bộ khi mã khác khoá. Không tra được tổ tiên ⇒ che (đóng
+// mặc định).
 // Người có phạm vi dữ liệu không hạn chế: không che gì. Còn lộ được: SỐ ứng viên ngoài phạm vi (dấu thay thế giữ chỗ) và vị trí của dấu thay
 // thế trong một danh sách đã sắp xếp; luồng hỏi trước nay vẫn kể số ứng viên bị loại.
 type scopeRedactor struct {
@@ -35,6 +36,10 @@ func (a *Ask) newScopeRedactor(ctx context.Context, pr contracts.Principal, ques
 		return scopeRedactor{}
 	}
 	typed := " " + entityresolution.Key(question) + " "
+	isTyped := func(s string) bool {
+		k := entityresolution.Key(s)
+		return k != "" && strings.Contains(typed, " "+k+" ")
+	}
 	seen := map[string]bool{}
 	var tokens []string
 	for _, list := range refs {
@@ -46,15 +51,9 @@ func (a *Ask) newScopeRedactor(ctx context.Context, pr contracts.Principal, ques
 			if keys, err := entityresolution.Lineage(ctx, a.Deps.Directory, r.ID); err == nil && a.RT.Policy.InScope(pr, keys) {
 				continue
 			}
-			var hide []string
-			if k := entityresolution.Key(r.Key); k == "" || !strings.Contains(typed, " "+k+" ") {
-				hide = append(hide, r.Key, r.ID)
-			}
-			if n := entityresolution.Key(r.Name); n == "" || !strings.Contains(typed, " "+n+" ") {
-				hide = append(hide, r.Name) // tên không bao giờ kể cho người ngoài phạm vi, kể cả khi họ gõ đúng khoá (F4) — trừ khi họ gõ chính tên đó
-			}
-			for _, t := range hide {
-				if t != "" && !slices.Contains(tokens, t) {
+			// khoá, mã, tên xét riêng: tên không bao giờ kể cho người ngoài phạm vi kể cả khi họ gõ đúng khoá (F4) — trừ khi họ gõ chính tên đó
+			for _, t := range []string{r.Key, r.ID, r.Name} {
+				if t != "" && !isTyped(t) && !slices.Contains(tokens, t) {
 					tokens = append(tokens, t)
 				}
 			}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 	"github.com/luannt2002/enterprise-ai-control-layer/simulations/fixtures"
 )
@@ -73,5 +74,45 @@ func TestNewScopeRedactorKhoaVaTen(t *testing.T) {
 	dirPr := contracts.Principal{ID: "u-dir", TenantID: "abc-infra", Roles: []string{"director"}}
 	if got := a.newScopeRedactor(ctx, dirPr, "máy 03 hôm nay được cấp bao nhiêu dầu?", []contracts.EntityRef{dz, ex}).tokens; len(got) != 0 {
 		t.Errorf("người toàn quyền: tokens = %q, muốn rỗng", got)
+	}
+}
+
+// Soát C8–C11 vòng 2 (C9-ID-KHAC-KHOA): khoá, mã, tên xét riêng trên danh mục có MÃ KHÁC KHOÁ — gõ khoá không làm lộ mã nội bộ, gõ mã không làm
+// lộ khoá, gõ tên thì giữ tên (và khoá nằm trong tên), bí danh thì che cả ba; thực thể trong phạm vi không bị che.
+func TestNewScopeRedactorKhoaMaTenRieng(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatalf("nạp pack: %v", err)
+	}
+	dir := entityresolution.MemoryDirectory{
+		{ID: "PRJ-A", Type: "project", Key: "PRJ-A", Name: "Cầu A"},
+		{ID: "PRJ-B", Type: "project", Key: "PRJ-B", Name: "Đường B"},
+		{ID: "e-0001", Type: "equipment", Key: "EX-03", Name: "Máy xúc EX-03", Parent: "PRJ-A"},
+		{ID: "e-0002", Type: "equipment", Key: "DZ-03", Name: "Máy ủi DZ-03", Parent: "PRJ-B"},
+	}
+	a := &Ask{RT: rt, Deps: Deps{Directory: dir}}
+	eng := contracts.Principal{ID: "u-eng", TenantID: "abc-infra", Roles: []string{"site_engineer"}, Attributes: map[string]string{"entity_scope": "PRJ-A"}}
+	ex := contracts.EntityRef{ID: "e-0001", Key: "EX-03", Name: "Máy xúc EX-03", Type: "equipment"}
+	dz := contracts.EntityRef{ID: "e-0002", Key: "DZ-03", Name: "Máy ủi DZ-03", Type: "equipment"}
+	for _, c := range []struct {
+		name, q    string
+		hide, keep []string
+	}{
+		{"gõ khoá: mã khác khoá vẫn che", "DZ-03 hôm nay được cấp bao nhiêu dầu?", []string{"e-0002", "Máy ủi DZ-03"}, []string{"DZ-03", "EX-03", "e-0001"}},
+		{"gõ mã: khoá vẫn che", "e-0002 hôm nay được cấp bao nhiêu dầu?", []string{"DZ-03", "Máy ủi DZ-03"}, []string{"e-0002"}},
+		{"gõ tên: giữ tên và khoá trong tên", "Máy ủi DZ-03 hôm nay được cấp bao nhiêu dầu?", []string{"e-0002"}, []string{"Máy ủi DZ-03", "DZ-03"}},
+		{"bí danh: che cả ba", "máy 03 hôm nay được cấp bao nhiêu dầu?", []string{"DZ-03", "e-0002", "Máy ủi DZ-03"}, []string{"EX-03"}},
+	} {
+		got := a.newScopeRedactor(context.Background(), eng, c.q, []contracts.EntityRef{ex, dz, ex}).tokens
+		for _, h := range c.hide {
+			if !slices.Contains(got, h) {
+				t.Errorf("%s: phải che %q, tokens = %q", c.name, h, got)
+			}
+		}
+		for _, k := range c.keep {
+			if slices.Contains(got, k) {
+				t.Errorf("%s: không được che %q, tokens = %q", c.name, k, got)
+			}
+		}
 	}
 }

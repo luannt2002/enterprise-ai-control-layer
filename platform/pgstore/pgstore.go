@@ -171,16 +171,16 @@ func (s *Store) Retrieve(ctx context.Context, pr contracts.Principal, query stri
 	var docs []rag.Document
 	err := s.inTenant(ctx, pr.TenantID, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, title, body, acl FROM documents
+			SELECT id, title, body, acl, version, status, effective_from, effective_to, scope, hold FROM documents
 			WHERE acl && $1::text[]
-			ORDER BY id COLLATE "C"`, pr.Roles)
+			ORDER BY id COLLATE "C", version`, pr.Roles)
 		if err != nil {
 			return err
 		}
 		defer rows.Close()
 		for rows.Next() {
 			d := rag.Document{Tenant: string(pr.TenantID)}
-			if err := rows.Scan(&d.ID, &d.Title, &d.Body, &d.ACL); err != nil {
+			if err := rows.Scan(&d.ID, &d.Title, &d.Body, &d.ACL, &d.Version, &d.Status, &d.EffectiveFrom, &d.EffectiveTo, &d.Scope, &d.Hold); err != nil {
 				return err
 			}
 			docs = append(docs, d)

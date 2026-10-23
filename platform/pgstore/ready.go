@@ -23,6 +23,12 @@ var readyNeeds = []struct {
 	{"usage_records", []string{"SELECT", "INSERT"}},
 }
 
+// readyColumns là cột do migration thêm vào bảng ĐÃ CÓ: bảng có mặt chưa chứng minh migration đã áp, thiếu cột thì lượt
+// RAG / lần nạp đầu tiên mới lỗi.
+var readyColumns = []struct{ table, column, migration string }{
+	{"documents", "version", "0005"},
+}
+
 // Ping kiểm kết nối còn sống — rẻ, dành cho healthz gọi thường xuyên; Ready kiểm cả schema và quyền (đắt hơn, gọi lúc khởi động).
 func (s *Store) Ping(ctx context.Context) error {
 	if err := s.pool.Ping(ctx); err != nil {
@@ -53,6 +59,16 @@ func (s *Store) Ready(ctx context.Context) error {
 			if !ok {
 				missing = append(missing, fmt.Sprintf("vai ứng dụng thiếu quyền %s trên %s", p, n.table))
 			}
+		}
+	}
+	for _, c := range readyColumns {
+		var ok bool
+		if err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.columns
+			WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2)`, c.table, c.column).Scan(&ok); err != nil {
+			return contracts.Label(contracts.Infra("postgres"), err)
+		}
+		if !ok {
+			missing = append(missing, fmt.Sprintf("cột %s.%s chưa có (migration %s)", c.table, c.column, c.migration))
 		}
 	}
 	if len(missing) > 0 {

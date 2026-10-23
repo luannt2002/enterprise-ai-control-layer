@@ -129,6 +129,7 @@ intents:
   - name: greeting
     label: chào hỏi
     route: CLARIFICATION
-    keywords: [xin chào, chào bạn, chào anh, chào chị, hello]
+    # lời chào là chữ "chào" ("chào buổi sáng", "chào các bạn", "xin chào"), không phải danh sách cụm: độ ưu tiên thấp nhất nên câu chào mà còn hỏi số liệu vẫn được trả số liệu
+    keywords: [chào, hello]
     priority: 1
     template: greeting

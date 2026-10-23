@@ -161,4 +161,24 @@ m $I '	if len(derived) == 0 {
 	}
 	var names []string' '	var names []string' 'S88 câu so sánh không phải hai chỉ số cũng hỏi lại (một chỉ số + "nhiều hơn")'
 m core/tenant/pack.go '					return d.Left, d.Right, ok' '					return d.Left, d.Right, ok && false' 'S89 pack không khai cặp mặc định của chỉ số dẫn xuất'
+# C3 (bất biến (a)): tín hiệu phạm vi không cần chữ "dầu"; lời chào là chữ "chào"; chữ của cụm xác nhận và mã chứng từ là chữ trung tính của a2.
+m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return false' 'S90 câu không có chữ "dầu" luôn ngoài phạm vi'
+m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return s.volumeFigure(in) && s.metricWord(in.Raw)' 'S91 tín hiệu không cần thuật ngữ mặc định áp được ("dầu nhớt" bị hỏi lại)'
+m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return implicit != "" && s.metricWord(in.Raw)' 'S92 tín hiệu không cần lượng cùng chiều đo ("nhận 20 tấn" bị hỏi lại)'
+m $I '	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)' '	return implicit != "" && s.volumeFigure(in)' 'S93 tín hiệu không cần chữ của từ khoá chỉ số ("300 lít nước" bị hỏi lại)'
+m $I '	if len(gen) == 0 && implicit != "" { // câu không nêu thuật ngữ' '	if false { // câu không nêu thuật ngữ' 'S94 a2 không dùng thuật ngữ mặc định (câu không có chữ "dầu" luôn hỏi lại)'
+m $I '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
+			cover(sp.Start, sp.End)' '		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
+			_ = sp' 'S95 a2 đòi giải thích cả mã chứng từ'
+m $I '		neutral = append(neutral, strings.Fields(m)...)' '		_ = m' 'S96 chữ của cụm xác nhận ("đúng") không trung tính với a2'
+m $I '		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
+	})
+}
+
+// meaningOptions' '		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w) && false
+	})
+}
+
+// meaningOptions' 'S98 từ trung tính ("được") không được coi là trung tính khi tìm chữ của từ khoá chỉ số'
+m tenants/construction/pack/intents.yaml '    keywords: [chào, hello]' '    keywords: [xin chào, hello]' 'S97 lời chào chỉ là cụm "xin chào"'
 

@@ -298,12 +298,12 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 	}
 	if len(matched) == 0 {
-		if len(partial) > 0 || !s.scopeSignal(in, res) {
+		if len(partial) > 0 || !s.scopeSignal(in, res, implicit) {
 			return Result{NeedTerm: topPriority(partial)}
 		}
 		// ADR-0010 (a), D-OP-15 = a2: có thực thể + thuật ngữ mà không từ khoá nào khớp KHÔNG phải ngoài phạm vi — trả lời theo ý
 		// định chung khi câu không nói gì thêm ngoài nghĩa của nó (generic), còn lại hỏi lại nghĩa số liệu.
-		g, ok := s.generic(in, res)
+		g, ok := s.generic(in, res, implicit)
 		if !ok {
 			return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}
 		}
@@ -667,10 +667,7 @@ func (s *Set) neutralOnly(keyword, clause string) bool {
 		if len(normalization.PhraseSpans(clause, w)) == 0 {
 			continue
 		}
-		if !slices.ContainsFunc(s.opt.NeutralWords, func(n string) bool {
-			sp := normalization.PhraseSpans(w, n)
-			return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
-		}) {
+		if !s.isNeutral(w) {
 			return false
 		}
 	}
@@ -754,15 +751,61 @@ func FocusClause(text string, markers []string) (start, end int, ok bool) {
 	return start, end, start > 0 || strings.TrimSpace(strings.TrimLeft(text[end:], ",;.?!")) != ""
 }
 
-// scopeSignal báo câu có tín hiệu thuộc phạm vi số liệu (ADR-0010 (a), định nghĩa D1s của bước điều tra 22/10): có thực thể (đã giải
-// hay bí danh mơ hồ) VÀ có thuật ngữ mà ít nhất một ý định đòi. Một trong hai thì chưa đủ: "VN-Index bao nhiêu?", "dầu ăn", tên máy
-// trong chuyện phiếm vẫn ngoài phạm vi.
-func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution) bool {
+// scopeSignal báo câu có tín hiệu thuộc phạm vi số liệu (ADR-0010 (a), định nghĩa D1s của bước điều tra 22/10): có thực thể (đã giải hay bí danh
+// mơ hồ) VÀ một trong hai: thuật ngữ mà ít nhất một ý định đòi, hoặc — khi câu không nêu thuật ngữ nào và thuật ngữ mặc định của tenant áp được
+// (implicit) — một lượng cùng chiều đo với chỉ số ("3850 L", "1,2 khối") cùng một chữ của từ khoá chỉ số ("xuất", "cấp"). Một trong những thứ đó thì
+// chưa đủ: "VN-Index bao nhiêu?", "dầu ăn", tên máy trong chuyện phiếm, "EX-03 chứa 300 lít nước", "EX-03 nặng 20 tấn" vẫn ngoài phạm vi.
+func (s *Set) scopeSignal(in contracts.NormalizedInput, res contracts.Resolution, implicit string) bool {
 	if len(res.Entities)+len(res.Ambiguous) == 0 {
 		return false
 	}
-	return slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
+	if slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
 		return slices.ContainsFunc(s.defs, func(d Def) bool { return slices.Contains(d.Terms, sp.Value.Text) })
+	}) {
+		return true
+	}
+	return implicit != "" && s.volumeFigure(in) && s.metricWord(in.Raw)
+}
+
+// volumeFigure báo câu có một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo: lít, khối).
+func (s *Set) volumeFigure(in contracts.NormalizedInput) bool {
+	if s.opt.QuantityFits == nil {
+		return false
+	}
+	return slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool {
+		return slices.ContainsFunc(s.defs, func(d Def) bool {
+			for _, m := range d.MetricByTerm {
+				if s.opt.QuantityFits(m, sp.Value) {
+					return true
+				}
+			}
+			return false
+		})
+	})
+}
+
+// metricWord báo câu có một chữ của từ khoá ý định số liệu riêng (không yếu) mà pack không khai là từ trung tính.
+func (s *Set) metricWord(text string) bool {
+	for _, d := range s.defs {
+		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
+			continue
+		}
+		for _, k := range d.Keywords {
+			for _, w := range strings.Fields(k) {
+				if !s.isNeutral(w) && len(normalization.PhraseSpans(text, w)) > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// isNeutral báo một chữ là từ trung tính của pack (NeutralWords).
+func (s *Set) isNeutral(w string) bool {
+	return slices.ContainsFunc(s.opt.NeutralWords, func(n string) bool {
+		sp := normalization.PhraseSpans(w, n)
+		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
 	})
 }
 
@@ -785,7 +828,7 @@ func (s *Set) meaningOptions() []string {
 // số mà các nguồn đang lệch thì hỏi lại, không xác nhận).
 // Mảnh từ khoá của ý định số liệu khác ("tiêu" của "tiêu thụ", "đo" của "đo được") không được coi là trung tính. Còn chữ lạ ("xài",
 // "hao", "đổ", "tính tiền", "định mức") ⇒ không chọn: câu có thể hỏi một chỉ số khác, nên hỏi lại (D-OP-15 điều kiện (ii)).
-func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (Def, bool) {
+func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, implicit string) (Def, bool) {
 	raw := in.Raw
 	if !slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return len(normalization.PhraseSpans(raw, m)) > 0 }) {
 		return Def{}, false
@@ -796,6 +839,13 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 		for _, d := range s.defs {
 			if d.Weak && slices.Contains(d.Terms, sp.Value.Text) && !slices.ContainsFunc(gen, func(g Def) bool { return g.Name == d.Name }) {
 				gen, term = append(gen, d), sp.Value.Text
+			}
+		}
+	}
+	if len(gen) == 0 && implicit != "" { // câu không nêu thuật ngữ: thuật ngữ mặc định của tenant (default_terms) áp, như mọi ý định khác
+		for _, d := range s.defs {
+			if d.Weak && slices.Contains(d.Terms, implicit) {
+				gen, term = append(gen, d), implicit
 			}
 		}
 	}
@@ -853,6 +903,8 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 			}
 		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
 			cover(sp.Start, sp.End)
+		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
+			cover(sp.Start, sp.End)
 		}
 	}
 	for _, p := range s.opt.FocusMarkers {
@@ -863,7 +915,11 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 	for _, r := range s.premiseRanges(in, res) { // mệnh đề ngữ cảnh: không phải điều đang hỏi nên không cần giải thích (bất biến (b))
 		cover(r[0], r[1])
 	}
-	for _, p := range s.opt.NeutralWords {
+	neutral := slices.Clone(s.opt.NeutralWords) // chữ của chính cụm xác nhận ("đúng" trong "xuất đúng 851 L … phải không") cũng không mang nghĩa chỉ số
+	for _, m := range s.opt.FocusMarkers {
+		neutral = append(neutral, strings.Fields(m)...)
+	}
+	for _, p := range neutral {
 		if whole(p, other) && !whole(p, own) {
 			continue // "đo": trung tính với cổng phán quyết, nhưng là mảnh của "đo được" (tiêu thụ đo được)
 		}

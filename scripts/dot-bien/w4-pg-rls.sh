@@ -7,6 +7,7 @@
 # Khối SN (cuối tệp, 23/10/2026, việc 5e): sổ nạp load_records — migration 0006, pgstore/load.go, Ready và cách cmd/eais đọc phiên bản dữ liệu. Mỗi dòng khẳng định
 # test NHẮM TỚI (MUTATE_TEST_MUON); đỏ ở test khác là "đỏ sai chỗ" (rc=6, tính vào "khác"). Chạy riêng khối đó: DOT_BIEN_LOC='^SN' (regex trên nhãn).
 # SN35 thêm ở vòng 2 của việc 5e (soát độc lập D5ES-01: đột biến của người soát, đổi tenant ở điểm gọi loadedVersion của route lệnh, SỐNG SÓT khi chỉ có SN1–SN34).
+# SN36 cũng thêm ở vòng 2 (D5ES-02: đột biến xếp dòng sổ theo loaded_at SỐNG SÓT); nó nằm cạnh nhóm pgstore (trước SN23) vì dùng chung PKGS=./platform/pgstore/.
 cd "$(dirname "$0")/../.." || exit 1
 # DSN lấy từ môi trường nếu đã đặt (ví dụ người soát chạy trên database riêng); mặc định là PG dev của deploy/docker-compose.yml.
 export EAIS_PG_ADMIN_DSN="${EAIS_PG_ADMIN_DSN:-postgres://postgres@127.0.0.1:25432/eais?sslmode=disable}"
@@ -125,6 +126,7 @@ muon 'TestLoadRecordsGhiVaDocLai' m $L 'ORDER BY id DESC LIMIT 1' 'ORDER BY id A
 muon 'TestLoadWithVersionTuChoiPhienBanSai' m $L 'if info.LoadID == "" || !dataVersionFormat.MatchString(info.DataVersion) {' 'if false {' 'SN20 LoadWithVersion nhận phiên bản sai dạng (chạm DB)'
 muon 'TestLoadRecordsChuaNapVaNapKhongPhienBan' m $L $'\t\t_, err := tx.Exec(ctx, `INSERT INTO load_records' $'\t\tif info == (LoadInfo{}) {\n\t\t\treturn nil\n\t\t}\n\t\t_, err := tx.Exec(ctx, `INSERT INTO load_records' 'SN21 Load không kèm phiên bản không ghi dòng "không ghi nhận" (phiên bản cũ đọc ra như còn đúng)'
 muon 'TestReadySoNap' m platform/pgstore/ready.go '{"load_records", []string{"SELECT", "INSERT"}, nil, nil},' '{"load_records", []string{}, nil, nil},' 'SN22 Ready không đòi quyền trên sổ nạp'
+muon 'TestLoadRecordsMoiNhatTheoThuTuCommit' m $L 'ORDER BY id DESC LIMIT 1' 'ORDER BY loaded_at DESC, id DESC LIMIT 1' 'SN36 LatestLoad xếp theo loaded_at (giờ bắt đầu giao dịch) thay vì thứ tự commit (id)'
 export PKGS=./cmd/eais/
 A=cmd/eais/app.go S=cmd/eais/server.go
 muon 'TestDataVersionCLIIngestWhileServing' m $S 'dv, verr := s.app.loadedVersion(ctx, pr.TenantID)' 'dv, verr := s.app.dataVersionNow(), error(nil)' 'SN23 lượt hỏi không đọc sổ nạp (dùng phiên bản app nhớ)'

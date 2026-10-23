@@ -205,6 +205,75 @@ func TestLoadRecordsNapChongNhauKhopDuLieu(t *testing.T) {
 	}
 }
 
+// "Mới nhất" của sổ nạp là thứ tự COMMIT (id, cấp sau khoá tư vấn của tenant), KHÔNG phải loaded_at: loaded_at là now() của giao dịch, tức giờ BẮT ĐẦU, nên một lần nạp bắt đầu
+// sớm nhưng lấy khoá muộn mang loaded_at NHỎ hơn lần nạp commit trước nó, dù dữ liệu sống là của nó. Dựng TẤT ĐỊNH đúng ca đó, không dựa vào lịch của hai tiến trình: giao dịch T2 mở
+// (BEGIN, đặt tenant) TRƯỚC; một lần nạp L1 chạy trọn và commit; rồi T2 mới lấy khoá, thay dữ liệu, ghi dòng sổ và commit. LatestLoad phải trả dòng của T2 — dòng khớp dữ liệu sống —
+// dù loaded_at của nó nhỏ hơn của L1. T2 viết tay bằng SQL vì Store.Load không cho chen giữa BEGIN và khoá. (Soát độc lập vòng 1, D5ES-02: xếp theo loaded_at sống sót, SN36.)
+func TestLoadRecordsMoiNhatTheoThuTuCommit(t *testing.T) {
+	s, admin, app := open(t)
+	a := uniq("ta")
+	ctx := context.Background()
+
+	tx, err := connect(t, app).Begin(ctx) // giờ bắt đầu của T2 = loaded_at của dòng sổ mà T2 sẽ ghi
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx) // sau Commit là no-op; huỷ giao dịch khi test dừng giữa chừng
+	if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", string(a)); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(5 * time.Millisecond) // tách đồng hồ: giờ bắt đầu của L1 chắc chắn lớn hơn của T2
+
+	if err := loadV(s, a, 1); err != nil { // L1 chạy trọn và commit trong lúc T2 còn mở (T2 chưa lấy khoá, chưa đụng dữ liệu)
+		t.Fatal(err)
+	}
+
+	// T2 lấy khoá (L1 đã nhả), thay dữ liệu bằng giá trị 2, rồi ghi dòng sổ là câu lệnh cuối, như Store.Load.
+	for _, st := range []struct {
+		sql  string
+		args []any
+	}{
+		{"SELECT pg_advisory_xact_lock($1)", []any{pgstore.LoadLockKey(a)}},
+		{"DELETE FROM facts", nil},
+		{`INSERT INTO facts (tenant_id, id, metric, entity_id, occurred_on, value, unit, source_type, source_ref, ord)
+			VALUES (current_setting('eais.tenant_id'), 'R-1', 'issued_fuel', 'EX-03', $1::text::date, 2, 'L', 'warehouse_slip', 'R-1', 0)`, []any{day.Format(time.DateOnly)}},
+		{`INSERT INTO load_records (tenant_id, load_id, data_version) VALUES (current_setting('eais.tenant_id'), 'load-2', $1)`, []any{ver(2)}},
+	} {
+		if _, err := tx.Exec(ctx, st.sql, st.args...); err != nil {
+			t.Fatalf("T2: %.40s…: %v", strings.Join(strings.Fields(st.sql), " "), err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Đối chứng: ca đảo thứ tự có THẬT — dòng của T2 có id lớn hơn (commit sau) mà loaded_at nhỏ hơn (bắt đầu trước). Không thì test không chứng minh gì.
+	var idL1, idT2 int64
+	var atL1, atT2 time.Time
+	adminConn := connect(t, admin)
+	q := `SELECT id, loaded_at FROM load_records WHERE tenant_id = $1 AND data_version = $2`
+	if err := adminConn.QueryRow(ctx, q, string(a), ver(1)).Scan(&idL1, &atL1); err != nil {
+		t.Fatal(err)
+	}
+	if err := adminConn.QueryRow(ctx, q, string(a), ver(2)).Scan(&idT2, &atT2); err != nil {
+		t.Fatal(err)
+	}
+	if idT2 <= idL1 || !atT2.Before(atL1) {
+		t.Fatalf("không dựng được ca đảo thứ tự: L1 id %d loaded_at %s; T2 id %d loaded_at %s (muốn id T2 > id L1 và loaded_at T2 < loaded_at L1)", idL1, atL1, idT2, atT2)
+	}
+
+	last, err := s.LatestLoad(contracts.WithTenant(ctx, a))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if last.DataVersion != ver(2) || last.Seq != idT2 {
+		t.Errorf("LatestLoad = %+v, muốn dòng của T2 (id %d, phiên bản %s): T2 commit SAU CÙNG nên là lần nạp mới nhất dù loaded_at của nó nhỏ hơn của L1 (%s < %s)", last, idT2, ver(2), atT2, atL1)
+	}
+	if got := liveValue(t, s, a); got != "2" {
+		t.Errorf("dữ liệu sống = %s, muốn 2 (của T2, commit sau cùng)", got)
+	}
+}
+
 // CHO PHÉP + TỪ CHỐI theo tenant (CLAUDE.md §21): mỗi tenant đọc đúng dòng sổ của mình; tenant khác, ngữ cảnh không tenant và GUC không đặt đều không thấy dòng
 // của A; ghi chéo tenant bị RLS chặn; tenant rỗng bị CHECK chặn ngay cả với vai quản trị; vai ứng dụng không sửa, không xoá được dòng nào (quyền, không phải RLS).
 func TestLoadRecordsTenantChoPhepVaTuChoi(t *testing.T) {

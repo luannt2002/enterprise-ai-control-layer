@@ -32,6 +32,9 @@ func TestReadyBaBangPhieu(t *testing.T) {
 	tables := []string{"discrepancy_tickets", "commands", "audit_log"}
 	for _, table := range tables {
 		for _, priv := range []string{"SELECT", "INSERT"} {
+			if table == "audit_log" && priv == "SELECT" {
+				continue // audit_log không có SELECT mức bảng từ 0005 (C1): kiểm theo cột ở dưới
+			}
 			if _, err := conn.Exec(ctx, "REVOKE "+priv+" ON "+table+" FROM eais_app"); err != nil {
 				t.Fatal(err)
 			}
@@ -45,6 +48,27 @@ func TestReadyBaBangPhieu(t *testing.T) {
 			if err := s.Ready(ctx); err != nil {
 				t.Errorf("trả %s trên %s rồi mà vẫn chưa sẵn sàng: %v", priv, table, err)
 			}
+		}
+	}
+
+	// audit_log theo cột (0005, C1; soát C1–C7 C17S-03): thu SELECT một cột cần đọc ⇒ chưa sẵn sàng, trả lại ⇒ sẵn sàng; cấp quyền đọc
+	// reason_detail (theo cột hay mức bảng) ⇒ chưa sẵn sàng (cột chỉ được ghi), thu lại ⇒ sẵn sàng
+	for _, c := range []struct{ do, undo, want string }{
+		{"REVOKE SELECT (outcome) ON audit_log FROM eais_app", "GRANT SELECT (outcome) ON audit_log TO eais_app", "thiếu quyền SELECT trên audit_log.outcome"},
+		{"GRANT SELECT (reason_detail) ON audit_log TO eais_app", "REVOKE SELECT (reason_detail) ON audit_log FROM eais_app", "ĐỌC ĐƯỢC audit_log.reason_detail"},
+		{"GRANT SELECT ON audit_log TO eais_app", "REVOKE SELECT ON audit_log FROM eais_app; GRANT SELECT (tenant_id, id, at, outcome, reason_code, caller_id, caller_roles, entity_scope, command_id, action, subject_key, metric, day, ticket_id, fingerprint, pack_version, code_version, trace_id) ON audit_log TO eais_app", "ĐỌC ĐƯỢC audit_log.reason_detail"},
+	} {
+		if _, err := conn.Exec(ctx, c.do); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Ready(ctx); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: muốn lỗi nêu %q, được %v", c.do, c.want, err)
+		}
+		if _, err := conn.Exec(ctx, c.undo); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Ready(ctx); err != nil {
+			t.Errorf("%s rồi %s mà vẫn chưa sẵn sàng: %v", c.do, c.undo, err)
 		}
 	}
 

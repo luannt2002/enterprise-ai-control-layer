@@ -3,6 +3,7 @@ package pgstore
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -11,20 +12,26 @@ import (
 // readyNeeds là các bảng mà ứng dụng (cmd/eais) đụng tới và quyền vai ứng dụng cần có trên mỗi bảng. Bốn bảng dữ liệu nghiệp vụ
 // cần thêm DELETE vì Load xoá rồi ghi lại; ba bảng vết chỉ SELECT + INSERT (vết là bằng chứng, không sửa, không xoá — 0003); ba bảng của phiếu (0004:
 // phiếu, sổ lệnh, audit) cũng chỉ SELECT + INSERT (tính chỉ-thêm do quyền bảo đảm, HOP-DONG I8) — thiếu chúng thì lượt lệnh đầu tiên mới hỏng.
+// Riêng audit_log từ migration 0005: INSERT mức bảng, SELECT THEO CỘT (selectCols) và reason_detail KHÔNG được đọc (noSelectCols) — lý do thật
+// của lần từ chối chỉ vai quản trị đọc (lệnh ca chiều 23/10 C1; soát C1–C7 C17S-03). Ready coi cấp lại quyền đọc cột đó là chưa sẵn sàng.
 var readyNeeds = []struct {
-	table string
-	privs []string
+	table        string
+	privs        []string
+	selectCols   []string
+	noSelectCols []string
 }{
-	{"entities", []string{"SELECT", "INSERT", "DELETE"}},
-	{"entity_aliases", []string{"SELECT", "INSERT", "DELETE"}},
-	{"facts", []string{"SELECT", "INSERT", "DELETE"}},
-	{"documents", []string{"SELECT", "INSERT", "DELETE"}},
-	{"decision_records", []string{"SELECT", "INSERT"}},
-	{"quarantine_records", []string{"SELECT", "INSERT"}},
-	{"usage_records", []string{"SELECT", "INSERT"}},
-	{"discrepancy_tickets", []string{"SELECT", "INSERT"}},
-	{"commands", []string{"SELECT", "INSERT"}},
-	{"audit_log", []string{"SELECT", "INSERT"}},
+	{"entities", []string{"SELECT", "INSERT", "DELETE"}, nil, nil},
+	{"entity_aliases", []string{"SELECT", "INSERT", "DELETE"}, nil, nil},
+	{"facts", []string{"SELECT", "INSERT", "DELETE"}, nil, nil},
+	{"documents", []string{"SELECT", "INSERT", "DELETE"}, nil, nil},
+	{"decision_records", []string{"SELECT", "INSERT"}, nil, nil},
+	{"quarantine_records", []string{"SELECT", "INSERT"}, nil, nil},
+	{"usage_records", []string{"SELECT", "INSERT"}, nil, nil},
+	{"discrepancy_tickets", []string{"SELECT", "INSERT"}, nil, nil},
+	{"commands", []string{"SELECT", "INSERT"}, nil, nil},
+	{"audit_log", []string{"INSERT"}, []string{"tenant_id", "id", "at", "outcome", "reason_code", "caller_id", "caller_roles", "entity_scope",
+		"command_id", "action", "subject_key", "metric", "day", "ticket_id", "fingerprint", "pack_version", "code_version", "trace_id"},
+		[]string{"reason_detail"}},
 }
 
 // Ping kiểm kết nối còn sống — rẻ, dành cho healthz gọi thường xuyên; Ready kiểm cả schema và quyền (đắt hơn, gọi lúc khởi động).
@@ -56,6 +63,18 @@ func (s *Store) Ready(ctx context.Context) error {
 			}
 			if !ok {
 				missing = append(missing, fmt.Sprintf("vai ứng dụng thiếu quyền %s trên %s", p, n.table))
+			}
+		}
+		for _, c := range append(slices.Clone(n.selectCols), n.noSelectCols...) {
+			var ok bool
+			if err := s.pool.QueryRow(ctx, "SELECT has_column_privilege(current_user, $1, $2, 'SELECT')", n.table, c).Scan(&ok); err != nil {
+				return contracts.Label(contracts.Infra("postgres"), err)
+			}
+			switch want := !slices.Contains(n.noSelectCols, c); {
+			case want && !ok:
+				missing = append(missing, fmt.Sprintf("vai ứng dụng thiếu quyền SELECT trên %s.%s", n.table, c))
+			case !want && ok:
+				missing = append(missing, fmt.Sprintf("vai ứng dụng ĐỌC ĐƯỢC %s.%s (cột chỉ được ghi — migration 0005)", n.table, c))
 			}
 		}
 	}

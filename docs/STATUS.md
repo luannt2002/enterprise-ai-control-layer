@@ -30,9 +30,13 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
   đo đã khoá); Vết: vế ≥ 90% KHÔNG ĐẠT.
-- Cổng cuối (ở `7101b6a`; mã ở main giống hệt tới commit tài liệu mới nhất): test có PG 639 test (kể cả test con) pass, 0 skip; so với đầu
-  ca 22/10 (`ffb1efb`): 455 → 639, 0 đổi theo tên, 0 mất — kỳ vọng đổi có chủ ý ở `f0e1e93`, `723a570`; bộ 117 117/117 (đường bộ nhớ); H1
-  92/104, H3 113/134, H4 104/119 (hai đường); CI GitHub success.
+- Cổng cuối (cổng §6 ở cây tích hợp `d919ebf` (mã ở `main` giống hệt tới HEAD; sau đó chỉ đổi tài liệu và manifest H6), lúc 23/10 10:37:
+  `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG: **1054** test (kể cả test con)
+  pass, 0 fail, 0 skip — so theo tên với cổng K1 (`e1ce950`, 976 test): 0 đổi, 0 mất, 78 mới; `python3 -I scripts/kiem-skip-test.py` XANH;
+  winreport (`go build ./tenants/construction/win/winreport`, `-data <du-lieu-42> -v`, đường bộ nhớ và `-pg`): bộ 117 117/117, H1 92/104,
+  H3 113/134, H4 104/119 (hai đường) — mốc so: đầu ra cổng ở `7101b6a` (22/10 20:32, 639 test), 0 dòng khác bỏ hai dòng thời gian. CI
+  GitHub: `baaf834`, `6734cff` success. Ghi chú: các cổng của điều phối tới 23/10 11:1x đặt DSN PG vào database `eais` (`winreport -pg`
+  nạp dữ liệu giả lập vào đó); từ 11:1x cổng dùng database riêng `lead_*`.)
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 

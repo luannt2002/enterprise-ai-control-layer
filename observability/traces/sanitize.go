@@ -36,8 +36,8 @@ var secretMasks = []struct {
 }{
 	// khoá riêng PEM, kể cả khối bị cắt cụt (không có dòng END)
 	{regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)`), Masked},
-	// mật khẩu trong URL: scheme://người:mật-khẩu@máy
-	{regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.\-]*://[^\s/:@]+):[^\s/@]+@`), "${1}:" + Masked + "@"},
+	// mật khẩu trong URL: scheme://người:mật-khẩu@máy, kể cả người dùng rỗng ("redis://:mật-khẩu@máy")
+	{regexp.MustCompile(`(?i)\b([a-z][a-z0-9+.\-]*://[^\s/:@]*):[^\s/@]+@`), "${1}:" + Masked + "@"},
 	// tiêu đề Authorization (mọi kiểu: Bearer, Basic, Token…) và "Bearer <mã>" đứng riêng
 	{regexp.MustCompile(`(?i)(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;]+`), "${1}" + Masked},
 	{regexp.MustCompile(`(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}`), "${1} " + Masked},

@@ -89,6 +89,11 @@ func lineageIndex(ctx context.Context, dir entityresolution.Directory) func(id s
 	}
 }
 
+// finalWhy che phạm vi TRƯỚC rồi mới gọn (Compact): cắt dòng trước thì có thể cắt dở một khoá ("DZ-0…") mà bộ che không còn nhận ra.
+func finalWhy(w traces.Why, red scopeRedactor) traces.Why {
+	return red.why(w).Compact(maxWhyLines, maxWhyLineRunes)
+}
+
 // entityRefs gom mọi thực thể mà một lượt đã thấy, để newScopeRedactor xét.
 func entityRefs(res contracts.Resolution, cls intent.Result, ci clarifyInfo, plans ...contracts.RoutePlan) [][]contracts.EntityRef {
 	out := [][]contracts.EntityRef{res.Entities, cls.Candidates, cls.Unclear.Entities, cls.Mentioned, ci.before, ci.shown}

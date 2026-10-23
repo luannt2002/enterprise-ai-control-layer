@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -140,5 +141,15 @@ func TestNewScopeRedactorKhoaMaTenRieng(t *testing.T) {
 	got := a.newScopeRedactor(context.Background(), eng, "máy 03 hôm nay được cấp bao nhiêu dầu?", []contracts.EntityRef{ex}).tokens
 	if !slices.Contains(got, "EX-03") || !slices.Contains(got, "e-0001") {
 		t.Errorf("đọc danh mục lỗi ⇒ không kết luận được phạm vi ⇒ che cả thực thể trong phạm vi, tokens = %q", got)
+	}
+}
+
+// finalWhy che TRƯỚC khi cắt dòng: khoá nằm vắt qua chỗ cắt (maxWhyLineRunes) không được còn mảnh nào ("DZ-0…") — soát C8–C11 vòng 2,
+// C9-TEST-CHUA-GHIM (đột biến Z18 "che sau Compact" từng sống sót).
+func TestFinalWhyCheTruocKhiCat(t *testing.T) {
+	line := strings.Repeat("x", maxWhyLineRunes-4) + " DZ-03 tiếp"
+	w := finalWhy(traces.Why{Resolve: traces.Notes{Reasons: []string{line}}}, scopeRedactor{tokens: []string{"DZ-03"}})
+	if got := w.Resolve.Reasons[0]; strings.Contains(got, "DZ") || !strings.Contains(got, "cắt") {
+		t.Errorf("dòng sau che + cắt còn mảnh khoá hoặc không báo cắt: …%q", got[len(got)-80:])
 	}
 }

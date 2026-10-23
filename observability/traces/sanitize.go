@@ -23,9 +23,9 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // secretMasks là các dấu hiệu bí mật đã biết, che theo thứ tự (dấu hiệu rộng như "key=giá trị" chạy sau dấu hiệu cụ thể).
 // Che theo mẫu chỉ là lớp phòng thủ thứ hai: nó không thay cho việc không đưa bí mật vào các trường này từ đầu.
 //
-// Giá trị của "khoá = giá trị" có ba dạng: trong nháy kép, trong nháy đơn (kể cả có khoảng trắng — nháy không đóng thì che tới hết
-// chuỗi: chưa biết chỗ kết thúc thì che thừa còn hơn để lọt đuôi), hoặc trần (tới khoảng trắng / dấu phân cách). Nháy bao quanh được
-// giữ lại quanh dấu che để cấu trúc JSON không bị phá.
+// Giá trị của "khoá = giá trị" có ba dạng: trong nháy kép, trong nháy đơn (kể cả có khoảng trắng và nháy thoát như \" — nháy không
+// đóng thì che tới hết chuỗi: chưa biết chỗ kết thúc thì che thừa còn hơn để lọt đuôi), hoặc trần (tới khoảng trắng / dấu phân cách).
+// Nháy bao quanh được giữ lại quanh dấu che để cấu trúc JSON không bị phá.
 //
 // Giới hạn đã biết (KHÔNG che): bí mật trần có khoảng trắng ("password=hunter two" chỉ che "hunter"); câu văn xuôi không có dấu : hoặc
 // = ("mật khẩu của tôi là hunter2pw"); chuỗi ngẫu nhiên không có từ khoá và không theo dạng token đã biết. Bộ mẫu chỉ là danh sách —
@@ -42,9 +42,9 @@ var secretMasks = []struct {
 	{regexp.MustCompile(`(?i)(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;]+`), "${1}" + Masked},
 	{regexp.MustCompile(`(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}`), "${1} " + Masked},
 	// "tên-có-từ-khoá-bí-mật = giá trị" (password=…, "api_key": "…", EAIS_PG_PASSWORD=…, mật khẩu: …)
-	{regexp.MustCompile(`(?i)\b([a-z0-9_.\-]*(?:` + secretKeyWords + `)[a-z0-9_.\-]*)(["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\s"',;&]+)`), "${1}${2}${3}${4}" + Masked + "${3}${4}"},
+	{regexp.MustCompile(`(?i)\b([a-z0-9_.\-]*(?:` + secretKeyWords + `)[a-z0-9_.\-]*)(["']?\s*[:=]\s*)(?:(")(?:[^"\\]|\\[\s\S])*"?|(')(?:[^'\\]|\\[\s\S])*'?|[^\s"',;&]+)`), "${1}${2}${3}${4}" + Masked + "${3}${4}"},
 	// tiêu đề Cookie / Set-Cookie: cả giá trị là bí mật phiên (nhiều cặp, kèm thuộc tính), che hết dòng chứ không chỉ cặp đầu
-	{regexp.MustCompile(`(?i)\b((?:set-)?cookies?["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\r\n]+)`), "${1}${2}${3}" + Masked + "${2}${3}"},
+	{regexp.MustCompile(`(?i)\b((?:set-)?cookies?["']?\s*[:=]\s*)(?:(")(?:[^"\\]|\\[\s\S])*"?|(')(?:[^'\\]|\\[\s\S])*'?|[^\r\n]+)`), "${1}${2}${3}" + Masked + "${2}${3}"},
 	// dạng mã thông báo đã biết, đứng ở đâu cũng che: sk-…, ghp_…, github_pat_…, xox?-…, AKIA…, AIza…, JWT
 	{regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_\-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9\-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_\-]{30,}|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,})`), Masked},
 }

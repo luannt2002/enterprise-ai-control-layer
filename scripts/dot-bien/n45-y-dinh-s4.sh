@@ -251,3 +251,8 @@ m $I '			if !slices.ContainsFunc(out, func(o contracts.EntityRef) bool { return 
 				w.addOrigin' '			if true {
 				out = append(out, c)
 				w.addOrigin' 'S143 ứng viên của hai bí danh cùng thực thể bị liệt kê hai lần'
+
+# ---- S4AS-08: mọi đường hỏi lại về ý định lọc nhãn theo capability
+m core/pipeline/ask.go '	cls.Ambiguous = slices.DeleteFunc(slices.Clone(cls.Ambiguous), unseen)' '	_ = unseen' 'S144 hỏi lại vì hoà ý định kể cả ý định người hỏi không có quyền (lộ nhãn)'
+m core/pipeline/ask.go '	cls.NeedTerm = slices.DeleteFunc(slices.Clone(cls.NeedTerm), unseen)' '	_ = unseen' 'S145 hỏi lại vì thiếu thuật ngữ kể cả ý định người hỏi không có quyền (lộ nhãn)'
+m core/pipeline/ask.go '	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, unseen)' '	_ = unseen' 'S146 hỏi lại nghĩa số liệu kể cả ý định người hỏi không có quyền (lộ nhãn)'

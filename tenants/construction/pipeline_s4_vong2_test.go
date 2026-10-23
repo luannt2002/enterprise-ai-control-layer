@@ -293,3 +293,30 @@ func TestS4AS05LoiChaoVaMenhDeBiBoQua(t *testing.T) {
 	askBack(t, "Chi phí dầu EX-03 hôm nay là bao nhiêu?", notMoney)
 	askBack(t, "Không quan tâm hôm qua, tiền dầu EX-03 hôm nay là bao nhiêu?", notMoney)
 }
+
+// S4AS-08 (S3): đường hỏi lại nhiều ý định (hoà / thiếu thuật ngữ) lọc nhãn theo capability như đường hỏi lại nghĩa số liệu — người không có capability của một ý định không thấy nhãn của nó
+// ("Bạn muốn hỏi dầu kho xuất hay dầu đội báo …"); không còn ý định nào được xem ⇒ từ chối ngoài phạm vi, như câu không khớp. Vai driver không có capability nào.
+func TestS4AS08HoiLaiNhieuYDinhLocNhanTheoCapability(t *testing.T) {
+	a := newAsk(t)
+	for _, c := range []struct{ name, q string }{
+		{"hoà ý định", "Đội báo và phiếu kho của EX-03 hôm qua là 1.490 lít, đúng không?"},
+		{"thiếu thuật ngữ", "Hôm nay nhận bao nhiêu?"},
+		{"hoà ý định, hai chỉ số không dấu so sánh", "Cho biết tiêu thụ đo được và kho xuất của EX-03 hôm nay?"},
+	} {
+		// người có quyền: được hỏi lại và thấy nhãn ý định
+		dir := ask(t, a, user("director", ""), c.q).Response
+		if dir.Route != contracts.RouteClarification || !strings.Contains(dir.Answer, "Bạn muốn hỏi") {
+			t.Fatalf("%s: tiền đề — director phải được hỏi lại có nhãn, được [%s] %q", c.name, dir.Route, dir.Answer)
+		}
+		// người không có capability nào: từ chối ngoài phạm vi, không lộ nhãn
+		drv := ask(t, a, user("driver", ""), c.q).Response
+		if drv.Route != contracts.RouteReject || drv.Outcome != contracts.OutcomeOutOfScope {
+			t.Errorf("%s: driver không có capability, muốn từ chối ngoài phạm vi, được [%s/%s] %q", c.name, drv.Route, drv.Outcome, drv.Answer)
+		}
+		for _, label := range []string{"đội báo", "kho xuất", "tiêu thụ", "hoá đơn", "Bạn muốn hỏi"} {
+			if strings.Contains(drv.Answer, label) {
+				t.Errorf("%s: driver thấy nhãn ý định %q trong %q", c.name, label, drv.Answer)
+			}
+		}
+	}
+}

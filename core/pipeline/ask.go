@@ -194,10 +194,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
 		resp.Answer = a.render(plan.Template, vars)
+		a.noteTemplateDraft(&why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}
 		resp.Clarification.Question = resp.Answer
 	case contracts.RouteReject, contracts.RouteHumanEscalation:
 		resp.Answer = a.render(plan.Template, vars)
+		a.noteTemplateDraft(&why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
 		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars, &why); err != nil {
@@ -424,11 +426,13 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
 		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
+		a.noteTemplateDraft(why, prefix, "needs_review", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired
 		return nil
 	case result.Total == nil:
 		resp.Answer = a.render("no_data", vars)
+		a.noteTemplateDraft(why, prefix, "no_data", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 		resp.Outcome = contracts.OutcomeInsufficientEvidence
 		return nil
@@ -527,6 +531,11 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		text += a.fragment("confirm_withheld", vars)
 	}
 	draft := contracts.Draft{Text: text, FromTemplate: true, Claims: claims}
+	used := tmpl // mẫu THẬT đã dùng: câu xác nhận đổi tmpl, câu giữ phán quyết còn nối thêm mẩu confirm_withheld
+	if withheld != "" {
+		used += " + confirm_withheld"
+	}
+	a.noteTemplateDraft(why, prefix, used, draft.Text)
 
 	// S9 — kiểm: số có trong bằng chứng (lớp lọc đầu), rồi mỗi số ràng buộc đủ sáu chiều.
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
@@ -600,6 +609,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	if err != nil {
 		return err
 	}
+	a.noteModelDraft(why, prefix, draft.Model, draft.Text)
 	// S9 — kiểm
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
 		v := validation.Bound(draft, ev)

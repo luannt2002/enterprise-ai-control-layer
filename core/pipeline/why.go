@@ -1,10 +1,13 @@
 package pipeline
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
@@ -454,4 +457,52 @@ func (a *Ask) noteGate(why *traces.Why, g gate) {
 		n.Reject("phán quyết %s: bị loại — kết quả so sánh bằng tuyệt đối chọn %s", word(other), g.tmpl)
 		n.Reject("không phán quyết (confirm_withheld): bị loại — cổng không thiếu chiều nào")
 	}
+}
+
+// draftHeadRunes là số ký tự tối đa của đoạn đầu bản nháp in ở S8: đủ để người đọc vết thấy bản nháp mở đầu bằng chữ gì, không đủ để vết phình theo độ
+// dài bản nháp (bản nháp của model có thể dài cả trang).
+const draftHeadRunes = 80
+
+// textDigest trả số ký tự (rune) và băm ngắn (12 ký tự hex đầu của SHA-256) của một đoạn chữ: dấu vân tay để người đọc vết thấy bước nào đổi chữ — bản nháp
+// ở S8 và câu giao ở S10 trùng băm thì không bước nào ở giữa đổi một chữ. Tính trên chữ ĐÃ qua traces.Sanitize (đúng dạng chữ nằm trong vết bền, nên số ký
+// tự khớp chữ người đọc thấy dù câu có đoạn bị che) và đã bỏ khoảng trắng đầu / cuối (mẫu câu cắt chúng khi dựng câu giao).
+func textDigest(s string) (runes int, hash string) {
+	clean := strings.TrimSpace(traces.Sanitize(s))
+	sum := sha256.Sum256([]byte(clean))
+	return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]
+}
+
+// draftHead trả đoạn đầu của bản nháp (tối đa draftHeadRunes ký tự, kèm "…" khi cắt). Làm sạch TRƯỚC khi cắt: bí mật nằm vắt qua chỗ cắt ("sk-" rồi vài ký
+// tự) không còn khớp mẫu che của traces.Sanitize sau khi cắt, nên mảnh đầu của nó sẽ lọt vào vết.
+func draftHead(s string) string {
+	clean := strings.TrimSpace(traces.Sanitize(s))
+	if r := []rune(clean); len(r) > draftHeadRunes {
+		return string(r[:draftHeadRunes]) + "…"
+	}
+	return clean
+}
+
+// noteDraft ghi S8: bản nháp NHƯ ĐƯỢC SINH — cách sinh (how), số ký tự, băm ngắn và đoạn đầu (nằm trong cặp “…” để Why.WithholdQuoted che được khi câu hỏi
+// mang bí mật). Gọi ngay sau khi bản nháp có chữ, TRƯỚC khi S9 kiểm: người đọc vết thấy chính thứ S9 đã nhận. Chỉ ghi, không đọc lại để quyết gì.
+func (a *Ask) noteDraft(why *traces.Why, prefix, how, text string) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	runes, hash := textDigest(text)
+	n.Reason("%sbản nháp %s: %d ký tự · băm %s · đầu %s", prefix, how, runes, hash, contracts.Quote(draftHead(text)))
+}
+
+// noteTemplateDraft ghi S8 cho câu dựng bằng mẫu câu của tenant (route số liệu, hỏi lại, từ chối, chuyển người): tmpl là mẫu THẬT đã dùng, có thể khác
+// RoutePlan.Template (câu xác nhận dùng confirm_yes / confirm_no, truy vấn không ra dữ liệu dùng no_data).
+func (a *Ask) noteTemplateDraft(why *traces.Why, prefix, tmpl, text string) {
+	a.noteDraft(why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)
+}
+
+// noteModelDraft ghi S8 cho bản nháp do model diễn đạt (model là tên do gateway khai trong contracts.Draft.Model).
+func (a *Ask) noteModelDraft(why *traces.Why, prefix, model, text string) {
+	if model == "" {
+		model = "(không khai tên)"
+	}
+	a.noteDraft(why, prefix, "do model "+model+" diễn đạt", text)
 }

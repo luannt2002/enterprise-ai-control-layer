@@ -50,7 +50,7 @@ const (
 // NotRecorded là giá trị của trường "lý do" / "phương án bị loại" mà luồng hỏi chưa xuất ra ngoài Handle. Ghi thẳng điều này thay
 // vì suy đoán: một lý do bịa trong vết còn tệ hơn một chỗ trống ghi rõ là trống. Nội dung sau dấu hai chấm nói chỗ cần móc.
 // Các chặng S2, S3, S4, S5, S7 và cổng phán quyết ở S9 đã được móc (Decision.Why, R2-03) nên lượt chạy thật không còn chỗ trống ở đó;
-// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột, S8, bản nháp bị loại ở S9.
+// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột, bản nháp bị loại ở S9.
 const NotRecorded = "chưa ghi — cần móc trong core/pipeline (làn 1)"
 
 func notRecorded(what string) string { return NotRecorded + ": " + what }
@@ -140,8 +140,8 @@ func SpanStage(name string) (stage string, ok bool) {
 	return "", false
 }
 
-// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7 và
-// cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
+// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7, S8 (bản nháp
+// như được sinh) và cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
 // vấn khi không xung đột, bản nháp của model…) thì Reason / Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của
 // route (không có span tương ứng) có Status skipped.
 // Thời gian của bước lấy từ span cùng chặng theo bảng stageSpans: normalize→S2, resolve→S3, intent→S4, route→S5, execute và
@@ -338,8 +338,12 @@ func BuildSteps(t Turn) []Step {
 			skip(s, "route trống hoặc không hợp lệ nên không có cách dựng câu")
 		case route.NeedsModel() && has("generate"):
 			s.Decision = "model diễn đạt"
-			s.Reason = notRecorded("model, bản nháp và usage (contracts.Draft) chưa xuất khỏi Handle")
-			s.Rejected = []string{notRecorded("bản nháp bị loại chưa xuất khỏi Handle")}
+			if gen := d.Why.Generate; gen.Recorded() {
+				s.Reason, s.Rejected = joinReasons(gen), slices.Clone(gen.Rejected)
+			} else {
+				s.Reason = notRecorded("model, bản nháp và usage (contracts.Draft) chưa xuất khỏi Handle")
+				s.Rejected = []string{notRecorded("bản nháp bị loại chưa xuất khỏi Handle")}
+			}
 		case route.NeedsModel():
 			// route cần model mà pipeline không gọi Model.Generate (không có span generate): lượt kết thúc sớm — câu hỏi đòi lượng nghiệp
 			// vụ, truy xuất rỗng, phần số liệu không ra dữ liệu… Vết không được kể là model đã diễn đạt (R1-02): P10 dựa vào chặng MODEL
@@ -350,6 +354,10 @@ func BuildSteps(t Turn) []Step {
 		default:
 			s.Decision = "mẫu câu của tenant " + plan.Template
 			s.Reason = "route " + d.Route + " không cần model (RouteKind.NeedsModel = false): dựng bằng mẫu câu, không gọi model"
+			if gen := d.Why.Generate; gen.Recorded() {
+				s.Reason += "; " + joinReasons(gen)
+				s.Rejected = slices.Clone(gen.Rejected)
+			}
 		}
 	})
 	add(StageValidate, "validate", func(s *Step) {

@@ -320,10 +320,6 @@ func (c *conformer) quantity(text string, exclude [][2]int, cell bool) (contract
 	default:
 		return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("có %d lượng trong %q", len(cands), text)
 	}
-	if normalization.UncertainGroup(cands[0]) {
-		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? Không ghi một cách đọc vào nguồn sự thật
-		return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chưa phân định: một lượng, hay số hiệu đứng trước một lượng", cands[0].Raw)
-	}
 	v := cands[0].Value
 	if v.Kind == contracts.ValueNumber || v.Unit == "" {
 		if c.spec.DefaultUnit == "" {
@@ -338,6 +334,11 @@ func (c *conformer) quantity(text string, exclude [][2]int, cell bool) (contract
 			return contracts.Value{}, ReasonUnitDimension, err.Error()
 		}
 		v = cv
+	}
+	if normalization.UncertainGroup(cands[0]) {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? Không ghi một cách đọc vào nguồn sự thật. Xét SAU đổi đơn vị: nhóm khác chiều đo
+		// ("12 000 km") đã là unit_dimension — lý do đúng hơn "chưa phân định".
+		return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chưa phân định: một lượng, hay số hiệu đứng trước một lượng", cands[0].Raw)
 	}
 	return v, "", ""
 }

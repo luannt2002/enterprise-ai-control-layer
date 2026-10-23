@@ -76,6 +76,7 @@ func dataset(t *testing.T) string {
 		`{"record_id":"R-039","sent_at":"2026-10-19T19:10:00+07:00","sender":"Tuấn","text":"lu 2 850 lít ca 2"}`,
 		`{"record_id":"R-040","sent_at":"2026-10-19T19:15:00+07:00","sender":"Tuấn","text":"máy 03 tiền xe 500 000 đồng"}`, // tiền sau từ đếm "xe"
 		`{"record_id":"R-043","sent_at":"2026-10-19T19:40:00+07:00","sender":"Tuấn","text":"máy 03 tổng số 3 850 lít"}`,    // từ nhãn "số"
+		`{"record_id":"R-044","sent_at":"2026-10-19T19:50:00+07:00","sender":"Tuấn","text":"máy 03 chạy 12 000 km"}`,       // nhóm nghìn KHÁC chiều đo
 		`{"record_id":"R-041","sent_at":"2026-10-19T19:20:00+07:00","sender":"Tuấn","text":"3 850 lít cho máy 03"}`,
 		`{"record_id":"R-042","sent_at":"2026-10-19T19:30:00+07:00","sender":"Tuấn","text":"` + string(rune(0x200B)) + `3 850 lít cho lu 02"}`, // ký tự vô hình đầu tin
 	}, "\n")+"\n")
@@ -170,6 +171,8 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"messages.jsonl#R-038": ingestion.ReasonUnparseable,
 		"messages.jsonl#R-039": ingestion.ReasonUnparseable,
 		"messages.jsonl#R-043": ingestion.ReasonUnparseable,
+		// nhóm nghìn khác chiều đo ("12 000 km") không thể là lượng dầu: lý do là chiều đo, như trước khi có cờ chưa phân định
+		"messages.jsonl#R-044": ingestion.ReasonUnitDimension,
 	}
 	// quan trọng hơn lý do chung: đúng lý do NHÓM NGHÌN, không phải "có 2 lượng" tình cờ
 	wantDetail := map[string]string{

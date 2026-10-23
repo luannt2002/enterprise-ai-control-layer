@@ -28,6 +28,9 @@ type Store struct {
 	mu   sync.Mutex
 	// know giữ chỉ mục tri thức đã dựng của từng tenant cùng dấu nạp của nó (xem knowledgeIndex).
 	know map[contracts.TenantID]knowledgeEntry
+	// Semantic, nếu khác nil, bật truy hồi lai cho chỉ mục tri thức: vector của đoạn đọc từ document_vectors (migration 0007) theo không
+	// gian Semantic.Embedder.Name(), đồng bộ bằng EmbedKnowledge. nil = chỉ từ khoá (cmd/eais). Đặt trước khi phục vụ, không đổi sau đó.
+	Semantic *rag.Semantic
 }
 
 type knowledgeEntry struct {
@@ -196,8 +199,16 @@ func (s *Store) Retrieve(ctx context.Context, pr contracts.Principal, query stri
 func (s *Store) knowledgeIndex(ctx context.Context, tenant contracts.TenantID) (*rag.MemoryIndex, error) {
 	var mark string
 	if err := s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
-		return tx.QueryRow(ctx, `SELECT coalesce(string_agg(DISTINCT xmin::text COLLATE "C", ',' ORDER BY xmin::text COLLATE "C"), '') || '/' || count(*)
-			FROM documents`).Scan(&mark)
+		if err := tx.QueryRow(ctx, `SELECT coalesce(string_agg(DISTINCT xmin::text COLLATE "C", ',' ORDER BY xmin::text COLLATE "C"), '') || '/' || count(*)
+			FROM documents`).Scan(&mark); err != nil || s.Semantic == nil {
+			return err
+		}
+		// Truy hồi lai: dấu gồm cả các dòng vector của không gian hiện tại — nhúng lại xong thì lượt sau dựng lại chỉ mục.
+		var vm string
+		err := tx.QueryRow(ctx, `SELECT $1 || ':' || coalesce(string_agg(DISTINCT xmin::text COLLATE "C", ',' ORDER BY xmin::text COLLATE "C"), '') || '/' || count(*)
+			FROM document_vectors WHERE space = $1`, s.Semantic.Embedder.Name()).Scan(&vm)
+		mark += "|" + vm
+		return err
 	}); err != nil {
 		return nil, err
 	}
@@ -208,25 +219,16 @@ func (s *Store) knowledgeIndex(ctx context.Context, tenant contracts.TenantID) (
 		return e.ix, nil
 	}
 	var docs []rag.Document
+	var vecs map[string][]float32
+	var vxmins []string
 	xmins := map[string]bool{}
 	err := s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
-		rows, err := tx.Query(ctx, `
-			SELECT id, title, body, acl, version, status, effective_from, effective_to, scope, hold, xmin::text FROM documents
-			ORDER BY id COLLATE "C", version`)
-		if err != nil {
+		var err error
+		if docs, err = readDocuments(ctx, tx, tenant, xmins); err != nil || s.Semantic == nil {
 			return err
 		}
-		defer rows.Close()
-		for rows.Next() {
-			d := rag.Document{Tenant: string(tenant)}
-			var xmin string
-			if err := rows.Scan(&d.ID, &d.Title, &d.Body, &d.ACL, &d.Version, &d.Status, &d.EffectiveFrom, &d.EffectiveTo, &d.Scope, &d.Hold, &xmin); err != nil {
-				return err
-			}
-			xmins[xmin] = true
-			docs = append(docs, d)
-		}
-		return rows.Err()
+		vecs, vxmins, err = loadVectors(ctx, tx, s.Semantic.Embedder.Name())
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -234,6 +236,13 @@ func (s *Store) knowledgeIndex(ctx context.Context, tenant contracts.TenantID) (
 	// Dấu tính từ chính các dòng vừa đọc (cùng giao dịch): lần nạp xen giữa hai câu chỉ làm lượt sau dựng lại, không làm giữ dữ liệu cũ.
 	mark = strings.Join(slices.Sorted(maps.Keys(xmins)), ",") + "/" + strconv.Itoa(len(docs))
 	ix := rag.NewMemoryIndex(string(tenant), docs)
+	if s.Semantic != nil {
+		slices.Sort(vxmins)
+		mark += "|" + s.Semantic.Embedder.Name() + ":" + strings.Join(slices.Compact(vxmins), ",") + "/" + strconv.Itoa(len(vecs))
+		sem := *s.Semantic
+		sem.Vectors = vecs
+		ix.Semantic = &sem
+	}
 	s.mu.Lock()
 	if s.know == nil {
 		s.know = map[contracts.TenantID]knowledgeEntry{}
@@ -241,4 +250,28 @@ func (s *Store) knowledgeIndex(ctx context.Context, tenant contracts.TenantID) (
 	s.know[tenant] = knowledgeEntry{mark: mark, ix: ix}
 	s.mu.Unlock()
 	return ix, nil
+}
+
+// readDocuments đọc mọi tài liệu của tenant trong giao dịch tx, ghi xmin của từng dòng vào xmins (nil = không cần).
+func readDocuments(ctx context.Context, tx pgx.Tx, tenant contracts.TenantID, xmins map[string]bool) ([]rag.Document, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT id, title, body, acl, version, status, effective_from, effective_to, scope, hold, xmin::text FROM documents
+		ORDER BY id COLLATE "C", version`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var docs []rag.Document
+	for rows.Next() {
+		d := rag.Document{Tenant: string(tenant)}
+		var xmin string
+		if err := rows.Scan(&d.ID, &d.Title, &d.Body, &d.ACL, &d.Version, &d.Status, &d.EffectiveFrom, &d.EffectiveTo, &d.Scope, &d.Hold, &xmin); err != nil {
+			return nil, err
+		}
+		if xmins != nil {
+			xmins[xmin] = true
+		}
+		docs = append(docs, d)
+	}
+	return docs, rows.Err()
 }

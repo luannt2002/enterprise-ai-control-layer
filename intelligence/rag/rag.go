@@ -68,6 +68,7 @@ type chunk struct {
 	seq   int
 	text  string
 	terms map[string]bool
+	key   string // EmbedKey(embedText): khoá vector của đoạn, tính một lần lúc dựng
 }
 
 // MemoryIndex là chỉ mục tri thức trong bộ nhớ của MỘT tenant. Đoạn = một dòng của tài liệu (SOP
@@ -85,6 +86,8 @@ type MemoryIndex struct {
 	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ router.Policy.InScope), khi ngữ cảnh không mang luật
 	// của lượt; nil = thuộc tính "entity_scope" của principal giao với keys.
 	InScope func(pr contracts.Principal, keys []string) bool
+	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.
+	Semantic *Semantic
 }
 
 // stopWords là từ chức năng tiếng Việt — không mang nghĩa để so khớp.
@@ -365,7 +368,7 @@ func NewMemoryIndex(tenant string, docs []Document) *MemoryIndex {
 		ix.docs = append(ix.docs, d)
 		// scored: phần chữ được chấm điểm (cùng tiêu đề); text: phần chữ đi vào bằng chứng.
 		add := func(seq int, text, scored string) {
-			ix.chunks = append(ix.chunks, chunk{doc: d, seq: seq, text: text, terms: indexTerms(d.Title + " " + scored)})
+			ix.chunks = append(ix.chunks, chunk{doc: d, seq: seq, text: text, terms: indexTerms(d.Title + " " + scored), key: EmbedKey(d.Title + ": " + text)})
 		}
 		for _, it := range parseBody(d.Body) {
 			switch {
@@ -503,6 +506,9 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 			}
 		}
 	}
+	if ix.Semantic != nil && ix.Semantic.MinScore > 0 {
+		return ix.hybrid(ctx, pr, query, k, today, vis, serving, live, df, seen)
+	}
 	// Kho không nói tới điều được hỏi: từ nửa số từ nội dung của CHỦ ĐỀ trở lên (câu bỏ con số / ngày / mã — pipeline tách) không
 	// có trong đoạn nào người hỏi thấy ⇒ không đoạn nào là bằng chứng, dù một chữ trùng hợp vượt MinScore ("tục" trong "liên tục").
 	// Không thì câu trả lời chép nguyên văn một đoạn lạc đề và qua được bước kiểm (S7-BO-CA-DOC-LAP.md §2, "Biết im").
@@ -517,6 +523,9 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 			return []contracts.Evidence{}, nil
 		}
 	}
+	if ix.Semantic != nil { // đường lai chưa đặt ngưỡng điểm: đã qua luật "biết im" theo chủ đề ở trên
+		return ix.hybrid(ctx, pr, query, k, today, vis, serving, live, df, seen)
+	}
 	q := slices.Sorted(maps.Keys(queryTerms(query)))
 	type scored struct {
 		c *chunk
@@ -529,12 +538,7 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 		if !vis[c.doc] {
 			continue
 		}
-		s := 0.0
-		for _, t := range q {
-			if c.terms[t] {
-				s += math.Log(1 + float64(seen)/float64(df[t]))
-			}
-		}
+		s := idfScore(c, q, df, seen)
 		if s < ix.MinScore {
 			continue
 		}
@@ -568,18 +572,34 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 	}
 	out := make([]contracts.Evidence, 0, len(hits))
 	for _, h := range hits {
-		id := fmt.Sprintf("%s#%d", h.c.doc.ID, h.c.seq) // tài liệu không phiên bản: giữ đúng dạng mã cũ
-		if h.c.doc.Version > 0 {
-			id = fmt.Sprintf("%s@v%d#%d", h.c.doc.ID, h.c.doc.Version, h.c.seq)
-		}
-		out = append(out, contracts.Evidence{
-			ID: id, Kind: contracts.EvidencePassage, Text: h.c.text,
-			Source: contracts.SourceRef{SourceType: "document", Name: h.c.doc.Title, DocumentID: h.c.doc.ID,
-				DocumentVersion: h.c.doc.Version},
-			Confidence: h.s,
-		})
+		out = append(out, evidenceOf(h.c, h.s))
 	}
 	return out, nil
+}
+
+// idfScore là điểm từ khoá của đoạn: tổng IDF các từ của câu hỏi có trong đoạn (q đã sắp xếp — thứ tự cộng cố định).
+func idfScore(c *chunk, q []string, df map[string]int, seen int) float64 {
+	s := 0.0
+	for _, t := range q {
+		if c.terms[t] {
+			s += math.Log(1 + float64(seen)/float64(df[t]))
+		}
+	}
+	return s
+}
+
+// evidenceOf dựng bằng chứng của đoạn, mã tất định "mã@vN#vị-trí" (tài liệu không phiên bản: "mã#vị-trí").
+func evidenceOf(c *chunk, score float64) contracts.Evidence {
+	id := fmt.Sprintf("%s#%d", c.doc.ID, c.seq) // tài liệu không phiên bản: giữ đúng dạng mã cũ
+	if c.doc.Version > 0 {
+		id = fmt.Sprintf("%s@v%d#%d", c.doc.ID, c.doc.Version, c.seq)
+	}
+	return contracts.Evidence{
+		ID: id, Kind: contracts.EvidencePassage, Text: c.text,
+		Source: contracts.SourceRef{SourceType: "document", Name: c.doc.Title, DocumentID: c.doc.ID,
+			DocumentVersion: c.doc.Version},
+		Confidence: score,
+	}
 }
 
 // LoadMarkdown đọc tài liệu của một tenant từ thư mục: docs/<tệp>.md (dòng đầu "# <tiêu đề>") +

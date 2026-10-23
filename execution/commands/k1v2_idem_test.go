@@ -93,8 +93,8 @@ func TestR5ThayPhieuCuaBanSinhDoiThiPhatLai(t *testing.T) {
 	if c5 := second.Steps[stRules]; c5.Status != StepOK || !strings.Contains(c5.Reason, "Derive đã chạy") || !slices.Contains(c5.Output, "open_ticket="+tk.ID) {
 		t.Fatalf("phát lại do R5: C5 phải ok, ghi Derive đã chạy và phiếu OPEN đã thấy; được %+v", c5)
 	}
-	if c6 := second.Steps[stWrite]; c6.Status != StepSkipped || strings.Contains(c6.Reason, "không tính lại") {
-		t.Fatalf("phát lại do R5: C6 skipped và không nói 'không tính lại'; được %+v", c6)
+	if c6 := second.Steps[stWrite]; c6.Status != StepSkipped || c6.Reason != "phát lại (R5 thấy phiếu của chính khoá lệnh này): không ghi" {
+		t.Fatalf("phát lại do R5: C6 skipped với lý do R5; được %+v", c6)
 	}
 	w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, replayed: 1})
 	w.counters(1, 1) // đơn vị ghi phiếu chỉ do bản sinh đôi gọi; lượt này chỉ ghi audit REPLAYED

@@ -1118,13 +1118,16 @@ func (r *run) writeAudit(ctx context.Context, a Audit) string {
 
 // outcome chốt lượt: điền bước skipped cho chặng chưa chạy rồi đóng gói.
 func (r *run) outcome() Outcome {
+	// chụp TRƯỚC vòng lặp: vòng lặp tự đặt done[] cho bước nó vừa điền skipped, nên đọc r.done[stRules] trong vòng sẽ coi nhầm mọi phát lại
+	// thường là phát lại do R5 (soát độc lập C1–C7, C17S-01)
+	rulesRan := r.done[stRules]
 	for i := range r.steps {
 		if r.done[i] {
 			continue
 		}
 		reason := "lượt dừng ở " + stages[max(r.stop, 0)].code
 		switch {
-		case r.replay != nil && r.stop == stLedger && r.done[stRules]: // phát lại do R5 (C6): C5 đã tính, chỉ không ghi
+		case r.replay != nil && r.stop == stLedger && rulesRan: // phát lại do R5 (C6): C5 đã tính, chỉ không ghi
 			reason = "phát lại (R5 thấy phiếu của chính khoá lệnh này): không ghi"
 		case r.replay != nil && r.stop == stLedger:
 			reason = "phát lại ở C4b: không tính lại, không ghi"

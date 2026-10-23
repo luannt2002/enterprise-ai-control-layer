@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -495,6 +496,26 @@ func (p *probe) ReadBack(ctx context.Context, caller, commandID, ticketID string
 		st.Tickets[0].Diff = "999"
 	case "subject": // đọc lại thấy phiếu mang khoá thực thể khác (kiểm phát lại so với chính yêu cầu)
 		st.Tickets[0].SubjectKey = "EX-99"
+	default: // "audit-<cột>": dòng audit EXECUTED đọc lại lệch đúng một cột (C2: so đủ mọi cột như HOP-DONG §7.2)
+		for i := range st.Executed {
+			a := &st.Executed[i]
+			switch mode {
+			case "audit-fp":
+				a.Fingerprint = strings.Repeat("e", 64)
+			case "audit-trace":
+				a.TraceID = "vet-khac"
+			case "audit-caller":
+				a.Caller.ID = "p-khac"
+			case "audit-roles":
+				a.Caller.Roles = []string{"driver"}
+			case "audit-day":
+				a.Day = "2026-01-01"
+			case "audit-action":
+				a.Action = "lenh_khac"
+			case "audit-reason":
+				a.ReasonCode = ReasonPermissionDenied
+			}
+		}
 	}
 	return st, nil
 }

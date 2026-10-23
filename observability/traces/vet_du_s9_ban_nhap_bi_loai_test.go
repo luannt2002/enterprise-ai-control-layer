@@ -36,6 +36,10 @@ func TestVetS9BanNhapBiLoaiTriThuc(t *testing.T) {
 	if !regexp.MustCompile(`^\S+/\S+ \[S[1-4]\]: `).MatchString(s9.Reason) { // lý do loại (các vi phạm: validator/mã [mức]: chi tiết) vẫn nằm ở Reason
 		t.Errorf("S9 phải còn lý do loại: %q", s9.Reason)
 	}
+	// bản nháp bị S9 loại không phải nhánh thoát sớm: S8 không có dòng "kết cục nhánh đã chọn" (kết cục ấy là của S9, ở S10)
+	if s8 := stepOf(t, steps, "S8"); strings.Contains(s8.Reason, "kết cục nhánh") || strings.Contains(s8.Reason, "thoát sớm") || s8.Decision != "model diễn đạt" {
+		t.Errorf("S8 của lượt bị S9 loại: %+v", s8)
+	}
 	// cùng băm với bản nháp ở S8: người đọc nối được hai bước
 	if !strings.Contains(stepOf(t, steps, "S8").Reason, "băm "+sha12(sopBody)) {
 		t.Errorf("băm bản nháp bị loại phải là băm bản nháp ở S8: %s", stepOf(t, steps, "S8").Reason)

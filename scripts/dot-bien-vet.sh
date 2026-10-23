@@ -181,7 +181,9 @@ m $ASK 'why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn
 m $W 'g.subject, len(readPeriods(g.in)), markerCount' 'g.subject, 0, markerCount' 'WV17 [ME] đầu vào cổng: số kỳ đọc được luôn 0'
 m $ASK 'ci = clarifyInfo{used: true, before: asked, shown: visible, hidden: hidden}' 'ci = clarifyInfo{used: true, before: cls.Candidates, shown: visible, hidden: hidden}' 'AV2 [ML] ứng viên trước lọc của câu hỏi lại thiếu thực thể do S4 gộp'
 m $W 'if sp.Confidence > 0 && sp.Confidence < 1 {' 'if false && sp.Confidence > 0 && sp.Confidence < 1 {' 'WV18 [MJ] độ tin cậy của đoạn không được kể'
-m $ASK 'if plan.Route == contracts.RouteHybrid {' 'if false && plan.Route == contracts.RouteHybrid {' 'AV3 [MQ] HYBRID không gắn tiền tố "số liệu:"'
+m $ASK 'prefix := ""
+	if plan.Route == contracts.RouteHybrid {' 'prefix := ""
+	if false && plan.Route == contracts.RouteHybrid {' 'AV3 [MQ] HYBRID không gắn tiền tố "số liệu:" (neo mở rộng: Handle có thêm nhánh else if HYBRID, V8a)'
 m $ASK 'prefix = "tri thức: "' 'prefix = ""' 'AV4 [MR] HYBRID không gắn tiền tố "tri thức:"'
 m $W 'prefix, subject, entities)' 'prefix, subject, entities+1)' 'WV19 [MS] dòng quyền của S7 nói sai số thực thể truy vấn'
 m $W 'by, dropWhy = "dự án đã nêu trong câu", "không thuộc dự án đã nêu trong câu"' 'by, dropWhy = "dự án đã nêu trong câu", "ngoài phạm vi dữ liệu của người hỏi"' 'WV20 [MT] lý do dự án luôn nói "ngoài phạm vi"'
@@ -321,6 +323,75 @@ if [ "${DOT_BIEN_SINH:-1}" != 0 ]; then
 	eval "$sinh"
 fi
 # ---- hết R2-03 vòng 3
+# ---- V8a (đo người chỉ đọc vết lần 2, 23/10): S8 xuất bản nháp như được sinh, S10 xuất dấu vân tay câu giao, nhánh thoát sớm của RAG, S9 xuất bản nháp bị loại.
+# Mỗi dòng "bị bắt" chỉ khi một test NHẮM TỚI đỏ (MUTATE_TEST_MUON): đỏ ở test khác không tính. Mọi câu ghi giải thích MỘT dòng của why.go (n.Reason / n.Reject) còn có
+# đột biến bỏ-dòng do bộ sinh LV; dưới đây là những chỗ bộ sinh không với tới: băm / số ký tự / đoạn đầu, chọn trường hợp của S10, và chỗ luồng hỏi gọi các hàm ghi.
+export PKGS="./core/pipeline/ ./observability/traces/"
+export MUTATE_TEST_MUON='TestVetS8|TestVetS9|TestVetS10|TestVetThoatSom|TestNoteDraft|TestNoteDelivered|TestNoteExit|TestDraftLedger|TestTextDigest|TestDraftHead|TestDongS8|TestFinalWhyPhuS8VaS10|TestQuantityTrigger'
+m $W 'const draftHeadRunes = 80' 'const draftHeadRunes = 81' 'VS8-1 [V8a] đoạn đầu cắt ở 81 ký tự thay vì 80'
+m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' 'return len(clean), hex.EncodeToString(sum[:])[:12]' 'VS8-2 [V8a] số ký tự đếm byte thay vì rune'
+m $W 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]' 'return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:11]' 'VS8-3 [V8a] băm ngắn 11 ký tự thay vì 12'
+m $W 'sum := sha256.Sum256([]byte(clean))' 'sum := sha256.Sum256([]byte(s))' 'VS8-4 [V8a] băm tính trên chữ chưa làm sạch'
+m $W 'func textDigest(s string) (runes int, hash string) {
+	clean := strings.TrimSpace(traces.Sanitize(s))' 'func textDigest(s string) (runes int, hash string) {
+	clean := strings.TrimSpace(s)' 'VS8-5 [V8a] số ký tự và băm không qua bộ làm sạch'
+m $W 'func draftHead(s string) string {
+	clean := strings.TrimSpace(traces.Sanitize(s))' 'func draftHead(s string) string {
+	clean := strings.TrimSpace(s)' 'VS8-6 [V8a] đoạn đầu không làm sạch (bí mật lọt vào vết)'
+m $W 'return string(r[:draftHeadRunes]) + "…"' 'return string(r[:draftHeadRunes])' 'VS8-7 [V8a] đoạn đầu bị cắt mà không có dấu "…"'
+m $W 'if r := []rune(clean); len(r) > draftHeadRunes {' 'if r := []rune(clean); len(r) >= draftHeadRunes {' 'VS8-8 [V8a] đoạn đầu đúng 80 ký tự vẫn bị cắt'
+m $W 'ledgerOf(ctx).add(prefix, text)' '_ = ctx' 'VS8-9 [V8a] bản nháp không vào sổ (S10 mất đối chiếu)'
+m $W 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)' 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+" (không gọi model)", text)' 'VS8-10 [V8a] S8 không nói tên mẫu câu'
+m $W 'model = "(không khai tên)"' 'model = "model"' 'VS8-11 [V8a] model không khai tên bị bịa tên'
+m $W 'given := strings.TrimSpace(answer)' 'given := answer' 'VS8-12 [V8a] S10 so cả khoảng trắng đầu / cuối'
+m $W 'case given == draft:' 'case false:' 'VS8-13 [V8a] S10 không bao giờ nói câu giao trùng bản nháp'
+m $W 'case strings.Contains(given, draft):' 'case true:' 'VS8-14 [V8a] S10 luôn nói câu giao chứa bản nháp'
+m $W 'case d.rejected:' 'case false:' 'VS8-15 [V8a] S10 không nói bản nháp đã bị S9 loại'
+m $W 'runes, hash := textDigest(answer)' 'runes, hash := textDigest(answer)
+	if l != nil && len(l.drafts) > 0 {
+		runes, hash = textDigest(l.drafts[0].text)
+	}' 'VS8-16 [V8a] băm S10 lấy từ bản nháp thay vì câu giao'
+m $W 'dr, dh := textDigest(d.text)' 'dr, dh := textDigest(answer)' 'VS8-17 [V8a] băm bản nháp ở S10 lấy từ câu giao'
+m $W 'dims = append(dims, d)' '_ = d' 'VS8-18 [V8a] nhánh thoát sớm không kể chiều đo'
+m $W 'a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_no_knowledge", a.fragment("hybrid_no_knowledge", nil))' 'a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_no_knowledge", a.fragment("no_knowledge", nil))' 'VS8-19 [V8a] mẩu HYBRID rỗng ghi sai chữ'
+m $W 'if a.noWhy || rejected {' 'if a.noWhy {' 'VS8-20 [V8a] S9 loại bản nháp bị kể là nhánh thoát sớm'
+m $W 'ledgerOf(ctx).reject(prefix, text)' '_ = ctx' 'VS8-21 [V8a] S9 loại bản nháp mà sổ không biết'
+m $ASK 'ctx, led = withLedger(ctx)' '_, led = withLedger(ctx)' 'VS8-22 [V8a] sổ bản nháp không đi theo ctx'
+m $ASK 'a.noteDelivered(&why, resp.Answer, led)' 'if false { a.noteDelivered(&why, resp.Answer, led) }' 'VS8-23 [V8a] S10 không ghi dấu vân tay câu giao'
+m $ASK 'a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
+		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}' 'if false { a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer) }
+		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}' 'VS8-24 [V8a] S8 hỏi lại không ghi bản nháp'
+m $ASK 'a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
+		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}' 'if false { a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer) }
+		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}' 'VS8-25 [V8a] S8 từ chối / chuyển người không ghi bản nháp'
+m $ASK 'a.noteTemplateDraft(ctx, why, prefix, "needs_review", resp.Answer)' 'if false { a.noteTemplateDraft(ctx, why, prefix, "needs_review", resp.Answer) }' 'VS8-26 [V8a] S8 needs_review không ghi bản nháp'
+m $ASK 'a.noteTemplateDraft(ctx, why, prefix, "no_data", resp.Answer)' 'if false { a.noteTemplateDraft(ctx, why, prefix, "no_data", resp.Answer) }' 'VS8-27 [V8a] S8 no_data không ghi bản nháp'
+m $ASK 'a.noteTemplateDraft(ctx, why, prefix, used, draft.Text)' 'if false { a.noteTemplateDraft(ctx, why, prefix, used, draft.Text) }' 'VS8-28 [V8a] S8 route số liệu không ghi bản nháp'
+m $ASK 'used := tmpl' 'used := plan.Template' 'VS8-29 [V8a] S8 nói mẫu của route thay vì mẫu thật (câu xác nhận)'
+m $ASK 'used += " + confirm_withheld"' 'used += ""' 'VS8-30 [V8a] S8 không nói mẩu confirm_withheld'
+m $ASK 'a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text)' 'if false { a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text) }' 'VS8-31 [V8a] S8 route tri thức không ghi bản nháp của model'
+m $ASK 'a.noteRejected(ctx, why, prefix, draft.Text)
+		resp.Answer = a.render("fallback_unverified", vars)' 'if false { a.noteRejected(ctx, why, prefix, draft.Text) }
+		resp.Answer = a.render("fallback_unverified", vars)' 'VS8-32 [V8a] S9 route số liệu không ghi bản nháp bị loại'
+m $ASK 'a.noteRejected(ctx, why, prefix, draft.Text)
+		fail(' 'if false { a.noteRejected(ctx, why, prefix, draft.Text) }
+		fail(' 'VS8-33 [V8a] S9 route tri thức không ghi bản nháp bị loại'
+m $ASK 'a.noteQuantityExit(why, in, now)' 'if false { a.noteQuantityExit(why, in, now) }' 'VS8-34 [V8a] nhánh đòi lượng không ghi lý do thoát'
+m $ASK 'a.noteNoEvidence(why, prefix)' 'if false { a.noteNoEvidence(why, prefix) }' 'VS8-35 [V8a] nhánh truy xuất rỗng không ghi lý do thoát'
+m $ASK 'defer a.noteExit(ctx, why, hybrid, name, outcome, resp, len(violations) > 0)' 'defer a.noteExit(ctx, why, hybrid, name, outcome, resp, false)' 'VS8-36 [V8a] S9 loại bản nháp bị ghi như nhánh thoát sớm'
+m $ASK 'a.noteHybridSkipped(&why, resp.Outcome)' 'if false { a.noteHybridSkipped(&why, resp.Outcome) }' 'VS8-37 [V8a] HYBRID bỏ tri thức không ghi lý do'
+m $ST 's.Reason, s.Rejected = joinReasons(gen), slices.Clone(gen.Rejected)' 's.Reason, s.Rejected = "", nil' 'VS8-38 [V8a] S8 của route model không lấy giải thích do luồng hỏi ghi'
+m $ST 's.Reason += "; " + joinReasons(gen)' 's.Reason += ""' 'VS8-39 [V8a] S8 route mẫu câu không nối giải thích'
+m $ST 's.Reason += joinReasons(gen)' 's.Reason += ""' 'VS8-40 [V8a] S8 thoát sớm không nối giải thích'
+m $ST 'if route.NeedsModel() { // route tri thức' 'if false && route.NeedsModel() { // route tri thức' 'VS8-41 [V8a] S6 không nói thoát sớm trước truy xuất'
+m $ST 'if !resp.Verdict.Pass && !slices.ContainsFunc(s.Rejected, func(x string) bool { return strings.Contains(x, RejectedDraft) }) {' 'if !resp.Verdict.Pass {' 'VS8-42 [V8a] S9 vẫn ghi ô trống dù đã có bản nháp bị loại'
+m $ST 'if rep := d.Why.Respond; rep.Recorded() {' 'if rep := d.Why.Respond; false && rep.Recorded() {' 'VS8-43 [V8a] S10 không lấy giải thích do luồng hỏi ghi'
+m $ST 's.Reason += "; " + joinReasons(rep)' 's.Reason += ""' 'VS8-44 [V8a] S10 không nối giải thích'
+m $ST 'const RejectedDraft = "bản nháp bị loại"' 'const RejectedDraft = "bản nháp bị loại!"' 'VS8-45 [V8a] chữ mở đầu dòng bản nháp bị loại bị đổi'
+m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Generate} {' 'VS8-46 [V8a] Why.apply bỏ sót ô S10 (không che, không cắt)'
+m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Respond} {' 'VS8-47 [V8a] Why.apply bỏ sót ô S8 (không che, không cắt)'
+unset MUTATE_TEST_MUON
+# ---- hết V8a
 
 # ---- C8–C11 vòng 2 (soát độc lập C8–C11, 23/10). C9 vòng 2: bộ che khoá / tên thực thể ngoài phạm vi ở một chỗ (core/pipeline/scope_redact.go);
 # test bắt nằm ở core/pipeline (TestScopeRedactorDungRieng, TestNewScopeRedactorKhoaVaTen), observability/traces (dòng S3 / S4 của kỹ sư PRJ-A) và

@@ -143,3 +143,24 @@ func TestVetS8BiMatVatQuaChoCatKhongLot(t *testing.T) {
 		t.Errorf("chỗ bí mật phải thành %s (bị cắt ở ký tự 80): %s", traces.Masked, s8.Reason)
 	}
 }
+
+// Câu xác nhận: S8 nói mẫu THẬT đã dùng (confirm_yes / confirm_no, hoặc mẫu của route cộng mẩu confirm_withheld khi cổng giữ phán quyết) — không phải
+// RoutePlan.Template mà ô "quyết định" của S8 vẫn in. Người đọc đối chiếu được với dòng cổng phán quyết ở S9 ("→ Đúng." / "→ Không.").
+func TestVetS8MauThatCuaCauXacNhan(t *testing.T) {
+	a := realAsk(t)
+	for _, c := range []struct{ q, tmpl string }{
+		{"EX-03 hôm nay được cấp 3850 L đúng không?", "confirm_yes"},
+		{"EX-03 hôm nay được cấp 4000 L đúng không?", "confirm_no"},
+		{"EX-03 được cấp 3850 L đúng không?", "WITHHELD"}, // thiếu mốc thời gian: giữ phán quyết
+	} {
+		turn := realTurn(t, a, person("director", ""), c.q)
+		tmpl := c.tmpl
+		if tmpl == "WITHHELD" {
+			tmpl = turn.Plan.Template + " + confirm_withheld"
+		}
+		s8 := stepOf(t, traces.NewRecord(turn).Steps, "S8")
+		if want := draftLine("", "dựng bằng mẫu câu "+tmpl+" (không gọi model)", turn.Response.Answer); !strings.Contains(s8.Reason, want) {
+			t.Errorf("%q: S8 phải nói mẫu thật %q:\n  muốn: %s\n  được: %s", c.q, tmpl, want, s8.Reason)
+		}
+	}
+}

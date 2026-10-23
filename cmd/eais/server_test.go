@@ -775,7 +775,7 @@ func TestLoiPGQuaHTTPThuLaiDungLoai(t *testing.T) {
 func TestVetKhongMatKhiClientNgat(t *testing.T) {
 	e, _ := memEnv(t)
 	pr := e.principal(tokDirector)
-	rec := traces.NewErrorRecord(uuid.NewString(), pr, "q", e.app.now(), e.app.versions(), contracts.Errorf(contracts.FaultInput, "x"))
+	rec := traces.NewErrorRecord(uuid.NewString(), pr, "q", e.app.now(), e.app.versions(e.app.dataVersionNow()), contracts.Errorf(contracts.FaultInput, "x"))
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := e.srv.persist(ctx, pr, rec, nil); err != nil {

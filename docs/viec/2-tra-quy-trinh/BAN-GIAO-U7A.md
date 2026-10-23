@@ -55,7 +55,7 @@
 | `core/pipeline/ask.go` (`answerKnowledge`) | `Draft.Refused` ⇒ INSUFFICIENT_EVIDENCE thay vì S9 chặn; bản nháp rỗng KHÔNG cờ vẫn qua S9 như cũ | không với model giả (không bao giờ đặt cờ) |
 | `intelligence/models` | mới: `caller.go`, `chat.go` (`EAIS_MODEL_PROVIDER=chat_completions`), `embed.go`; `messages.go` chỉ thêm một nhánh trong `New` | `Messages` (G7) không đổi một dòng hành vi |
 | `platform/pgstore` | `Store.Semantic` (nil = như cũ), `vector.go`, `knowledgeIndex` tách `readDocuments` | đường từ khoá giữ nguyên; danh sách migration trong `migrate_test.go` / `vet_test.go` thêm 0007 |
-| `db/migrations/0007_vector_tai_lieu.sql` | bảng `document_vectors` + RLS | số 0007: lấy số kế tiếp sau 0006 của nhánh; ai gộp main trước giữ số |
+| `db/migrations/0008_vector_tai_lieu.sql` (lúc đầu 0007) | bảng `document_vectors` + RLS | ai gộp main trước giữ số: main lấy 0006 (sổ nạp) ⇒ nhánh đổi 0006 → 0007 (tài liệu), 0007 → 0008 (vector) khi gộp `d6c463d` |
 
 Cổng của cây này (so với main sạch `086fff9` qua bản gộp `521867f`): `go test -json ./...` có PG 2034 pass + 1 skip (lệnh đo động cơ
 thật, cần bật tay), so theo tên 0 mất / 0 đổi; winreport 117 / H1 / H3 / H4 × bộ nhớ / PG 0 dòng ca khác main; smoke 21/21.

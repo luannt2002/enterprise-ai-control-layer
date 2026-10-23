@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -49,6 +50,25 @@ type store interface {
 
 var _ store = (*pgstore.Store)(nil)
 
+// loadLedger là phần TUỲ CHỌN của kho: sổ nạp (migration 0006). *pgstore.Store ghi phiên bản của lần nạp CÙNG giao dịch thay dữ liệu và đọc lại dòng
+// mới nhất của tenant; kho bộ nhớ của test không có sổ nên app dùng phiên bản nó tự nhớ (loadedVersion). Tách khỏi store như commands.Store: giao
+// diện store của app không đổi, kho nào không có sổ đơn giản không có phiên bản bền.
+type loadLedger interface {
+	LoadWithVersion(ctx context.Context, info pgstore.LoadInfo, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error
+	LatestLoad(ctx context.Context) (pgstore.LoadRecord, error)
+}
+
+var _ loadLedger = (*pgstore.Store)(nil)
+
+func ledgerOf(st store) loadLedger {
+	l, _ := any(st).(loadLedger)
+	return l
+}
+
+// dataVersionNone là phiên bản mà vết khai khi PG không có lần nạp nào được ghi nhận cho tenant (chưa từng nạp, hoặc dữ liệu được nạp bằng đường không
+// kèm phiên bản): nói rõ là chưa biết, không bịa một băm từ thư mục trên đĩa.
+const dataVersionNone = "(chưa ghi nhận lần nạp)"
+
 // config là đầu vào dựng app. Không có giá trị mặc định mang tên tenant: đường dẫn pack / dữ liệu do người chạy (hoặc script) đưa.
 type config struct {
 	Pack  string // thư mục pack của MỘT tenant
@@ -68,8 +88,9 @@ type app struct {
 	log      *slog.Logger
 	// afterRead chỉ để test: chạy sau khi bộ nạp đã đọc hết nguồn, trước khi băm lại thư mục (chèn thay đổi dữ liệu giữa chừng).
 	afterRead func()
-	// ask là luồng hỏi đang phục vụ. Deps của Ask là giá trị (DataVersion nằm trong đó) nên nạp lại dữ liệu không sửa tại chỗ — sẽ là
-	// data race với các lượt đang chạy — mà dựng Ask mới rồi thế con trỏ; lượt đang chạy dùng nốt bản cũ.
+	// ask là luồng hỏi nền. Deps của Ask là giá trị (DataVersion nằm trong đó) nên nạp lại dữ liệu không sửa tại chỗ — sẽ là data race với các
+	// lượt đang chạy — mà dựng Ask mới rồi thế con trỏ; lượt đang chạy dùng nốt bản cũ. DataVersion của nó là phiên bản app biết lúc dựng / nạp:
+	// với kho có sổ nạp, MỖI lượt dùng askFor(phiên bản đọc từ sổ) chứ không dùng thẳng nó (xem loadedVersion).
 	ask atomic.Pointer[pipeline.Ask]
 	// tools là tools.yaml của pack, đã nạp và kiểm chéo với policy và danh mục chỉ số (HOP-DONG §4.3): cấu hình hỏng thì newApp lỗi nên không có
 	// app nào chạy. cmds là pipeline lệnh theo tên tool, mỗi tool một route lệnh (server.handler); rỗng khi kho không có kho phiếu (bản dựng thử
@@ -78,7 +99,8 @@ type app struct {
 	cmds  map[string]*commands.Pipeline
 }
 
-// newApp tải pack, bản đồ nguồn, đồng hồ; tính phiên bản dữ liệu hiện có trên đĩa và dựng luồng hỏi trên kho st. Chưa chạm kho.
+// newApp tải pack, bản đồ nguồn, đồng hồ; kiểm thư mục dữ liệu dùng được rồi dựng luồng hỏi trên kho st. Kho có sổ nạp: phiên bản nền của luồng hỏi
+// là dòng mới nhất của sổ (đọc một lần lúc khởi động); kho không có sổ: băm thư mục trên đĩa (dữ liệu nạp thẳng từ thư mục đó).
 func newApp(cfg config, st store, log *slog.Logger) (*app, error) {
 	rt, err := tenant.Load(cfg.Pack)
 	if err != nil {
@@ -98,9 +120,16 @@ func newApp(cfg config, st store, log *slog.Logger) (*app, error) {
 	if err := a.loadCommands(cfg.Pack); err != nil {
 		return nil, err
 	}
-	dv, err := dataVersion(a.tenantDir())
+	dv, err := dataVersion(a.tenantDir()) // cũng là kiểm thư mục dữ liệu: có, là thư mục, không rỗng — serve không khởi động trên thư mục hỏng
 	if err != nil {
 		return nil, err
+	}
+	if ledgerOf(st) != nil { // phiên bản nền là của PG, KHÔNG phải của thư mục trên đĩa (thư mục có thể chưa từng được nạp: R2-01)
+		ctx, cancel := context.WithTimeout(context.Background(), saveTimeout) // cùng hạn với một lần lưu vết: một truy vấn nhỏ
+		defer cancel()
+		if dv, err = a.loadedVersion(ctx, contracts.TenantID(a.tenantID())); err != nil {
+			return nil, fmt.Errorf("không đọc được phiên bản dữ liệu từ sổ nạp của kho: %w", err)
+		}
 	}
 	a.setAsk(dv)
 	return a, nil
@@ -165,8 +194,35 @@ func (a *app) setAsk(dv string) {
 	}})
 }
 
-// dataVersionNow là phiên bản dữ liệu mà luồng hỏi đang gắn vào mọi bản ghi quyết định.
+// dataVersionNow là phiên bản dữ liệu nền mà app đang nhớ (lúc dựng, hoặc lúc nạp xong gần nhất của chính app này). Vết KHÔNG lấy từ đây khi kho có
+// sổ nạp: một lần nạp ở tiến trình khác (eais ingest) đổi PG mà app này không biết — xem loadedVersion.
 func (a *app) dataVersionNow() string { return a.ask.Load().Deps.DataVersion }
+
+// loadedVersion là phiên bản dữ liệu mà MỘT lượt phải ghi vào vết (R2-01). Kho có sổ nạp: phiên bản của lần nạp đã COMMIT mới nhất của tenant, đọc từ PG
+// mỗi lần gọi (một truy vấn nhỏ) — nên nó đúng cả khi thư mục trên đĩa đổi, khi server trỏ nhầm thư mục, và khi PG vừa được nạp bằng CLI; chưa có lần nạp
+// nào được ghi nhận thì dataVersionNone. Kho không có sổ (bộ nhớ của test): phiên bản app tự nhớ, đúng vì dữ liệu nạp thẳng từ thư mục đó. Lượt đọc phiên
+// bản TRƯỚC khi chạy: lần nạp commit giữa chừng lượt vẫn có thể làm lượt đọc dữ liệu mới nhưng khai phiên bản cũ (giới hạn đã biết ở README).
+func (a *app) loadedVersion(ctx context.Context, tenant contracts.TenantID) (string, error) {
+	l := ledgerOf(a.st)
+	if l == nil {
+		return a.dataVersionNow(), nil
+	}
+	rec, err := l.LatestLoad(contracts.WithTenant(ctx, tenant))
+	switch {
+	case errors.Is(err, pgstore.ErrNotFound), err == nil && rec.DataVersion == "":
+		return dataVersionNone, nil
+	case err != nil:
+		return "", err
+	}
+	return rec.DataVersion, nil
+}
+
+// askFor là luồng hỏi cho MỘT lượt: bản chép của luồng nền với phiên bản dữ liệu dv của lượt đó (Deps là giá trị, không sửa tại chỗ).
+func (a *app) askFor(dv string) *pipeline.Ask {
+	k := *a.ask.Load()
+	k.Deps.DataVersion = dv
+	return &k
+}
 
 // now là đồng hồ của lượt (dùng cho bản ghi lỗi, nơi Handle không trả Decision).
 func (a *app) now() time.Time {
@@ -176,8 +232,9 @@ func (a *app) now() time.Time {
 	return a.rt.Now()
 }
 
-func (a *app) versions() traces.Versions {
-	return traces.Versions{Pack: a.rt.PackVersion, Code: buildRevision(), Data: a.dataVersionNow()}
+// versions là ba phiên bản gắn vào bản ghi của lượt lỗi và lượt lệnh; dv là phiên bản dữ liệu của lượt đó (loadedVersion), rỗng khi không đọc được.
+func (a *app) versions(dv string) traces.Versions {
+	return traces.Versions{Pack: a.rt.PackVersion, Code: buildRevision(), Data: dv}
 }
 
 // parseClock đọc cờ -now. "world" cho đúng đồng hồ của đường đo WIN (ngày tham chiếu của world.yaml lúc 10:00 giờ tenant) để câu
@@ -273,7 +330,7 @@ type ingestReport struct {
 // ingest nạp thư mục dữ liệu <dataRoot>/<tenant> của tenant mà pack này phục vụ: nguồn → quan sát + cách ly; lưu bản ghi cách ly
 // (kèm lý do) rồi THAY toàn bộ dữ liệu của tenant trong kho. Lưu cách ly TRƯỚC khi thay dữ liệu: nếu thứ hai hỏng thì không có dữ
 // liệu sống nào thiếu bằng chứng cách ly của nó, và chạy lại là idempotent. Dữ liệu đổi trong lúc nạp (băm trước ≠ băm sau) là lỗi —
-// phiên bản ghi vào vết phải là của đúng thứ đã nạp.
+// phiên bản ghi vào vết phải là của đúng thứ đã nạp, và với kho có sổ nạp nó được ghi cùng giao dịch thay dữ liệu (loadInto).
 func (a *app) ingest(ctx context.Context) (ingestReport, error) {
 	t0 := time.Now()
 	tenantID, dir := a.tenantID(), a.tenantDir()
@@ -313,12 +370,21 @@ func (a *app) ingest(ctx context.Context) (ingestReport, error) {
 	if rep.NewQuarantine, err = a.st.SaveQuarantine(tctx, rep.LoadID, recs); err != nil {
 		return rep, err
 	}
-	if err := a.st.Load(tctx, directory, res.Facts(), docs); err != nil {
+	if err := a.loadInto(tctx, pgstore.LoadInfo{LoadID: rep.LoadID, DataVersion: before}, directory, res.Facts(), docs); err != nil {
 		return rep, err
 	}
 	a.setAsk(before)
 	rep.ElapsedMs = time.Since(t0).Milliseconds()
 	return rep, nil
+}
+
+// loadInto thay toàn bộ dữ liệu của tenant trong kho. Kho có sổ nạp ghi phiên bản của lần nạp CÙNG giao dịch với dữ liệu (dữ liệu và phiên bản cùng commit hoặc
+// cùng huỷ); kho không có sổ chỉ thay dữ liệu.
+func (a *app) loadInto(ctx context.Context, info pgstore.LoadInfo, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
+	if l := ledgerOf(a.st); l != nil {
+		return l.LoadWithVersion(ctx, info, entities, facts, docs)
+	}
+	return a.st.Load(ctx, entities, facts, docs)
 }
 
 // meteredModel bọc gateway để đếm lời gọi và token THEO LƯỢT (không theo tiến trình): bộ đếm nằm trong ngữ cảnh của lượt, nên các

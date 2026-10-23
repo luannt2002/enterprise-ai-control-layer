@@ -1,4 +1,4 @@
--- 0007 — vector của đoạn tài liệu tri thức cho truy hồi lai (nhánh RAG, docs/ROADMAP-RAG.md §6.4).
+-- 0008 — vector của đoạn tài liệu tri thức cho truy hồi lai (nhánh RAG, docs/ROADMAP-RAG.md §6.4).
 -- Khoá = (tenant, không gian vector, băm chữ đã nhúng). Không gian = model + số chiều của embedder: đổi model là không gian khác, vector
 -- cũ không bị so nhầm — chỉ mục báo thiếu vector và phải nhúng lại. Chữ không đổi giữa các lần nạp thì không phải nhúng lại.
 -- Vector là mảng real thường: cosine tính trong ứng dụng, CHỈ trên đoạn người hỏi được đọc (lọc quyền / phiên bản trước), nên không

@@ -9,7 +9,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 )
 
-// EmbedKnowledge đồng bộ vector của kho tri thức tenant với không gian vector hiện tại (Semantic.Embedder.Name(), migration 0007):
+// EmbedKnowledge đồng bộ vector của kho tri thức tenant với không gian vector hiện tại (Semantic.Embedder.Name(), migration 0008):
 // nhúng chữ của đoạn chưa có vector — chữ đó được GỬI RA embedder đã cấu hình — và xoá vector của chữ không còn trong kho. Chạy lại
 // được: chữ không đổi thì không nhúng lại. Gọi sau mỗi lần nạp tài liệu; chưa gọi thì lượt hỏi báo thiếu vector (rag.Semantic).
 func (s *Store) EmbedKnowledge(ctx context.Context, tenant contracts.TenantID) (added, removed int, err error) {

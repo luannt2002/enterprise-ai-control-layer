@@ -14,7 +14,7 @@
 | Vai trò | Giao thức | Mã | Bật bằng |
 |---|---|---|---|
 | LLM sinh câu trả lời (S8) | chat completions | `intelligence/models/chat.go` | `EAIS_MODEL_PROVIDER=chat_completions` + `EAIS_MODEL_*` |
-| Embedding (truy hồi lai) | `/embeddings` | `intelligence/models/embed.go`, `intelligence/rag/semantic.go`, bảng `document_vectors` (0007) | `EAIS_EMBED_*` |
+| Embedding (truy hồi lai) | `/embeddings` | `intelligence/models/embed.go`, `intelligence/rag/semantic.go`, bảng `document_vectors` (0008) | `EAIS_EMBED_*` |
 | Rerank (xếp lại nhóm đầu) | `/rerank` | `intelligence/models/embed.go` | `EAIS_RERANK_*` |
 
   Đường dùng chúng hôm nay: `evals/rag/dong_co_that_test.go` (bật bằng `EAIS_RAG_DONG_CO=1`) — cùng PG, cùng chỉ mục, cùng pipeline

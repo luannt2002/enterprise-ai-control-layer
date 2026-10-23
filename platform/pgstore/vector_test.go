@@ -45,7 +45,7 @@ func (e *nhungCho) Embed(ctx context.Context, texts []string, q bool) ([][]float
 	return e.nhungDem.Embed(ctx, texts, q)
 }
 
-// Vector của tri thức trên PG (migration 0007): chưa nhúng thì lượt hỏi báo lỗi dữ liệu nêu cách sửa; nhúng lại chỉ nhúng chữ mới và
+// Vector của tri thức trên PG (migration 0008): chưa nhúng thì lượt hỏi báo lỗi dữ liệu nêu cách sửa; nhúng lại chỉ nhúng chữ mới và
 // xoá vector của chữ đã bỏ; chỉ mục giữ sẵn được DÙNG LẠI khi không có gì đổi (dấu nạp nhanh khớp dấu dựng) và dựng lại sau khi nhúng;
 // tenant khác và không gian vector khác không dùng được vector này.
 func TestVectorTriThucPG(t *testing.T) {

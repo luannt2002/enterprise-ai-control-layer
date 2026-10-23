@@ -1,0 +1,113 @@
+{
+ "soat": {
+  "ket_luan": "KHÔNG ĐẠT (chặn hẹp: một ghi chú S2, R-01 chết khoá trên PG). S1 = 0: không tìm ra mất dữ liệu, cộng đôi, rơi khỏi tổng im lặng hay rò tenant bằng mô hình riêng + bộ sinh riêng (bộ nhớ 60.000 chuỗi × 45 sự kiện = 2,7 triệu sự kiện, 0 lệch; PG 1.500 chuỗi × 30 sự kiện, 0 lệch), bằng thử đồng thời (nạp cùng ô 300 vòng, hai tenant 200 vòng, kết thúc backend giữa giao dịch) và bằng chạy lại toàn bộ cổng. Mọi con số trong lời khai tôi chạy lại đều khớp (vet, gofmt, 2.164 pass có PG, so tên với main 0 mất 0 đổi 206 mới, winreport, 42/42 đột biến, đỏ-trước 35 và 123, duyệt hết 82.400 / 231.422, -race). R6-01 và R6-02 đã chặn bằng test đỏ trong mã (bất biến theo sự kiện đúng như tr3.go mô tả; Y01, Y02, Y20 của tôi và M05/M07/M09/M10 của tác giả đều đỏ). Điều làm KHÔNG ĐẠT: lời khai và comment 'khoá ô luôn đứng trước khoá hàng, không chết khoá' sai khi nạp chạy đồng thời với quyết định / thu hồi / sửa tin trên PG (deadlock 40P01, 0,08% đến 0,3% số thao tác trong thử tải; lỗi trả về nhãn infra:postgres, không để lại trạng thái sai), và test khoá hiện có chỉ đo thứ tự khoá tư vấn trên kho bộ nhớ nên không chứng minh điều đó. Còn lại 2 ghi chú S3 và 7 ghi chú S4. Phải sửa R-01 rồi soát lại hẹp (chỉ khoá đồng thời); các ghi chú còn lại không chặn. Sự cố vận hành do tôi gây ra một phần: container dùng chung eais-pg (mem_limit 1 GiB, dữ liệu tmpfs) bị OOM-kill lúc 10:15:41 UTC khi tải PG của tôi cộng tải các phiên khác; mọi database của mọi phiên trên container đó mất; tôi đã docker start lại (rỗng). Mọi kết luận: trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt, chưa chạy bộ giữ lại 0a (đúng luật).",
+  "phat_hien": [
+   {
+    "ma": "R-01",
+    "muc": "S2",
+    "mo_ta": "Chết khoá (SQLSTATE 40P01) khi nạp, quyết định, thu hồi, sửa tin chạy đồng thời trên cùng tenant ở kho PG. [CODE] engine.go getLocked lấy SELECT ... FOR UPDATE (khoá hàng) rồi vẫn có thể xin khoá tư vấn của một ô khác (vòng lặp khi ô của bản ghi đổi trong lúc chờ; và settle -> ensureLocks cho ô đích của sửa tin / CHOOSE / CORRECT / APPLY), trong khi giao dịch khác giữ khoá ô đó và chờ khoá hàng (UPDATE report_records ở flush, hoặc kiểm khoá ngoại của dòng sổ DUPLICATE / lịch sử trỏ bản ghi). Khoá hàng không nằm trong thứ tự khoá tăng dần nên câu 'Khoá ô luôn đứng trước khoá hàng, nên không có chuỗi chờ vòng' (comment getLocked) và §5.6 mục 2 ('để không chết khoá') không đúng. Hệ quả: giao dịch nạn nhân trả lỗi nhãn infra:postgres; sau đó fixpoint đúng và số dòng sổ = số lần giao thành công ở mọi vòng, nên S2 chứ không S1. Test TestKhoaTuanTu_MoiLanDocNhomCoKhoaTruoc_KhoaTangDan (tr3_lock_test.go) ghi thứ tự khoá tư vấn trên kho bộ nhớ, không có khoá hàng, nên không chứng minh điều khoá đó nói; test đua thật (LC74, DB26) chỉ có nạp-với-nạp.",
+    "bang_chung": "[ĐO] PG riêng, 6 goroutine x 25 thao tác trộn (giao 45%, quyết định 30%, thu hồi 10%, sửa 15%) trên 6 khoá, gói reports nguyên trạng ca73f25: chế độ ngẫu nhiên 11 deadlock / 14.606 thao tác (9 ở quyết định-thu hồi-sửa, 2 ở giao); chế độ nóng (mọi mẫu cùng ô) 46 / 14.608 (33 + 13); bản tái hiện độc lập 22 / 5.856 (40 vòng) tại $S/m2bs-repro_test.go.txt (TestM2BSRepro_Deadlock_MixedOps_PG, đã biên dịch và chạy lại trên cây tạm rồi gỡ). Log PG: 'Process A waits for ExclusiveLock on advisory lock ...; blocked by process B. Process B waits for ShareLock on transaction ...; blocked by process A. A: SELECT pg_advisory_xact_lock($1); B: UPDATE report_records SET channel = $2 ... WHERE unit_key = $1'. Thống kê các câu lệnh trong chuỗi chờ: SELECT ... FOR UPDATE ở report_records, UPDATE report_records, INSERT INTO delivery_ledger, pg_advisory_xact_lock. Thử nghiệm trên cây riêng (đã gỡ, không giữ vá): (a) bỏ FOR UPDATE: 0 deadlock nhưng 42 lỗi khác (khoá hàng đang bảo vệ thứ khác); (b) getLocked trả relockError khi ô đổi thay vì lặp khi đang giữ khoá hàng: vẫn 13 / 21.929; (c) FOR NO KEY UPDATE một mình: 9 / 8.776 (ngẫu nhiên), 25 / 8.776 (nóng); (d) (b)+(c): 0 / 8.777 (ngẫu nhiên), 7 / 8.777 (nóng). Log thử nghiệm: .../scratchpad/m2bs-extra.log và m2bs-extra2.log.",
+    "de_xuat": "Bỏ khoá hàng tường minh. Lấy khoá tư vấn theo bản ghi (băm tenant + unit_key, kể cả bản không có ô) trong CÙNG thứ tự tăng dần với khoá ô; lấy đủ (ô cũ, ô đích, ô của Target, bản ghi) ở đầu giao dịch rồi mới đọc và ghi; cần khoá nhỏ hơn khoá đã giữ thì bỏ và chạy lại (đã có relockError). Vá (b)+(c) giảm mạnh nhưng chưa dứt (7 / 8.777 ở chế độ nóng), còn đường chờ khoá hàng - khoá ô khác chưa xác định hết [SUY]. Thêm vào cổng một test đồng thời hỗn hợp (>= 100 vòng, đòi 0 lỗi 40P01 và đòi fixpoint sau cùng), sửa comment ở getLocked và đoạn 'KHOÁ' trong doc.go. Đừng tăng vòng quá vài trăm trên eais-pg (mem_limit 1 GiB, tmpfs)."
+   },
+   {
+    "ma": "R-02",
+    "muc": "S3",
+    "mo_ta": "TR2 không được tuần tự hoá với đơn vị không có ô (QUARANTINED hoặc HELD thiếu thực thể hoặc ngày): deliver chỉ khoá ô khi slotOfItem có; findByFingerprint đọc không khoá và report_versions.fingerprint không có ràng buộc duy nhất. Hai lần giao đồng thời cùng vân tay (cùng người, giờ đến giây, chữ), khác unit_key, cho HAI bản ghi thay vì một bản ghi + một DUPLICATE. Cùng ô thì đúng (khoá ô tuần tự hoá). Không đổi tổng đọc (BB3) vì bản không có ô không vào tổng; hậu quả là hàng chờ / cách ly bị nhân đôi, trái §9 ('tệp xuất lặp nhiều lần: TR1, TR2 chặn') khi chạy song song.",
+    "bang_chung": "[ĐO] PG riêng, 2 goroutine đồng thời, 60 vòng: bản QUARANTINED không ô 60/60 vòng ra 2 bản ghi; bản ACCEPTED cùng ô 0/60. Bản tái hiện độc lập 40/40 vòng (TestM2BSRepro_TR2_Race_NoSlot_PG trong m2bs-repro_test.go.txt).",
+    "de_xuat": "Khoá tư vấn theo băm (tenant, vân tay) lấy trước TR2, chung thứ tự tăng dần với khoá ô (hoặc chỉ mục duy nhất một phần theo (tenant, fingerprint) cho phiên bản đầu của bản ghi); thêm test đua 'hai tệp chép của nhau chạy song song' cho đơn vị không ô."
+   },
+   {
+    "ma": "R-03",
+    "muc": "S3",
+    "mo_ta": "Luật TR1 'cùng nội dung với MỘT PHIÊN BẢN BẤT KỲ (kể cả SUPERSEDED)' (§5.1, §3.8; tr12.go hasContent) không có test nào của tác giả giữ: đột biến chỉ so phiên bản mới nhất sống sót toàn bộ test của tác giả và cả 42 đột biến của họ không chạm tới. Test không chứng minh điều luật nói.",
+    "bang_chung": "[ĐO] đột biến Y16 (tr12.go: for _, v := range vs { -> vs[len(vs)-1:]) chạy go test ./execution/reports/ có PG: 0 test của tác giả đỏ; chỉ TestM2BS_ModelDiff_Memory và _PG của người soát đỏ. Log: .../scratchpad/m2bs-mut-mine.log.",
+    "de_xuat": "Thêm test giao A, Amend sang B, giao lại A cùng khoá phải ra DUPLICATE duplicate_key trỏ bản ghi, không thêm phiên bản; thêm Y16 vào scripts/dot-bien/m2b-khu-trung-tr3.sh."
+   },
+   {
+    "ma": "R-04",
+    "muc": "S4",
+    "mo_ta": "Nhánh 'quyết định đổi nhóm thì xoá cặp đã xét' (decide.go acceptRecord: if moved { n.ReviewedPairs = nil }) và purgePairsAbout chỉ có hiệu lực ở ô cũ là lựa chọn [SUY] số (1) của tác giả mà hợp đồng im lặng; chỉ siết (thêm HELD kèm PAIR_RESET) nên chấp nhận được, nhưng không có test nào giữ nhánh acceptRecord. Hợp đồng nói cặp đã xét 'được nhớ kể cả khi bản đứng trước tạm đổi sang bản khác rồi trở lại': nếu chính bản đứng trước đổi nhóm rồi trở về nội dung cũ thì cặp mất và bản sau bị giữ lại.",
+    "bang_chung": "[ĐO] đột biến Y14 (bỏ if moved trong acceptRecord) sống sót CẢ HAI bộ, kể cả bộ mô hình của người soát ở 600 và ở 40.000 chuỗi (đường đòi KEEP_BOTH, rồi sửa thành HELD cùng nhóm cùng giờ, rồi CORRECT đổi nhóm: gần như không với tới bằng bộ sinh ngẫu nhiên).",
+    "de_xuat": "Chủ dự án xác nhận lựa chọn (1) bằng một dòng ở HOP-DONG hoặc ADR; thêm một test có hướng cho đường acceptRecord và một ca 'bản đứng trước đổi nhóm rồi trở về'."
+   },
+   {
+    "ma": "R-05",
+    "muc": "S4",
+    "mo_ta": "Dòng lịch sử DELIVERED nhúng mã lô (uuid, trường của hệ theo §3.7) vào chữ tự do detail ('lô <uuid>, thứ tự N'), nên lịch sử không giống từng byte giữa hai lần chạy độc lập (BB5: 'không có tập trường nào khác bị bỏ'). Báo cáo xuất hiện chưa đọc lịch sử nên chưa vỡ, nhưng so byte lịch sử sẽ lệch.",
+    "bang_chung": "[ĐO] hai lần chạy bộ nhớ cùng hạt giống 70001 khác nhau đúng ở dòng 'H1 DELIVERED ... det=\"lô <uuid>, thứ tự 3\"'. Che uuid bằng regex thì 1.000 hạt giống x 30 sự kiện: bộ nhớ = bộ nhớ = PG ở mọi bản ghi (kể cả detail, recipient), lịch sử (từng cột), sổ (trừ batch_id, recorded_at, trace_id) và tổng.",
+    "de_xuat": "Ghi 'thứ tự N trong lô' không kèm uuid (mã lô đã nằm ở delivery_ledger), hoặc thêm cột batch_id vào lịch sử."
+   },
+   {
+    "ma": "R-06",
+    "muc": "S4",
+    "mo_ta": "§5.6 mục 3 đòi 'lý do trước và quyết định vừa ghi nằm ở lịch sử và detail' khi quyết định cho ra ACCEPTED bị TR3 giữ lại HELD possible_duplicate; mã chỉ đặt chúng ở lịch sử (nối causeSuffix vào dòng lịch sử), còn detail của bản ghi chỉ nói 'nghi trùng bản X ...'. Người đọc hàng chờ (báo cáo §6.4 chỉ đọc kho bản ghi) không thấy lý do trước.",
+    "bang_chung": "[ĐO] thăm dò: giao a (ACCEPTED), c (HELD ambiguous_entity), CHOOSE c = E1: c HELD/possible_duplicate duplicate_of=a, detail không chứa 'ambiguous_entity' hay 'CHOOSE'; lịch sử có dòng TR3_HOLD '... do: quyết định CHOOSE trên c (trước đó HELD ambiguous_entity)'.",
+    "de_xuat": "Thêm vào r.Detail của hold() khi c.cause là quyết định: 'sau quyết định <X> trên bản đang HELD <lý do>'."
+   },
+   {
+    "ma": "R-07",
+    "muc": "S4",
+    "mo_ta": "doc.go và lời khai nói Amend 'từ chối khi nội dung không đổi', nhưng so sánh dùng n.Disposition == r.Disposition nên sửa tin nội dung y hệt trên bản đang bị TR3 giữ (HELD possible_duplicate, trong khi luật đọc đề xuất ACCEPTED) không bị từ chối: thêm phiên bản 2, ghi lịch sử, rồi settle giữ lại. Trái LC59 / §3.8 ('sửa không đổi nội dung là DUPLICATE, không thêm phiên bản') nếu bước 7 không tự chặn.",
+    "bang_chung": "[ĐO] thăm dò: giao a và b (b bị HELD possible_duplicate); Amend(b, cùng nội dung): err = nil, version 1 -> 2, vẫn HELD/possible_duplicate.",
+    "de_xuat": "So nội dung (băm, nhóm, giờ gửi, loại, approx, thực thể) với bản ghi mà không so Disposition và Reason, hoặc ghi rõ ở doc.go rằng bước 7 phải kiểm trước."
+   },
+   {
+    "ma": "R-08",
+    "muc": "S4",
+    "mo_ta": "Đầu vào biên lệch giữa hai kho: OccurredOn '0000-01-01' qua validate; kho bộ nhớ nhận, kho PG trả lỗi 22008 (date out of range, nhãn data). Không im lặng (bên gọi thấy lỗi) nhưng 'hai kho không thể lệch' không còn đúng ở biên.",
+    "bang_chung": "[ĐO] 13 đầu vào biên (khoá 3.000 byte, raw 2 MB, lượng 1e3 và 1e400, âm, 0, sent_at năm 0001 và 9999, múi +07, khoá UTF-8 hỏng, thực thể có NUL, ngày 9999-12-31): chỉ '0000-01-01' lệch; tenant rỗng bị từ chối ở cả hai kho.",
+    "de_xuat": "validate() đòi ngày trong dải PG chấp nhận (từ 0001-01-01), hoặc ghi giới hạn vào doc.go."
+   },
+   {
+    "ma": "R-09",
+    "muc": "S4",
+    "mo_ta": "Số migration 0006 bị BA nhánh cùng xin, lời khai chỉ nêu một (5e). Danh sách pin ở platform/pgstore/migrate_test.go và vet_test.go sẽ xung đột ở mỗi lần gộp. Nhánh này cũng sửa hai tệp test cũ của platform/pgstore (chỉ danh sách migration), trong khi Q-0A-12 = b nói 'không sửa tệp cũ của platform/pgstore': cần thiết về kỹ thuật nhưng nên ghi.",
+    "bang_chung": "[REPO] git ls-tree: origin/m1/5e-data-version có 0006_so_nap_du_lieu.sql; origin/rag/0-viec có 0006_tai_lieu_phien_ban.sql; origin/m2/0a-ma-truoc-dong-bang có 0006_kho_bao_cao_ngay.sql; origin/main tới 0005. grep '0005_audit_va_tenant': chỉ hai tệp test pin danh sách (và pgticket_test.go nhắc 0004, 0005 riêng lẻ).",
+    "de_xuat": "Điều phối quyết thứ tự gộp trước; bên gộp sau đổi số và hai danh sách pin (như lời khai). Cân nhắc để test pgstore đọc danh sách từ embed thay vì pin chữ."
+   },
+   {
+    "ma": "R-10",
+    "muc": "S4",
+    "mo_ta": "Hai bằng chứng yếu hơn lời khai gợi: (i) 'ĐỎ TRƯỚC kho PG' (353da59) đỏ vì chưa có migration nên mọi test PG đỏ do thiếu bảng, không do hành vi; bằng chứng phân biệt thật là các đột biến S1 đến S8. (ii) lc_map_test.go là cổng theo TÊN test (chỉ đòi có test mang mã LCnn), không chứng minh test đo đúng lớp ca. Cả hai được tác giả nói thẳng là cổng cấu trúc hoặc khung tạm, nên không tính là sai lời khai.",
+    "bang_chung": "[ĐO] 3540ac9 không PG: 35 test mức trên đỏ (69 dòng '--- FAIL' kể test con), thông báo 'CỘNG ĐÔI: k3 và k5 liền kề ...' và 'Decide: chưa cài' khớp lời khai. 353da59 có PG: 123 dòng '--- FAIL' (lời khai 124; chênh một dòng, cách đếm).",
+    "de_xuat": "Ghi ở báo cáo rằng bằng chứng đỏ-trước của kho PG là 'thiếu bảng', và dựa vào đột biến S1-S8 làm bằng chứng chính."
+   },
+   {
+    "ma": "V-01",
+    "muc": "S4 (vận hành, do người soát)",
+    "mo_ta": "Container dùng chung eais-pg bị OOM-kill lúc 10:15:41 UTC (cgroup 1 GiB, dữ liệu PG trên tmpfs tính vào giới hạn): tải PG của người soát (nhiều tenant, thử đồng thời, mô hình trên PG, hai bộ đột biến chạy song song) cộng tải của các phiên khác. Mọi database trên container (cả của phiên khác và của tôi) mất; tôi đã docker start eais-pg (rỗng, chỉ có database eais). Các lượt PG lớn của tôi sau đó cắt lại ở tải nhỏ.",
+    "bang_chung": "[ĐO] docker inspect: exit=137, OOMKilled=true, mem=1073741824; log PG: 'server process (PID 824771) was terminated by signal 9' hai lần lúc 10:15:28 và 10:15:40 rồi container thoát; kernel: 'Memory cgroup out of memory: Killed process (postgres)'. Sau docker start: status=running, 4 database mặc định.",
+    "de_xuat": "Điều phối báo các phiên khác tạo lại database của họ; giới hạn tải PG của soát độc lập (tenant mới mỗi vòng làm tmpfs đầy); cân nhắc nâng mem_limit hoặc dùng container riêng cho bước đột biến."
+   }
+  ],
+  "da_dong": [
+   "[ĐO] Cổng chạy lại trên bản sạch của nhánh ca73f25 (worktree riêng): go vet ./... rc=0; gofmt -l trên 227 tệp go git theo dõi = 0 tệp lệch (lời khai nói 226, chênh một tệp, không ảnh hưởng); go test -count=1 -p 3 -json ./... CÓ PG (database riêng): 2.164 pass, 0 fail, 0 skip; scripts/kiem-skip-test.py XANH.",
+   "[ĐO] So THEO TÊN (gói, test) với origin/main 7f8eee1 (main đã tiến sau 7333d48 nhưng không đổi mã ngoài docs): có PG main 1.958 pass -> nhánh 2.164: 0 mất, 0 đổi, 206 mới (cả 206 ở execution/reports, 206 pass). Không PG: main 1.485 pass / 97 skip -> nhánh 1.622 pass / 166 skip: 0 mất, 0 đổi, 206 mới (137 pass + 69 skip, đều là test con /pg). Công cụ so của tôi: .../scratchpad/m2bs-so-sanh.py.",
+   "[ĐO] go test -race -count=1 ./execution/reports/ có PG: ok, 76 s, không có DATA RACE (lời khai 58,5 s).",
+   "[ĐO] winreport (dữ liệu sinh seed 42, đường bộ nhớ) main so nhánh: bộ độc lập 117/117; H1 91/104; H3 112/134; H4 103/119; sau khi bỏ dòng thời gian chỉ còn 0 dòng khác ở cả bốn tệp. go list -deps của winreport và cmd/eais: 0 phụ thuộc vào execution/reports. Chỉ đọc kết quả, không đọc nội dung bộ giữ lại.",
+   "[ĐO] Write-set (git diff 7333d48..nhánh): 20 tệp execution/reports + db/migrations/0006_kho_bao_cao_ngay.sql + platform/pgstore/{migrate_test.go,vet_test.go} (chỉ danh sách migration) + scripts/dot-bien/m2b-khu-trung-tr3.sh; không chạm data/normalization, data/ingestion, intelligence/, pack, execution/commands, cmd/eais, observability/. Main không đổi mã (chỉ docs) kể từ 7333d48.",
+   "[ĐO] Migration: áp 0001 đến 0005 rồi 0006 lên database trống bằng psql: OK; áp 0006 lần hai (chạy lại): OK; ảnh chụp 230 dòng cột, chính sách, quyền, RLS của đối tượng cũ trước và sau 0006: 0 khác; có đúng 4 bảng mới. Đường pgstore.Migrate trên database trống cũng chạy qua mọi test PG.",
+   "[ĐO] Danh mục đột biến của tác giả chạy lại nguyên script trên PG riêng của tôi: 'TỔNG: 42 đúng chỗ, 0 sống sót, 0 khác' (M01 đến M34 và S1 đến S8, trong đó R6-01: M05, M07, M09, M10; khoá PG M29; lược đồ S1 đến S8).",
+   "[ĐO] R6-01 và R6-02 chặn bằng test đỏ trong mã: duyệt hết độ sâu 9 = 82.400 trạng thái / 231.422 cạnh (3,99 s), 32.821 cạnh dẫn tới bản bị bác quay lại HELD; bộ sinh chạm đường rời nhóm: 701 lần quay lại HELD, 98 SUPERSEDED, 37 chuỗi hai mắt trên 3.000 chuỗi (đúng lời khai); đột biến riêng của tôi Y01 (bỏ nhánh bản được giữ cũng REJECTED), Y02 (không đòi cùng nhóm), Y20 (quay lại mà không đặt lý do) đều đỏ ở test của tác giả (TestLC84_*, TestR601_*, TestR602_*). Oracle của tác giả đúng là độc lập (oracleGroupKey, oracleMember, oracle, oracleTotals; chỉ gọi settle ở một test điểm bất động).",
+   "[ĐO] Mô hình riêng (viết từ chữ hợp đồng, không gọi groupOf/inGroup/before/settle) + bộ sinh riêng (nạp lô 1-3 đơn vị, nạp lại, KEEP_BOTH và MARK_DUPLICATE với seen đúng/sai/thiếu, REJECT, CHOOSE, CORRECT, AUTHORIZE, APPLY, thu hồi, sửa đổi nhóm/giờ/loại/kết cục, id_conflict, vân tay TR2 với chữ có khoảng trắng, NFD, NBSP, byte UTF-8 hỏng, NUL, W biên 59/60/61 phút): sau MỖI sự kiện so từng bản ghi, dòng sổ đúng lần giao, tổng, lịch sử không ngắn đi; kiểm oracle độc lập (không cộng đôi, duplicate_of = bản đứng ngay trước, chuỗi bác không rơi và không chu trình, BB2, BB6), kiểm 'không máy nhả' (bản không thuộc đích sự kiện chỉ được đổi ACCEPTED->HELD, nối lại duplicate_of, REJECTED->HELD), lệnh bị từ chối và DUPLICATE không đổi bản ghi nào. Kết quả: bộ nhớ 60.000 chuỗi x 45 sự kiện: 0 lệch; PG 1.500 chuỗi x 30 sự kiện: 0 lệch. Số đơn vị vào = số dòng sổ = tổng kết cục (BB1) và Receipt.Conserved đọc lại từ sổ đã lưu: đúng ở mọi chuỗi. BB4: raw giữ từng byte qua bytea. BB3: tổng tính lại độc lập khớp.",
+   "[ĐO] LC63/LC75 ngoài bộ của tác giả: 1.500 tập ngẫu nhiên x 6 hoán vị x chia lô ngẫu nhiên (bộ nhớ) và 40 x 4 (PG): kết cục, lý do, duplicate_of, cặp đã xét giống nhau ở mọi thứ tự đến.",
+   "[ĐO] Đồng thời trên PG thật: nạp cùng ô 300 vòng (5 đến 9 đơn vị, mỗi đơn vị một goroutine): kết cục = tuần tự, 0 lỗi, sổ đủ; hai tenant song song 200 vòng (cùng unit_key, cùng đầu vào): 0 rò (tenant A không thấy bản của B và ngược lại), kết cục hai tenant giống nhau, không DUPLICATE xuyên tenant, số bản ghi theo vai quản trị = số bản ghi theo vai ứng dụng; kết thúc backend giữa giao dịch (63 backend bị pg_terminate_backend trong lúc 240 lần giao): 177 thành công = 177 bản ghi = 177 dòng sổ khác DUPLICATE, 0 bản ghi thiếu dòng sổ / phiên bản / lịch sử, 0 lần 'báo thành công mà không có bản ghi'.",
+   "[ĐO] BB5 (tất định): 1.000 hạt giống x 30 sự kiện, hai lần chạy bộ nhớ và một lần PG giống nhau từng byte ở bản ghi, lịch sử, sổ, tổng (sau khi che mã lô trong detail lịch sử: xem R-05).",
+   "[ĐO] Đột biến của tôi (20, mỗi cái một chỗ, chạy toàn bộ test của tác giả + bộ của tôi): Y01 đến Y13, Y15, Y20 bị bắt bởi cả hai bộ; Y18, Y19 (vân tay TR2 theo phút, bỏ chữ khỏi vân tay) chỉ bộ tác giả bắt; Y16 chỉ bộ của tôi bắt (R-03); Y14 sống sót cả hai (R-04); Y17 ban đầu không biên dịch, bản sửa Y17' (bỏ NFC) bị cả hai bắt (TestChuanHoaChu_5_2).",
+   "[ĐO] Đỏ-trước: 35 test mức trên đỏ ở 3540ac9 và 123 dòng FAIL ở 353da59 khớp lời khai (xem R-10 về ý nghĩa).",
+   "[CODE] Năm lựa chọn [SUY] của tác giả: (2) APPLY chỉ nhận bản gốc ACCEPTED / HELD / REJECTED, (3) Amend từ chối RETRACTED / SUPERSEDED, (4) thiếu người quyết thì từ chối có audit, (5) duplicate_of của HELD luôn là bản đứng ngay trước kể cả cách hơn W: hợp lý, chỉ siết, khớp §5.6 mục 4 (a); (1) cặp đã xét bị xoá khi nội dung đổi: chấp nhận được (R-04). Ghi nhận 'HELD possible_duplicate có duplicate_of rỗng chỉ còn lối ra KEEP_BOTH' khớp U14 / R4-04 của hợp đồng.",
+   "[CODE] Các nợ tác giả đã khai đúng và không tính là phát hiện mới: chưa có DISMISS, REPROCESS, APPLY cho id_conflict, phiên bản chờ và dấu thu hồi (bước 7), Decide chưa idempotent theo mã quyết định (lệnh KEEP_BOTH y hệt lần hai trả 'không được phép cho bản ACCEPTED'), chưa kiểm capability và phạm vi (bước 6), phép chiếu facts và vết L1.* (làn 0).",
+   "Đã dọn: gỡ cả bảy cây tạm của người soát (m2bs-wt, -mainwt, -labwt, -mutwt, -mut2wt, -redwt, -chkwt), DROP mọi database m2bs_* (hiện 0 database tên m2bs còn lại), xoá tệp json/err/snapshot của tôi; cây chính không bị chạm (git status rỗng, HEAD main). Còn lại ở scratchpad: m2bs-mut-author.log, m2bs-mut-mine.log, m2bs-extra.log, m2bs-extra2.log, m2bs-gates.sh, m2bs-wr.sh, m2bs-mut.py, m2bs-extra.py, m2bs-so-sanh.py, m2bs-repro_test.go.txt."
+  ],
+  "khong_kiem_duoc": [
+   "Bộ ca độc lập 0a và mọi bộ giữ lại (holdout-0a, holdout-p1, H5, H6, S9, docs/sources/) không đọc và không chạy (đúng luật): GA1 đến GA11 chưa đo; mọi kết luận chỉ 'trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt'.",
+   "Nguyên nhân gốc ĐẦY ĐỦ của deadlock (R-01): chứng minh được vòng chờ khoá tư vấn - khoá hàng bằng log PG và thử nghiệm bỏ FOR UPDATE, nhưng sau vá thử (FOR NO KEY UPDATE + relockError) vẫn còn 7 / 8.777 ở chế độ nóng nên còn đường chờ chưa xác định; hướng sửa nêu ở R-01 là [SUY] chưa được kiểm chứng; các vá thử không được giữ và không chạy lại toàn bộ kho test sau vá.",
+   "Quy mô PG của mô hình riêng bị cắt: lượt 6.000 chuỗi PG và 120.000 chuỗi bộ nhớ bị dừng giữa chừng khi container eais-pg bị OOM-kill (V-01); số chốt là PG 1.500 chuỗi x 30 sự kiện và bộ nhớ 60.000 chuỗi x 45 sự kiện (lượt 15.000 trước đó cũng 0 lệch). Chưa chạy -race cho bộ đồng thời của người soát, chưa chạy -race toàn repo.",
+   "'Hai tiến trình' của tôi và của tác giả là hai phiên DB (goroutine, hai kết nối), chưa phải hai tiến trình hệ điều hành riêng; chưa đo thông lượng, độ trễ khoá ô, kích thước sổ lần giao, Totals() đọc toàn bộ bản ghi; chỉ thử PG 17 của container dev và pgx v5 duy nhất.",
+   "Duyệt hết của tác giả chỉ phủ ba bản + một đính chính, một ô, một W, thời điểm 0/30/60, không TR1/TR2 và không đồng thời; bốn bản trở lên chỉ bằng chuỗi ngẫu nhiên (của tác giả 20.000 chuỗi, của tôi 60.000 chuỗi bộ nhớ): bất biến được chứng minh tại các trạng thái đã duyệt, không với mọi đầu vào. Đường 'KEEP_BOTH, sửa thành HELD cùng nhóm cùng giờ, rồi CORRECT đổi nhóm' (R-04) và lỗi nối lại chỉ ở chế độ nóng chưa được bộ sinh phủ.",
+   "Bước 4 đến 9 (cờ loại từ chữ, thời gian, quyền, phục hồi đầy đủ gồm phiên bản chờ và dấu thu hồi, báo cáo xuất, nhánh form) chưa có mã nên không soát; LC84 (vi), (vii) và 'phiên bản chờ trước / sau MARK_DUPLICATE' chỉ được kiểm bằng nguyên thủy Retract / Amend, như lời khai. Chưa đo lại đột biến sau khi bước 4 đến 9 thêm mã.",
+   "Mã nguồn bộ mô hình + bộ sinh của người soát (khoảng 900 dòng) nằm trong cây tạm và đã bị gỡ cùng cây; chỉ giữ mã tái hiện hai lỗi R-01 và R-02 (m2bs-repro_test.go.txt). Muốn chạy lại bộ mô hình phải viết lại từ mô tả ở mục da_dong.",
+   "Sau sự cố OOM của eais-pg (V-01), tôi không kiểm được ảnh hưởng lên các phiên khác (database của họ mất); database của tôi cũng mất nên một số lượt PG sau đó chạy trên database tạo lại, tải nhỏ."
+  ]
+ }
+}

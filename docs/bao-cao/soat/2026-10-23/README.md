@@ -2,7 +2,7 @@
 
 Lệnh ca chiều 23/10 của chủ dự án: "Commit nguyên văn báo cáo soát, không chỉ tóm tắt trong TIEN-DO." Mỗi tệp `.json` là đầu ra có cấu trúc
 của một người soát độc lập (agent chỉ đọc, khác tác giả), chép nguyên văn; chỉ thay đường dẫn máy vì repo công khai: `$S` là thư mục nháp
-của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục tạm của máy, `~` là thư mục nhà. Bằng chứng gốc mà người soát nhắc (tệp ở
+của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục tạm của máy, `~` là thư mục nhà; từ `d5e2-soat.json`, email danh tính commit trong lời người soát thay bằng `<email danh tính commit>`. Bằng chứng gốc mà người soát nhắc (tệp ở
 `$S`) không nằm trong repo. Báo cáo soát của bộ ca giữ lại (H6, 0a…) KHÔNG ở đây: chúng chứa nội dung ca, công bố khi chạy.
 
 | Tệp | Soát việc gì | Câu đầu của kết luận | Trạng thái |
@@ -26,3 +26,8 @@ của phiên điều phối, `<repo>` là gốc repo, `<tmp>` là thư mục t�
 | `s5r-soat.json` | soát lại các bản sửa 5a / 5b / 5c (nhánh m1/sua-5bc, m1/sua-5abc) | 5a KHÔNG ĐẠT (5a-R1, S1: Cookie sau giá trị kết thúc bằng `\` lọt) · 5b ĐẠT CÓ GHI CHÚ · 5c ĐẠT CÓ GHI CHÚ | 5b + 5c gộp main `32f4930` (5b-R1, 5b-R2, 5c-R1, 5c-R2 sửa trước khi gộp); 5a sửa vòng kế (S1 an ninh: ngoại lệ của trần 3 vòng) |
 | `xx-soat.json` | bản sửa chuẩn hoá `"≈"` — tầng sai của 4 ca đỏ bộ P1 (nhánh m5/chuan-hoa-dau-xap-xi, b1eb150) | ĐẠT CÓ GHI CHÚ. Không có S1, không có S2; 1 S3 và 5 S4, không cái nào chặn gộp | XXS-01, XXS-04 sửa trước khi gộp (mỗi mục một commit); XXS-02, 03, 05, 06 ở dòng nợ TIEN-DO; gộp main `d43a1bf` |
 | `s5a3-soat.json` | 5a vòng 3 — che bí mật trong vết (nhánh m1/gop-5a, d669374) | KHÔNG ĐẠT (5a3-1 S1: gộp vùng một lần mở đường lọt MỚI — cặp bí mật trong nháy qua xuống dòng ở dòng Cookie; 5a3-2 S2 mất luỹ đẳng; 5a3-3, 5a3-4 S3; 5a3-5 S4) | vòng 4 (ngoại lệ an ninh §9.6): mỗi mục một commit trên m1/gop-5a (90a1711); cây tích hợp m1/gop-5a-v4 (1ca7288) đang soát vòng 4 |
+| `s5a4-soat.json` | 5a vòng 4 — vòng ngoại lệ an ninh (nhánh m1/gop-5a-v4, 1ca7288) | KHÔNG ĐẠT (5a4-1 S1: họ lọt khác của phép gộp vùng một lần — nháy lẫn lộn / không đóng trong giá trị Cookie, "Cookie:" trong giá trị khoá bí mật; 5a4-2, 5a4-3 S3; 5a4-4 S4) | vòng 5 (`m1/gop-5a-v5`, c81b9fb): hợp thêm vùng của che tuần tự; đang soát |
+| `d5e-soat.json` | 5e — phiên bản dữ liệu của vết đọc từ sổ nạp PG (nhánh m1/5e-data-version, 0e63d5d) | KHÔNG ĐẠT (nhẹ): 0 S1, D5ES-01 S2 (route lệnh đọc sổ theo tenant của lượt không có test), 2 S3, 5 S4 | D5ES-07 sửa trên main (48491f7); vòng 2 đang chạy |
+| `v8a-soat.json` | M1 — vết phân biệt S8 / S9 / S10 (nhánh m1/vet-s8-s10, 9ce8aaa) | KHÔNG ĐẠT (V8AS-01 S2: dấu vân tay câu giao ghi trước khi câu giao chốt; V8AS-02 S1 hẹp: đoạn đầu bản nháp cắt trước bộ che phạm vi; 4 S3, 1 S4) | vòng 2 |
+| `m2b-soat.json` | M2 — mã Phase 0a bước 3b + kho PG (nhánh m2/0a-ma-truoc-dong-bang, ca73f25) | KHÔNG ĐẠT (hẹp: R-01 S2 chết khoá 40P01 trên PG khi nạp chạy cùng quyết định; S1 = 0; 2 S3, 7 S4) | sửa R-01 rồi soát hẹp |
+| `d5e2-soat.json` | 5e vòng 2 (nhánh m1/5e-data-version, 5aad534) | ĐẠT CÓ GHI CHÚ: 0 S1, 0 S2, 1 S3 (số migration 0006 trùng nhánh 0a — ràng buộc thứ tự gộp), 4 S4 tuỳ chọn | gộp main `6fa6ec6` (cherry-pick 9 commit lên main); 5e giữ 0006, nhánh 0a đổi 0007 khi gộp; S4 ở dòng nợ TIEN-DO |

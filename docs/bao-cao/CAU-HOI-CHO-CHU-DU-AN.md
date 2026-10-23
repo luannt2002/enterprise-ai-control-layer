@@ -26,6 +26,7 @@ dừng chờ khi tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đ
 | Q-P1-12 | R4 (không chênh lệch) hay R5 (đã có phiếu mở) thắng khi cả hai đúng | R4 trước, ghim bằng một ca |
 | Q-P1-13 | Bước C6 của lượt DONE sau phân loại lại: "lệch" hay "ok" kèm lý do | "ok" kèm lý do, theo A29(b) |
 | Q-P1-14 | §11.2 / §11.4: đột biến M5 không làm A01, A21 đỏ (R5 tra lại sổ lệnh) — sửa định nghĩa cổng X8 theo đề xuất hay bỏ lần tra lại ở R5 | X8 báo kèm ngoại lệ M5; khuyến nghị: sửa §11.2 / §11.4 theo đề xuất |
+| Q-M1-01 | Vết S8 có in đoạn đầu (≤ 80 ký tự, đã che) của bản nháp mà S9 loại không — giúp người đọc vết, nhưng vết bền mang chữ chưa kiểm (có thể là chữ bị chèn lệnh) | không in (chỉ cách sinh, số ký tự, băm); khuyến nghị: giữ không in, người đọc dùng băm + số ký tự để biết bước nào đổi chữ |
 | Q-P1-15 | Bộ giữ lại P1 chạy một lần: 153 / 157, 4 đỏ cùng một lỗi chuẩn hoá ("≈" không nhận là dấu ước lượng). Đo lại M4 bằng bộ P1b MỚI độc lập (a) hay chấp nhận bản sửa + hồi quy trên bộ đã công bố (b) | M4 chưa RA; BUILD sửa lỗi có test đỏ trước; khuyến nghị (a) |
 | Q-0A-13…16 | Bản rời nhóm TR3; kế thừa thực thể xuyên lô; ai làm việc ngoài write-set làn 4; chống trùng đơn vị không có `sent_at` | mặc định ở `docs/viec/0a-thu-bao-cao-ngay/HOP-DONG.md` §15 (13: a; 14: a; 15: chờ, các phần đó giữ ĐỎ; 16: a) |
 | D-AI-01 | Ngưỡng của CỔNG TRƯỚC AI | ngưỡng §9.3 giữ nguyên (không hạ) |

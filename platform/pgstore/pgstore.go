@@ -28,7 +28,7 @@ type Store struct {
 	mu   sync.Mutex
 	// know giữ chỉ mục tri thức đã dựng của từng tenant cùng dấu nạp của nó (xem knowledgeIndex).
 	know map[contracts.TenantID]knowledgeEntry
-	// Semantic, nếu khác nil, bật truy hồi lai cho chỉ mục tri thức: vector của đoạn đọc từ document_vectors (migration 0007) theo không
+	// Semantic, nếu khác nil, bật truy hồi lai cho chỉ mục tri thức: vector của đoạn đọc từ document_vectors (migration 0008) theo không
 	// gian Semantic.Embedder.Name(), đồng bộ bằng EmbedKnowledge. nil = chỉ từ khoá (cmd/eais). Đặt trước khi phục vụ, không đổi sau đó.
 	Semantic *rag.Semantic
 }

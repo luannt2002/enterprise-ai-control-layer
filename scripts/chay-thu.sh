@@ -11,7 +11,8 @@
 # và EAIS_PG_DSN thì script dùng đúng PG ấy mà không hỏi (CI, PG của bạn): hai biến đó chính là lời xác nhận, nên đừng để chúng trong shell
 # nếu không muốn script ghi vào PG đó.
 #
-# Cần: Go (theo go.mod), Docker (chỉ khi chưa có PG), curl, python3, pdftotext (poppler-utils). Không gọi model, không mạng ra ngoài
+# Cần: Go (theo go.mod), Docker (chỉ khi chưa có PG), curl, python3, pdftotext (poppler-utils), flock (util-linux; tuỳ chọn cho script — thiếu thì
+# script chạy KHÔNG có khoá dự án và in cảnh báo —, nhưng bắt buộc cho bộ test; macOS: brew install flock). Không gọi model, không mạng ra ngoài
 # ngoài việc tải module Go / ảnh Docker đã ghim. Mọi dữ liệu là giả lập.
 #
 # Cấu hình bằng biến môi trường (mặc định như deploy/docker-compose.yml):
@@ -20,6 +21,8 @@
 #   EAIS_PG_CONTAINER      tên container PG               (eais-pg)
 #   EAIS_PG_PORT           cổng PG trên 127.0.0.1         (25432)
 #   EAIS_REUSE_PG=1        CỐ Ý dùng lại PG đang chạy ở container / cổng / dự án trên (mặc định: từ chối); PG dùng lại không bao giờ bị gỡ
+#   EAIS_LOCK_DIR          thư mục đặt tệp khoá dự án eais-chay-thu-<dự án>.lock (mặc định /tmp viết cứng; cố ý KHÔNG theo TMPDIR để mọi lần chạy
+#                          cùng dự án khoá cùng một tệp). Đừng đổi giữa hai lần chạy cùng dự án: khoá hai tệp khác nhau là không khoá
 #   EAIS_CODE_VERSION      phiên bản mã nhúng vào binary (-ldflags -X main.buildVersion=…; chỉ chữ, số, . + _ -); mặc định là mã git của cây
 #                          (git rev-parse HEAD, thêm "+dirty" khi cây có sửa chưa commit hoặc tệp mới chưa theo dõi). CI đặt = github.sha
 #   EAIS_ADDR              địa chỉ nghe của server        (127.0.0.1:0 = hệ điều hành chọn cổng trống, script đọc cổng thật từ
@@ -30,8 +33,9 @@
 #   EAIS_SMOKE             lệnh smoke thay cho scripts/smoke-e2e.sh, nhận địa chỉ http://… làm đối số (cho phép thử của chính script này)
 #
 # An toàn: script không gỡ container PG đang chạy hay tạm dừng (nó từ chối; EAIS_REUSE_PG=1 thì dùng lại mà không gỡ). Container đã DỪNG hẳn của
-# cùng dự án thì KHÔNG chặn và `docker compose up` TẠO LẠI nó: dữ liệu PG trên tmpfs đã mất từ lúc dừng, nhưng log và mã thoát của container đã dừng
-# mất theo (cần `docker logs` của PG đã chết thì lấy trước khi chạy lại, hoặc đổi cả ba biến). Lúc xong, với EAIS_PG_DOWN=1 script gỡ PG (docker compose
+# cùng dự án thì KHÔNG chặn, và `docker compose up` xử lý nó theo cấu hình: cùng tên container và cổng thì KHỞI ĐỘNG LẠI chính container đó (dữ liệu PG
+# trên tmpfs đã mất từ lúc dừng, mã thoát cũ bị ghi đè, log cũ còn); đổi tên hoặc cổng mà giữ dự án thì compose xoá container cũ rồi tạo mới và log cũ
+# mất (cần `docker logs` của PG đã chết thì lấy trước khi chạy lại, hoặc đổi cả ba biến). Lúc xong, với EAIS_PG_DOWN=1 script gỡ PG (docker compose
 # down, cấp dự án) CHỈ khi chính nó đã dựng; PG dùng lại nhờ EAIS_REUSE_PG=1 hay nhờ DSN có sẵn không bao giờ bị gỡ. Mỗi dự án compose một lần chạy
 # tại một lúc: khoá flock theo dự án (R5-01, hàm lock_project bên dưới), lần thứ hai cùng dự án bị từ chối.
 # Mã thoát: 0 smoke xanh · 2 từ chối (đã có PG chạy ở chỗ script định dựng, hoặc một lần chạy khác của cùng dự án còn sống) · khác 0 có bước hỏng
@@ -113,23 +117,30 @@ pg_chiem() {
 # R5-01: khoá KHÔNG CHẶN theo dự án compose, giữ suốt đời script. Hàng rào pg_chiem là kiểm-rồi-làm: hai lần chạy bắt đầu cùng lúc với cùng $PROJECT
 # (tên container và cổng khác nhau cũng được) cùng thấy dự án trống rồi cùng dựng PG; và cleanup gỡ bằng `docker compose down` cấp DỰ ÁN nên (EAIS_PG_DOWN=1)
 # lần xong trước gỡ luôn PG của lần kia giữa lúc nó chạy. Khoá bắt lần thứ hai cùng dự án TỪ CHỐI ngay (thoát 2, chưa làm gì) thay vì chờ.
-#  - Tệp khoá nằm ở thư mục tạm của hệ, tên có dự án (ký tự lạ đổi thành _); mở bằng `>>` (không cắt tệp) và KHÔNG xoá: xoá rồi tạo lại làm hai tiến
-#    trình khoá hai tệp khác nhau. Nhân hệ điều hành nhả khoá khi script thoát, kể cả bị SIGKILL, nên không có khoá mồ côi.
-#  - fd 9 giữ khoá cho tới khi script thoát, tức bao cả cleanup (docker compose down). Server nền là con DUY NHẤT của script có thể sống lâu hơn nó
-#    (khi script bị SIGKILL) nên chạy với 9>&-: khoá chỉ sống đúng bằng đời script, không bị server mồ côi giữ hộ.
+#  - Tệp khoá là $EAIS_LOCK_DIR/eais-chay-thu-<dự án>.lock (ký tự lạ trong tên dự án đổi thành _). Thư mục mặc định là /tmp VIẾT CỨNG, cố ý KHÔNG theo
+#    $TMPDIR (R6-02): danh tính khoá phải giống nhau với mọi lần chạy cùng dự án, mà TMPDIR khác nhau giữa shell thường, IDE, sandbox và cron; hai lần
+#    chạy khác TMPDIR sẽ khoá hai tệp khác nhau và lọt qua nhau đúng ở khoảng giữa "kiểm" và "dựng". Mở bằng `>>` (không cắt tệp) và KHÔNG xoá: xoá
+#    rồi tạo lại làm hai tiến trình khoá hai tệp khác nhau. Giới hạn còn lại: khoá chỉ chắn các lần chạy cùng THẤY tệp này. Người dùng unix khác (không
+#    mở được tệp do người kia tạo thì rơi vào nhánh CẢNH BÁO bên dưới; chưa thử với hai tài khoản) hay namespace /tmp riêng (container, sandbox) mà dùng chung
+#    một daemon docker thì không được che; che cả hai cần khoá phía daemon (chưa làm).
+#  - fd 9 giữ khoá cho tới khi script thoát, tức bao cả cleanup (docker compose down). Nhân hệ điều hành nhả khoá khi MỌI tiến trình giữ fd 9 đã thoát:
+#    script bị SIGKILL (không trap nào chạy) thì khoá còn sống tới khi tiến trình con của bước đang chạy thoát (đã đo với smoke; compose up, go build cùng
+#    cơ chế nhưng chưa đo), bị chặn bởi độ dài bước đó, không kẹt; tệp khoá còn lại (0 byte) là chủ ý. Server nền là con DUY NHẤT của script có thể sống lâu hơn nó (khi script bị
+#    SIGKILL) mà không có hạn, nên chạy với 9>&-: server mồ côi không giữ khoá hộ (cmd/eais/chaythu_test.go TestChayThuKhoaKhongKetKhiScriptBiSigkill
+#    canh dòng này, đột biến LOCK-9).
 #  - Chỉ đường dùng Docker mới khoá; đã đặt cả hai DSN thì script không chạm compose, không cần khoá dự án. EAIS_REUSE_PG=1 vẫn khoá: PG dùng lại có
 #    thể là PG của một lần chạy khác còn sống, và lần đó xong sẽ gỡ nó.
-#  - Máy không có flock (macOS mặc định), hay không mở / khoá được tệp (thư mục tạm không ghi được, hệ tệp không hỗ trợ khoá): in CẢNH BÁO rõ rồi đi
-#    tiếp như trước khi có khoá. Cố ý KHÔNG từ chối: từ chối chặn mọi lần chạy đơn lẻ (vốn an toàn) trên máy đó để phòng một lần chạy đồng thời hiếm.
+#  - Máy không có flock (macOS mặc định), hay không mở / khoá được tệp (EAIS_LOCK_DIR không ghi được, hệ tệp không hỗ trợ khoá, flock báo mã lạ khác 0
+#    và 1): in CẢNH BÁO rõ rồi đi tiếp như trước khi có khoá. Cố ý KHÔNG từ chối: từ chối chặn mọi lần chạy đơn lẻ (vốn an toàn) trên máy đó để phòng một lần chạy đồng thời hiếm.
 lock_project() {
 	local rc=0 safe=${PROJECT//[!A-Za-z0-9._-]/_}
-	LOCK_FILE=${TMPDIR:-/tmp}/eais-chay-thu-$safe.lock
+	LOCK_FILE=${EAIS_LOCK_DIR:-/tmp}/eais-chay-thu-$safe.lock
 	if ! command -v flock >/dev/null 2>&1; then
 		echo "CẢNH BÁO: máy không có lệnh flock nên không khoá được dự án compose $PROJECT: script chạy tiếp như trước, KHÔNG có hàng rào chống hai lần chạy đồng thời cùng dự án (chúng giẫm nhau; EAIS_PG_DOWN=1 của lần xong trước gỡ PG của lần kia). Đừng chạy hai lần cùng EAIS_COMPOSE_PROJECT cùng lúc." >&2
 		return 0
 	fi
 	if ! { exec 9>>"$LOCK_FILE"; } 2>/dev/null; then
-		echo "CẢNH BÁO: không mở được tệp khoá $LOCK_FILE nên không khoá được dự án compose $PROJECT: script chạy tiếp như trước, KHÔNG có hàng rào chống hai lần chạy đồng thời cùng dự án. Đặt TMPDIR về thư mục ghi được." >&2
+		echo "CẢNH BÁO: không mở được tệp khoá $LOCK_FILE nên không khoá được dự án compose $PROJECT: script chạy tiếp như trước, KHÔNG có hàng rào chống hai lần chạy đồng thời cùng dự án. Đặt EAIS_LOCK_DIR về thư mục ghi được." >&2
 		return 0
 	fi
 	flock -n 9 && return 0
@@ -189,7 +200,7 @@ step "nạp dữ liệu của tenant vào PG (quan sát + cách ly có lý do)"
 "$EAIS_WORK/eais" ingest -pack tenants/construction/pack -data "$EAIS_WORK/data"
 
 step "chạy server (nền, chế độ dev, nghe $ADDR)"
-# 9>&-: server không giữ fd khoá dự án (xem lock_project).
+# 9>&-: server không giữ fd khoá dự án (xem lock_project; có test và đột biến LOCK-9 canh dòng này).
 "$EAIS_WORK/eais" serve -dev -addr "$ADDR" -pack tenants/construction/pack -world tenants/construction/win/world.yaml \
 	-data "$EAIS_WORK/data" -now world >"$EAIS_WORK/serve.log" 2>&1 9>&- &
 server_pid=$!

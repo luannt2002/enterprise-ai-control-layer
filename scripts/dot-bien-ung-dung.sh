@@ -25,6 +25,7 @@
 # Kịch bản lock (R5-01) chạy HAI lần script cùng lúc trên dự án KEEP_NAME: lần 1 ở KEEP_NAME và KEEP_PORT (tự dựng, tự gỡ), lần 2 ở KEEP_NAME-b và một
 # cổng trống do hệ điều hành chọn (chỉ được tạo khi script sai); cuối cùng gỡ cả dự án.
 # Mỗi kịch bản dùng cùng KEEP_NAME tuần tự, không song song. Đổi các biến này nếu trùng việc khác trên máy.
+# Tệp khoá của script (eais-chay-thu-<KEEP_NAME>.lock, 0 byte, không bao giờ bị script xoá) nằm ở /tmp thật của máy sau kịch bản lock; xoá đúng tệp đó nếu muốn dọn.
 cd "$(dirname "$0")/.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
 : "${EAIS_PG_DSN:?đặt EAIS_PG_DSN (PG riêng của bạn)}"
@@ -407,6 +408,22 @@ m scripts/chay-thu.sh 'cùng lúc." >&2
 		return 0' 'cùng lúc." >&2
 		exit 2' 'LOCK-7 test: máy không có flock thì từ chối thay vì cảnh báo rồi đi tiếp'
 m scripts/chay-thu.sh 'step "dùng PG có sẵn (EAIS_PG_ADMIN_DSN / EAIS_PG_DSN đã đặt); không chạm Docker"' 'step "dùng PG có sẵn (EAIS_PG_ADMIN_DSN / EAIS_PG_DSN đã đặt); không chạm Docker"; lock_project' 'LOCK-8 test: đường PG có sẵn (không chạm compose) cũng đòi khoá dự án'
+# R6-01: script bị SIGKILL thì server nền thành tiến trình mồ côi; chỉ `9>&-` ở lệnh chạy server ngăn nó giữ khoá dự án mãi (TestChayThuKhoaKhongKetKhiScriptBiSigkill).
+m scripts/chay-thu.sh ' 9>&- &' ' &' 'LOCK-9 test: server nền thừa kế fd khoá (bỏ 9>&-), server mồ côi sau SIGKILL giữ khoá dự án mãi'
+# R6-02: danh tính khoá không theo TMPDIR (EAIS_LOCK_DIR, mặc định /tmp viết cứng): TestChayThuKhoaTheoDuAn (có EAIS_LOCK_DIR) và TestChayThuKhoaMacDinhKhongPhuThuocTMPDIR (mặc định).
+m scripts/chay-thu.sh '${EAIS_LOCK_DIR:-/tmp}/eais-chay-thu-$safe.lock' '${EAIS_LOCK_DIR:-${TMPDIR:-/tmp}}/eais-chay-thu-$safe.lock' 'LOCK-10 test: thư mục khoá mặc định theo TMPDIR (hai lần chạy khác TMPDIR lọt qua nhau)'
+m scripts/chay-thu.sh '${EAIS_LOCK_DIR:-/tmp}/eais-chay-thu-$safe.lock' '${TMPDIR:-/tmp}/eais-chay-thu-$safe.lock' 'LOCK-11 test: bỏ EAIS_LOCK_DIR, tệp khoá theo TMPDIR như trước R6-02'
+m scripts/chay-thu.sh '${EAIS_LOCK_DIR:-/tmp}/eais-chay-thu-$safe.lock' '/tmp/eais-chay-thu-$safe.lock' 'LOCK-12 test: bỏ qua EAIS_LOCK_DIR, luôn khoá ở /tmp'
+# R6-04: ba quyết định có chủ ý. (1) khoá bao cả bước gỡ (TestChayThuKhoaBaoCaBuocGo); (2) EAIS_REUSE_PG=1 vẫn khoá (TestChayThuReusePGVanKhoa); (3) flock báo mã lạ thì cảnh báo rồi đi tiếp.
+m scripts/chay-thu.sh 'cleanup() {
+	local rc=$?' 'cleanup() {
+	local rc=$?
+	exec 9>&-' 'LOCK-13 test: khoá nhả ở đầu cleanup, không bao bước gỡ (compose down)'
+m scripts/chay-thu.sh 'step "dừng server"' 'exec 9>&-; step "dừng server"' 'LOCK-14 test: khoá nhả trước bước dừng server, không bao bước gỡ trên đường chạy hết'
+m scripts/chay-thu.sh '	lock_project
+	busy=$(pg_chiem)' '	[ "${EAIS_REUSE_PG:-}" = 1 ] || lock_project
+	busy=$(pg_chiem)' 'LOCK-15 test: EAIS_REUSE_PG=1 miễn khoá dự án'
+m scripts/chay-thu.sh 'if [ "$rc" = 1 ]; then' 'if [ "$rc" != 0 ]; then' 'LOCK-16 test: flock báo mã lạ (khác 0 và 1) bị đọc là có lần chạy khác, không cảnh báo rồi đi tiếp'
 
 # --- phiên bản mã của vết và của mã lần nạp (R2-02): hàm chọn (version.go), bước ghi đè ở server, script nhúng -ldflags, workflow CI ---
 V=cmd/eais/version.go

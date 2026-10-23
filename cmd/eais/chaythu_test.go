@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -18,7 +21,8 @@ import (
 // dự án compose, trạng thái) do test dựng và lọc như docker thật: theo tên (--filter name=^/<tên>$), theo nhãn dự án (--filter
 // label=com.docker.compose.project=<dự án>) và theo trạng thái (--filter status=…); không có -a thì không thấy container đã dừng hẳn. Mọi lời gọi
 // docker / go được ghi lại để test khẳng định script ĐÃ và CHƯA làm gì. `go` giả thoát 42 nên script dừng
-// ngay ở bước dịch binary — đủ để biết nó đã vượt cổng PG hay chưa mà không dựng gì thật.
+// ngay ở bước dịch binary — đủ để biết nó đã vượt cổng PG hay chưa mà không dựng gì thật. Ca cần script chạy HẾT đường (R6-01, R6-04) dùng thêm
+// toolchain giả (newToolchainGia): `go build` chép một eais giả ra, curl giả, smoke giả. Tệp khoá của script nằm ở EAIS_LOCK_DIR (không theo TMPDIR, R6-02).
 
 // chayThuResult là kết quả một lần chạy scripts/chay-thu.sh với docker / go giả.
 type chayThuResult struct {
@@ -106,9 +110,13 @@ type chayThuRun struct {
 
 // newChayThuRun dựng một lần chạy với docker giả đang có đúng danh sách containers (nil = không có container nào). env là các biến thêm
 // (KEY=VALUE, biến đứng sau thắng); riêng PATH trong env là PHẦN ĐUÔI của PATH mà script thấy (sau thư mục docker / go giả), mặc định là PATH của
-// test. TMPDIR mặc định là một thư mục RIÊNG của lần chạy: tệp khoá của script (R5-01) không dùng chung với script chạy thật trên máy đang chạy test;
-// ca nào cần hai lần chạy thấy cùng tệp khoá thì đặt chung TMPDIR. Lần chạy bị chặn bởi giới hạn thời gian: script treo thì test đỏ, không treo cả bộ.
+// test. TMPDIR và EAIS_LOCK_DIR (nơi script đặt tệp khoá, R5-01 / R6-02) mặc định là hai thư mục RIÊNG của lần chạy: tệp khoá không dùng chung với script chạy thật
+// trên máy đang chạy test; ca nào cần hai lần chạy thấy cùng tệp khoá thì đặt chung EAIS_LOCK_DIR (TMPDIR vẫn riêng: tên và chỗ tệp khoá không được theo TMPDIR).
+// Lần chạy bị chặn bởi giới hạn thời gian: script treo thì test đỏ, không treo cả bộ.
 // `go` giả có thêm FAKE_GO_HOLD=<tệp>: ghi <tệp>.dang-giu rồi dừng ở bước dịch tới khi <tệp> xuất hiện, để lần chạy đó còn sống lúc test chạy lần khác.
+// `docker compose … down` giả có FAKE_DOCKER_DOWN_HOLD=<tệp> cùng kiểu (ghi <tệp>.dang-giu rồi chờ <tệp>); `go` giả có FAKE_EAIS=<tệp> thì ở chế độ đủ bộ (newToolchainGia).
+// Cả hai vòng chờ có trần 30 giây (600 x 0,05): lần chạy bị kill vì hết hạn 30 giây của harness (vd khi đột biến làm khoá CHẶN thay vì từ chối) để lại stub mồ côi, và test
+// xoá thư mục tạm (cùng tệp nhả) trước khi stub kịp thấy tệp thì stub chờ mãi, còn giữ cả fd khoá; trần làm nó tự thoát.
 func newChayThuRun(t *testing.T, script string, containers []fakeContainer, env ...string) *chayThuRun {
 	t.Helper()
 	if _, err := exec.LookPath("bash"); err != nil {
@@ -117,7 +125,8 @@ func newChayThuRun(t *testing.T, script string, containers []fakeContainer, env 
 	dir := t.TempDir()
 	bin := filepath.Join(dir, "bin")
 	tmp := filepath.Join(dir, "tmp")
-	for _, d := range []string{bin, tmp} {
+	lock := filepath.Join(dir, "lock")
+	for _, d := range []string{bin, tmp, lock} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -135,6 +144,15 @@ func newChayThuRun(t *testing.T, script string, containers []fakeContainer, env 
 	// chạy / tạm dừng / khởi động lại (container đã dừng hẳn thì ẩn). In mã (hay tên khi có --format). Nếu docker giả in mã cho mọi lời gọi thì
 	// test không phân biệt được bộ lọc đúng với bộ lọc hỏng (R3-01), và nếu không hiểu status thì thêm `--filter status=running` không làm gì đỏ (R4-02).
 	stub("docker", `echo "docker $* [EAIS_PG_CONTAINER=${EAIS_PG_CONTAINER-} EAIS_PG_PORT=${EAIS_PG_PORT-}]" >> "$FAKE_CALLS"
+if [ "$1" = compose ] && [ -n "${FAKE_DOCKER_DOWN_HOLD-}" ]; then
+	for a in "$@"; do
+		if [ "$a" = down ]; then
+			: > "$FAKE_DOCKER_DOWN_HOLD.dang-giu"
+			i=0
+			while [ ! -e "$FAKE_DOCKER_DOWN_HOLD" ] && [ $i -lt 600 ]; do sleep 0.05; i=$((i + 1)); done
+		fi
+	done
+fi
 if [ "$1" = ps ]; then
 	all='' name='' label='' status='' fmt='' prev=''
 	for a in "$@"; do
@@ -174,10 +192,24 @@ exit 0
 	stub("go", `{ printf 'go'; for a in "$@"; do printf ' [%s]' "$a"; done; echo; } >> "$FAKE_CALLS"
 if [ -n "${FAKE_GO_HOLD-}" ]; then
 	: > "$FAKE_GO_HOLD.dang-giu"
-	while [ ! -e "$FAKE_GO_HOLD" ]; do sleep 0.05; done
+	i=0
+	while [ ! -e "$FAKE_GO_HOLD" ] && [ $i -lt 600 ]; do sleep 0.05; i=$((i + 1)); done
+fi
+if [ -n "${FAKE_EAIS-}" ]; then
+	case $1 in
+	build)
+		prev=''
+		for a in "$@"; do
+			if [ "$prev" = -o ]; then cp "$FAKE_EAIS" "$a" && chmod +x "$a"; fi
+			prev=$a
+		done
+		exit 0 ;;
+	run) exit 0 ;;
+	esac
 fi
 exit 42
 `)
+	stub("curl", "exit 0\n") // healthz của server giả (chỉ ca chạy hết đường tới được đây)
 	var fake []string
 	for _, c := range containers {
 		project := c.project
@@ -198,7 +230,7 @@ exit 42
 	t.Cleanup(cancel)
 	cmd := exec.CommandContext(ctx, "bash", "--noprofile", "--norc", script)
 	cmd.WaitDelay = 5 * time.Second // tiến trình con mồ côi (vd flock đang chờ) không giữ ống đầu ra mãi
-	cmd.Env = append([]string{"PATH=" + bin + ":" + pathTail, "HOME=" + os.Getenv("HOME"), "TMPDIR=" + tmp, "FAKE_CALLS=" + callsPath,
+	cmd.Env = append([]string{"PATH=" + bin + ":" + pathTail, "HOME=" + os.Getenv("HOME"), "TMPDIR=" + tmp, "EAIS_LOCK_DIR=" + lock, "FAKE_CALLS=" + callsPath,
 		"FAKE_CONTAINERS=" + strings.Join(fake, "\n"),
 		"EAIS_WORK=" + filepath.Join(dir, "work"), "EAIS_PG_PORT=" + freePort(t)}, rest...) // biến đứng sau thắng: env của ca đè được cổng mặc định
 	out := &bytes.Buffer{}
@@ -237,6 +269,24 @@ func (c *chayThuRun) wait(t *testing.T) chayThuResult {
 		}
 	}
 	return chayThuResult{code: code, out: c.out.String(), calls: calls}
+}
+
+// choDangGiu chờ tới khi lần chạy c dừng ở chỗ giữ của docker / go giả (tệp <marker>.dang-giu xuất hiện). Lần chạy thoát trước, hay quá 20 giây, thì test đỏ.
+func (c *chayThuRun) choDangGiu(t *testing.T, marker string) {
+	t.Helper()
+	for deadline := time.Now().Add(20 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		if _, err := os.Stat(marker + ".dang-giu"); err == nil {
+			return
+		}
+		select {
+		case <-c.exited:
+			t.Fatalf("lần chạy thoát trước khi tới chỗ giữ %s:\n%s", filepath.Base(marker), c.wait(t).out)
+		default:
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("lần chạy không tới chỗ giữ %s sau 20 giây", filepath.Base(marker))
+		}
+	}
 }
 
 // runChayThuDocker chạy script (xong mới trở về) với docker giả đang có đúng danh sách containers (nil = không có container nào).
@@ -645,19 +695,122 @@ func TestChayThuNhungPhienBanMa(t *testing.T) {
 	})
 }
 
+// requireFlock làm test đỏ (không SKIP: luật "skip là đỏ") khi máy không có flock: các ca khoá dựng trên flock thật.
+func requireFlock(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("flock"); err != nil {
+		t.Fatalf("cần flock (util-linux; macOS: brew install flock) để kiểm khoá theo dự án của scripts/chay-thu.sh: %v", err)
+	}
+}
+
+// lockFree báo tệp khoá có đang trống không bằng `flock -n <tệp> true` (cùng cơ chế flock(2) mà script dùng): lấy được thì trống, mã 1 là có tiến trình đang
+// giữ. Tệp chưa có thì test đỏ: flock sẽ tự tạo nó rồi báo "trống" một cách vô nghĩa.
+func lockFree(t *testing.T, path string) bool {
+	t.Helper()
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("tệp khoá không có ở chỗ đáng có: %v", err)
+	}
+	err := exec.Command("flock", "-n", path, "true").Run()
+	if err == nil {
+		return true
+	}
+	if ee, ok := err.(*exec.ExitError); ok && ee.ExitCode() == 1 {
+		return false
+	}
+	t.Fatalf("flock -n %s true: %v", path, err)
+	return false
+}
+
+// Toolchain giả để script chạy HẾT đường (dịch, migrate, nạp, chạy server nền, smoke, dừng server) mà không dựng gì thật: `go` giả ở chế độ đủ bộ khi có FAKE_EAIS
+// (`go build -o X` chép FAKE_EAIS ra X, `go run` thoát 0), curl giả (healthz) thoát 0, còn eais và smoke là hai tệp giả dưới đây (newToolchainGia ghi chúng ra).
+const (
+	// eais giả: migrate / ingest thoát 0; serve ghi PID của chính nó, báo "đang nghe" như server thật rồi ngủ tới khi bị giết. exec giữ nguyên PID, và tiến trình
+	// ngủ giữ mọi fd mà script cho nó thừa kế (kể cả fd khoá nếu script quên đóng). Ngủ tối đa 60 giây để lỡ không ai dọn thì cũng tự hết.
+	fakeEais = `#!/bin/sh
+if [ "$1" = serve ]; then
+	echo $$ > "$FAKE_SERVER_PID"
+	echo "code_version=$EAIS_CODE_VERSION"
+	echo "đang nghe http://127.0.0.1:1"
+	exec sleep 60
+fi
+exit 0
+`
+	// smoke giả (xanh): thoát 0.
+	fakeSmokeXanh = `#!/bin/sh
+echo "smoke E2E: 21 đạt, 0 hỏng"
+`
+	// smoke giả (giết): SIGKILL chính script (cha của nó) rồi sống tiếp tới khi test tạo FAKE_SMOKE_STOP (hay tối đa 20 giây), như smoke thật còn chạy khi script bị
+	// giết: nó là con của script nên kế thừa fd khoá. Bỏ ống đầu ra trước để không giữ ống của test.
+	fakeSmokeGiet = `#!/bin/sh
+exec >/dev/null 2>&1
+kill -9 $PPID
+i=0
+while [ ! -e "$FAKE_SMOKE_STOP" ] && [ $i -lt 400 ]; do sleep 0.05; i=$((i + 1)); done
+`
+)
+
+// toolchainGia là các biến môi trường (cho newChayThuRun) dựng toolchain giả, cùng đường dẫn hai tệp tín hiệu của nó.
+type toolchainGia struct {
+	env       []string
+	serverPID string // server giả ghi PID của chính nó vào đây
+	stop      string // tạo tệp này thì smoke giả (giết) thoát
+}
+
+// newToolchainGia ghi eais giả và smoke giả (nội dung smoke) vào thư mục tạm của test. Khi test xong nó cho smoke thoát và giết đúng server giả mà server đó đã ghi
+// PID (không pkill theo tên).
+func newToolchainGia(t *testing.T, smoke string) toolchainGia {
+	t.Helper()
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	tc := toolchainGia{serverPID: filepath.Join(dir, "server.pid"), stop: filepath.Join(dir, "smoke.stop")}
+	tc.env = []string{"FAKE_EAIS=" + write("eais-gia", fakeEais), "EAIS_SMOKE=" + write("smoke-gia", smoke),
+		"FAKE_SERVER_PID=" + tc.serverPID, "FAKE_SMOKE_STOP=" + tc.stop, "EAIS_CODE_VERSION=thu"}
+	t.Cleanup(func() {
+		os.WriteFile(tc.stop, nil, 0o644)
+		if pid, ok := tc.pid(); ok {
+			if p, err := os.FindProcess(pid); err == nil {
+				p.Kill()
+			}
+		}
+	})
+	return tc
+}
+
+// pid đọc PID mà server giả đã ghi (ok = false khi chưa ghi xong).
+func (tc toolchainGia) pid() (int, bool) {
+	raw, err := os.ReadFile(tc.serverPID)
+	if err != nil {
+		return 0, false
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(raw)))
+	return pid, err == nil && pid > 0
+}
+
+// processAlive: tiến trình pid còn sống không (tín hiệu 0 không gửi gì, chỉ kiểm tra).
+func processAlive(pid int) bool {
+	p, err := os.FindProcess(pid)
+	return err == nil && p.Signal(syscall.Signal(0)) == nil
+}
+
 // R5-01: hai lần chạy ĐỒNG THỜI cùng dự án compose. Hàng rào pg_chiem là kiểm-rồi-làm, không có khoá: hai lần chạy bắt đầu cùng lúc cùng thấy dự án
 // trống rồi cùng dựng PG, và cleanup gỡ bằng `docker compose down` cấp DỰ ÁN nên lần xong trước (EAIS_PG_DOWN=1) gỡ luôn PG của lần kia giữa lúc nó
 // chạy. Docker giả không đổi trạng thái (dự án luôn "trống"), nên pg_chiem không cứu được: chỉ khoá theo dự án mới từ chối lần 2. Lần 1 dừng ở `go`
-// giả (bước dịch) tới khi test nhả, nên nó còn sống suốt lúc các lần khác chạy; mọi lần chạy dùng CHUNG TMPDIR (nơi đặt tệp khoá).
+// giả (bước dịch) tới khi test nhả, nên nó còn sống suốt lúc các lần khác chạy; mọi lần chạy dùng CHUNG EAIS_LOCK_DIR (nơi đặt tệp khoá) nhưng mỗi lần có
+// TMPDIR riêng khác nhau (R6-02): tên và chỗ của tệp khoá không được theo TMPDIR.
 func TestChayThuKhoaTheoDuAn(t *testing.T) {
-	if _, err := exec.LookPath("flock"); err != nil {
-		t.Fatalf("cần flock để kiểm khoá theo dự án của scripts/chay-thu.sh: %v", err)
-	}
+	requireFlock(t)
 	script := repoPath("scripts/chay-thu.sh")
 	shared := t.TempDir()
+	lockFile := filepath.Join(shared, "eais-chay-thu-thu-proj.lock")
 	release := filepath.Join(t.TempDir(), "nha")
 	envOf := func(project string, extra ...string) []string {
-		return append([]string{"TMPDIR=" + shared, "EAIS_COMPOSE_PROJECT=" + project, "EAIS_PG_CONTAINER=" + project + "-pg", "EAIS_PG_DOWN=1"}, extra...)
+		return append([]string{"EAIS_LOCK_DIR=" + shared, "EAIS_COMPOSE_PROJECT=" + project, "EAIS_PG_CONTAINER=" + project + "-pg", "EAIS_PG_DOWN=1"}, extra...)
 	}
 
 	first := newChayThuRun(t, script, nil, envOf("thu-proj", "FAKE_GO_HOLD="+release)...)
@@ -666,18 +819,9 @@ func TestChayThuKhoaTheoDuAn(t *testing.T) {
 		os.WriteFile(release, nil, 0o644) // nhả lần 1 nếu test dừng giữa chừng
 		<-first.exited
 	})
-	for deadline := time.Now().Add(20 * time.Second); ; time.Sleep(20 * time.Millisecond) {
-		if _, err := os.Stat(release + ".dang-giu"); err == nil {
-			break
-		}
-		select {
-		case <-first.exited:
-			t.Fatalf("lần 1 thoát trước khi tới bước dịch:\n%s", first.wait(t).out)
-		default:
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("lần 1 không tới được bước dịch sau 20 giây")
-		}
+	first.choDangGiu(t, release)
+	if _, err := os.Stat(lockFile); err != nil {
+		t.Errorf("tệp khoá không nằm ở EAIS_LOCK_DIR (muốn %s): %v", lockFile, err)
 	}
 
 	// Lần 2: CÙNG dự án, tên container và cổng khác (cổng trống do harness chọn), cũng EAIS_PG_DOWN=1 — tổ hợp mà nếu lần 2 chạy tiếp thì cleanup của
@@ -686,7 +830,7 @@ func TestChayThuKhoaTheoDuAn(t *testing.T) {
 	if second.code != 2 {
 		t.Errorf("lần 1 còn sống, lần 2 cùng dự án: thoát %d, muốn 2 (từ chối)\n%s", second.code, second.out)
 	}
-	for _, want := range []string{"TỪ CHỐI", "một lần chạy khác của dự án compose thu-proj"} {
+	for _, want := range []string{"TỪ CHỐI", "một lần chạy khác của dự án compose thu-proj", lockFile} {
 		if !strings.Contains(second.out, want) {
 			t.Errorf("lời từ chối thiếu %q:\n%s", want, second.out)
 		}
@@ -721,6 +865,157 @@ func TestChayThuKhoaTheoDuAn(t *testing.T) {
 	}
 }
 
+// R6-01: script bị SIGKILL giữa chừng. Không trap nào chạy nên cleanup không chạy và server nền thành tiến trình mồ côi, sống tới khi có người giết nó. Khoá không được kẹt theo:
+// nó nhả ngay khi tiến trình con của bước đang chạy (smoke) thoát, KHÔNG phụ thuộc server mồ côi còn sống. Cơ chế duy nhất bảo đảm điều đó là `9>&-` ở lệnh chạy server nền:
+// bỏ dòng này thì server mồ côi giữ fd khoá hộ và mọi lần chạy sau cùng dự án bị từ chối mãi (đột biến LOCK-9). Ca chạy script THẬT với toolchain giả: smoke giả giết cứng
+// script rồi còn sống một lúc (như smoke thật, nó kế thừa fd khoá); server giả báo "đang nghe" rồi ngủ.
+func TestChayThuKhoaKhongKetKhiScriptBiSigkill(t *testing.T) {
+	requireFlock(t)
+	script := repoPath("scripts/chay-thu.sh")
+	lockDir := t.TempDir()
+	lockFile := filepath.Join(lockDir, "eais-chay-thu-thu-proj.lock")
+	tc := newToolchainGia(t, fakeSmokeGiet)
+	envOf := func(extra ...string) []string {
+		return append([]string{"EAIS_LOCK_DIR=" + lockDir, "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_PG_CONTAINER=thu-pg"}, extra...)
+	}
+
+	first := newChayThuRun(t, script, nil, envOf(tc.env...)...)
+	first.start(t)
+	select {
+	case <-first.exited:
+	case <-time.After(20 * time.Second):
+		t.Fatal("smoke giả không giết được script sau 20 giây (script không chạy tới bước smoke?)")
+	}
+	r1 := first.wait(t)
+	if r1.code != -1 { // ExitCode() là -1 khi tiến trình bị tín hiệu giết
+		t.Fatalf("script thoát %d, muốn -1 (bị SIGKILL):\n%s", r1.code, r1.out)
+	}
+	pid, ok := tc.pid()
+	if !ok {
+		t.Fatalf("server giả không ghi PID (script chưa tới bước chạy server nền?):\n%s", r1.out)
+	}
+
+	// Ngay sau SIGKILL, smoke con còn sống và đã kế thừa fd khoá nên khoá chưa trống: chứng minh phép thử THẤY được người đang giữ khoá, và khoá không mất theo script.
+	if lockFree(t, lockFile) {
+		t.Errorf("script đã bị SIGKILL, smoke con còn sống mà khoá dự án đã trống (smoke con không kế thừa fd khoá?)")
+	}
+	// Cho smoke con thoát. Từ đây ngoài server mồ côi (còn sống) không còn ai có thể giữ khoá.
+	if err := os.WriteFile(tc.stop, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	free := false
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+		if free = lockFree(t, lockFile); free {
+			break
+		}
+	}
+	if !free {
+		t.Errorf("smoke con đã thoát mà khoá dự án vẫn bị giữ sau 5 giây: server mồ côi (PID %d) giữ khoá hộ (lệnh chạy server nền thiếu `9>&-`?)", pid)
+	}
+	if !processAlive(pid) {
+		t.Errorf("server giả (PID %d) đã chết trước khi kiểm xong: ca không còn chứng minh được khoá nhả KHI server mồ côi còn sống", pid)
+	}
+
+	// Lần chạy lại cùng dự án không bị từ chối vì khoá của lần đã chết.
+	again := runChayThuDocker(t, script, nil, envOf()...)
+	if again.code == 2 || strings.Contains(again.out, "TỪ CHỐI: ") || !again.called("go [build]") {
+		t.Errorf("khoá của lần chạy đã bị SIGKILL làm kẹt lần chạy sau: thoát %d, lời gọi %q\n%s", again.code, again.calls, again.out)
+	}
+}
+
+// R6-02: danh tính khoá KHÔNG phụ thuộc TMPDIR. Hai lần chạy cùng dự án nhưng khác TMPDIR (một lần từ IDE, sandbox hay cron có TMPDIR riêng, một lần từ shell thường) mà khoá nằm
+// trong TMPDIR thì khoá hai tệp khác nhau và lọt qua nhau đúng ở khoảng giữa "kiểm" và "dựng". Thư mục khoá mặc định là /tmp viết cứng. Ca này KHÔNG đặt EAIS_LOCK_DIR (rỗng =
+// mặc định) nên tệp khoá nằm trong /tmp thật của máy: tên dự án có PID và thời gian để không đụng script thật hay test khác, và test chỉ xoá đúng tệp có tên đó.
+func TestChayThuKhoaMacDinhKhongPhuThuocTMPDIR(t *testing.T) {
+	requireFlock(t)
+	script := repoPath("scripts/chay-thu.sh")
+	project := fmt.Sprintf("thu-tmpdir-%d-%d", os.Getpid(), time.Now().UnixNano())
+	lockFile := "/tmp/eais-chay-thu-" + project + ".lock"
+	t.Cleanup(func() { os.Remove(lockFile) })
+	release := filepath.Join(t.TempDir(), "nha")
+	envOf := func(container string, extra ...string) []string {
+		return append([]string{"EAIS_LOCK_DIR=", "EAIS_COMPOSE_PROJECT=" + project, "EAIS_PG_CONTAINER=" + container, "EAIS_PG_DOWN=1"}, extra...)
+	}
+
+	// Mỗi lần chạy có TMPDIR riêng do harness cấp, nên hai lần có hai TMPDIR khác nhau.
+	first := newChayThuRun(t, script, nil, envOf(project+"-a", "FAKE_GO_HOLD="+release)...)
+	first.start(t)
+	t.Cleanup(func() {
+		os.WriteFile(release, nil, 0o644)
+		<-first.exited
+	})
+	first.choDangGiu(t, release)
+	second := runChayThuDocker(t, script, nil, envOf(project+"-b")...)
+	if second.code != 2 || !strings.Contains(second.out, "một lần chạy khác của dự án compose "+project) || !strings.Contains(second.out, lockFile) || len(second.calls) != 0 {
+		t.Errorf("hai lần chạy cùng dự án, TMPDIR khác nhau: lần 2 thoát %d, lời gọi %q; muốn thoát 2, từ chối vì khoá %s, chưa gọi docker / go\n%s", second.code, second.calls, lockFile, second.out)
+	}
+}
+
+// R6-04 (1): khoá bao cả bước gỡ. Cleanup gỡ bằng `docker compose down` cấp DỰ ÁN nên cửa sổ nguy hiểm kéo dài tới hết lệnh down: nhả khoá sớm hơn (đầu cleanup, hay trước bước dừng server)
+// thì lần 2 cùng dự án lọt vào lúc lần 1 đang gỡ. Ca chạy script HẾT đường với toolchain giả rồi giữ lần 1 ngay ở `compose down` (FAKE_DOCKER_DOWN_HOLD); lần 2 cùng dự án vẫn phải bị từ chối.
+func TestChayThuKhoaBaoCaBuocGo(t *testing.T) {
+	requireFlock(t)
+	script := repoPath("scripts/chay-thu.sh")
+	lockDir := t.TempDir()
+	release := filepath.Join(t.TempDir(), "nha")
+	tc := newToolchainGia(t, fakeSmokeXanh)
+	envOf := func(extra ...string) []string {
+		return append([]string{"EAIS_LOCK_DIR=" + lockDir, "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_PG_CONTAINER=thu-pg", "EAIS_PG_DOWN=1"}, extra...)
+	}
+
+	first := newChayThuRun(t, script, nil, envOf(slices.Concat(tc.env, []string{"FAKE_DOCKER_DOWN_HOLD=" + release})...)...)
+	first.start(t)
+	t.Cleanup(func() {
+		os.WriteFile(release, nil, 0o644)
+		<-first.exited
+	})
+	first.choDangGiu(t, release) // smoke xong, server đã dừng, script đang ở `docker compose down`
+
+	second := runChayThuDocker(t, script, nil, envOf("EAIS_PG_CONTAINER=thu-pg-b")...)
+	if second.code != 2 || !strings.Contains(second.out, "một lần chạy khác của dự án compose thu-proj") || len(second.calls) != 0 {
+		t.Errorf("lần 1 đang gỡ PG (compose down), lần 2 cùng dự án: thoát %d, lời gọi %q; muốn thoát 2 vì khoá và chưa gọi docker / go\n%s", second.code, second.calls, second.out)
+	}
+
+	if err := os.WriteFile(release, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r1 := first.wait(t)
+	if got := r1.composeCalls(); r1.code != 0 || !strings.Contains(r1.out, "smoke XANH") || len(got) != 2 || !strings.Contains(got[0], " up -d --wait ") || !strings.Contains(got[1], " down ") {
+		t.Errorf("lần 1: thoát %d (muốn 0, smoke XANH), lời gọi compose %q (muốn đúng một up rồi một down của chính nó)\n%s", r1.code, got, r1.out)
+	}
+}
+
+// R6-04 (2): EAIS_REUSE_PG=1 vẫn khoá. PG "dùng lại" có thể chính là PG của một lần chạy khác còn sống (lần đó xong sẽ gỡ nó), nên lời xác nhận dùng lại không miễn khoá. Lần 1 dừng ở go giả
+// (PG của nó đang chạy: docker giả của lần 2 thấy nó, cùng dự án); lần 2 đặt EAIS_REUSE_PG=1 vẫn phải thoát 2 vì khoá, chưa gọi docker / go. Không có khoá thì lần 2 đi tiếp tới bước dịch.
+func TestChayThuReusePGVanKhoa(t *testing.T) {
+	requireFlock(t)
+	script := repoPath("scripts/chay-thu.sh")
+	lockDir := t.TempDir()
+	release := filepath.Join(t.TempDir(), "nha")
+	envOf := func(container string, extra ...string) []string {
+		return append([]string{"EAIS_LOCK_DIR=" + lockDir, "EAIS_COMPOSE_PROJECT=thu-proj", "EAIS_PG_CONTAINER=" + container, "EAIS_PG_DOWN=1"}, extra...)
+	}
+
+	first := newChayThuRun(t, script, nil, envOf("thu-pg", "FAKE_GO_HOLD="+release)...)
+	first.start(t)
+	t.Cleanup(func() {
+		os.WriteFile(release, nil, 0o644)
+		<-first.exited
+	})
+	first.choDangGiu(t, release)
+
+	peer := []fakeContainer{{"0123456789ab", "thu-pg", "thu-proj", "running"}}
+	second := runChayThuDocker(t, script, peer, envOf("thu-pg-b", "EAIS_REUSE_PG=1")...)
+	if second.code != 2 || !strings.Contains(second.out, "một lần chạy khác của dự án compose thu-proj") || len(second.calls) != 0 {
+		t.Errorf("EAIS_REUSE_PG=1 lúc lần 1 cùng dự án còn sống: lần 2 thoát %d, lời gọi %q; muốn thoát 2 vì khoá và chưa gọi docker / go\n%s", second.code, second.calls, second.out)
+	}
+
+	if err := os.WriteFile(release, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	first.wait(t)
+}
+
 // pathKhongFlock dựng một thư mục PATH chỉ có lối tắt tới vài công cụ mà script cần để đi tới bước dịch (dirname, mkdir, git) và KHÔNG có flock:
 // mô phỏng máy không có flock (macOS mặc định) mà vẫn chạy được script thật.
 func pathKhongFlock(t *testing.T) string {
@@ -738,16 +1033,29 @@ func pathKhongFlock(t *testing.T) string {
 	return dir
 }
 
-// R5-01: không khoá được (máy không có flock; hay không mở được tệp khoá) thì script in CẢNH BÁO rõ rồi đi tiếp như trước khi có khoá, KHÔNG từ chối.
-// Lựa chọn có chủ ý: từ chối sẽ chặn mọi lần chạy đơn lẻ (vốn an toàn) trên máy đó để phòng một lần chạy đồng thời hiếm, và cảnh báo nói thẳng rủi ro còn lại.
+// pathFlockGia dựng một PATH có lệnh flock GIẢ thoát với mã rc đứng trước flock thật: mô phỏng flock báo lỗi lạ (không phải 1 = có người giữ khoá), vd hệ tệp không hỗ trợ khoá.
+func pathFlockGia(t *testing.T, rc int) string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "flock"), []byte("#!/bin/sh\nexit "+strconv.Itoa(rc)+"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return dir + ":" + os.Getenv("PATH")
+}
+
+// R5-01: không khoá được (máy không có flock; hay không mở được tệp khoá; hay flock báo lỗi lạ, R6-04) thì script in CẢNH BÁO rõ rồi đi tiếp như trước khi có khoá, KHÔNG từ chối.
+// Lựa chọn có chủ ý: từ chối sẽ chặn mọi lần chạy đơn lẻ (vốn an toàn) trên máy đó để phòng một lần chạy đồng thời hiếm, và cảnh báo nói thẳng rủi ro còn lại. Chỉ mã 1 của flock
+// (có người giữ) mới là "lần chạy khác còn sống"; mã khác 0 và 1 không được đọc thành xung đột.
 func TestChayThuKhongKhoaDuocThiCanhBaoRoiDiTiep(t *testing.T) {
 	script := repoPath("scripts/chay-thu.sh")
 	cases := []struct {
 		name string
 		env  []string
+		also string // chữ phải có thêm trong cảnh báo (nói đúng nguyên nhân)
 	}{
-		{"máy không có flock", []string{"PATH=" + pathKhongFlock(t)}},
-		{"không mở được tệp khoá", []string{"TMPDIR=" + filepath.Join(t.TempDir(), "khong-co-thu-muc")}},
+		{"máy không có flock", []string{"PATH=" + pathKhongFlock(t)}, "lệnh flock"},
+		{"không mở được tệp khoá", []string{"EAIS_LOCK_DIR=" + filepath.Join(t.TempDir(), "khong-co-thu-muc")}, "EAIS_LOCK_DIR"},
+		{"flock báo lỗi lạ (mã 3)", []string{"PATH=" + pathFlockGia(t, 3)}, "mã 3"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -755,9 +1063,9 @@ func TestChayThuKhongKhoaDuocThiCanhBaoRoiDiTiep(t *testing.T) {
 			if r.code == 2 || strings.Contains(r.out, "TỪ CHỐI: ") || !r.called("go [build]") {
 				t.Errorf("không khoá được mà script từ chối / không đi tiếp tới bước dịch: thoát %d, lời gọi %q\n%s", r.code, r.calls, r.out)
 			}
-			for _, want := range []string{"CẢNH BÁO", "đồng thời"} {
+			for _, want := range []string{"CẢNH BÁO", "đồng thời", c.also} {
 				if !strings.Contains(r.out, want) {
-					t.Errorf("thiếu %q trong cảnh báo (không khoá được phải nói rõ rủi ro còn lại):\n%s", want, r.out)
+					t.Errorf("thiếu %q trong cảnh báo (không khoá được phải nói rõ nguyên nhân và rủi ro còn lại):\n%s", want, r.out)
 				}
 			}
 		})

@@ -45,6 +45,9 @@ func (s *Store) Ping(ctx context.Context) error {
 // Ready kiểm Store dùng được cho ứng dụng: kết nối còn sống, mọi bảng ứng dụng cần có mặt (migration đã áp) và vai ứng dụng có đủ
 // quyền trên chúng (readyNeeds). Không đặt tenant nên không đọc dòng nào — chỉ hỏi catalog. Lỗi mang nhãn hạ tầng postgres và nói
 // rõ thiếu gì ("chạy eais migrate"), để server từ chối khởi động thay vì phục vụ rồi mất vết ở lượt đầu tiên.
+// Giới hạn đã biết (soát lại M4, M4R-06): has_table_privilege / has_column_privilege chỉ nhìn quyền THỪA KẾ của vai đang đăng nhập. Nếu quản trị
+// cấp cho eais_app một vai có quyền đọc reason_detail với INHERIT FALSE (hay đặt eais_app NOINHERIT) mà vẫn cho SET, Ready cho qua dù ứng
+// dụng SET ROLE được rồi đọc cột đó. Đó là cấu hình do quản trị chủ động tạo, không phải đường ứng dụng tự mở; chưa kiểm pg_has_role(…, 'SET').
 func (s *Store) Ready(ctx context.Context) error {
 	var missing []string
 	for _, n := range readyNeeds {

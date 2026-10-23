@@ -381,3 +381,58 @@ func TestHoaYDinhVaThieuThuatNguGiuUngVienCuaBiDanh(t *testing.T) {
 		}
 	}
 }
+
+// C5 (ADR-0010 bất biến (b), vai mệnh đề): mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi mà nêu một con số là ngữ cảnh — từ khoá của nó (chữ chỉ NGUỒN của con số)
+// không quyết định ý định — khi mệnh đề hỏi có chỉ số riêng. Cặp tối thiểu: đổi đúng một thứ (con số ở mệnh đề trước, chỉ số riêng ở mệnh đề hỏi,
+// mệnh đề hỏi chỉ là cái đuôi) thì kết quả đổi đúng một nghĩa.
+func TestMenhDeNguCanhKhongQuyetDinhYDinh(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	def := func(name string, weak bool, kw ...string) Def {
+		prio := 2
+		if weak {
+			prio = 1
+		}
+		return Def{Name: name, Route: "SQL_QUERY", Weak: weak, Keywords: kw, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots,
+			MetricByTerm: map[string]string{"fuel": name}, Priority: prio}
+	}
+	s, err := Compile([]Def{def("dung", false, "dùng"), def("phieu", false, "phiếu kho", "xuất kho"), def("chung", true, "bao nhiêu")}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}, QuantityMarkers: []string{"bao nhiêu"}, NeutralWords: []string{"vậy", "nhưng", "rồi"}})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw, nums string // nums: các con số (chữ) có trong câu, mỗi chữ là một span số trần
+		wantIntent      string // "" = hoà (Ambiguous)
+	}{
+		{"con số ở mệnh đề trước + chỉ số riêng ở mệnh đề hỏi: mệnh đề hỏi quyết định",
+			"phiếu kho ghi 3850 rồi, nhưng hôm nay EX-03 dùng hết bao nhiêu dầu", "3850", "dung"},
+		{"đối chứng: mệnh đề trước KHÔNG có con số — dẫn đề vẫn nói chỉ số, hai chỉ số hoà nhau",
+			"phiếu kho rồi, nhưng hôm nay EX-03 dùng hết bao nhiêu dầu", "", ""},
+		{"đối chứng: mệnh đề hỏi không có chỉ số riêng (chỉ 'bao nhiêu') — chỉ số của mệnh đề trước còn tác dụng",
+			"phiếu kho ghi 3850 rồi, nhưng hôm nay EX-03 hết bao nhiêu dầu", "3850", "phieu"},
+		{"đối chứng: mệnh đề hỏi chỉ là cái đuôi có nhãn ('phiếu số 912', không con số) — câu hỏi nằm ở mệnh đề trước",
+			"EX-03 hôm nay dùng 3850 L dầu, theo phiếu số 912 đúng không", "3850", "dung"},
+		{"mệnh đề hỏi chỉ còn cụm xác nhận: câu hỏi áp cho mệnh đề liền trước nó, mệnh đề xa hơn là ngữ cảnh",
+			"phiếu kho ghi 3850 rồi, vậy EX-03 hôm nay dùng 3850 L dầu, đúng không", "3850 3850", "dung"},
+		{"một mệnh đề: không đổi", "EX-03 hôm nay dùng bao nhiêu dầu, theo phiếu kho", "", ""},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		from := 0
+		for _, n := range strings.Fields(c.nums) {
+			i := from + strings.Index(c.raw[from:], n)
+			in.Spans = append(in.Spans, contracts.Span{Kind: contracts.ValueNumber, Raw: n, Start: i, End: i + len(n), Value: contracts.Value{Kind: contracts.ValueNumber, Number: n}})
+			from = i + len(n)
+		}
+		e := ex
+		e.Start, e.End = strings.Index(c.raw, "EX-03"), strings.Index(c.raw, "EX-03")+5
+		if e.Start < 0 {
+			e.Start, e.End = 0, 0
+		}
+		r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{e}}, testNow)
+		if r.Intent.Name != c.wantIntent {
+			t.Errorf("%s: ý định = %q (hoà %v), muốn %q", c.name, r.Intent.Name, r.Ambiguous, c.wantIntent)
+		}
+	}
+}

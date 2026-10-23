@@ -34,3 +34,38 @@ func TestN1HoaYDinhKhongBoRoiUngVienThucThe(t *testing.T) {
 		t.Errorf("%q: máy đã rõ, không có ứng viên nào để kể; được %v %q", q, got, r.Answer)
 	}
 }
+
+// C5 (bất biến (b)): ý định lấy theo MỆNH ĐỀ HỎI. Mệnh đề đứng trước mệnh đề hỏi mà nêu một CON SỐ là ngữ cảnh — chữ chỉ nguồn của con số ấy
+// ("phiếu kho ghi 3.850", "hoá đơn ghi 4.100 L", "đội báo 4k") không quyết định điều đang hỏi. Mệnh đề dẫn đề không nêu con số ("Về hoá đơn,
+// …") vẫn nói chỉ số đang hỏi; mệnh đề đứng sau câu hỏi là phần bổ nghĩa của nó. EX-03 hôm nay: kho xuất 3.850 · đội báo 4.000 · tiêu thụ
+// 3.782 · hoá đơn 4.100.
+func TestC5MenhDeHoiQuyetDinhYDinh(t *testing.T) {
+	a := newAsk(t)
+	director := user("director", "")
+	for _, c := range []struct {
+		q, intent, value string
+	}{
+		// mệnh đề ngữ cảnh có con số: chữ chỉ nguồn của nó không rò sang ý định
+		{"Đội báo 4k rồi, vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?", "fuel_consumed", "3.782"},
+		{"Hoá đơn ghi 4.100 L, nên hôm nay EX-03 đã đốt bao nhiêu dầu?", "fuel_consumed", "3.782"},
+		{"Phiếu kho ghi 3.850 rồi, vậy hôm nay EX-03 hết bao nhiêu dầu?", "fuel_issued", "3.850"},             // mệnh đề hỏi không có chỉ số riêng (chỉ "bao nhiêu"): dẫn đề còn tác dụng
+		{"Hoá đơn ghi 4.100 L, vậy hôm nay EX-03 được xuất 4.100 L dầu phải không?", "fuel_generic", "3.850"}, // mệnh đề hỏi không có từ khoá riêng
+		// đối chứng: không đổi
+		{"Về hoá đơn dầu, EX-03 hôm nay bao nhiêu?", "fuel_billed", "4.100"},                                    // dẫn đề không có con số vẫn nói chỉ số đang hỏi
+		{"Dầu đội báo, EX-03 hôm nay bao nhiêu?", "fuel_reported", "4.000"},                                     // như trên
+		{"EX-03 hôm nay đội báo bao nhiêu dầu?", "fuel_reported", "4.000"},                                      // một mệnh đề
+		{"EX-03 hôm nay bao nhiêu dầu, theo cảm biến?", "fuel_consumed", "3.782"},                               // mệnh đề đứng sau câu hỏi bổ nghĩa cho nó
+		{"Đội báo 4k, báo cáo ghi 4 m3, vậy EX-03 hôm nay được cấp 4k dầu đúng không?", "fuel_issued", "3.850"}, // nhiều mệnh đề ngữ cảnh
+	} {
+		r := ask(t, a, director, c.q).Response
+		if r.Intent != c.intent || !strings.Contains(r.Answer, c.value) {
+			t.Errorf("%q: muốn ý định %s kèm %s, được [%s/%s] %q", c.q, c.intent, c.value, r.Route, r.Intent, r.Answer)
+		}
+		if c.intent == "fuel_generic" && (!strings.Contains(r.Answer, giaDinhChung) || verdictOf(r.Answer) != "") {
+			t.Errorf("%q: trả theo ý định chung phải kèm câu giả định và không phán quyết: %q", c.q, r.Answer)
+		}
+	}
+	// đối chứng: mệnh đề dẫn đề không có con số mà nêu chỉ số KHÁC chỉ số của mệnh đề hỏi: vẫn hỏi lại, không chọn thay người hỏi
+	q := "Đội báo rồi, vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?"
+	hoiLai(t, ask(t, a, director, q).Response, q)
+}

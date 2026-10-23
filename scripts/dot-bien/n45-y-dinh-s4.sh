@@ -119,3 +119,22 @@ m $I '			viable[c.ID] = true
 m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if false {' 'S73 hoà ý định / thiếu thuật ngữ bỏ rơi ứng viên của bí danh mơ hồ'
 m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if len(r.Ambiguous) > 0 && len(r.Candidates) == 0 {' 'S74 chỉ hoà ý định mang ứng viên, thiếu thuật ngữ thì bỏ rơi'
 m tenants/construction/pack/templates.yaml '  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"' '  clarify_intent: "Bạn muốn hỏi {options}?"' 'S75 mẫu hỏi lại nghĩa số liệu không kể ứng viên (người dùng không thấy máy nào cần chọn)'
+# C5 (bất biến (b), vai mệnh đề): mệnh đề ngữ cảnh nêu con số, đứng trước mệnh đề hỏi có chỉ số riêng, không quyết định ý định.
+m $I 'counts, firsts := keywordHits(s.defs, maskRanges(in.Raw, s.premiseRanges(in, res)), s.opt.IgnorePhrases)' 'counts, firsts := keywordHits(s.defs, in.Raw, s.opt.IgnorePhrases)' 'S76 từ khoá của mệnh đề ngữ cảnh rò sang ý định (không che)'
+m $I '	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {' '	if len(out) == 0 {' 'S77 che mệnh đề trước cả khi mệnh đề hỏi chỉ là cái đuôi không có chỉ số riêng'
+m $I '		if hasFigure(in, res, cl[i][0], cl[i][1]) {
+			out = append(out, cl[i])' '		if true {
+			out = append(out, cl[i])' 'S78 che cả mệnh đề dẫn đề không nêu con số'
+m $I '	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
+		q--
+	}' '	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
+		_ = q
+	}' 'S79 mệnh đề hỏi chỉ còn cụm xác nhận không áp cho mệnh đề liền trước'
+m $I '			if hasOwnFigure && missing < len(strings.Fields(k)) && !s.neutralOnly(k, clause) {' '			if missing < len(strings.Fields(k)) && !s.neutralOnly(k, clause) {' 'S80 chữ của từ khoá đứng với nhãn ("phiếu số 912") không cần con số riêng vẫn là chỉ số riêng'
+m $I '	for _, r := range s.premiseRanges(in, res) { // mệnh đề ngữ cảnh: không phải điều đang hỏi nên không cần giải thích (bất biến (b))
+		cover(r[0], r[1])
+	}' '' 'S81 a2 đòi giải thích cả chữ của mệnh đề ngữ cảnh'
+m $I '	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers...)
+	q := slices.IndexFunc(cl' '	markers := slices.Clone(s.opt.FocusMarkers)
+	q := slices.IndexFunc(cl' 'S82 cụm hỏi lượng ("bao nhiêu") không đánh dấu mệnh đề hỏi'
+

@@ -269,7 +269,8 @@ func aliasCandidates(res contracts.Resolution) []contracts.EntityRef {
 }
 
 func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
-	counts, firsts := keywordHits(s.defs, in.Raw, s.opt.IgnorePhrases)
+	// ADR-0010 bất biến (b): từ khoá lấy ở mệnh đề HỎI; mệnh đề ngữ cảnh (nêu một con số, đứng trước câu hỏi) bị che khỏi phép đếm
+	counts, firsts := keywordHits(s.defs, maskRanges(in.Raw, s.premiseRanges(in, res)), s.opt.IgnorePhrases)
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
@@ -542,6 +543,142 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 	return Result{Intent: it, Candidates: candidates, Unclear: unclear}
 }
 
+// clauseSpans trả khoảng byte [đầu, cuối) của từng mệnh đề (ranh giới như clausesOf, không gồm dấu ngắt).
+func clauseSpans(text string) (spans [][2]int) {
+	start := 0
+	for i := 0; i < len(text); i++ {
+		if strings.IndexByte(",;.?!", text[i]) >= 0 && (i+1 >= len(text) || text[i+1] == ' ' || text[i+1] == '\n') {
+			spans = append(spans, [2]int{start, i})
+			start = i + 1
+		}
+	}
+	return append(spans, [2]int{start, len(text)})
+}
+
+// premiseRanges trả các khoảng byte của MỆNH ĐỀ NGỮ CẢNH (ADR-0010 bất biến (b), vai mệnh đề): mệnh đề đứng TRƯỚC mệnh đề hỏi mà nêu một con số.
+// Mệnh đề hỏi là mệnh đề đầu tiên có cụm xác nhận / cụm hỏi lượng của pack (dấu '?' một mình không đủ: "…được cấp 4k dầu, anh cứ xác nhận là đúng
+// giúp em để em báo cáo gấp nhé?" kết thúc bằng '?' nhưng mệnh đề cuối chỉ nhờ xác nhận chứ không phải câu hỏi mới); nếu mệnh đề đó chỉ còn cụm hỏi và từ trung tính
+// ("…, đúng không?") thì câu hỏi áp cho mệnh đề liền trước nó. Chữ trong mệnh đề nêu con số là chữ chỉ NGUỒN của con số ấy ("phiếu kho ghi 3.850",
+// "hoá đơn ghi 4.100 L", "đội báo 4k"), không phải điều đang hỏi, nên không được quyết định ý định. Mệnh đề dẫn đề không nêu con số ("Về hoá đơn, …") vẫn
+// nói chỉ số đang hỏi và mệnh đề đứng sau câu hỏi là phần bổ nghĩa của nó, nên cả hai ở lại.
+func (s *Set) premiseRanges(in contracts.NormalizedInput, res contracts.Resolution) [][2]int {
+	raw := in.Raw
+	cl := clauseSpans(raw)
+	if len(cl) < 2 {
+		return nil
+	}
+	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers...)
+	q := slices.IndexFunc(cl, func(c [2]int) bool {
+		return slices.ContainsFunc(markers, func(m string) bool { return normalization.ContainsPhrase(raw[c[0]:c[1]], m) })
+	})
+	if q > 0 && s.onlyMarkers(raw[cl[q][0]:cl[q][1]], markers) {
+		q--
+	}
+	var out [][2]int
+	for i := 0; i < q; i++ {
+		if hasFigure(in, res, cl[i][0], cl[i][1]) {
+			out = append(out, cl[i])
+		}
+	}
+	// Chỉ che khi mệnh đề hỏi CÓ chỉ số riêng. Mệnh đề hỏi chỉ là cái đuôi ("…, tại bể 7 đúng không?", "…, hay 4000 L đúng không?") thì con số và
+	// chữ chỉ số nằm ở mệnh đề đứng trước chính là câu hỏi, không phải ngữ cảnh.
+	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {
+		return nil
+	}
+	return out
+}
+
+// ownMetric báo một mệnh đề tự nêu chỉ số: (a) có từ khoá của ý định số liệu riêng (không yếu) — kể cả khi chữ chen giữa tách các chữ của từ khoá
+// nhiều chữ ("kho cũng xuất" với "kho xuất"); hoặc (b) là một lời khẳng định đủ bộ — có con số của riêng nó VÀ một chữ của từ khoá như thế ("được xuất
+// 4.100 L" với "kho xuất"). Chữ của từ khoá đứng với nhãn ("theo phiếu số 912") chưa phải chỉ số: không có con số thì mệnh đề chỉ là cái đuôi.
+func (s *Set) ownMetric(clause string, hasOwnFigure bool) bool {
+	for _, d := range s.defs {
+		if d.Weak || len(d.Terms) == 0 || contracts.RouteKind(d.Route) == contracts.RouteRAG {
+			continue
+		}
+		for _, k := range d.Keywords {
+			missing := 0
+			for _, w := range strings.Fields(k) {
+				if len(normalization.PhraseSpans(clause, w)) == 0 {
+					missing++
+				}
+			}
+			if missing == 0 {
+				return true
+			}
+			if hasOwnFigure && missing < len(strings.Fields(k)) && !s.neutralOnly(k, clause) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// neutralOnly báo mọi chữ của từ khoá có mặt trong mệnh đề đều là từ trung tính của pack ("được" của "được cấp", "đo" của "đo được").
+func (s *Set) neutralOnly(keyword, clause string) bool {
+	for _, w := range strings.Fields(keyword) {
+		if len(normalization.PhraseSpans(clause, w)) == 0 {
+			continue
+		}
+		if !slices.ContainsFunc(s.opt.NeutralWords, func(n string) bool {
+			sp := normalization.PhraseSpans(w, n)
+			return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
+		}) {
+			return false
+		}
+	}
+	return true
+}
+
+// onlyMarkers báo mệnh đề chỉ còn cụm hỏi và từ trung tính (không còn chữ nào khác).
+func (s *Set) onlyMarkers(clause string, markers []string) bool {
+	b := []byte(clause)
+	for _, p := range append(slices.Clone(markers), s.opt.NeutralWords...) {
+		for _, sp := range normalization.PhraseSpans(clause, p) {
+			for j := sp[0]; j < sp[1]; j++ {
+				b[j] = ' '
+			}
+		}
+	}
+	return !strings.ContainsFunc(string(b), func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) })
+}
+
+// hasFigure báo khoảng [start, end) của câu có một CON SỐ: lượng, tiền, hay số trần không nằm trong tên thực thể ("03" của "máy 03"), không là
+// nhãn ("phiếu 912") và không là số của mốc thời gian ("tuần 43").
+func hasFigure(in contracts.NormalizedInput, res contracts.Resolution, start, end int) bool {
+	inName := func(sp contracts.Span) bool {
+		return slices.ContainsFunc(res.Entities, func(e contracts.EntityRef) bool { return e.Start <= sp.Start && sp.End <= e.End }) ||
+			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
+	}
+	return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool {
+		if sp.Start < start || sp.End > end {
+			return false
+		}
+		switch sp.Kind {
+		case contracts.ValueQuantity, contracts.ValueMoney:
+			return true
+		case contracts.ValueNumber:
+			_, period := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End)
+			return !inName(sp) && !period && !normalization.LabelContext(in.Raw, sp.Start, sp.End)
+		}
+		return false
+	})
+}
+
+// maskRanges thay mọi byte trong các khoảng bằng dấu cách (giữ nguyên độ dài và vị trí) để phép đếm từ khoá bỏ qua chúng.
+func maskRanges(text string, ranges [][2]int) string {
+	if len(ranges) == 0 {
+		return text
+	}
+	b := []byte(text)
+	for _, r := range ranges {
+		for i := r[0]; i < r[1]; i++ {
+			b[i] = ' '
+		}
+	}
+	return string(b)
+}
+
 // FocusClause trả khoảng byte [đầu, cuối) của MỆNH ĐỀ chứa cụm đánh dấu đầu tiên tìm thấy. Mệnh đề
 // là đoạn giữa hai dấu , ; . ? ! (dấu theo sau là khoảng trắng hoặc hết câu — "3.850", "0,5" không
 // cắt). ok = false khi không có cụm nào, hoặc câu chỉ có một mệnh đề.
@@ -675,6 +812,9 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution) (D
 		for _, sp := range normalization.PhraseSpans(raw, p) {
 			cover(sp[0], sp[1])
 		}
+	}
+	for _, r := range s.premiseRanges(in, res) { // mệnh đề ngữ cảnh: không phải điều đang hỏi nên không cần giải thích (bất biến (b))
+		cover(r[0], r[1])
 	}
 	for _, p := range s.opt.NeutralWords {
 		if whole(p, other) && !whole(p, own) {

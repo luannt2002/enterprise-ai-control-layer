@@ -443,7 +443,9 @@ Bên thua cuộc đua vì thế nhận kết quả đúng nghĩa, không phải 
   - PG báo lỗi câu lệnh và giao dịch đã huỷ ⇒ chắc chắn không ghi ⇒ `FAILED` `STORE_UNAVAILABLE` (hoặc §6.4 nếu là vi phạm khoá duy nhất);
   - lỗi kết nối hay hết hạn **trước** khi gửi COMMIT (kể cả hết hạn khi đang chờ khoá của giao dịch khác, §6.3) ⇒ giao dịch chưa commit không tồn tại sau khi kết nối đứt ⇒ `FAILED` `STORE_UNAVAILABLE`;
   - lỗi hay hết hạn **từ lúc gửi COMMIT** ⇒ `UNKNOWN` `COMMIT_UNKNOWN`.
-  - Cơ chế chính xác của trình điều khiển ở ranh giới COMMIT: chưa kiểm (mục 15, U1).
+  - Cơ chế của trình điều khiển ở ranh giới COMMIT: ĐÃ ĐO ngày 23/10 (mục 15, U1). Ba lớp: lỗi trước khi gửi COMMIT ⇒ chắc chắn chưa ghi;
+    PG trả `*pgconn.PgError` mức ERROR cho chính COMMIT ⇒ chắc chắn chưa ghi — tiền đề: Store nối THẲNG PostgreSQL, chưa đo qua bộ gom kết
+    nối hay proxy (soát K2: K2S-01); còn lại ⇒ không biết (`COMMIT_UNKNOWN`).
 
 ### 7.2 Đọc lại sau ghi
 

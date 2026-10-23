@@ -63,6 +63,9 @@ type Deps struct {
 type Ask struct {
 	RT   *tenant.Runtime
 	Deps Deps
+	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
+	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
+	noWhy bool
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -216,12 +219,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
-	why.Normalize = explainNormalize(in)
-	// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ chúng
-	// cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
-	why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
-	why.Intent = explainIntent(cls, ci)
-	why.Route = a.explainRoute(routed, plan)
+	if !a.noWhy {
+		why.Normalize = explainNormalize(in)
+		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
+		// chúng cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
+		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
+		why.Intent = explainIntent(cls, ci)
+		why.Route = a.explainRoute(routed, plan)
+	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
 	// rộng) có ranh giới từ ở câu gốc mà mất ranh giới ở in.Raw, nơi ký tự đó đã gấp thành chữ ASCII dính liền; ngược lại khoá viết bằng chữ toàn chiều rộng
@@ -230,7 +235,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		why = why.WithholdQuoted()
 	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
-	d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
+	if !a.noWhy {
+		d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
+	}
 	return Outcome{
 		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),
@@ -382,7 +389,9 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		prefix = "số liệu: "
 	}
 	// S7 ghi lúc trả về, khi gói ngữ cảnh đã là gói CUỐI (có thể đã thêm số của người hỏi và các chỉ số khác cùng kỳ)
-	defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	if !a.noWhy {
+		defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	}
 	for _, e := range result.Evidence {
 		resp.Citations = append(resp.Citations, contracts.Citation{EvidenceID: e.ID, Source: e.Source})
 	}
@@ -503,8 +512,10 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		claims = append(claims, otherClaims...)
 	}
 	_, base := a.RT.Metrics.Metric(metric)
-	a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
-		tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	if !a.noWhy {
+		a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
+			tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	}
 	// S8 — dựng câu bằng mẫu của tenant (route số liệu không gọi model)
 	text := a.render(tmpl, vars)
 	if withheld != "" {

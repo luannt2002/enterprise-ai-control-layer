@@ -533,3 +533,15 @@ func TestSanitizeKhongCheItHonCheTuanTu(t *testing.T) {
 		t.Errorf("quét %d chuỗi (muốn 66429), %d chuỗi che ít hơn che tuần tự", n, bad)
 	}
 }
+
+// Soát 5a vòng 4 (5a4-2, S3): ghim đầu ra hiện tại của chuỗi ngắn có vùng khoá và vùng Cookie kề nhau — không lọt, nhưng chưa luỹ đẳng
+// (lần hai gộp hai dấu che); đổi cách gộp vùng kề thì phải đo lại luỹ đẳng trên các bộ fuzz (người soát đo: gộp vùng kề làm xấu bộ mix / doc).
+func TestSanitizeVungKheKeNhauChuaLuyDang(t *testing.T) {
+	got := traces.Sanitize("token=Cookie: ")
+	if want := "token=" + traces.Masked + traces.Masked; got != want {
+		t.Fatalf("Sanitize = %q, muốn %q", got, want)
+	}
+	if again := traces.Sanitize(got); again != "token="+traces.Masked {
+		t.Fatalf("lần hai = %q, muốn %q", again, "token="+traces.Masked)
+	}
+}

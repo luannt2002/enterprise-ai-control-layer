@@ -15,7 +15,10 @@ import (
 // dấu che có khoảng trắng sẽ bị che lần hai thành "[…] che]" — Sanitize phải chạy lại không đổi (idempotent) trên đầu vào thường.
 // Không phổ quát: fuzz so lệch 23/10 (bộ sinh của soát 5a vòng 3, 400.000 chuỗi mỗi lượt) thấy Sanitize(Sanitize(x)) ≠ Sanitize(x) ở 0
 // chuỗi với bộ "target" (hai hạt) và 36 / 23 chuỗi với bộ "broad" (hai hạt; main 37 / 26 trên cùng chuỗi); test chỉ khẳng định
-// idempotent trên các ca đã chọn.
+// idempotent trên các ca đã chọn. Chuỗi ngắn bất thường còn vỡ nhiều hơn main (soát 5a vòng 4, 5a4-2): `token=Cookie: ` cho
+// `token=[REDACTED][REDACTED]` (vùng khoá và vùng Cookie kề nhau, không gộp), lần hai `token=[REDACTED]`; vét cạn mọi chuỗi tới 7 mảnh của bảng
+// mười mảnh (Cookie:, token=, nháy, \, LF, CR, khoảng trắng, marker, ;): 78.610 / 11,1 triệu chuỗi không luỹ đẳng (main 0); fuzz bộ "soup"
+// 200.000 chuỗi: 26 (main 1). Không lọt bí mật — chỉ gộp dấu che ở lần hai.
 const Masked = "[REDACTED]"
 
 // maxErrorRunes là trần độ dài thông điệp lỗi ghi vào vết: lỗi từ thư viện đôi khi nhúng cả tải trọng.

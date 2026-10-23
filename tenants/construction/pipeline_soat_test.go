@@ -200,8 +200,9 @@ func TestNhieuThucTheCungLoaiThiHoiLai(t *testing.T) {
 		{"Chênh lệch dầu cấp và tiêu thụ của EX-03 và RL-02 hôm nay?", []string{"EX-03", "RL-02"}},
 		// hai máy + dự án chứa chúng: dự án là phần định ngữ, chỉ các máy tranh nhau
 		{"EX-03 và RL-02 của dự án A hôm nay được cấp bao nhiêu dầu?", []string{"EX-03", "RL-02"}},
-		// một máy rõ + một bí danh mơ hồ khác máy đó ("máy 03" là EX-03 hoặc DZ-03): vẫn là hai lần nhắc
-		{"Máy 03 và RL-02 hôm nay được cấp bao nhiêu dầu?", []string{"DZ-03", "EX-03", "RL-02"}},
+		// một máy rõ + một bí danh mơ hồ khác máy đó ("máy 03" là EX-03 hoặc DZ-03): vẫn là hai lần nhắc, nhưng D-OP-11 = b chỉ hỏi lại
+		// ứng viên của bí danh (RL-02 đã rõ, không cần người hỏi chọn)
+		{"Máy 03 và RL-02 hôm nay được cấp bao nhiêu dầu?", []string{"DZ-03", "EX-03"}},
 	} {
 		r := ask(t, a, user("director", ""), c.text).Response
 		hoiLai(t, r, c.text)

@@ -205,7 +205,7 @@ func TestKheNhieuGiaTriKhacNhauKhongDuocDien(t *testing.T) {
 		{"hai dự án", res(pa, pb), nil, []string{"subject"}, "", "2026-10-19", []string{"PRJ-A", "PRJ-B"}, nil},
 		{"hai máy kèm dự án chứa chúng: dự án chỉ là định ngữ", res(ex, rl, pa), nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "RL-02"}, nil},
 		{"một máy rõ và một bí danh mơ hồ khác máy đó", contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{alias("máy 03", "equipment", ex, dz)}},
-			nil, []string{"subject"}, "", "2026-10-19", []string{"RL-02", "EX-03", "DZ-03"}, nil},
+			nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "DZ-03"}, nil}, // D-OP-11 = b: chỉ ứng viên của bí danh (trước đây gộp cả RL-02)
 		{"hai bí danh mơ hồ khác nhau", contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{alias("máy 03", "equipment", ex, dz), alias("máy 07", "equipment", e7, rl7)}},
 			nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "DZ-03", "EX-07", "RL-07"}, nil},
 		{"hai ngày", res(ex), []contracts.Span{today, yesterday}, []string{"period"}, "EX-03", "", nil, []string{"hôm nay", "hôm qua"}},
@@ -234,6 +234,37 @@ func TestKheNhieuGiaTriKhacNhauKhongDuocDien(t *testing.T) {
 		}
 		if len(r.Candidates) > 0 {
 			t.Errorf("%s: thứ người hỏi viết rõ không phải bí danh mơ hồ, không được vào Candidates (router sẽ gỡ bằng quyền xem): %v", c.name, ids(r.Candidates))
+		}
+	}
+}
+
+// D-OP-11 = b (chủ dự án chốt 23/10, đổi hợp đồng có chủ ý so với bản ghim cũ): có bí danh mơ hồ thì câu hỏi lại CHỈ liệt kê ứng viên của
+// bí danh; thực thể đã giải không vào danh sách (vẫn được tính để biết câu có nhiều chủ thể); hai thực thể đều đã giải thì giữ cách cũ.
+// Cặp tối thiểu theo ADR-0010 bất biến (c): một đã giải + một mơ hồ · hai mơ hồ · hai đã giải (đối chứng, không đổi).
+func TestUngVienHoiLaiChiLaUngVienCuaBiDanhMoHo(t *testing.T) {
+	ex, rl, dz := ent("EX-03", "equipment"), ent("RL-02", "equipment"), ent("DZ-03", "equipment")
+	e7, rl7, pa := ent("EX-07", "equipment"), ent("RL-07", "equipment"), ent("PRJ-A", "project")
+	m3, m7 := alias("máy 03", "equipment", ex, dz), alias("máy 07", "equipment", e7, rl7)
+	for _, c := range []struct {
+		name string
+		res  contracts.Resolution
+		want []string // Unclear.Entities; rỗng = câu chỉ có MỘT chủ thể, không hỏi lại
+	}{
+		{"một đã giải + một mơ hồ: chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{ex}, Ambiguous: []contracts.AmbiguousMention{m7}}, []string{"EX-07", "RL-07"}},
+		{"đảo vai: lu 02 đã giải + máy 03 mơ hồ: chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{m3}}, []string{"EX-03", "DZ-03"}},
+		{"hai đã giải + một mơ hồ: vẫn chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{rl, e7}, Ambiguous: []contracts.AmbiguousMention{m3}}, []string{"EX-03", "DZ-03"}},
+		{"hai mơ hồ: liệt kê ứng viên của cả hai bí danh", contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3, m7}}, []string{"EX-03", "DZ-03", "EX-07", "RL-07"}},
+		{"hai đã giải (đối chứng): giữ cách liệt kê cũ", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl}}, []string{"EX-03", "RL-02"}},
+		{"ba đã giải (đối chứng): giữ cách liệt kê cũ", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl, e7}}, []string{"EX-03", "RL-02", "EX-07"}},
+		{"đã giải chứa trong bí danh: một chủ thể, không hỏi lại", contracts.Resolution{Entities: []contracts.EntityRef{ex}, Ambiguous: []contracts.AmbiguousMention{m3}}, nil},
+		{"một dự án + một bí danh máy: khác loại, không tranh khe", contracts.Resolution{Entities: []contracts.EntityRef{pa}, Ambiguous: []contracts.AmbiguousMention{m3}}, nil},
+	} {
+		r := classifyRes(t, c.res)
+		if got := ids(r.Unclear.Entities); !slices.Equal(got, c.want) {
+			t.Errorf("%s: Unclear.Entities = %v, muốn %v", c.name, got, c.want)
+		}
+		if multi := len(c.want) > 0; multi != slices.Contains(r.Intent.Missing, "subject") {
+			t.Errorf("%s: khe chủ thể phải %s, Missing = %v", c.name, map[bool]string{true: "để trống (nhiều chủ thể)", false: "điền được"}[multi], r.Intent.Missing)
 		}
 	}
 }

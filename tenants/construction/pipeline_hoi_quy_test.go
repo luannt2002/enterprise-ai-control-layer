@@ -166,7 +166,8 @@ func TestCauGhepSoLieuVaQuyTrinhNhieuThucTheThiHoiLai(t *testing.T) {
 		want []string
 	}{
 		{"Chênh lệch dầu của EX-03 và RL-02 là bao nhiêu và quy trình xử lý chênh lệch thế nào?", []string{"EX-03", "RL-02"}},
-		{"Máy 03 và máy 07 được cấp dầu thế nào, quy trình xử lý khi lệch là gì?", []string{"DZ-03", "EX-03", "EX-07"}},
+		// D-OP-11 = b: "máy 03" mơ hồ (DZ-03 hay EX-03), "máy 07" đã giải (EX-07): chỉ hỏi lại ứng viên của bí danh
+		{"Máy 03 và máy 07 được cấp dầu thế nào, quy trình xử lý khi lệch là gì?", []string{"DZ-03", "EX-03"}},
 		{"EX-03 và RL-02 ngày 31/02 được cấp bao nhiêu dầu, sau đó phải làm gì khi lệch?", []string{"EX-03", "RL-02"}},
 		{"Dự án A và dự án B được cấp bao nhiêu dầu, và quy trình xử lý chênh lệch ra sao?", []string{"PRJ-A", "PRJ-B"}},
 		// có mốc ngày hợp lệ thì vốn đã hỏi lại đúng

@@ -794,9 +794,14 @@ func firstOfTypes(es []contracts.EntityRef, types []string) (contracts.EntityRef
 // một thực thể đã rõ (tính theo ID), hoặc một bí danh mơ hồ cùng loại mà không ứng viên nào là thực thể đã rõ ("EX-03
 // (máy 03)" chỉ là một máy). Máy kèm dự án chứa nó ("EX-03 của dự án A") khác loại nên không tranh nhau — dự án là
 // phần định ngữ.
+//
+// Danh sách trả về (D-OP-11 = b, ADR-0010 bất biến (c)): có bí danh mơ hồ trong số các lần nhắc tranh nhau thì CHỈ gồm ứng viên của bí
+// danh — thực thể đã giải không phải thứ người hỏi cần chọn, nó chỉ góp vào việc đếm để biết câu có nhiều chủ thể; hai thực thể đều đã
+// giải thì giữ cách liệt kê cũ (cả hai).
 func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
 	var uniq []contracts.EntityRef
 	count, seen := map[string]int{}, map[string]bool{}
+	viable := map[string]bool{} // ứng viên của bí danh mơ hồ (khác thực thể đã giải)
 	for _, e := range res.Entities {
 		if hasType(types, e.Type) && !seen[e.ID] {
 			seen[e.ID] = true
@@ -810,6 +815,7 @@ func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
 		}
 		count[m.Type]++
 		for _, c := range m.Candidates {
+			viable[c.ID] = true
 			if !seen[c.ID] {
 				seen[c.ID] = true
 				uniq = append(uniq, c)
@@ -821,6 +827,9 @@ func clashing(res contracts.Resolution, types []string) []contracts.EntityRef {
 		if count[e.Type] > 1 {
 			out = append(out, e)
 		}
+	}
+	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return viable[e.ID] }) {
+		out = slices.DeleteFunc(out, func(e contracts.EntityRef) bool { return !viable[e.ID] })
 	}
 	return out
 }

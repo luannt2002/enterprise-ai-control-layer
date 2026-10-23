@@ -108,3 +108,10 @@ m $L 'dầu ăn, dầu gội, dầu gió' 'dầu ăn, dầu gió' 'S46 bỏ bí 
 m $L 'dầu gội, dầu gió, dầu thơm' 'dầu gội, dầu thơm' 'S47 bỏ bí danh "dầu gió"'
 m $L 'dầu gió, dầu thơm]' 'dầu gió]' 'S48 bỏ bí danh "dầu thơm"'
 m $I '	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {' '	if len(gen) != 1 {' 'S49 ý định chung không khai chỉ số cho thuật ngữ vẫn được chọn (soát S4 vòng 3, phát hiện 4)'
+# Vòng sửa S4 23/10 (ADR-0010, D-AI-02 = a, D-OP-18 = c, D-OP-11 = b). D-OP-11 = b: tập ứng viên hỏi lại chỉ là ứng viên của bí danh mơ hồ.
+m $I '	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return viable[e.ID] }) {
+		out = slices.DeleteFunc(out, func(e contracts.EntityRef) bool { return !viable[e.ID] })
+	}' '	_ = viable' 'S70 hỏi lại kể cả thực thể đã giải khi có bí danh mơ hồ (cách gộp cũ)'
+m $I '	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return viable[e.ID] }) {' '	if true {' 'S71 hai thực thể đều đã giải cũng bị lọc (danh sách hỏi lại rỗng)'
+m $I '			viable[c.ID] = true
+' '' 'S72 ứng viên của bí danh không được đánh dấu (bộ lọc không bao giờ chạy)'

@@ -414,3 +414,44 @@ func TestC0TranDoDaiSubjectKey(t *testing.T) {
 		})
 	}
 }
+
+// C17S-04 (soát C1–C7): metric và day dài cũng không đi nguyên giá trị vào vết — bước C3 kiểm chúng trước khi biết là sai, nên đầu vào của
+// bước dùng echo() như C0; và ba hành vi của echo() được ghim: trần đúng 128 byte (số thẳng, không theo hằng), cắt trên ranh giới ký tự,
+// hậu tố độ dài gốc.
+func TestC3TruongDaiKhongVaoVetVaEcho(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		field string
+		with  func(*Request)
+	}{
+		{"metric dài", "metric", func(r *Request) { r.Metric = strings.Repeat("m", 10000) }},
+		{"day dài", "day", func(r *Request) { r.Day = strings.Repeat("9", 10000) }},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := req(1142, "EX-03", day1)
+			c.with(&r)
+			o := newWorld(t).run(user("p-1", "director", ""), r)
+			if o.Result.ReasonCode != ReasonInvalidRequest || fmt.Sprint(o.Result.InvalidFields) != "["+c.field+"]" {
+				t.Fatalf("muốn INVALID_REQUEST [%s], được %+v", c.field, o.Result)
+			}
+			for _, s := range o.Steps {
+				for _, str := range append(append([]string{}, s.Input...), s.Output...) {
+					if len(str) > 200 {
+						t.Errorf("bước %s ghi nguyên giá trị dài vào vết: %d byte", s.Code, len(str))
+					}
+				}
+			}
+		})
+	}
+	long := strings.Repeat("K", 126) + "ế" + "Z" // 'ế' 3 byte nằm vắt qua byte thứ 128
+	got := echo(long)
+	if !utf8.ValidString(got) || !strings.HasPrefix(got, strings.Repeat("K", 126)+"…") || !strings.HasSuffix(got, fmt.Sprintf("(%d byte)", len(long))) {
+		t.Errorf("echo cắt sai ranh giới ký tự hoặc thiếu hậu tố độ dài: %q", got)
+	}
+	if got := echo(strings.Repeat("K", 128)); got != strings.Repeat("K", 128) {
+		t.Errorf("128 byte phải giữ nguyên, được %q", got)
+	}
+	if got := echo(strings.Repeat("K", 129)); !strings.HasSuffix(got, "(129 byte)") || strings.Count(got, "K") != 128 {
+		t.Errorf("129 byte phải cắt còn 128 kèm độ dài gốc, được %q", got)
+	}
+}

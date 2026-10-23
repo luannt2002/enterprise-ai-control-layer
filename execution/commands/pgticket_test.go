@@ -666,6 +666,61 @@ func TestPGAuditLyDoThatChiGhi(t *testing.T) {
 	}
 }
 
+// C3 (lệnh ca chiều 23/10): ba bảng của 0004 không nhận tenant_id rỗng, kể cả qua vai quản trị (vượt RLS) — ràng buộc ở lược đồ, không chỉ
+// ở tầng Go. Mỗi bảng: chép một dòng thật sang tenant rỗng phải bị CHECK chặn (23514). Chạy trong giao dịch rồi huỷ: không để lại dòng nào.
+func TestPGBaBangKhongNhanTenantRong(t *testing.T) {
+	e := newPGEnv(t)
+	tn := e.tenant("rong")
+	u := richUnit(14, "p-1", "EX-03")
+	mustWrite(t, e, tn, u)
+	ctx := context.Background()
+	stmts := []struct{ table, sql string }{
+		{"discrepancy_tickets", "INSERT INTO discrepancy_tickets SELECT * FROM rong_t"},
+		{"commands", "INSERT INTO commands SELECT * FROM rong_c"},
+		{"audit_log", "INSERT INTO audit_log OVERRIDING SYSTEM VALUE SELECT * FROM rong_a"},
+	}
+	errRollback := errors.New("huỷ có chủ ý")
+	err := pgx.BeginFunc(ctx, e.admin, func(tx pgx.Tx) error {
+		for _, q := range []string{
+			"CREATE TEMP TABLE rong_t ON COMMIT DROP AS SELECT * FROM discrepancy_tickets WHERE tenant_id = $1",
+			"CREATE TEMP TABLE rong_c ON COMMIT DROP AS SELECT * FROM commands WHERE tenant_id = $1",
+			"CREATE TEMP TABLE rong_a ON COMMIT DROP AS SELECT * FROM audit_log WHERE tenant_id = $1 AND outcome = 'EXECUTED'",
+		} {
+			if _, err := tx.Exec(ctx, q, string(tn)); err != nil {
+				return err
+			}
+		}
+		for _, q := range []string{"UPDATE rong_t SET tenant_id = ''", "UPDATE rong_c SET tenant_id = ''", "UPDATE rong_a SET tenant_id = '', id = id + 1000000"} {
+			if _, err := tx.Exec(ctx, q); err != nil {
+				return err
+			}
+		}
+		for _, st := range stmts {
+			sp, err := tx.Begin(ctx)
+			if err != nil {
+				return err
+			}
+			_, err = sp.Exec(ctx, st.sql)
+			var pe *pgconn.PgError
+			if !errors.As(err, &pe) || pe.Code != "23514" {
+				t.Errorf("%s nhận dòng tenant_id rỗng: muốn CHECK chặn (23514), được %v", st.table, err)
+			}
+			if err == nil { // lọt thì giữ dòng tới cuối giao dịch để bảng sau (khoá ngoại tới phiếu) đo đúng CHECK của nó
+				err = sp.Commit(ctx)
+			} else {
+				err = sp.Rollback(ctx)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return errRollback
+	})
+	if !errors.Is(err, errRollback) {
+		t.Fatalf("giao dịch thử: %v", err)
+	}
+}
+
 // A26: dòng sổ lệnh trỏ tới phiếu không có bị khoá ngoại từ chối; khoá ngoại là THƯỜNG (không DEFERRABLE) nên phiếu phải có TRƯỚC —
 // đảo thứ tự INSERT trong cùng giao dịch cũng bị từ chối ngay; không khoá ngoại ngược từ phiếu tới sổ lệnh và không khoá ngoại nào
 // tới bốn bảng mà Load thay thế.

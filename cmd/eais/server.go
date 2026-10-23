@@ -220,6 +220,10 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 	defer cancel()
 	// Phiên bản dữ liệu của lượt: đọc từ kho MỘT lần ở đầu lượt (app.loadedVersion) và mọi vết của lượt, kể cả lượt lỗi, mang đúng nó. Không đọc được thì
 	// lượt lỗi (đóng mặc định, như lượt không lưu được vết): câu trả lời không nói được nó dựa trên dữ liệu nào thì không phải câu trả lời của một hệ P8.
+	// Thứ tự này có giá, ghi rõ để khỏi bị coi là sơ suất (soát độc lập vòng 1, D5ES-05): đồng hồ hạn lượt (askTimeout) và truy vấn sổ chạy TRƯỚC khi đọc thân (trước 5e đồng hồ bắt đầu sau
+	// decodeAsk), nên thời gian đọc thân bị trừ vào hạn của lượt, và một lượt thân sai tốn thêm một truy vấn sổ. Không dời truy vấn xuống sau decodeAsk: lượt thân sai VẪN phải khai phiên bản
+	// trong vết (TestDataVersionErrorTurns) nên truy vấn không bỏ được, chỉ đổi chỗ gọi. Cái giá nhỏ: thân tối đa maxAskBody, http.Server có ReadTimeout, và chỉ principal đã xác thực tới được
+	// đây, chỉ lượt của chính họ bị trừ hạn. Chọn ghi chú thay vì sửa vì sửa (dời cả đồng hồ lẫn truy vấn xuống sau decodeAsk) cần thêm test cho một cái giá chưa thấy gây lỗi nào.
 	dv, verr := s.app.loadedVersion(ctx, pr.TenantID)
 	req, status, err := decodeAsk(w, r)
 	if err != nil {

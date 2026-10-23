@@ -13,6 +13,9 @@
 # migration GỐC trước đột biến) — runner chạy `scripts/mutate.sh --nen` trên database đó trước.
 # MUTATE_TEST_MUON=<regex>: "bị bắt" chỉ tính khi có test đỏ khớp regex (test nhắm tới); đỏ ở test khác là "đỏ sai chỗ".
 # Mã thoát: 0 bị bắt · 3 sống sót · 4 không biên dịch · 5 nền đỏ / chưa có nền · 6 đỏ sai chỗ · khác: lỗi dùng/khôi phục.
+# Danh mục gọi script này: chỉ scripts/dot-bien-vet.sh, scripts/dot-bien/w4-pg-rls.sh và scripts/dot-bien/m4-phieu-chenh-lech.sh đếm kết cục
+# và THOÁT KHÁC 0 khi có đột biến sống sót / nền đỏ / khác; các danh mục còn lại ở scripts/dot-bien/ chỉ in "rc=…" từng dòng và thoát 0 dù có
+# dòng rc=5 (nền đỏ) — đọc rc từng dòng, đừng tin mã thoát của chúng (nợ của soát lại 5abc, 5c-R1: rút hàm đếm ra tệp dùng chung).
 set -u
 nen_only=0
 if [ "${1:-}" = --nen ]; then

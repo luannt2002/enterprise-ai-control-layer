@@ -1,20 +1,27 @@
 # Hợp đồng việc — Phase 0a: thu báo cáo ngày của đội hiện trường (khối M2)
 
 > **Trạng thái: GIẤY, chưa có mã.**
-> - Mã Phase 0a chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong"). H4 đã khoá (`15f04f9`) và CHƯA chạy (`docs/STATUS.md`) [REPO].
-> - Soát: **chưa soát độc lập** (người viết ≠ người soát; việc của phiên điều phối). Chưa có người nghiệp vụ duyệt (D-RM-03 = "Chưa có").
+> - Mã Phase 0a chỉ mở SAU khi chạy xong H4 (`docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4: "0a (M2): sau khi H4 chạy xong"). H4 đã khoá (`15f04f9`) và đã chạy MỘT lần ngày 22/10 (`docs/STATUS.md`, dòng "H4, 22/10 14:59") [REPO]: điều kiện này đã đạt. Kết quả H4 ở tầng S4 không đổi hợp đồng này, vì Phase 0a không đi qua S4 (§1.4).
+> - Soát (mã ghi chú F01–F03, R2-01…R2-09, R3-01…R3-05, R4-01…R4-04 và R5-01…R5-03 được định nghĩa ở `docs/adr/0012-phase0a-thu-bao-cao-ngay.md`, mục "Ghi chú soát đã xử lý"):
+>   - vòng 1 (người soát ≠ người viết): **ĐẠT CÓ GHI CHÚ**, ba ghi chú S3: F01, F02, F03 (`docs/bao-cao/2026-10-22-ca.md`) [REPO];
+>   - vòng 2 (soát lại bản sửa F01–F03): **KHÔNG ĐẠT**, một ghi chú S2 (R2-01), sáu S3 (R2-02…R2-07), hai S4 (R2-08, R2-09) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
+>   - vòng 3 (soát lại bản sửa R2-01…R2-09; tác giả vòng 3 sửa R2-01 ở §5.1, §5.6, §6.2, LC77, LC78, DB29, DB30; R2-02 ở §5.6, §7.4, LK7, LC81, LC82, DB31, DB32; R2-03 ở LC76 và §11.3; R2-04 ở §3.7, BB5; R2-05 ở §3.8, §5.1, §7.2, §7.3, §7.5; R2-06 ở §5.1, LC79, LC80, DB33; R2-07 ở §14.1; R2-08 và R2-09 là chỗ nhỏ): **KHÔNG ĐẠT**, một ghi chú S2 (R3-01), ba S3 (R3-02, R3-03, R3-04), một S4 (R3-05) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp];
+>   - vòng 4 (bản chỉ sửa lỗi thuộc ngoại lệ của luật dừng (`docs/PROMPT-BUILD-EAIS.md` §9.6: an ninh, sai chiều, mất dữ liệu, gồm cộng đôi im lặng và rơi khỏi tổng im lặng)): **KHÔNG ĐẠT**, chỉ vì một chặn hẹp ở tài liệu: R4-01 (S3, tức U15); thêm ba ghi chú S4 ghi nợ (R4-02, R4-03, R4-04) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp]. Tác giả vòng 4 đã sửa: R3-01 (cộng đôi im lặng khi một bản rời nhóm) ở §5.6 mục 3 và 4, LC81, DB34; R3-04 (rơi khỏi tổng im lặng khi quyết định trên màn hình cũ) ở §6.2, §5.6 mục 3 và 4, LC83, DB35; R3-05 (e), (f) là chữ cùng chỗ với R3-04 (§6.2, §5.6 mục 4). Câu mở mới: Q-0A-16 (R3-03). Ghi nợ, không sửa luật: R3-02 ở §5.4, §7.4 (e), LC23, U13; R3-05 (a)–(d) ở U14; thêm U15 (bản được giữ của `MARK_DUPLICATE` bị thu hồi sau quyết định), tác giả vòng 4 thấy khi sửa R3-04. Điều cố ý chưa sửa là nợ ở ADR-0012 và câu mở Q-0A-13…Q-0A-16 (mặc định ghi ở §15);
+>   - vòng 5 (bản chỉ vá ngoại lệ của luật dừng: R4-01 rơi khỏi tổng im lặng, R4-02 lệch chữ): **KHÔNG ĐẠT**, chỉ vì một chặn hẹp ở tài liệu: R5-01 (S3, phần còn lại của R4-01 sau bản vá vòng 5, tức U15); thêm hai ghi chú S4 (R5-02, R5-03) [kết luận của người soát, giao cho tác giả ở lệnh ca; phiên điều phối ghi vào `docs/bao-cao/` khi gộp]. Tác giả vòng 5 đã sửa: R4-01 (= U15: bản `REJECTED` bởi `MARK_DUPLICATE` rơi khỏi tổng khi bản được giữ bị thu hồi hoặc sửa tin sau quyết định; hướng của người soát: bản đó quay lại `HELD`) ở §5.6 mục 4 (c), §3.1 (BB7), §6.2, §7.4 (c), §8, LC84, DB36, U15; R4-02 (lệch chữ: ngoại lệ (e) của §7.4 chưa mang sang các câu phổ quát) ở §7.1, §7.5, §9 (hai hàng), LC67, GA9. Ghi nợ, không sửa luật: R4-03 ("rỗng khác thiếu" của `seen_duplicate_of`) và R4-04 (bản `HELD` `possible_duplicate` rỗng `duplicate_of`) ở U14. Điều cố ý chưa sửa là nợ ở ADR-0012 và câu mở Q-0A-13…Q-0A-16 (mặc định ghi ở §15);
+>   - **bản này là vòng 6: chỉ vá R5-01 (ngoại lệ của luật dừng: rơi khỏi tổng im lặng), thêm một câu thống nhất ở §3.8 (R5-03) và đo lại số của mô phỏng (R5-02), chưa soát lại.** Sửa: R5-01 (bản `REJECTED` bởi `MARK_DUPLICATE` rơi khỏi tổng khi bản được giữ của nó cũng đang `REJECTED` bởi `MARK_DUPLICATE` rồi bị thu hồi hoặc sửa tin, người `APPLY`; hướng của người soát: mục 4 (c) chạy cho bản được giữ từ bất kỳ trạng thái) ở §5.6 mục 4 (c), §3.1, BB7, §6.2, §7.4 (c), LC84 (ca con (vii)), DB36, U15; R5-03 (§3.8 nói khác nhau về bản `REJECTED` bởi `MARK_DUPLICATE`: nay là phiên bản chờ, người `APPLY` được, phiên bản chờ có trước `MARK_DUPLICATE` vẫn hiệu lực) ở §3.8; R5-02 (số đo và câu "0 chuỗi rơi" chỉ đúng dưới giả định không viết ra: bản `REJECTED` bất động, phiên bản chờ bị bỏ im lặng) ở §5.6 "Phương án đã bỏ ở vòng 5 và vòng 6" (đo lại), U8 (giả định của mô phỏng), U15. Số lớp ca (84) và số đột biến (36) không đổi. Điều cố ý chưa sửa vẫn là nợ ở ADR-0012 và câu mở Q-0A-13…Q-0A-16 (mặc định ghi ở §15). Chưa có người nghiệp vụ duyệt (D-RM-03 = "Chưa có").
+>   - **KHOÁ ở vòng 6 (23/10, luật của chủ dự án ở `docs/PROMPT-BUILD-EAIS.md` §9.10 mục 2: giấy tối đa 3 vòng soát).** Soát vòng 6 (người soát mới, chỉ đọc): **KHÔNG ĐẠT** chỉ vì R6-01 (S3: quyết định APPLY một đính chính làm bản được giữ thành `SUPERSEDED` — một đường rời nhóm mà điều kiện (c) của `HOP-DONG.md` §5.6 mục 4 chưa kể, nên bản bị bác theo nó có thể rơi khỏi tổng im lặng) và R6-02 (S4: các câu khẳng định "không bản nào rơi khỏi tổng" chỉ đúng cho các đường đã kể). Không mở vòng 7: R6-01, R6-02 thành **nợ có mã**, chặn bằng test đỏ trong mã Phase 0a — mã giữ bất biến theo SỰ KIỆN "bản được giữ thôi được tính vì bất kỳ lý do gì ⇒ mọi bản bị bác theo nó quay lại `HELD` trong cùng giao dịch", kiểm bằng phép kiểm tính chất sau mọi sự kiện.
 >
 > **Viết cho:**
 > - chủ dự án: duyệt hoặc sửa từng quyết định, và trả lời các câu ở §15;
 > - phiên BUILD: làm theo tệp này và `docs/adr/0012-phase0a-thu-bao-cao-ngay.md` khi mã được mở;
 > - người soạn bộ ca độc lập (không đọc mã): chỉ nhận **một phần** của tệp này, xem §12.
 >
-> **Ngày:** 22/10/2026. **Mốc đọc mã:** `2b80a38` (origin/main). Tra một dòng trích bằng `git show 2b80a38:<tệp>`. Bản nháp đầu đọc ở `7d72e33`; từ đó tới `2b80a38` mã đổi ở `data/normalization/numwords_vi.go` (D-OP-14 đã sửa bộ đọc số: HT-6 và HT-7 hết), `core/pipeline`, `core/tenant/pack.go`, `intelligence/` và ba tệp yaml của pack (`intents`, `lexicon`, `templates`); tầng nạp không đổi (§1.3.1). Làn 1 còn sửa "≈" (HT-1) và có thể đổi `data/normalization/` thêm: đo lại trước khi dựa vào.
+> **Ngày:** 22/10/2026. **Mốc đọc mã:** `2b80a38` (origin/main). Tra một dòng trích bằng `git show 2b80a38:<tệp>`. Bản nháp đầu đọc ở `7d72e33`; từ đó tới `2b80a38` mã đổi ở `data/normalization/numwords_vi.go` (D-OP-14 đã sửa bộ đọc số: HT-6 và HT-7 hết), `core/pipeline`, `core/tenant/pack.go`, `intelligence/` và ba tệp yaml của pack (`intents`, `lexicon`, `templates`); tầng nạp không đổi (§1.3.1). Làn 1 còn sửa "≈" (HT-1) và có thể đổi `data/normalization/` thêm: đo lại trước khi dựa vào. Bản sửa F01–F03 đọc thêm phần M1 (làn 0, đã lên main) ở `41bc3cf`; origin/main lúc sửa là `f28ce06`, cùng mã với `41bc3cf` [ĐO `git diff --name-only 41bc3cf f28ce06` → chỉ tệp `docs/`]. Các `tệp:dòng` của M1 ghi ở mốc `41bc3cf`. Bản sửa vòng 3 được rebase lên origin/main `269a539`; từ `f28ce06` tới `269a539` không tệp mã nào đổi [ĐO `git diff --name-only f28ce06 269a539` → 9 tệp, đều là tài liệu: `CHANGELOG.md` và tệp dưới `docs/`], nên mọi `tệp:dòng` [CODE] vẫn đúng; các dòng [CODE] thêm ở vòng 3 đọc ở `269a539`.
 >
 > **Nhãn bằng chứng:**
 > - [ĐO]: người viết tự chạy lệnh, đo ở `7d72e33` rồi đo lại ở `2b80a38` (§1.3.3 ghi cách làm; test thăm dò tạm, không commit, đã xoá);
 > - [REPO]: tài liệu repo tự ghi, chưa chạy lại;
-> - [CODE]: đọc thấy trong mã, `tệp:dòng` tại `2b80a38`;
+> - [CODE]: đọc thấy trong mã, `tệp:dòng` tại `2b80a38` (riêng phần M1: `41bc3cf`);
 > - [SUY]: suy luận của người viết;
 > - [NGOÀI]: nguồn công khai ngoài repo, đọc ngày 22/10/2026 (`CONG-QUANIT.md` §4);
 > - [ĐỀ XUẤT]: chưa quyết, đảo được. Mọi tên kiểu, tên trường, mã lý do, ngưỡng và số trong tệp này là [ĐỀ XUẤT], trừ chỗ ghi nguồn khác.
@@ -22,19 +29,19 @@
 >
 > **Dữ liệu:** mọi tên máy, dự án, người gửi, con số là giả lập (tenant `abc-infra` hư cấu). Mọi kết luận: **trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt**.
 >
-> **Mã dùng trong tệp** (chọn để không trùng M1–M5 của MVP, K1–K5 của audit, B1 / B2 của baseline G7, C0–C7 của pipeline lệnh): HT = hiện trạng · BB = bất biến · LK, LT = luật loại tin, thời gian · TR = mức chống trùng · CL = bất biến cách ly · LC = lớp ca âm · GA = dòng cổng · DB = đột biến · KV = kênh vào · Q-0A = câu mở · U = chưa kiểm chứng.
+> **Mã dùng trong tệp** (chọn để không trùng M1–M5 của MVP, K1–K5 của audit, B1 / B2 của baseline G7, C0–C7 của pipeline lệnh): HT = hiện trạng · BB = bất biến · LK, LT = luật loại tin, thời gian · TR = mức chống trùng · CL = bất biến cách ly · LC = lớp ca âm · GA = dòng cổng · DB = đột biến · KV = kênh vào · Q-0A = câu mở · U = chưa kiểm chứng · F, R2, R3, R4 = mã ghi chú của người soát (định nghĩa ở ADR-0012).
 
 ---
 
 ## 0. Tóm tắt
 
-- **Việc:** đội hiện trường báo cáo lượng dầu của từng máy trong ngày bằng tin nhắn nhóm hoặc tệp. EAIS biến **mỗi đơn vị đầu vào** thành đúng một kết cục có lý do: nhận (`ACCEPTED`), chờ xác nhận (`HELD`), cách ly (`QUARANTINED`), trùng (`DUPLICATE`).
+- **Việc:** đội hiện trường báo cáo lượng dầu của từng máy trong ngày bằng tin nhắn nhóm hoặc tệp. EAIS biến **mỗi lần giao một đơn vị đầu vào** thành đúng một kết cục có lý do: nhận (`ACCEPTED`), chờ xác nhận (`HELD`), cách ly (`QUARANTINED`), trùng (`DUPLICATE`). Kết cục của từng lần giao nằm ở **sổ lần giao** (chỉ thêm); bản ghi báo cáo, mỗi đơn vị một bản, chỉ có cho ba kết cục đầu: lần giao trùng không tạo bản ghi (§3.8).
 - **Vào:** bốn kênh (§2.1): tệp tin nhắn đã xuất, tệp báo cáo, bản ghi từ form / bot, ảnh và tệp lạ (cách ly, chưa đọc).
 - **Ra:** bản ghi báo cáo mang hai trục cờ: loại (`OCCURRED`, `PLAN`, `CORRECTION`) và `approx`. Từ hai trục suy ra bốn cờ của brief: đã xảy ra, ước lượng, đính chính, kế hoạch (§3.3).
 - **Năm bảo đảm chính:** (1) không đơn vị nào rơi im lặng; (2) cờ loại đúng; (3) không cộng đôi và không gộp oan; (4) đọc số tất định; (5) cách ly lưu bền, có lý do và người nhận, xuất được báo cáo.
 - **Thêm:** ngày xảy ra đọc từ chữ (§3.5); quyền người gửi theo máy (§4); phục hồi: gửi lại, sửa tin, thu hồi, đảo thứ tự, dừng giữa lô (§7).
 - **Phép chiếu sang kho sự thật:** chỉ bản ghi `ACCEPTED` loại `OCCURRED` thành fact; kho đọc `aggregate` không đổi (§3.6).
-- **Cổng ra:** 11 dòng GA1–GA11 (§11). M2 ra khi GA1–GA6 đạt; "PHASE 0A RA" đòi thêm GA7–GA11. Ngưỡng độ chính xác (GA6) là **ĐỀ XUẤT** và chưa có người ký.
+- **Cổng ra:** 11 dòng GA1–GA11 (§11). M2 ra khi GA1–GA6 đạt; "PHASE 0A RA" đòi thêm GA7–GA11. Mỗi dòng có ít nhất một đột biến bắt buộc đỏ, và mỗi cặp (đột biến, dòng) ghi lớp ca của chính dòng đó làm nó đỏ (§11.3). Ngưỡng độ chính xác (GA6) là **ĐỀ XUẤT** và chưa có người ký.
 - **Nhánh form / bot** (§13): cùng hợp đồng đầu ra, đo song song với đường chat bằng bản chiếu cặp.
 - **Chưa biết:** §16. Câu gửi chủ dự án: §15.
 
@@ -44,7 +51,7 @@
 
 ### 1.1 Việc
 
-> Với mỗi tin nhắn, dòng báo cáo hoặc hàng bảng mà đội hiện trường gửi: EAIS đọc, chuẩn hoá, nhận dạng máy, phân loại tin (đã xảy ra, ước lượng, đính chính, kế hoạch), kiểm miền, chống trùng, kiểm quyền người gửi; rồi ghi **đúng một** kết cục có lý do. Bản ghi nhận được đi vào kho sự thật; mọi thứ khác nằm ở hàng chờ hoặc cách ly, có người nhận, có thể xuất báo cáo.
+> Với mỗi tin nhắn, dòng báo cáo hoặc hàng bảng mà đội hiện trường gửi: EAIS đọc, chuẩn hoá, nhận dạng máy, phân loại tin (đã xảy ra, ước lượng, đính chính, kế hoạch), kiểm miền, chống trùng, kiểm quyền người gửi; rồi ghi **đúng một** kết cục có lý do (một dòng ở sổ lần giao, §3.8). Bản ghi nhận được đi vào kho sự thật; mọi thứ khác nằm ở hàng chờ hoặc cách ly, có người nhận, có thể xuất báo cáo; lần giao trùng chỉ để lại dòng ở sổ.
 
 - **Nguồn của việc:** `docs/ROADMAP-DAY-DU.md` §5 (luồng L1), §5b (khối M2), §6 (dòng Phase 0a); `docs/PROMPT-BUILD-EAIS.md` §9.1–§9.3.
 - **Chế độ B** (EAIS thu, chuẩn hoá, đối soát, lưu trữ): doanh nghiệp chỉ có Zalo, bảng tính, giấy, ảnh (`docs/tenants/construction/01-business-map.md:139-144`) [REPO].
@@ -55,7 +62,7 @@
 | Làm | Không làm (và ở đâu) |
 |---|---|
 | nạp tin nhắn nhóm đã xuất (JSON Lines) và tệp báo cáo (PDF văn bản, xlsx, csv, json) cho `reported_fuel` | connector Zalo trực tiếp, gửi tin trả lời cho người gửi: Phase 8 |
-| mỗi đơn vị đúng một kết cục có lý do; kho bản ghi lưu bền | đọc ảnh, OCR: Phase 6 (ảnh → cách ly `unsupported_media`) |
+| mỗi lần giao đúng một kết cục có lý do (sổ lần giao, §3.8); kho bản ghi lưu bền | đọc ảnh, OCR: Phase 6 (ảnh → cách ly `unsupported_media`) |
 | hai trục cờ `kind` × `approx`, gán bằng luật tất định từ lexicon của pack | mọi lời gọi model (D-AI-00; `CLAUDE.md` §19) |
 | ngày xảy ra đọc từ chữ khi có (§3.5) | áp đính chính tự động bằng mô hình sự kiện, tin đến muộn so với kỳ đã đóng: Phase 3 |
 | chống trùng ba mức; không khử trùng theo giá trị (§5) | tạo phiếu khi có chênh lệch: Phase 1 (M4) |
@@ -74,7 +81,7 @@
 | đọc theo loại | 5 định dạng: csv, xlsx, json, jsonl, pdf_lines (`data/ingestion/readers.go:37-52`, `sources.go:60`); cấu hình sai bị chặn lúc khởi động (`sources.go:62-130`) | ảnh, tệp lạ |
 | loại nguồn của tin chat và PDF | `chat_message`: chữ tự do, đơn vị mặc định L, kế thừa thực thể (`tenants/construction/pack/sources.yaml:46-52`); `site_report_form`: PDF (`sources.yaml:55-60`) | loại nguồn cho bảng do đội gửi; nguồn form / bot |
 | quan sát | `Observation`: khoá, tenant, thực thể, chỉ số, nguồn, ngày, giá trị (kèm `Approx`), nguyên văn, ghi chú (`ingest.go:19-31`) | giờ gửi, người gửi, loại, kết cục, phiên bản, tham chiếu đính chính |
-| cách ly | `Quarantine{Key, Tenant, Source, Reason, Detail}`; `Result` trả về trong RAM (`ingest.go:33-42`, `:174-176`); chỉ harness đo dùng (`tenants/construction/win/winrun/winrun.go:145`, `:315`) | lưu bền, người nhận, trạng thái, xuất báo cáo |
+| cách ly | `Quarantine{Key, Tenant, Source, Reason, Detail}`; `Result` trả về trong RAM (`ingest.go:33-42`, `:174-176`); harness đo dùng (`tenants/construction/win/winrun/winrun.go:145`, `:315`). M1 đã lưu bền khoá, nguồn, lý do, chi tiết của cách ly ở bảng `quarantine_records`, theo mã lần nạp (`cmd/eais/app.go:278-286`, `db/migrations/0003_kho_vet_ben.sql:44`) [CODE `41bc3cf`] | người nhận, trạng thái, xuất báo cáo; kết cục chờ xác nhận và trùng; lưu ở mức từng đơn vị (M1 chỉ lưu cách ly của lần nạp thư mục) |
 | mã lý do | sáu mã: `missing_value`, `unknown_entity`, `ambiguous_entity`, `out_of_range`, `unit_dimension`, `unparseable` (`sources.go:18-26`) | các mã mới ở §3.4 |
 | ngày | tin chat: `sent_at` cắt về 00:00 ngày gửi theo múi giờ tenant (`ingest.go:244-250`); PDF: ngày ở tên tệp (`:240-243`); nguồn có cấu trúc: cột ngày (`:208`) | ngày viết trong chữ không được dùng: `Now: on` ở `:257` tính span ngày rồi bỏ |
 | thực thể | bộ nhận dạng của luồng hỏi (`:258`); số trong tên máy bị loại khỏi lượng (`:265-270`); bí danh mơ hồ → cách ly (`:262-264`); một tin nhiều máy → cách ly (`:286-287`); kế thừa thực thể của tin trước, cùng người, cùng ngày (`:271-285`) | phạm vi người gửi; ứng viên trong phạm vi |
@@ -83,10 +90,10 @@
 | khoá bản ghi | `<tệp>#<record_id>` (`ingest.go:173`); chú thích hứa dự phòng bằng số dòng (`:22`) nhưng mã không làm | khoá tất định khi thiếu hay trùng `record_id` (HT-8) |
 | cầu sang kho sự thật | `Result.Facts()`: ID là khoá; `Source` chỉ có ID, loại nguồn, tham chiếu, nguyên văn (`data/ingestion/bridge.go:36-45`) | giờ gửi, người gửi; lọc theo kết cục và loại |
 | cộng | `aggregate` cộng mọi fact cùng loại nguồn trong (thực thể, ngày) (`data/sourceoftruth/query.go:199-221`), đúng thiết kế (`TestCungNguonCungNgayLaCongDon`, `query_test.go:53`) | khử trùng ở phía nạp |
-| lưu bền | bảng `facts` có `approx`, `source_type`, `source_ref`, `raw`, `observed_at`, `reported_by` (`platform/pgstore/load.go:76-95`); `Load` thay trọn dữ liệu tenant (`load.go:21-48`) | bảng bản ghi báo cáo; nạp thêm, không thay trọn |
+| lưu bền | bảng `facts` có `approx`, `source_type`, `source_ref`, `raw`, `observed_at`, `reported_by` (`platform/pgstore/load.go:76-95`); `Load` thay trọn dữ liệu tenant (`load.go:21-48`); từ M1, các `Load` cùng tenant xếp hàng bằng `pg_advisory_xact_lock` (`platform/pgstore/load.go:19-42` tại `41bc3cf`) | bảng bản ghi báo cáo và sổ lần giao; nạp thêm, không thay trọn |
 | đo | G1 hiện so cả cờ ước lượng: 2.736/2.739, ba lệch đã biết ghim ở `tenants/construction/win/g1-approx-known.txt` (`docs/STATUS.md:62`) [REPO] | — |
 
-Tầng nạp **không đổi**: `data/ingestion`, `data/sourceoftruth`, `data/entityresolution`, `platform/` và các tệp pack `sources.yaml`, `metrics.yaml`, `policy.yaml`, `pack.yaml` giống hệt từ `7d72e33` tới `2b80a38` [ĐO `git diff --stat 7d72e33 2b80a38 -- data/ingestion data/sourceoftruth data/entityresolution platform tenants/construction/pack/sources.yaml tenants/construction/pack/metrics.yaml tenants/construction/pack/policy.yaml tenants/construction/pack/pack.yaml` → rỗng], và từ `7cad584` (mốc đo K1–K5) tới `7d72e33` [ĐO `git diff --stat 7cad584 7d72e33 -- data core intelligence platform tenants/construction/pack` → 5 tệp, đều ngoài tầng nạp]. Đổi từ `7d72e33` tới `2b80a38`: `data/normalization/numwords_vi.go` (D-OP-14: bộ đọc số bằng chữ đọc theo lối nói tắt; `AmbiguousNumberWords` ở `numwords_vi.go:88`), `core/pipeline/`, `core/tenant/pack.go`, `intelligence/`, `intents.yaml`, `lexicon.yaml`, `templates.yaml` [ĐO `git diff --stat 7d72e33 2b80a38 -- data platform core tenants/construction/pack intelligence db` → 13 tệp].
+Tầng nạp **không đổi**: `data/ingestion`, `data/sourceoftruth`, `data/entityresolution`, `platform/` và các tệp pack `sources.yaml`, `metrics.yaml`, `policy.yaml`, `pack.yaml` giống hệt từ `7d72e33` tới `2b80a38` [ĐO `git diff --stat 7d72e33 2b80a38 -- data/ingestion data/sourceoftruth data/entityresolution platform tenants/construction/pack/sources.yaml tenants/construction/pack/metrics.yaml tenants/construction/pack/policy.yaml tenants/construction/pack/pack.yaml` → rỗng], và từ `7cad584` (mốc đo K1–K5) tới `7d72e33` [ĐO `git diff --stat 7cad584 7d72e33 -- data core intelligence platform tenants/construction/pack` → 5 tệp, đều ngoài tầng nạp]. Từ `2b80a38` tới `f28ce06`: `data/ingestion`, `data/sourceoftruth`, `data/entityresolution` và bốn tệp pack trên giống hệt [ĐO `git diff --stat 2b80a38 f28ce06 -- data/ingestion data/sourceoftruth data/entityresolution tenants/construction/pack/sources.yaml tenants/construction/pack/metrics.yaml tenants/construction/pack/policy.yaml tenants/construction/pack/pack.yaml` → rỗng]; `platform/pgstore/` đổi vì M1 (`vet.go`, `ready.go` mới; `load.go`, `migrate.go` thêm khoá tư vấn). Đổi từ `7d72e33` tới `2b80a38`: `data/normalization/numwords_vi.go` (D-OP-14: bộ đọc số bằng chữ đọc theo lối nói tắt; `AmbiguousNumberWords` ở `numwords_vi.go:88`), `core/pipeline/`, `core/tenant/pack.go`, `intelligence/`, `intents.yaml`, `lexicon.yaml`, `templates.yaml` [ĐO `git diff --stat 7d72e33 2b80a38 -- data platform core tenants/construction/pack intelligence db` → 13 tệp].
 
 #### 1.3.2 Mười lỗi hiện trạng (HT-1…HT-10): tám còn mở, HT-6 và HT-7 đã sửa ở `2b80a38`
 
@@ -101,7 +108,7 @@ Tầng nạp **không đổi**: `data/ingestion`, `data/sourceoftruth`, `data/en
 | HT-7 | số bằng chữ không dấu không tất định (**ĐÃ SỬA** ở `2b80a38`) | tin 18 "hai muoi lit", 20 tiến trình riêng: ở `7d72e33` 14 lần "10 L", 6 lần "20 L"; ở `2b80a38` 20/20 lần "20 L" | [ĐO] [REPO báo cáo K1–K5 mục 4] |
 | HT-8 | khoá bản ghi trùng | hai tin không có `record_id` cùng khoá `messages.jsonl#`; hai tin cùng `record_id` "X-1" cùng khoá `messages.jsonl#X-1` | [ĐO] [CODE `ingest.go:173`] |
 | HT-9 | dòng PDF không khớp mẫu bị bỏ im lặng | `readers.go:165-177`: chỉ dòng `n. chữ` được giữ | [CODE] [REPO `docs/ROADMAP.md` §0.4 mục 12]; chưa đo ở mốc này |
-| HT-10 | cách ly chỉ trong RAM, không người nhận, không xuất | `ingest.go:33-42`; `Load` không lưu cách ly (`load.go:21-48`); `docs/01-architecture.md` §4, hàng "cách ly" | [CODE] [REPO] |
+| HT-10 | cách ly chỉ trong RAM, không người nhận, không xuất (ở `2b80a38`; M1 đã lưu bền khoá, nguồn, lý do, chi tiết của cách ly theo lần nạp, vẫn chưa có người nhận, trạng thái, xuất) | `ingest.go:33-42`; `Load` không lưu cách ly (`load.go:21-48`); `docs/01-architecture.md` §4, hàng "cách ly"; M1: `cmd/eais/app.go:278-286`, `db/migrations/0003_kho_vet_ben.sql:44` | [CODE] [REPO] |
 
 Hành vi hiện có **đúng hướng**, giữ lại [ĐO]: một tin nhiều máy → cách ly `ambiguous_entity` (tin 10); tin thiếu lượng → `missing_value` (tin 12); tin kế thừa thực thể có `note` (tin 16); 20 tin vào = 17 quan sát + 3 cách ly, không tin nào mất. Hai điểm lệch nhỏ: tin chỉ có đính kèm (text rỗng, tin 14) ra `unknown_entity` "tin không nhắc thiết bị nào", lý do gây hiểu lầm; trường lạ của tin (ví dụ `attachments`) bị bỏ im lặng (`ingest.go:164-169`: chỉ đọc cột đã ánh xạ) [ĐO + CODE].
 
@@ -135,7 +142,10 @@ Hành vi hiện có **đúng hướng**, giữ lại [ĐO]: một tin nhiều m�
 
 ### 1.4 Liên hệ với các khối khác
 
-- **M1 (làn 0):** `POST /v1/ingest` gọi hàm nạp theo hợp đồng này; principal và tenant lấy từ token, không từ body. Mỗi đơn vị có vết từng bước (đọc, chuẩn hoá, thực thể, gán nghĩa, thời gian, kiểm miền, cách ly, đối soát; `docs/PROMPT-BUILD-EAIS.md` §9.4). Cách phát vết do làn 0 quyết; hợp đồng này chỉ đòi mỗi đơn vị có vết (GA10).
+- **M1 (làn 0, đã lên main ở `41bc3cf`)** [CODE `41bc3cf`]:
+  - `POST /v1/ingest` (`cmd/eais/server.go:361`): principal và tenant lấy từ token, không từ body; thân phải rỗng hoặc `{}`; nạp lại **thư mục dữ liệu đã cấu hình** của tenant, chỉ vai toàn quyền; một tiến trình một lần nạp (`ingestMu`, `:53`, `:374`). Đường nạp từng đơn vị (phong bì tin, §2.2) là việc của M2; hợp đồng này đòi đường đó dùng chung cách lấy principal và tenant từ token. Việc này, cùng việc nối `POST /v1/ingest` sang kho bản ghi (hôm nay `ingest` vẫn gọi `Load` thay trọn dữ liệu của tenant, `cmd/eais/app.go:247-292`, `:286` [CODE `269a539`]), nằm ở `cmd/eais/`, tức write-set của làn 0, không thuộc write-set làn 4: §14.1 (bảng việc, làn, tệp), Q-0A-15.
+  - Migration `0003` (kho vết bền): `decision_records` (vết quyết định của lượt hỏi), `quarantine_records` (cách ly theo mã lần nạp), `usage_records`; vai `eais_app` chỉ SELECT + INSERT (`db/migrations/0003_kho_vet_ben.sql:44`, `:86`). Quan hệ với kho bản ghi và sổ lần giao của hợp đồng này: §3.8, U2.
+  - Vết từng bước: mã bước S0–S10 và tám mã của tầng nạp `L1.read`, `L1.normalize`, `L1.entity`, `L1.semantic`, `L1.time`, `L1.domain`, `L1.quarantine`, `L1.reconcile` (`observability/traces/step.go:32-39`; `ValidStage` nhận `L1.<tên>`, `:60`), khớp tám bước nạp của `docs/PROMPT-BUILD-EAIS.md` §9.4. Chưa có chỗ nào phát bước `L1.*` hay lưu vết của một đơn vị nạp (chỉ có hằng số: tìm `StageIngest` trong mã không phải test chỉ thấy `step.go:32-39` [ĐO `grep` ở `269a539`]): mã nạp của M2 phải móc thêm, ở `observability/` và `cmd/eais/` (write-set của làn 0: §14.1). Hợp đồng này chỉ đòi mỗi lần giao của mỗi đơn vị, kể cả `QUARANTINED` và `DUPLICATE`, có vết từng bước kèm lý do và phương án bị loại (GA10).
 - **M3 và H4:** Phase 0a không đi qua S4. Cổng đọc lại đi qua kho sự thật (`sourceoftruth`), không qua luồng hỏi S0–S10; H4 không bị đổi.
 - **M5 (CỔNG TRƯỚC AI):** GA1–GA5 là các hàng L1 và S2 của `docs/PROMPT-BUILD-EAIS.md` §9.3; GA9 phủ phần "khởi động lại giữa chừng" của hàng Vận hành; GA10 phủ phần nạp của hàng Vết.
 - **Phase 3:** sửa tận gốc đính chính, kế hoạch, đến muộn bằng mô hình sự kiện (`docs/ROADMAP-DAY-DU.md` §5 L5). Hợp đồng này chỉ chặn lỗi im lặng (cờ và chờ xác nhận); các trường `kind`, `corrects`, `supersedes`, `version` được chọn để Phase 3 dùng lại.
@@ -190,10 +200,10 @@ Connector trực tiếp (webhook Zalo, email) là Phase 8. Bộ chuyển đổi 
 ### 2.4 Đơn vị đầu vào và khoá đơn vị
 
 - **Đơn vị** là: một tin (kể cả tin chỉ có đính kèm); một dòng PDF không rỗng; một hàng dữ liệu của bảng; một tệp không đọc được. Dòng hoặc hàng chỉ có khoảng trắng không phải đơn vị.
-- **`unit_key` tất định**, duy nhất trong tenant:
+- **`unit_key` tất định**, duy nhất trong kho bản ghi của tenant (khoá duy nhất `(tenant, unit_key)` chỉ áp cho kho bản ghi, §3.8; cùng một `unit_key` được phép xuất hiện ở nhiều dòng của sổ lần giao):
   - `<kênh hoặc tệp tương đối>#<mã nguồn của đơn vị>` khi có mã nguồn (`record_id`, `source_message_id`, số dòng PDF);
   - `<tệp>#L<thứ tự dòng>` khi không có mã nguồn.
-- Hai đơn vị khác nội dung **không** được chung `unit_key` (HT-8). Cùng mã nguồn, khác nội dung, không có `edited_of` → `HELD` với mã `id_conflict`; có `edited_of` → sửa tin (§7.2).
+- Hai đơn vị khác nội dung **không** được chung `unit_key` (HT-8). Cùng mã nguồn, khác nội dung, không có `edited_of` → `HELD` với mã `id_conflict`; bản đến sau mang `unit_key` thêm hậu tố `~<8 ký tự đầu của sha256 nội dung chuẩn hoá>` để không chung khoá với bản đã có (giao lại đúng nội dung đó thì gặp chính khoá này và thành `DUPLICATE`). Có `edited_of` → sửa tin (§7.2); có `recalled` → thu hồi (§7.3). Thứ tự áp của mọi loại lần giao: bảng ở §3.8.
 
 ### 2.5 Điều không được làm với đầu vào
 
@@ -208,27 +218,31 @@ Connector trực tiếp (webhook Zalo, email) là Phase 8. Bộ chuyển đổi 
 
 ### 3.1 Bốn kết cục và các bất biến
 
-| Kết cục | Nghĩa | Vào tổng đọc? |
-|---|---|---|
-| `ACCEPTED` | đọc được đủ, tự động; mang cờ loại | có, nếu `kind = OCCURRED` |
-| `HELD` | cần người quyết: có ứng viên hoặc câu hỏi cụ thể (mơ hồ, nghi trùng, đính chính, …) | không |
-| `QUARANTINED` | không thành bản ghi hợp lệ như đầu vào hiện có (không đọc được, ngoài miền, thiếu, lạ) | không |
-| `DUPLICATE` | trùng đơn vị đã có; không tạo bản ghi nghiệp vụ mới, chỉ ghi vết trỏ về bản gốc | không (bản gốc đã tính) |
+Bốn kết cục là kết cục của **một lần giao** (một đơn vị đến ở một lô, §3.8). Ba kết cục đầu cho (hoặc sửa) **bản ghi báo cáo** trong kho bản ghi (§3.2), mỗi đơn vị một bản. `DUPLICATE` thì **không**: nó chỉ có dòng ở **sổ lần giao**, trỏ về bản đã có, nên không bao giờ thành bản ghi thứ hai của cùng `unit_key`. Với lần giao sửa tin hoặc thu hồi, kết cục là của **lần giao** (bảng ở §3.8), không phải trạng thái của bản ghi: lần giao thu hồi được nhận là `ACCEPTED` còn bản ghi bị thu hồi là `RETRACTED`.
 
-Trạng thái vòng đời thêm sau quyết định: `SUPERSEDED` (bị bản mới thay), `RETRACTED` (thu hồi), `REJECTED` (người bác). Không vào tổng.
+| Kết cục | Nghĩa | Nằm ở | Vào tổng đọc? |
+|---|---|---|---|
+| `ACCEPTED` | đọc được đủ, tự động; mang cờ loại | sổ lần giao và kho bản ghi | có, nếu `kind = OCCURRED` |
+| `HELD` | cần người quyết: có ứng viên hoặc câu hỏi cụ thể (mơ hồ, nghi trùng, đính chính, …) | sổ lần giao và kho bản ghi | không |
+| `QUARANTINED` | không thành bản ghi hợp lệ như đầu vào hiện có (không đọc được, ngoài miền, thiếu, lạ) | sổ lần giao và kho bản ghi | không |
+| `DUPLICATE` | lần giao trùng một đơn vị đã có (TR1 hoặc TR2, §5.1): không tạo bản ghi, chỉ một dòng sổ trỏ về bản đã có | **chỉ sổ lần giao** | không (bản đã có đã tính theo trạng thái của nó) |
+
+Trạng thái vòng đời thêm sau quyết định, chỉ ở kho bản ghi: `SUPERSEDED` (bị bản mới thay), `RETRACTED` (thu hồi), `REJECTED` (người bác, kể cả `MARK_DUPLICATE`: §6.2). Không vào tổng. Riêng `REJECTED` bởi `MARK_DUPLICATE` quay lại `HELD` khi bản được giữ rời nhóm bằng thu hồi hoặc sửa tin, từ bất kỳ trạng thái nào của bản được giữ, kể cả khi nó cũng đang `REJECTED` bởi `MARK_DUPLICATE` (§5.6 mục 4 (c), BB7).
 
 | Mã | Bất biến |
 |---|---|
-| **BB1** | Bảo toàn: với mọi lô, số đơn vị vào = `ACCEPTED` + `HELD` + `QUARANTINED` + `DUPLICATE` (theo kết cục lúc xử lý). Mỗi đơn vị đúng một kết cục tại một thời điểm và có dòng trong kho. |
+| **BB1** | Bảo toàn, đếm trên **sổ lần giao** (§3.8): với mọi lô chạy tới cuối, số đơn vị vào = số dòng sổ của lô = `ACCEPTED` + `HELD` + `QUARANTINED` + `DUPLICATE` (theo kết cục lúc xử lý); mỗi lần giao đúng một dòng, đúng một kết cục. Mỗi `unit_key` có ít nhất một lần giao khác `DUPLICATE` thì có đúng một bản ghi hiện hành trong kho bản ghi; mỗi dòng `DUPLICATE` trỏ về một bản ghi có thật. Lô dừng giữa chừng chỉ có dòng của đơn vị đã xử lý xong (§7.5); lô chạy lại là lô mới. |
 | **BB2** | Mọi kết cục khác `ACCEPTED` có mã lý do thuộc danh sách đóng (§3.4); mọi `HELD` và `QUARANTINED` có người nhận (§6.3). |
 | **BB3** | Chỉ bản ghi `ACCEPTED` với `kind = OCCURRED` thành fact (§3.6). Mọi thứ khác không bao giờ vào tổng. |
 | **BB4** | `raw` giữ nguyên byte; không chuẩn hoá lại. |
-| **BB5** | Tất định: cùng đầu vào và cùng phiên bản pack thì cùng kết cục, cùng trường, cùng báo cáo xuất, qua mọi tiến trình. |
+| **BB5** | Tất định: cùng đầu vào và cùng phiên bản pack thì cùng kết cục, cùng trường, cùng báo cáo xuất, qua mọi tiến trình. Phép so bỏ **trường của hệ** (§3.7): `trace_id`, `decided_at` và mọi dấu thời gian do hệ sinh lúc chạy. |
 | **BB6** | Đơn điệu về an toàn: luật không chắc thì `HELD` hoặc `QUARANTINED`, không `ACCEPTED` với giá trị đoán. |
-| **BB7** | Quyết định của người không bị máy ghi đè im lặng (tin sửa, nạp lại, xử lý lại luật). |
+| **BB7** | Quyết định của người không bị máy ghi đè im lặng (tin sửa, nạp lại, xử lý lại luật). Hai ngoại lệ có tên, không im lặng, cả hai chỉ đưa bản về hàng chờ có người nhận (quyết định cũ còn ở lịch sử): (1) TR3 không bị miễn bởi quyết định của người (§5.6 mục 3): bản vừa được người quyết, hoặc đã quyết từ trước, vẫn bị giữ `HELD` `possible_duplicate` khi có bản liền kề cách ≤ W mà người chưa xét cặp; (2) bản `REJECTED` bởi `MARK_DUPLICATE` quay lại `HELD` `possible_duplicate` khi bản được giữ rời nhóm bằng thu hồi hoặc sửa tin, kể cả khi bản được giữ đang `REJECTED` bởi `MARK_DUPLICATE` (§5.6 mục 4 (c)). |
 | **BB8** | Tenant chỉ từ danh tính; không bản ghi nào của tenant này hiện ra ở tenant khác. |
 
 ### 3.2 Bản ghi báo cáo (`ReportRecord`, tên đề xuất)
+
+Mỗi `unit_key` đúng một bản ghi hiện hành (khoá duy nhất `(tenant, unit_key)`), kèm lịch sử phiên bản. Chỉ có bản ghi cho `ACCEPTED`, `HELD`, `QUARANTINED`; `DUPLICATE` không phải giá trị của `disposition` (§3.8). Ngoại lệ duy nhất: **dấu thu hồi** đến trước tin gốc là một bản ghi `RETRACTED` chưa có nội dung (§3.8, §7.3).
 
 | Trường | Nghĩa | Hiện có? |
 |---|---|---|
@@ -246,10 +260,10 @@ Trạng thái vòng đời thêm sau quyết định: `SUPERSEDED` (bị bản m
 | `corrects` | tham chiếu bản ghi bị đính chính, nếu biết | không |
 | `raw` | nguyên văn | `Raw` |
 | `note` | suy luận đã áp: kế thừa thực thể, đơn vị mặc định, ngày mặc định | `Note` |
-| `disposition`, `reason`, `detail`, `recipient` | kết cục, mã lý do, chi tiết, người nhận | `Quarantine.Reason`, `Detail` |
-| `duplicate_of` | trỏ về bản gốc | không |
-| `version`, `supersedes` | phiên bản khi sửa tin | không |
-| `decided_by`, `decided_at`, `decision` | quyết định của người | không |
+| `disposition`, `reason`, `detail`, `recipient` | kết cục hiện hành (`ACCEPTED`, `HELD`, `QUARANTINED`; đổi theo quyết định hoặc đánh giá lại TR3, §5.6), mã lý do, chi tiết, người nhận | `Quarantine.Reason`, `Detail` |
+| `duplicate_of` | bản kia trong cặp nghi trùng (TR3: bản đứng ngay trước, §5.1), hoặc bản được giữ khi người quyết `MARK_DUPLICATE` (bản `REJECTED` quay lại `HELD` thì tính lại: bản đứng ngay trước hoặc rỗng, §5.6 mục 4 (c); giá trị cũ ở lịch sử); **không** dùng cho `DUPLICATE` của TR1, TR2 (trỏ ở sổ lần giao, §3.8) | không |
+| `version`, `supersedes` | phiên bản khi sửa tin; **phiên bản chờ** là phiên bản do lần giao sửa tin hoặc thu hồi chạm bản đã có quyết định của người, chưa hiện hành cho tới khi người `APPLY` (§3.8) | không |
+| `decided_by`, `decided_at`, `decision` | quyết định của người; `KEEP_BOTH` thêm `unit_key` của bản kia vào **danh sách cặp đã xét** của bản ghi, cộng dồn (§5.6 mục 3) | không |
 | `pack_version` | phiên bản pack lúc xử lý (`core/tenant/pack.go:98-100`) | không |
 | `trace_id` | vết (làn 0) | không |
 
@@ -270,9 +284,9 @@ Hai trục độc lập: `kind` ∈ {`OCCURRED`, `PLAN`, `CORRECTION`} và `appr
 | **LK2** | Danh sách từ khoá nằm ở pack (lexicon), có phiên bản. Mã dùng chung không chứa từ miền (đã có nợ tương tự: D-OP-8, `qualifier.go`). |
 | **LK3** | Phân loại bảo thủ **cả hai chiều**. Gắn `PLAN` hay `CORRECTION` oan làm số thật biến khỏi tổng (thiếu số); bỏ sót làm số không thật vào tổng (S1). Từ khoá có mặt nhưng phần còn lại không đọc chắc → `HELD` mã `ambiguous_kind`. |
 | **LK4** | Không dùng model, không dùng thứ tự đến, không dùng giá trị để phân loại. |
-| **LK5** | Nghĩa hậu tố "k" ("2k" là số đo viết tắt hay ước lượng) **chưa chốt**: D-OP-17 (`docs/CHO-QUYET-DINH.md:133`, mới 22/10 trưa, cột trả lời trống). Hợp đồng không định nghĩa "2k" là ước lượng hay không; bộ ca độc lập không có ca mà kỳ vọng phụ thuộc điều đó (§12). |
+| **LK5** | Nghĩa hậu tố "k" ("2k" là số đo viết tắt hay ước lượng) **chưa chốt**: D-OP-17 (`docs/CHO-QUYET-DINH.md`, mục 3, dòng D-OP-17: dòng 134 tại `269a539`; mới 22/10 trưa, cột trả lời trống). Hợp đồng không định nghĩa "2k" là ước lượng hay không; bộ ca độc lập không có ca mà kỳ vọng phụ thuộc điều đó (§12). |
 | **LK6** | Số ước lượng đi vào tổng kèm cờ (hiện trạng, `query.go:208-210`); tách thành hai tổng là câu mở Q-0A-3. |
-| **LK7** | Tin kế thừa thực thể (`CarryEntity`, `ingest.go:277-285`) từ một tin không phải `OCCURRED` hoặc không `ACCEPTED` thì `HELD`, không tự `ACCEPTED`. |
+| **LK7** | Tin kế thừa thực thể (`CarryEntity`, `ingest.go:271-285`): (a) chỉ kế thừa từ tin mang thực thể gần nhất trước nó theo `(sent_at, unit_key)`, của cùng `sender_id`, cùng ngày gửi, **trong cùng một lô** (§3.8); các tin của một lô được xét theo thứ tự đó, không theo thứ tự dòng; (b) không có tin nguồn trong lô thì `QUARANTINED` `unknown_entity`: không đoán, không lấy tin nguồn của lô khác (Q-0A-14); (c) kế thừa từ một tin mà bản ghi hiện hành không phải `OCCURRED` và `ACCEPTED` thì `HELD`, không tự `ACCEPTED`. *(Không giao cho người soạn bộ ca. Hôm nay bộ nạp kế thừa theo thứ tự dòng: `c.last`, `ingest.go:271-285` [CODE]. Người soát vòng 2 đo thấy đảo hai dòng thì tin chỉ có lượng bị cách ly `unknown_entity`. Nếu có hai tin mang thực thể khác nhau của cùng người, tin chỉ có lượng được xử lý trước tin gửi xen giữa sẽ nhận thực thể của tin xa hơn, im lặng [SUY từ mã, chưa đo]. Vì vậy (a) thay thứ tự dòng bằng `(sent_at, unit_key)` và (b) chặn kế thừa xuyên lô.)* |
 
 ### 3.4 Mã lý do
 
@@ -292,12 +306,14 @@ Danh sách đóng. Mã hiện có giữ nguyên tên; mã mới ghi "mới".
 | `unrecognized_line` | `QUARANTINED` | dòng PDF không khớp mẫu và không thuộc danh sách bỏ qua | mới |
 | `unreadable_file` | `QUARANTINED` | đơn vị là cả tệp; không mở hay giải mã được | mới |
 | `unknown_sender` | `QUARANTINED` | `sender_id` không có trong danh bạ | mới |
-| `sender_not_authorized` | `HELD` | máy ngoài phạm vi của người gửi | mới |
+| `sender_not_authorized` | `HELD` | máy ngoài phạm vi của người gửi; hoặc lần giao sửa tin / thu hồi của người gửi khác người gửi bản ghi (§3.8) | mới |
 | `date_conflict` | `HELD` | ngày trong chữ sau ngày gửi mà không có từ khoá kế hoạch; ngày không hợp lệ | mới |
 | `correction_unconfirmed` | `HELD` | mọi tin đính chính | mới |
-| `possible_duplicate` | `HELD` | nghi trùng mức TR3 (§5.1) | mới |
+| `possible_duplicate` | `HELD` | nghi trùng mức TR3 (§5.1), kể cả bản vừa được người quyết (§5.6 mục 3) | mới |
 | `ambiguous_kind` | `HELD` | luật loại tin mâu thuẫn hoặc không chắc (LK3) | mới |
-| `id_conflict` | `HELD` | cùng mã nguồn, khác nội dung, không có `edited_of` (§2.4) | mới |
+| `id_conflict` | `HELD` | cùng mã nguồn, khác nội dung, không có `edited_of` (§2.4); hoặc lần giao sửa tin / thu hồi chạm bản đã có quyết định của người, hoặc sửa tin chưa thấy tin gốc (§3.8) | mới |
+| `duplicate_key` | `DUPLICATE` | lần giao trùng bản đã có theo khoá nguồn (TR1, §5.1); chỉ ở sổ lần giao | mới |
+| `duplicate_fingerprint` | `DUPLICATE` | lần giao trùng bản đã có theo vân tay (TR2, §5.1); chỉ ở sổ lần giao | mới |
 
 `HELD` khác `QUARANTINED` ở chỗ: `HELD` có ứng viên hoặc câu hỏi để người **chọn, xác nhận, sửa**; `QUARANTINED` không thành bản ghi hợp lệ, người chỉ có thể **xử lý lại, bỏ qua kèm lý do, hoặc nhập bản ghi thay** (§6.2).
 
@@ -319,14 +335,62 @@ Danh sách đóng. Mã hiện có giữ nguyên tên; mã mới ghi "mới".
 
 - Chỉ bản ghi `ACCEPTED` với `kind = OCCURRED` thành `Fact` (`bridge.go:36-45`): `ID` = `unit_key`; `Value.Approx` giữ nguyên; thêm `ObservedAt` = `sent_at` và `ReportedBy` = `sender_id`. Hai cột này đã có ở bảng `facts` (`load.go:80-91`) nhưng nạp chưa điền.
 - `aggregate` (`query.go:199-221`) **không đổi**. Chống cộng đôi do phía nạp bảo đảm; không đổi lõi hỏi–đáp của làn 1.
-- Bản ghi `PLAN`, `CORRECTION`, `HELD`, `QUARANTINED`, `DUPLICATE`, `SUPERSEDED`, `RETRACTED`, `REJECTED` không thành fact.
-- Khi một bản ghi đổi kết cục (người quyết định, sửa tin, thu hồi), phép chiếu cập nhật **trong cùng giao dịch**.
+- Bản ghi `PLAN`, `CORRECTION`, `HELD`, `QUARANTINED`, `SUPERSEDED`, `RETRACTED`, `REJECTED` không thành fact. Lần giao `DUPLICATE` không tạo bản ghi nên không có gì để chiếu.
+- Khi một bản ghi đổi kết cục (người quyết định, sửa tin, thu hồi, đánh giá lại TR3 ở §5.6), phép chiếu cập nhật **trong cùng giao dịch**.
 - Thuộc tính phải kiểm: không có hai fact `reported_fuel` cùng (thực thể, ngày, loại nguồn) mà cùng `unit_key` hoặc cùng vân tay (§5.2).
 - Bộ đếm "số mục chưa dùng được" theo (thực thể, ngày) cho phía hỏi–đáp là yêu cầu [ĐỀ XUẤT] cho làn đọc (U2); cổng của hợp đồng này đo bằng báo cáo xuất (GA2), không đòi luồng hỏi hiển thị.
 
 ### 3.7 Báo cáo cách ly và hàng chờ (xuất)
 
-Mỗi dòng: `unit_key`, `source_type`, `channel`, `sent_at`, `sender_id`, `occurred_on` (nếu có), `raw`, `disposition`, `reason`, `detail`, `recipient`, `status` (đang chờ, đã quyết), `decided_by`, `decided_at`, `decision`, `pack_version`, `trace_id`. Đầu báo cáo: số dòng theo từng mã lý do và theo kết cục. Chi tiết ở §6.4.
+Mỗi dòng: `unit_key`, `source_type`, `channel`, `sent_at`, `sender_id`, `occurred_on` (nếu có), `raw`, `disposition`, `reason`, `detail`, `recipient`, `status` (đang chờ, đã quyết), `decided_by`, `decided_at`, `decision`, `pack_version`, `trace_id`. Đầu báo cáo: số dòng theo từng mã lý do và theo kết cục (`HELD`, `QUARANTINED`, và trạng thái vòng đời). Báo cáo này chỉ đọc kho bản ghi nên **không đếm `DUPLICATE`** và không đổi khi giao lại đơn vị đã có; số `DUPLICATE` theo lô nằm ở biên nhận lô (§3.8). Chi tiết ở §6.4.
+
+**Trường của hệ** là trường không tất định theo đầu vào vì do hệ sinh lúc chạy: `trace_id` (M1 tự cấp uuid cho mỗi lượt, `platform/pgstore/vet.go:17` [CODE `269a539`]), `decided_at`, và ở sổ lần giao `batch_id` (cấp mới mỗi lần gọi, §3.8) và `recorded_at`; thêm `sent_at` của bản ghi form khi đồng hồ không do bộ chạy đặt (§13.2). Mọi phép so "giống hệt từng byte" giữa hai lần chạy độc lập (BB5, LC54, LC69, GA5) **bỏ các trường này** và so mọi trường còn lại; không có tập trường nào khác bị bỏ. Phép so trong cùng một kho (§5.4: giao lại đơn vị đã có) vẫn so cả chúng, vì giao lại không ghi đè `trace_id` của bản ghi có sẵn.
+
+### 3.8 Sổ lần giao và biên nhận lô (nơi ở của `DUPLICATE`)
+
+**Chọn:** `DUPLICATE` là kết cục của một **lần giao**, không phải trạng thái của một bản ghi, nên nó thuộc **sổ lần giao** (`DeliveryEntry`, tên đề xuất), tách khỏi kho bản ghi (`ReportRecord`, §3.2). Ba chỗ lưu, mỗi chỗ một việc:
+
+| Chỗ | Một dòng là | Khoá duy nhất | Đổi được? | Có `DUPLICATE`? |
+|---|---|---|---|---|
+| kho bản ghi (§3.2) | một đơn vị: bản hiện hành, kèm lịch sử phiên bản | `(tenant, unit_key)` | đổi trạng thái theo quyết định, sửa tin, thu hồi, đánh giá lại TR3 | không |
+| sổ lần giao | một lần giao của một đơn vị trong một lô | `(tenant, mã lô, thứ tự trong lô)`; **không** duy nhất theo `unit_key` | chỉ thêm | có, và là nơi duy nhất |
+| vết từng bước (GA10, §11.1) | một bước của một lần giao | `(trace_id, thứ tự bước)` | chỉ thêm | chỉ mô tả cách quyết định; không phải nơi đếm |
+
+Vì sao không để `DUPLICATE` ở kho bản ghi: với TR1, bản trùng mang **cùng** `unit_key` với bản gốc nên không thể là dòng thứ hai; nếu mỗi lần giao lại thêm một dòng thì "trạng thái cuối giống hệt" (§5.4) sai. Vì sao không chỉ ở vết: bộ kiểm GA1 không được import bộ nạp và phải đối chiếu được từ kho; nếu một lần giao trùng rơi im lặng (không có dòng nào) mà `DUPLICATE` chỉ nằm ở vết thì GA1 phải tin vào chính điều GA10 đang đo.
+
+Dòng sổ gồm [ĐỀ XUẤT]: `tenant`, `batch_id` (mã lô), `ordinal` (thứ tự đơn vị trong lô), `unit_key`, `outcome` (bốn giá trị, **lúc xử lý**), `reason` (mã ở §3.4; rỗng khi `ACCEPTED`), `record_ref` (`unit_key` của bản ghi mà lần giao này tạo, sửa hoặc trùng), `pack_version`, `trace_id`, `recorded_at`. Quy tắc:
+
+- **Mỗi đơn vị của mỗi lô đúng một dòng**, kể cả `ACCEPTED`: BB1 đếm ở đây. **Trong giao dịch nạp**, dòng sổ và bản ghi mà lần giao tạo hoặc đổi nằm cùng một giao dịch (§7.5): không có dòng sổ thiếu bản ghi mà nó trỏ (trừ `DUPLICATE`, trỏ bản đã có), không có bản ghi do lần giao tạo mà thiếu dòng sổ. Bản ghi hay phiên bản do **quyết định của người** tạo (§6.2) không phải lần giao nên không có dòng sổ (bảng dưới).
+- **Chỉ thêm.** Sổ ghi kết cục lúc xử lý; về sau kết cục đổi (người quyết, đánh giá lại TR3) thì ghi vào lịch sử của bản ghi, không sửa sổ. Vì vậy kỳ vọng của ca và "Đúng" của GA6 (§11.2) so với **trạng thái của bản ghi sau khi ca chạy xong**, không so với sổ; sổ chỉ dùng cho BB1 (đếm).
+- **Mã lô cấp mới cho mỗi lần gọi hàm nạp**, không suy từ nội dung. Nếu suy từ nội dung thì lần giao lại đúng nội dung trùng khoá với dòng của lần trước và che việc rơi im lặng.
+- **Biên nhận lô:** kết quả trả bên gọi cho một lô = số dòng sổ của lô theo kết cục và theo mã lý do, kèm "trùng với bản nào" (§7.1). Không phải báo cáo cách ly và hàng chờ (§3.7).
+- **Trạng thái cuối** của nạp lại (§5.4) gồm kho bản ghi (mọi bản ghi và lịch sử), hàng chờ và cách ly (báo cáo §6.4), tổng đọc (§3.6) và quyết định của người; **không** gồm sổ lần giao (mỗi lần giao thêm dòng) và biên nhận lô.
+- *(Nối với M1; không giao cho người soạn bộ ca.)* `quarantine_records` của M1 (migration `0003`) là sổ cách ly theo mã lần nạp, mã suy từ nội dung (`loadIDOf`, `cmd/eais/app.go:227`), của đường nạp thư mục; sổ lần giao là phần mở rộng cùng ý cho cả bốn kết cục, theo mã lô cấp mới, và giữ quyền chỉ thêm (`eais_app` chỉ SELECT + INSERT, `db/migrations/0003_kho_vet_ben.sql:86`) [CODE `41bc3cf`]. Thay hay giữ song song hai bảng, và cách cấp quyền đổi trạng thái cho kho bản ghi (CL3), chọn khi mở mã (U2).
+
+**Bảng lần giao: loại lần giao → kết cục ở sổ → bản ghi trỏ tới.** Mỗi lần giao đúng một dòng ở sổ. **Thứ tự áp** cho một đơn vị: (1) mang `recalled`, hoặc có `unit_key` đang là dấu thu hồi → đường thu hồi (§7.3); (2) mang `edited_of` → đường sửa tin (§7.2); (3) TR1; (4) TR2 (§5.1); (5) luật đọc (chuẩn hoá, thực thể, loại tin, ngày, quyền, miền) cho kết cục `ACCEPTED`, `HELD` hoặc `QUARANTINED`; (6) TR3 cho bản `ACCEPTED` có `sent_at` (§5.1, §5.6). Thu hồi và sửa tin được xét **trước** TR1, nên một lần giao thu hồi không bao giờ thành `DUPLICATE` hay `id_conflict` chỉ vì cùng khoá với tin gốc, dù chữ của nó trùng hay rỗng.
+
+| Lần giao | Kết cục ở sổ | `record_ref` | Tác động lên kho bản ghi |
+|---|---|---|---|
+| đơn vị thường, chưa có bản ghi cùng `unit_key` | kết cục của bước (5) và (6): `ACCEPTED`, `HELD` (kể cả `possible_duplicate`) hoặc `QUARANTINED` | bản ghi mới | tạo bản ghi, `version` 1 |
+| đơn vị thường, TR1: cùng khoá, cùng nội dung chuẩn hoá với một phiên bản bất kỳ (kể cả `SUPERSEDED`) | `DUPLICATE` `duplicate_key` | bản ghi đã có | không đổi |
+| đơn vị thường, TR2: vân tay trùng một bản ghi khác | `DUPLICATE` `duplicate_fingerprint` | bản ghi đã có | không đổi |
+| đơn vị thường, cùng khoá, khác nội dung với mọi phiên bản, không `edited_of` (kể cả khi thua đua khoá duy nhất, §7.5) | `HELD` `id_conflict` | bản ghi mới mang `unit_key` có hậu tố băm (§2.4) | tạo bản ghi mới; bản có sẵn không đổi |
+| sửa tin (`edited_of`) của chính người gửi bản ghi, nội dung mới khác phiên bản hiện hành (kể cả quay về nội dung của một phiên bản cũ) | kết cục của bước (5) và (6) cho nội dung mới | bản ghi bị sửa (cùng `unit_key`) | `version` + 1; phiên bản cũ `SUPERSEDED`; vào hoặc rời nhóm TR3 theo nội dung mới (§5.6 mục 4) |
+| sửa tin của chính người gửi bản ghi, nội dung mới bằng phiên bản hiện hành | `DUPLICATE` `duplicate_key` | bản ghi bị sửa | không đổi |
+| thu hồi (`recalled`) của chính người gửi bản ghi, bản ghi chưa `RETRACTED` và chưa có quyết định của người | `ACCEPTED` (lần giao được nhận và áp; `reason` rỗng) | bản ghi bị thu hồi | `RETRACTED`; rời tổng và nhóm TR3 |
+| thu hồi bản ghi đã `RETRACTED` (kể cả dấu thu hồi) | `DUPLICATE` `duplicate_key` | bản ghi đó | không đổi |
+| thu hồi đến trước tin gốc (chưa có bản ghi cùng `unit_key`) | `ACCEPTED` (đã ghi dấu) | bản ghi dấu, mới | tạo **dấu thu hồi**: bản ghi `RETRACTED`, chưa có nội dung |
+| tin gốc đến khi `unit_key` đang là dấu thu hồi, cùng `sender_id` với lần giao thu hồi | `ACCEPTED` (`detail`: đến sau dấu thu hồi) | bản ghi dấu | nội dung vào làm `version` 1; vẫn `RETRACTED`; không vào nhóm TR3, không vào tổng |
+| tin gốc đến khi `unit_key` đang là dấu thu hồi, khác `sender_id` với lần giao thu hồi | `HELD` `sender_not_authorized` | bản ghi dấu | dấu không áp; nội dung vào làm phiên bản chờ; người quyết `AUTHORIZE` (áp dấu) hoặc `REJECT` (bỏ dấu, tin gốc thành bản ghi bình thường) |
+| sửa tin hoặc thu hồi do `sender_id` khác người gửi bản ghi | `HELD` `sender_not_authorized` | bản ghi bị chạm | bản hiện hành không đổi; lần giao thành một phiên bản chờ để người quyết `AUTHORIZE` (áp) hoặc `REJECT` (§6.2) |
+| sửa tin hoặc thu hồi chạm bản ghi đã có quyết định của người (BB7) | `HELD` `id_conflict` | bản ghi bị chạm | bản hiện hành không đổi; lần giao thành một phiên bản chờ (chưa hiện hành) để người quyết `APPLY` hoặc `REJECT` (§6.2) |
+| sửa tin chưa thấy tin gốc | `HELD` `id_conflict` | bản ghi mới mang `unit_key` của mã nguồn đó | tạo bản ghi `HELD`; tin gốc đến sau gặp hàng thứ tư của bảng |
+
+Bản `REJECTED` bởi `MARK_DUPLICATE` là bản đã có quyết định của người (BB7): lần giao thu hồi hoặc sửa tin chạm nó **là một phiên bản chờ** (hàng "chạm bản ghi đã có quyết định của người" ở bảng trên), người quyết `APPLY` hoặc `REJECT` (§6.2), không phải tổ hợp không có hàng; phiên bản chờ tạo trước khi bản bị `MARK_DUPLICATE` vẫn còn hiệu lực sau khi bản thành `REJECTED`; khi `APPLY` làm bản đó thành `RETRACTED`, `SUPERSEDED`, đổi nhóm hoặc `HELD` vì lý do khác, bản trỏ tới nó quay lại `HELD` như bản trỏ tới bản được giữ rời nhóm (§5.6 mục 4 (c)).
+
+Tổ hợp không có hàng nào ở trên (ví dụ sửa tin cho bản ghi đã `RETRACTED`, thu hồi bản ghi đã `REJECTED` vì người bác, không kể bản `REJECTED` bởi `MARK_DUPLICATE` ở đoạn trên): lần giao `HELD` `id_conflict`, bản ghi không đổi, `detail` nêu tổ hợp; người quyết theo §6.2. Mặc định này an toàn: không `ACCEPTED` im lặng, không rơi lần giao.
+
+Quyết định của người (§6.2) **không phải lần giao** nên không thêm dòng sổ: `APPLY` đổi bản đính chính (cùng `unit_key` của chính nó) thành `OCCURRED`, `ACCEPTED`, và đặt bản gốc `SUPERSEDED`; `CORRECT` cho `QUARANTINED` thêm một phiên bản mới của cùng `unit_key`; `REPROCESS` thêm một phiên bản mới của cùng `unit_key` theo luật hiện hành. Mỗi cái ghi `decided_by`, `decision`, `pack_version` vào lịch sử bản ghi và audit.
 
 ---
 
@@ -364,7 +428,7 @@ Capability mới (thêm vào `policy.yaml` khi mở mã): `reports.submit` (gử
 
 ### 4.4 Tin cậy kênh
 
-`sender_id` được tin như kênh giao (§1.5). Phạm vi người gửi giới hạn thiệt hại khi `sender_id` bị giả: người đó chỉ ghi được cho máy của người bị giả. Xác thực chặng kênh là Phase 5, 8.
+`sender_id` được tin như kênh giao (hợp đồng không xác thực người gửi: kênh đã xác thực người đó theo cách của kênh). Phạm vi người gửi giới hạn thiệt hại khi `sender_id` bị giả: người đó chỉ ghi được cho máy của người bị giả. Xác thực chặng kênh là Phase 5, 8.
 
 ---
 
@@ -372,13 +436,15 @@ Capability mới (thêm vào `policy.yaml` khi mở mã): `reports.submit` (gử
 
 ### 5.1 Ba mức
 
+Áp theo thứ tự TR1, TR2, TR3. TR1 và TR2 cho `DUPLICATE`, chỉ ghi ở sổ lần giao (§3.8); TR3 cho `HELD` trên bản ghi.
+
 | Mức | Khoá | Kết cục khi gặp |
 |---|---|---|
-| **TR1: khoá nguồn** | (tenant, `channel`, `source_message_id`) | cùng khoá, cùng nội dung chuẩn hoá → `DUPLICATE` (trả bản gốc). Cùng khoá, khác nội dung → sửa tin nếu có `edited_of` (§7.2), ngược lại `HELD` `id_conflict` |
-| **TR2: vân tay** | băm mật mã của (tenant, `channel`, `sender_id`, `sent_at` đến giây, chữ chuẩn hoá §5.2) | trùng → `DUPLICATE`. Dành cho nguồn không có mã tin (tệp xuất chồng lấp, PDF gửi lại) |
-| **TR3: nghi trùng** | cùng (thực thể, `kind`, ngày xảy ra, giá trị, đơn vị) với một bản `ACCEPTED` hoặc `HELD` đã có, và `sent_at` cách nhau ≤ **W**, **bất kể người gửi và chữ** | `HELD` `possible_duplicate`, trỏ bản kia. Người quyết: `KEEP_BOTH` hoặc `MARK_DUPLICATE` |
+| **TR1: khoá nguồn** | (tenant, `unit_key`); với tin có mã tin, `unit_key` chứa (`channel`, `source_message_id`) (§2.4) | chỉ áp cho **đơn vị thường**: tin mang `recalled` hoặc `edited_of` đi đường thu hồi, sửa tin trước TR1 (bảng ở §3.8; §7.2, §7.3). Cùng khoá, cùng nội dung chuẩn hoá với **một phiên bản bất kỳ** của bản ghi đã có (kể cả bản `SUPERSEDED`) → `DUPLICATE` (`duplicate_key`), trỏ bản ghi đó. Cùng khoá, khác nội dung với mọi phiên bản → `HELD` `id_conflict` (§2.4). Riêng tin có `edited_of`: nội dung mới so với phiên bản **hiện hành** (bằng → `DUPLICATE`; khác → phiên bản mới, kể cả khi quay về nội dung của một phiên bản đã `SUPERSEDED`) |
+| **TR2: vân tay** | băm mật mã của: (a) đơn vị có `sent_at` (tin): (tenant, `channel`, `sender_id`, `sent_at` đến giây, chữ chuẩn hoá §5.2); (b) đơn vị không có `sent_at` (dòng PDF, hàng bảng): (tenant, loại nguồn, `occurred_on`, mã nguồn của đơn vị trong tệp, chữ chuẩn hoá §5.2 của dòng hoặc hàng), **không** gồm đường dẫn tệp. Mã nguồn trong tệp là số `n` của dòng PDF, `record_id` của hàng bảng, hoặc thứ tự hàng khi không có `record_id` | trùng với bản ghi đã có → `DUPLICATE` (`duplicate_fingerprint`), trỏ bản ghi đó. Dành cho nguồn không có mã tin: tệp xuất chồng lấp, và tệp báo cáo giao lại ở đường dẫn khác (cùng nội dung, cùng ngày). Cùng một dòng chữ ở hai ngày khác nhau thì khác `occurred_on` nên khác vân tay (cả hai vào); hai dòng cùng chữ trong một tệp thì khác mã nguồn trong tệp nên khác vân tay (không khử trùng theo giá trị, §5.3) |
+| **TR3: nghi trùng** | **nhóm nghi trùng** = các bản ghi có `sent_at`, đang `ACCEPTED` hoặc `HELD` `possible_duplicate`, cùng (tenant, thực thể, `kind`, ngày xảy ra, giá trị, đơn vị), **bất kể người gửi và chữ**; xếp theo **thứ tự chuẩn** `(sent_at, unit_key)` | bản mà bản đứng **ngay trước** nó trong nhóm (kể cả bản đang `HELD`) có `sent_at` cách ≤ **W**, và người chưa xét cặp đó bằng `KEEP_BOTH` → `HELD` `possible_duplicate`, `duplicate_of` = bản đứng trước đó. Kết cục là hàm của **tập** bản trong nhóm và của các cặp người đã xét, không của thứ tự đến (trừ các đường ở §7.4); đánh giá lại, quyết định của người và chống đua: §5.6. Người quyết: `KEEP_BOTH` hoặc `MARK_DUPLICATE` |
 
-**W = 60 phút** [ĐỀ XUẤT; Q-0A-5]. TR3 không bao giờ tự gộp và không tự cộng: bản bị giữ không vào tổng cho tới khi người quyết.
+**W = 60 phút** [ĐỀ XUẤT; Q-0A-5]. TR3 không bao giờ tự gộp và không tự cộng: bản bị giữ không vào tổng cho tới khi người quyết. Đơn vị không có `sent_at` (dòng PDF, hàng bảng) không vào nhóm TR3; chống trùng của chúng là TR1 và vân tay của TR2. Bản `HELD` vì lý do khác không thuộc nhóm cho tới khi một quyết định của người đưa nó vào `ACCEPTED`; khi đó nó vào nhóm và **TR3 chạy cho nó như cho mọi bản** (§5.6 mục 3): quyết định về máy, giá trị hay quyền không trả lời câu hỏi nghi trùng, nên nếu bản đứng ngay trước cách ≤ W thì kết cục của quyết định là `HELD` `possible_duplicate`, không phải `ACCEPTED`. Các bản đứng sau nó được đánh giá lại (§5.6 mục 1).
 
 ### 5.2 Chuẩn hoá chữ để băm
 
@@ -392,11 +458,44 @@ NFC, bỏ khoảng trắng đầu cuối, gộp khoảng trắng liên tiếp. *
 
 ### 5.4 Nạp lại tệp
 
-Nạp lại cùng tệp cho **cùng trạng thái cuối**: mọi đơn vị là `DUPLICATE` (nhờ `unit_key` tất định, TR1); tổng, hàng chờ, báo cáo xuất không đổi. Hôm nay `Load` thay trọn dữ liệu của tenant (`load.go:21-48`) nên "nạp lại" xoá rồi ghi lại; hợp đồng đòi nạp **thêm** idempotent cho kho bản ghi (U2).
+Nạp lại cùng tệp (hay giao lại đơn vị đã có ở lô khác) cho **cùng trạng thái cuối**. Mỗi đơn vị giao lại gặp TR1 hoặc TR2, nên mỗi đơn vị thêm **một dòng `DUPLICATE` ở sổ lần giao** và **không thêm bản ghi** (nhờ `unit_key` tất định, TR1; hoặc nhờ vân tay, TR2, khi tệp đổi đường dẫn). "Trạng thái cuối" gồm: (1) kho bản ghi (mọi bản ghi và lịch sử phiên bản), (2) hàng chờ và cách ly (báo cáo §6.4), (3) tổng đọc và fact (§3.6), (4) quyết định của người; cả bốn **giống hệt từng byte** sau khi giao lại. Không gồm sổ lần giao (nhật ký chỉ thêm: thêm đúng N dòng cho N đơn vị giao lại) và biên nhận lô. Giao lại không xử lý lại: muốn xử lý lại một đơn vị `QUARANTINED` hay `HELD` phải `REPROCESS` (§7.6). Hôm nay `Load` thay trọn dữ liệu của tenant (`load.go:21-48`) nên "nạp lại" xoá rồi ghi lại; hợp đồng đòi nạp **thêm** idempotent cho kho bản ghi (U2). Ngoại lệ có tên: tệp có chuỗi sửa tin từ hai lần trở lên. Lần sửa giao lại được so với phiên bản hiện hành (§7.2), không gặp TR1, nên giao lại cả chuỗi thêm phiên bản (§7.4 (e), U13).
 
 ### 5.5 Cùng máy, cùng ngày, hai loại nguồn
 
 Tin chat và PDF cùng báo một (máy, ngày) là đối soát theo thẩm quyền lúc hỏi (`metrics.yaml:16-18`: PDF hạng 1, chat hạng 2), không phải trùng và không xử lý ở lúc nạp.
+
+### 5.6 Thứ tự chuẩn, đánh giá lại và tuần tự hoá TR3
+
+TR3 so một bản với bản khác có **`unit_key` khác**, nên khoá duy nhất `(tenant, unit_key)` không thấy được chúng. Nếu TR3 chỉ so "với bản đã có lúc đến" thì có hai lỗi: (a) kết cục phụ thuộc thứ tự đến, trái §7.4; (b) hai bộ nạp chạy song song (hai tiến trình, hai tệp khác nhau) mỗi bên đọc nhóm trước khi bên kia ghi, nên **cả hai bản `ACCEPTED`**: cộng đôi, đúng lớp lỗi S1 mà hợp đồng định chặn. Hai lỗi, hai cơ chế (mục 1 và 2); mục 3 và 4 nói TR3 xử lý quyết định của người và bản rời nhóm ra sao:
+
+1. **Thứ tự chuẩn (chữa lỗi a).** Nhóm nghi trùng luôn được đánh giá theo `(sent_at, unit_key)`, không theo thứ tự đến (§5.1). Bản **gửi sớm hơn nhưng đến muộn** được xếp đúng chỗ của nó; bản đứng ngay sau nó được đánh giá lại: đang `ACCEPTED` mà nay cách ≤ W thì chuyển `HELD` `possible_duplicate`; đang `HELD` thì `duplicate_of` trỏ sang bản đứng trước mới. Phép đánh giá lại **chỉ siết** (`ACCEPTED` → `HELD`), không bao giờ nới: `HELD` → `ACCEPTED` chỉ do người quyết (BB6, BB7). Cặp mà người đã xét bằng `KEEP_BOTH` không bị giữ lại lần nữa (mục 3); bản đó vẫn là "bản đứng trước" của bản sau nó. Mỗi lần chuyển ghi ai (bộ nạp), khi nào, vì sao (bản gửi sớm hơn nào đến muộn) vào lịch sử bản ghi và vết, và cập nhật phép chiếu fact trong **cùng giao dịch** (§3.6). Hệ quả: một bản đã từng `ACCEPTED` có thể thành `HELD` khi bản gửi sớm hơn đến muộn; tổng đọc loại đúng một giá trị trùng, không cộng cả hai.
+2. **Tuần tự hoá (chữa lỗi b).** Mọi giao dịch làm đổi tập bản ghi `ACCEPTED` hoặc `HELD` `possible_duplicate` của một (tenant, thực thể, ngày xảy ra) (nạp một đơn vị, quyết định của người, sửa tin, thu hồi) lấy **khoá tư vấn mức giao dịch** (`pg_advisory_xact_lock`) theo băm của (tenant, thực thể, ngày xảy ra) **ngay đầu giao dịch, trước khi đọc nhóm**, và nhả khi giao dịch kết thúc. Giao dịch chạm hai khoá (sửa tin đổi thực thể hoặc ngày) lấy theo thứ tự khoá tăng dần để không chết khoá (deadlock). Khoá trong bộ nhớ của một server không đủ vì chỉ chặn trong một tiến trình. Khoá duy nhất `(tenant, unit_key)` vẫn cần (TR1, thua đua → `DUPLICATE`, §7.5) nhưng không thay được khoá này. *(Nối với M1; không giao cho người soạn bộ ca: cùng kiểu khoá mà `Load` đã dùng cho các lần nạp cùng tenant, `platform/pgstore/load.go:19-42`; khoá trong bộ nhớ là `ingestMu`, `cmd/eais/server.go:53` [CODE `41bc3cf`].)*
+3. **Quyết định của người không miễn TR3.** Hai cơ chế trên phải phủ **mọi đường đưa một bản vào nhóm**, không chỉ đường nạp tự động. Đường vào là: nạp tự động (kể cả sửa tin đưa phiên bản mới vào một nhóm khác); `REPROCESS`; và quyết định của người cho ra `ACCEPTED` (`CHOOSE`, `CORRECT`, `AUTHORIZE`, `APPLY`, §6.2). Mỗi đường chạy cùng một luật, trong chính giao dịch của nó và dưới khoá của mục 2: bản x bị giữ `HELD` `possible_duplicate` khi bản đứng ngay trước x trong nhóm (kể cả bản đang `HELD`) cách ≤ W và người chưa xét cặp (x, bản đó).
+   - **Quyết định về máy, giá trị hay quyền không trả lời câu hỏi nghi trùng.** Bản B đang `HELD` vì `ambiguous_entity`, `sender_not_authorized`, `number_reading_uncertain` hay lý do khác, mà người quyết cho thành `ACCEPTED`: nếu bản A đứng ngay trước B trong nhóm cách ≤ W thì kết cục của quyết định là `HELD` `possible_duplicate` (`duplicate_of` = A; lý do trước và quyết định vừa ghi nằm ở lịch sử và `detail`; các trường người đã nhập được giữ; `recipient` tính lại theo thực thể sau quyết định, §6.3). Không có luật này thì A và B cùng vào tổng: cộng đôi im lặng, đúng lớp lỗi S1 mà bảo đảm (3) định chặn.
+   - **`KEEP_BOTH` là lối ra duy nhất.** Người quyết `KEEP_BOTH` một cách tường minh thì bản đó thành `ACCEPTED` và thêm **cặp đã xét** = (bản đó, `duplicate_of` mà người đã thấy, đã khớp `duplicate_of` lúc ghi: §6.2) vào danh sách cặp đã xét của bản ghi (cộng dồn, không ghi đè các cặp trước; không thêm cặp nào nếu `duplicate_of` trống vì bản đứng trước đã rời nhóm); cặp đã xét không bị giữ lại lần nữa và được nhớ, kể cả khi bản đứng trước tạm đổi sang bản khác rồi trở lại. `KEEP_BOTH` chỉ phủ đúng cặp đó: bản mới đến sau, đứng ngay trước bản đó và cách ≤ W, tạo một cặp mới chưa xét.
+   - **Chiều ngược.** Bản đã có quyết định của người cũng vào nhóm nên cũng bị đánh giá lại khi một bản gửi sớm hơn đến muộn và đứng ngay trước nó, cách ≤ W, chưa xét cặp: nó chuyển `HELD` `possible_duplicate` (quyết định cũ còn ở lịch sử; việc này không im lặng, vì nó vào hàng chờ với người nhận). Người quyết `KEEP_BOTH` thì cả hai vào tổng.
+   - Hệ quả (mô phỏng luật, mục "Phương án đã bỏ"): hai bản liền kề trong nhóm, cách ≤ W, mà người chưa xét cặp thì không bao giờ cùng `ACCEPTED`, sau mọi sự kiện, kể cả khi một bản rời nhóm (mục 4). Bản nào bị giữ có thể khác nhau tuỳ quyết định của người đến trước hay sau bản kia; tổng thì không bao giờ gồm cả hai (§7.4 chỉ bảo đảm thứ tự đến "khi chưa có quyết định của người").
+4. **Bản rời nhóm.** Một bản rời nhóm khi thành `RETRACTED` (thu hồi, §7.3), `SUPERSEDED` hoặc đổi nhóm (sửa tin đổi thực thể, ngày xảy ra, giá trị, đơn vị hay `kind`, §7.2), `REJECTED` (người bác hay `MARK_DUPLICATE`), hoặc thành `HELD` vì lý do khác. Bản đứng ngay sau nó có bản đứng trước mới, nên được đánh giá lại với bản đó như mọi bản (mục 1), vẫn **chỉ siết**: (a) bản đang `HELD` `possible_duplicate` **vẫn `HELD`**; `duplicate_of` trỏ sang bản đứng trước mới còn trong nhóm, hoặc để trống kèm `detail` "bản đứng trước đã rời nhóm: <lý do>" khi không còn; người quyết `KEEP_BOTH`, hoặc `MARK_DUPLICATE` khi `duplicate_of` còn (§6.2); (b) bản đang `ACCEPTED`: cách bản đứng trước mới ≤ W và người chưa xét cặp (bản đó, bản đứng trước mới) thì chuyển `HELD` `possible_duplicate` (`duplicate_of` = bản đứng trước mới); ngoài ra không đổi. Cặp đã xét với bản vừa rời nhóm không phủ cặp mới này. Ví dụ: a, m, c cùng (thực thể, ngày, giá trị, đơn vị); m cách a ≤ W, c cách m ≤ W và cách a ≤ W, nên m rồi c đều `HELD` `possible_duplicate`; người `KEEP_BOTH` cho c (cặp đã xét: (c, m)); rồi m rời nhóm: c đứng ngay sau a, cặp (c, a) chưa ai xét, nên c chuyển `HELD` (vào hàng chờ có người nhận) và tổng không gồm cả a và c. Thêm (c), cho bản đã bị bác theo bản được giữ: bản đang `REJECTED` bởi `MARK_DUPLICATE` (§6.2) mà `duplicate_of` trỏ tới bản k, khi k vừa thành `RETRACTED`, `SUPERSEDED`, đổi nhóm hoặc `HELD` vì lý do khác bằng thu hồi hoặc sửa tin (mọi cách rời ở câu đầu của mục này, trừ `REJECTED`), **từ bất kỳ trạng thái nào của k, kể cả khi k đang `REJECTED` bởi `MARK_DUPLICATE`** (khi đó k không rời nhóm, vì đã rời lúc bị bác, nhưng bản trỏ tới k mất cơ sở như khi k còn trong nhóm), **quay lại `HELD` `possible_duplicate`**. Quyết định `MARK_DUPLICATE` đúng ở lúc quyết vì bản kia còn trong nhóm; bản kia đã rời (kể cả khi nó đã bị bác theo một bản khác rồi mới rời) thì quyết định mất cơ sở, và để `REJECTED` thì giá trị của cả cặp rời tổng mà không ai được hỏi lại (U15 của vòng 4). `duplicate_of` của bản quay lại = bản đứng ngay trước nó trong nhóm lúc đó (kể cả bản `HELD`, như mục 1), hoặc để trống kèm `detail` "bản được giữ đã rời nhóm: <lý do>" khi không còn bản nào; bản vào hàng chờ có người nhận (§6.3); quyết định `MARK_DUPLICATE` cũ ở lịch sử, và vẫn tính là quyết định của người khi một lần giao sửa tin hoặc thu hồi chạm bản đó về sau (BB7, §3.8). Việc này chạy trong **cùng giao dịch** làm k rời (lần thu hồi hoặc sửa tin, hoặc quyết định `APPLY` áp lần giao đó khi k đã có quyết định của người, §3.8), dưới khoá của mục 2 (bản bị bác cùng (thực thể, ngày xảy ra) với bản được giữ, nên nằm dưới khoá giao dịch đã lấy). **Không** tính bản được giữ rời nhóm bằng chính `MARK_DUPLICATE`: khi đó bản bị bác đi theo bản được giữ mới của bản kia, vẫn ở tổng hoặc hàng chờ, nên vẫn `REJECTED`; nếu bản được giữ mới đó rời nhóm bằng thu hồi hoặc sửa tin về sau thì chính bản kia quay lại `HELD` theo (c), còn bản bị bác thứ nhất vẫn `REJECTED`, theo bản kia đang ở hàng chờ; nếu bản kia, đang `REJECTED`, bị thu hồi hoặc sửa tin và người `APPLY` trước khi bản được giữ mới rời nhóm, thì bản bị bác thứ nhất quay lại `HELD` theo (c). Bản quay lại vào nhóm trở lại, nên bản đứng sau nó được đánh giá lại như mục 1 và (b), vẫn chỉ siết. Máy chỉ đưa bản về hàng chờ, không bao giờ nhận hay bác thay người; người quyết `KEEP_BOTH` thì bản vào tổng. Đây là **ngoại lệ có tên, không im lặng, của BB7**, cùng loại với ngoại lệ của TR3 ở mục 3 ("Chiều ngược"). Hệ quả: với thu hồi, sửa tin và bác, **thứ tự đến có thể đổi kết cục theo hướng an toàn**: cặp a, b nghi trùng rồi a bị thu hồi cho b `HELD` và tổng rỗng; thu hồi a trước khi a và b đến cho b `ACCEPTED` và tổng bằng giá trị b. Đây là ngoại lệ (c) của §7.4 (U10). Cả hai kết cục đều an toàn: tổng không bao giờ gồm cả a và b, và b không rơi khỏi tổng hay hàng chờ, kể cả khi người đã `MARK_DUPLICATE` b rồi a mới bị thu hồi (b quay lại `HELD`, mục (c) ở trên), và kể cả khi chuỗi có hai mắt (c theo b, b theo a) mà b bị thu hồi hoặc sửa tin sau quyết định (c quay lại `HELD`, cũng mục (c)). Luật tính lại tất định, cho phép máy nhả `HELD` khi bản đứng trước rời nhóm, là câu mở Q-0A-13; mặc định là luật chỉ siết ở trên.
+
+**Phương án đã bỏ** [SUY, tính tay trên luật cũ, chưa chạy]:
+- *Giữ "so với bản đã có lúc đến", hạ LC63 và §7.4 xuống "cùng tổng và cùng số `HELD` theo mã lý do".* Chuỗi ba bản cùng (thực thể, ngày, giá trị) gửi lúc 0, 50, 100 phút với W = 60: đến theo thứ tự gửi cho hai bản `HELD`; đến theo thứ tự gửi 0, 100, 50 cho một bản `HELD`. Điều hạ xuống vẫn sai, và ca đảo thứ tự của bộ độc lập không có kỳ vọng nào viết được.
+- *Mức cô lập SERIALIZABLE kèm thử lại.* Cần mã thử lại ở mọi đường ghi (nạp, quyết định, sửa tin, thu hồi) và dễ báo lỗi tuần tự hoá oan; khoá tư vấn đã có tiền lệ ở `Load`.
+
+**Phương án đã bỏ ở vòng 3** (quyết định của người và bản rời nhóm; mô phỏng luật bằng script tạm không commit, không phải mã, nhãn [SUY]):
+- *Quyết định của người miễn TR3* (luật của vòng 2: bản `HELD` vì lý do khác được người quyết thì `ACCEPTED` và chỉ các bản sau được đánh giá lại). Bản A `ACCEPTED`, bản B cùng (thực thể, ngày, giá trị, đơn vị) gửi sau A trong W mà `HELD` vì lý do khác; người quyết B thì cả A và B vào tổng: cộng đôi im lặng. Chữa một chiều (chỉ chạy TR3 ở đường quyết định) vẫn hở chiều ngược, và hai bản đã quyết lần lượt thì cùng `ACCEPTED`.
+- *Bản đã quyết được bảo vệ khỏi đánh giá lại; máy giữ bản kia của cặp (hai chiều).* Mô phỏng 30.000 chuỗi sự kiện ngẫu nhiên (3 đến 10 sự kiện gồm nạp, quyết định, `KEEP_BOTH`, `MARK_DUPLICATE`, thu hồi; 2 đến 5 bản): 54 chuỗi có hai bản liền kề cách ≤ W, chưa xét cặp, cùng `ACCEPTED` (ví dụ sau khi một bản ở giữa bị bác hoặc thu hồi làm hai bản đã quyết trở thành liền kề). Luật chọn ở mục 3 (không bảo vệ; chỉ `KEEP_BOTH` miễn, cho đúng cặp): 0 chuỗi vi phạm trên cùng 30.000 chuỗi (195.052 trạng thái kiểm sau từng sự kiện; đo lại ở vòng 4 với cặp đã xét cộng dồn như mục 3: script vòng 3 ghi đè cặp và cho 195.026 trạng thái, cùng kết quả 0 chuỗi vi phạm); đánh giá lại là điểm bất động; chỉ thêm bản (400 bộ ngẫu nhiên × mọi hoán vị) thì kết cục không phụ thuộc thứ tự đến. Hai bản **không liền kề** (có bản `HELD` ở giữa), cách ≤ W, cùng `ACCEPTED` thì luật không chặn trực tiếp (875 trạng thái trong 195.052; script vòng 3 cho 918 trong 195.026): hợp lý khi bản giữa là bản trùng của bản đầu, và là chỗ còn hở khi không phải (U10).
+- *Bản rời nhóm vẫn là "bản đứng trước" (bóng của bản đã thu hồi, đã sửa hay đã bác).* Tất định theo thứ tự đến, nhưng giữ oan bản đúng vì một bản không còn tính vào tổng, và phải giữ bóng của mọi phiên bản.
+- *Tính lại tất định, nhả `HELD` khi bản đứng trước rời nhóm.* Kết cục là hàm của tập bản kể cả khi thu hồi; nhưng máy tự nhả `HELD`, trái nguyên tắc "`HELD` → `ACCEPTED` chỉ do người" (BB6, BB7) của luật đã được soát; thành câu mở Q-0A-13.
+
+**Phương án đã bỏ ở vòng 4** (bản rời nhóm và quyết định gắn cặp; mô phỏng luật bằng script tạm không commit, không phải mã, nhãn [SUY]; 300.000 chuỗi sự kiện ngẫu nhiên, 2 đến 5 bản, hạt giống cố định):
+- *Bản `ACCEPTED` đứng ngay sau bản rời nhóm không đổi* (chữ của vòng 3 ở mục 4): 180 chuỗi có hai bản liền kề, cách ≤ W, chưa xét cặp, cùng `ACCEPTED`. Ví dụ: a, m, c nghi trùng nối tiếp; `KEEP_BOTH` cho c; m rời nhóm: a và c liền kề mà cùng `ACCEPTED`, tổng gồm cả hai: cộng đôi im lặng. Luật chọn ở mục 4 (đánh giá lại bản đứng sau): 0 chuỗi; đánh giá lại là điểm bất động.
+- *Ghi quyết định `possible_duplicate` theo `duplicate_of` lúc ghi* (chữ của vòng 3 ở §6.2): 1.791 chuỗi có bản `REJECTED` bởi `MARK_DUPLICATE` mà bản kia không còn trong nhóm, 256 chuỗi có cặp đã xét hoặc bản được giữ khác cặp người đã thấy. Ví dụ: người mở b (`duplicate_of` = a); a bị thu hồi; người bấm `MARK_DUPLICATE` trên màn hình cũ: b `REJECTED` "trùng với bản kia" mà bản kia không còn, cả hai rơi khỏi tổng và hàng chờ. Luật chọn ở §6.2 (lệnh mang `duplicate_of` đã thấy): 0 và 0. Còn lại (U15): 2.521 chuỗi có bản bị bác mà bản được giữ rời nhóm sau quyết định; vá ở vòng 5 và vòng 6 (mục 4 (c); khối dưới đây).
+
+**Phương án đã bỏ ở vòng 5 và vòng 6** (bản được giữ của `MARK_DUPLICATE` rời nhóm sau quyết định; mô phỏng luật bằng script tạm không commit, không phải mã, nhãn [SUY]; hạt giống cố định; chữ vòng 4, chữ vòng 5 sát chữ và chữ vòng 6 chạy trên cùng chuỗi sự kiện; bộ sinh nghiêng về sự kiện hiếm nên số đếm không phải tần suất thật). **Đo lại ở vòng 6 (R5-02):** mô phỏng của vòng 5 coi bản `REJECTED` là bất động và bỏ im lặng phiên bản chờ của bản không còn ở nhóm; hai giả định đó không có trong hợp đồng. Các số dưới đây tính khi lần giao thu hồi, sửa tin chạm được bản `REJECTED` (phiên bản chờ, người `APPLY`, §3.8) và phiên bản chờ có trước `MARK_DUPLICATE` vẫn còn hiệu lực (giả định ghi ở U8); số của vòng 5 (chữ vòng 4: 1.404, 1.985, 2.538, 3.378 chuỗi) khác chút ít vì lý do đó.
+- *Bản `REJECTED` bởi `MARK_DUPLICATE` giữ nguyên khi bản được giữ rời nhóm* (chữ của vòng 4; U15 cũ). 300.000 chuỗi mỗi W, 2 đến 5 bản, 4 đến 12 sự kiện (nạp, bản `HELD` vì lý do khác và quyết định cho nó, mở màn hình, `KEEP_BOTH`, `MARK_DUPLICATE`, thu hồi, sửa tin sang nhóm khác hoặc thành `HELD` vì lý do khác, sửa tin đổi `sent_at`, `APPLY`): 1.399, 1.981, 2.534 và 3.371 chuỗi (W = 1, 2, 3, 5) có bản bị bác mà chuỗi `duplicate_of` không dẫn tới bản nào còn trong nhóm; trong số đó 654, 946, 1.215 và 1.794 chuỗi có nhóm không còn bản nào ở tổng hay hàng chờ. Ví dụ ngắn nhất, 4 bước: a và b đến, `MARK_DUPLICATE` b, thu hồi a. Cấu hình 7 bản, 12 đến 24 sự kiện, 80.000 chuỗi mỗi W: 2.273, 2.952 và 3.578 chuỗi (W = 2, 3, 5). Duyệt hết mọi chuỗi sự kiện của một không gian nhỏ (3 bản, thời điểm 0 đến 2, không có sửa tin đổi `sent_at`): W = 1 có 582.220 trạng thái, trong đó 103.356 trạng thái có bản bị bác rơi khỏi tổng (43.416 có nhóm không còn bản nào ở tổng hay hàng chờ); W = 2: 758.881 trạng thái, 141.264 (58.968).
+- *Mục 4 (c) chỉ chạy khi bản được giữ "vừa rời nhóm" từ `ACCEPTED` hoặc `HELD`* (chữ của vòng 5; R5-01). Hở ở chuỗi qua một bản đang `REJECTED`: a, b, c đến, cùng (máy, ngày, giá trị, đơn vị), mỗi bản cách bản đứng trước ≤ W; `MARK_DUPLICATE` c (c `REJECTED` theo b), rồi `MARK_DUPLICATE` b (b `REJECTED` theo a); lần giao thu hồi chạm b là phiên bản chờ, người `APPLY`: b thành `RETRACTED` nhưng không "rời nhóm" (đã rời lúc bị bác), nên (c) không chạy và c vẫn `REJECTED` theo một bản đã `RETRACTED`; rồi a bị thu hồi: tổng rỗng, hàng chờ rỗng, c là bản gửi còn sống của người. Có hai đường tới đó, và đường thứ hai không phụ thuộc cách đọc §3.8: (1) lần giao thu hồi hoặc sửa tin chạm b khi b đang `REJECTED`; (2) phiên bản chờ của b tạo trước khi b bị `MARK_DUPLICATE` (b đã có quyết định của người), không luật nào huỷ nó khi b thành `REJECTED`, rồi người `APPLY`. Chuỗi ngắn nhất của đường (1): 7 bước (a, b, c đến; `MARK_DUPLICATE` c; `MARK_DUPLICATE` b; thu hồi b; `APPLY` b: chuỗi `duplicate_of` của c kết thúc ở bản `RETRACTED`), và 8 bước thêm thu hồi a (nhóm rỗng); đường (2): 8 và 9 bước. Duyệt hết (3 bản, thời điểm 0 đến 2, không đổi `sent_at`): W = 1 có 486.388 trạng thái, 7.524 có bản bị bác rơi khỏi tổng (4.104 có nhóm không còn bản nào ở tổng hay hàng chờ); W = 2: 628.309, 10.692 (5.832); thời điểm 0 đến 3, W = 1, 2, 3: 874.188, 1.310.040 và 1.484.373 trạng thái, 11.880, 21.384 và 25.344 có bản bị bác rơi khỏi tổng. Riêng đường (2) (không cho lần giao chạm bản đang `REJECTED`; thời điểm 0 đến 2): cùng số trạng thái và cùng số rơi. Ngẫu nhiên (cùng cấu hình như trên): chỉ 1 chuỗi (W = 3, 2 đến 5 bản) và 3 chuỗi (mỗi W = 3 và W = 5, 7 bản), 0 ở các cấu hình còn lại, vì bộ sinh hiếm khi dựng chuỗi này; số ngẫu nhiên vì thế không thay được số duyệt hết.
+- Luật chọn ở mục 4 (c) (chữ vòng 6: (c) chạy cho bản được giữ từ bất kỳ trạng thái): 0 chuỗi rơi khỏi tổng ở cả bốn W và ở cấu hình 7 bản, 0 chuỗi có hai bản liền kề cách ≤ W chưa xét cặp cùng `ACCEPTED`, 0 chuỗi có `duplicate_of` của bản `HELD` khác bản đứng trước thật, 0 lần chuyển nới (`REJECTED` hay `HELD` thành `ACCEPTED` không do người quyết); đánh giá lại vẫn là điểm bất động. Duyệt hết: W = 1 và W = 2 (3 bản, thời điểm 0 đến 2) có 478.864 và 617.617 trạng thái, không trạng thái nào vi phạm; thời điểm 0 đến 3, W = 1, 2, 3: 862.308, 1.288.656 và 1.459.029 trạng thái, 0. Bốn bản trở lên chỉ kiểm bằng chuỗi ngẫu nhiên, chưa duyệt hết. Đây là kết quả của mô phỏng, chưa phải của mã; mô phỏng không phủ đồng thời, nhiều nhóm, TR1 và TR2 (U8).
+- *Coi bản được giữ là bản đã có quyết định của người (BB7)* (hướng (2) của U15 ở vòng 4): thu hồi hoặc sửa bản đó thì `HELD` `id_conflict`, người quyết `APPLY` hoặc `REJECT`. Chỉ dời chỗ rơi [SUY, tính tay, chưa chạy]: khi người quyết `APPLY` thu hồi thì bản bị bác vẫn `REJECTED` và tổng mất cả hai, trừ khi `APPLY` cũng đưa bản bị bác về hàng chờ, tức là phải có chính cơ chế đã chọn; và thêm việc người cho mọi thu hồi, sửa tin của bản từng là bản được giữ.
 
 ---
 
@@ -406,8 +505,8 @@ Tin chat và PDF cùng báo một (máy, ngày) là đối soát theo thẩm quy
 
 | Mã | Bất biến |
 |---|---|
-| CL1 | mọi đơn vị khác `ACCEPTED` có đúng một dòng `HELD` / `QUARANTINED` / `DUPLICATE` trong kho (BB1) |
-| CL2 | mỗi dòng có mã lý do trong danh sách đóng và `detail` (BB2) |
+| CL1 | mọi lần giao có kết cục khác `ACCEPTED` có đúng một dòng ở sổ lần giao; `HELD` và `QUARANTINED` thêm đúng một bản ghi hiện hành ở kho bản ghi theo `unit_key` (riêng lần giao sửa tin hoặc thu hồi chạm bản đã có quyết định của người thì thêm một phiên bản chờ vào bản ghi đó); `DUPLICATE` không tạo bản ghi, trỏ về bản đã có (BB1, §3.8) |
+| CL2 | mỗi dòng sổ có kết cục khác `ACCEPTED` có mã lý do trong danh sách đóng và `detail` (BB2) |
 | CL3 | lưu bền trong PostgreSQL, RLS FORCE, chỉ thêm và đổi trạng thái; sống sót qua khởi động lại |
 | CL4 | xuất báo cáo tất định (§6.4) |
 | CL5 | có người nhận (§6.3) |
@@ -417,19 +516,24 @@ Tin chat và PDF cùng báo một (máy, ngày) là đối soát theo thẩm quy
 
 Mọi quyết định cần capability `reports.decide` và thực thể nằm trong phạm vi người quyết; ghi audit (ai, khi nào, vì sao); idempotent theo mã quyết định; không bao giờ sửa `raw`; phép chiếu fact cập nhật trong cùng giao dịch.
 
+**Mọi quyết định cho ra `ACCEPTED` ở bảng dưới (`CHOOSE`, `CORRECT`, `AUTHORIZE`, `APPLY`) chạy TR3 trước khi ghi kết cục** (§5.6 mục 3): nếu bản đứng ngay trước trong nhóm nghi trùng cách ≤ W và người chưa xét cặp thì kết cục của quyết định là `HELD` `possible_duplicate` (quyết định và lý do trước ghi ở lịch sử và `detail`), không phải `ACCEPTED`; chỉ `KEEP_BOTH` đưa bản đó vào tổng. Cột "Hệ quả" dưới đây là kết cục khi TR3 không giữ.
+
+**Quyết định cho `possible_duplicate` gắn với cặp mà người đã thấy.** Lệnh `KEEP_BOTH` hoặc `MARK_DUPLICATE` mang `seen_duplicate_of` (tên đề xuất): `duplicate_of` của bản ghi trên màn hình lúc người quyết, rỗng nếu màn hình ghi bản đứng trước đã rời nhóm; lệnh thiếu trường này bị từ chối (đóng mặc định). Trong giao dịch của quyết định, sau khi có khoá (§5.6 mục 2) và đọc lại bản ghi, so với `duplicate_of` hiện tại: **khác nhau** (bản kia đã đổi, đã rời nhóm, hoặc có bản mới chen vào) thì **từ chối lệnh**: bản ghi vẫn `HELD` `possible_duplicate` ở hàng chờ, không ghi `REJECTED`, không ghi cặp đã xét; lý do "quyết định trên màn hình cũ" (kèm hai giá trị) ghi vào audit và trả cho người quyết để làm mới màn hình rồi quyết lại. `MARK_DUPLICATE` chỉ được nhận khi `duplicate_of` hiện tại còn trỏ một bản trong nhóm (không rỗng): không có bản kia thì không có gì để trùng với, và nhận thì cả hai bản rơi khỏi tổng và hàng chờ. `KEEP_BOTH` khi `duplicate_of` rỗng (đã khớp màn hình) được nhận: bản vào tổng, không thêm cặp (§5.6 mục 3). `MARK_DUPLICATE` được nhận chưa phải là cuối: nếu bản được giữ sau đó rời nhóm bằng thu hồi hoặc sửa tin (kể cả khi bản được giữ cũng đang `REJECTED` bởi `MARK_DUPLICATE` và người `APPLY` lần giao đó, §3.8) thì bản bị bác quay lại `HELD` (§5.6 mục 4 (c)).
+
 | Mã lý do | Quyết định cho phép | Hệ quả |
 |---|---|---|
 | `ambiguous_entity` | `CHOOSE(entity)`, `REJECT` | `ACCEPTED` với máy đã chọn |
 | `number_reading_uncertain` | `CORRECT(value)`, `REJECT` | `ACCEPTED` với giá trị người nhập; bản máy đọc giữ ở lịch sử |
-| `correction_unconfirmed` | `APPLY(target)`, `REJECT` | `APPLY`: bản gốc `SUPERSEDED`, bản đính chính thành bản ghi `OCCURRED` mới; `REJECT`: tổng không đổi |
-| `possible_duplicate` | `KEEP_BOTH`, `MARK_DUPLICATE` | `KEEP_BOTH`: cả hai `ACCEPTED`; `MARK_DUPLICATE`: bản bị giữ thành `DUPLICATE` |
-| `sender_not_authorized` | `AUTHORIZE`, `REJECT` | `ACCEPTED`, ghi `authorized_by` |
-| `date_conflict`, `ambiguous_kind`, `id_conflict` | `CORRECT(...)`, `REJECT` | `CORRECT`: `ACCEPTED` với giá trị người nhập; `REJECT`: `REJECTED` |
-| mọi mã của `QUARANTINED` | `REPROCESS` (sau đổi luật hay danh bạ), `DISMISS(lý do)`, `CORRECT(...)` | `CORRECT` nhập một bản ghi thay, dẫn xuất từ đơn vị đó |
+| `correction_unconfirmed` | `APPLY(target)`, `REJECT` | `APPLY`: bản gốc `SUPERSEDED`; bản đính chính (cùng `unit_key` của chính nó, không thêm dòng sổ: §3.8) thành `kind` `OCCURRED`, `ACCEPTED`; `REJECT`: tổng không đổi |
+| `possible_duplicate` | `KEEP_BOTH`, `MARK_DUPLICATE` (cả hai chỉ khi lệnh khớp cặp đã thấy, đoạn trên) | `KEEP_BOTH`: chỉ bản này thành `ACCEPTED` (bản `duplicate_of` giữ nguyên trạng thái của nó), ghi cặp đã xét (§5.6 mục 3); `MARK_DUPLICATE` (khi `duplicate_of` còn): bản bị giữ thành `REJECTED` với `duplicate_of` trỏ bản kia (không thêm dòng sổ lần giao: sổ chỉ ghi lần giao, §3.8); quay lại `HELD` nếu bản kia rời nhóm bằng thu hồi hoặc sửa tin, kể cả khi bản kia cũng đang `REJECTED` bởi `MARK_DUPLICATE` (§5.6 mục 4 (c)) |
+| `sender_not_authorized` | `AUTHORIZE`, `REJECT` | `ACCEPTED`, ghi `authorized_by`; với mục chờ là lần giao sửa tin hoặc thu hồi của người gửi khác: `AUTHORIZE` áp lần giao (bản bị sửa thành phiên bản mới, hoặc bị thu hồi), `REJECT` bỏ lần giao |
+| `date_conflict`, `ambiguous_kind` | `CORRECT(...)`, `REJECT` | `CORRECT`: `ACCEPTED` với giá trị người nhập; `REJECT`: `REJECTED` |
+| `id_conflict` | `CORRECT(...)`, `REJECT`; thêm `APPLY` khi mục chờ là lần giao sửa tin hoặc thu hồi chạm bản đã có quyết định của người (§3.8) | `CORRECT`: `ACCEPTED` với giá trị người nhập; `REJECT`: `REJECTED` (với mục chờ của lần giao sửa tin hoặc thu hồi: bản đã quyết giữ nguyên); `APPLY`: áp sửa tin (bản đã quyết `SUPERSEDED`) hoặc thu hồi (`RETRACTED`); nếu bản đã quyết là bản được giữ của một `MARK_DUPLICATE` (đang `ACCEPTED`, `HELD` hoặc `REJECTED`) thì bản bị bác quay lại `HELD` (§5.6 mục 4 (c)) |
+| mọi mã của `QUARANTINED` | `REPROCESS` (sau đổi luật hay danh bạ), `DISMISS(lý do)`, `CORRECT(...)` | `REPROCESS`: phiên bản mới của cùng `unit_key` theo luật hiện hành, qua cả TR3; `CORRECT` nhập một phiên bản thay của cùng `unit_key`, dẫn xuất từ đơn vị đó |
 
 ### 6.3 Người nhận [ĐỀ XUẤT; Q-0A-6]
 
-`recipient` là vai kèm phạm vi, tính lúc tạo:
+`recipient` là vai kèm phạm vi, tính lúc tạo (và tính lại khi một quyết định đổi thực thể, §5.6 mục 3):
 1. `project_manager` có phạm vi chứa dự án của máy (dự án lấy từ danh mục thực thể: `entitiesFile.Equipment[].Project`, `ingest.go:50-57`);
 2. không xác định được máy: `director`.
 
@@ -437,7 +541,7 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 
 ### 6.4 Báo cáo xuất
 
-- Cột như §3.7; sắp theo `unit_key`; định dạng cố định (JSON Lines hoặc CSV, UTF-8). **Cùng trạng thái kho thì cùng byte** (BB5).
+- Cột như §3.7; sắp theo `unit_key`; định dạng cố định (JSON Lines hoặc CSV, UTF-8). **Cùng trạng thái kho thì cùng byte** (BB5): giao lại đơn vị đã có (chỉ thêm dòng `DUPLICATE` ở sổ lần giao, §5.4) không đổi một byte nào. Cùng đầu vào chạy ở hai kho riêng thì cùng byte **sau khi bỏ cột của hệ** (`trace_id`, `decided_at`, §3.7).
 - Lọc theo ngày hoặc kỳ, theo người nhận, theo mã lý do. Cần capability `reports.review` và phạm vi; không chứa dữ liệu tenant khác.
 - Báo cáo chứa `raw` và `sender_id`, tức dữ liệu cá nhân của người trong đội: truy cập theo capability, không để ở nơi công khai.
 
@@ -447,11 +551,11 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 
 | Mục | Luật |
 |---|---|
-| **7.1 Gửi lại, nạp lại** | TR1, TR2 làm mọi lần giao lại thành `DUPLICATE`; trạng thái cuối không đổi (§5.4). Kết quả trả bên gọi chỉ rõ "trùng với bản nào". |
-| **7.2 Sửa tin** | Cùng mã nguồn có `edited_of`: bản mới thay bản cũ (`version` + 1, bản cũ `SUPERSEDED`, còn trong lịch sử); tổng dùng bản mới. **Nếu bản cũ đã có quyết định của người** (BB7): bản mới `HELD`, không ghi đè. Chỉ cùng `sender_id` được sửa tin của mình. |
-| **7.3 Thu hồi** | Tin bị thu hồi → `RETRACTED`, trừ khỏi tổng, còn trong lịch sử. Thu hồi đến **trước** tin gốc (đảo thứ tự) → ghi dấu, áp khi tin gốc đến; cùng trạng thái cuối. Bản đã có quyết định của người: `HELD` (BB7). |
-| **7.4 Thứ tự đến** | Đảo thứ tự đến của một lô không đổi tổng, cờ, tập `HELD` — trừ tham chiếu bản gốc của đính chính (nếu bản gốc chưa đến, đính chính `HELD` và được đánh giá lại khi bản gốc đến). |
-| **7.5 Dừng giữa lô, khởi động lại** | Mỗi đơn vị một giao dịch (bản ghi + phép chiếu fact). Chạy lại lô hội tụ về cùng trạng thái: không mất, không nhân đôi (khoá duy nhất `(tenant, unit_key)` ở cơ sở dữ liệu; thua đua → `DUPLICATE`). |
+| **7.1 Gửi lại, nạp lại** | TR1, TR2 làm mọi lần giao lại thành một dòng `DUPLICATE` ở sổ lần giao; trạng thái cuối (§5.4) không đổi (trừ ngoại lệ (e) của §7.4). Biên nhận lô (§3.8) chỉ rõ "trùng với bản nào". |
+| **7.2 Sửa tin** | Cùng mã nguồn có `edited_of` (xét **trước** TR1, bảng ở §3.8): bản mới thay bản cũ (`version` + 1, bản cũ `SUPERSEDED`, còn trong lịch sử); tổng dùng bản mới. Nội dung mới được so với phiên bản **hiện hành**: bằng thì `DUPLICATE` (không phiên bản mới); khác thì phiên bản mới, kể cả khi quay về nội dung của một phiên bản cũ (A, B, A: bản hiện hành là A ở `version` 3). **Nếu bản cũ đã có quyết định của người** (BB7): lần giao `HELD` `id_conflict`, không ghi đè; người quyết `APPLY` hoặc `REJECT` (§6.2). Chỉ cùng `sender_id` được sửa tin của mình (người gửi khác: lần giao `HELD` `sender_not_authorized`, bản ghi không đổi). Bản bị sửa đổi nhóm (thực thể, ngày xảy ra, giá trị, đơn vị, `kind`) hoặc thành `HELD` thì rời nhóm TR3 (§5.6 mục 4). |
+| **7.3 Thu hồi** | Tin mang `recalled` (xét **trước** TR1, bảng ở §3.8) → bản ghi bị thu hồi thành `RETRACTED`, trừ khỏi tổng và nhóm TR3, còn trong lịch sử; thu hồi lần hai là `DUPLICATE`. Chỉ cùng `sender_id` thu hồi được tin của mình (như sửa tin): thu hồi của người gửi khác thì lần giao `HELD` `sender_not_authorized`, bản ghi không đổi. Thu hồi đến **trước** tin gốc (đảo thứ tự) → ghi **dấu thu hồi** (bản ghi `RETRACTED` chưa có nội dung, cùng `unit_key`); khi tin gốc đến, nội dung vào bản ghi đó làm `version` 1 và vẫn `RETRACTED`: cùng trạng thái cuối như thứ tự thường, với tin không có bản nghi trùng đứng cạnh (nếu có: §5.6 mục 4). Bản đã có quyết định của người: lần giao thu hồi `HELD` `id_conflict` (BB7), bản đã quyết không đổi; người quyết `APPLY` hoặc `REJECT` (§6.2). |
+| **7.4 Thứ tự đến** | Thứ tự đến của các đơn vị (trong một lô hay giữa các lô, kể cả bản gửi sớm đến muộn) không đổi tổng, cờ, tập `HELD` của kho bản ghi khi chưa có quyết định của người, trừ năm ngoại lệ có tên: (a) tham chiếu bản gốc của đính chính (nếu bản gốc chưa đến, đính chính `HELD` và được đánh giá lại khi bản gốc đến); (b) cặp `id_conflict`, nơi bản giữ mã nguồn là bản đến trước (U9); (c) bản rời nhóm TR3 (thu hồi, sửa tin đổi nhóm, bác): thứ tự đến của chúng với bản nghi trùng đứng sau có thể đổi kết cục `HELD` hay `ACCEPTED` của bản đó, theo hướng an toàn (tổng không cộng đôi, không bản nào rơi khỏi tổng hay hàng chờ, kể cả bản đã bị `MARK_DUPLICATE` mà bản được giữ rời nhóm sau đó, nay quay lại `HELD`, và kể cả khi bản được giữ cũng đang `REJECTED` bởi `MARK_DUPLICATE`; §5.6 mục 4 (a) đến (c), Q-0A-13); (d) cách chia lô: tin kế thừa thực thể chỉ kế thừa trong lô (LK7), nên chia hai tin vào hai lô thì tin chỉ có lượng bị cách ly `unknown_entity` (thứ tự giữa các lô thì không đổi kết cục này); (e) sửa tin từ hai lần trở lên: lần sửa được so với phiên bản hiện hành (§7.2), nên lần sửa cũ đến sau lần sửa mới làm bản hiện hành quay về nội dung cũ (giá trị mới còn ở lịch sử phiên bản), và giao lại cả chuỗi sửa thêm phiên bản (§5.4); sửa tin đến trước tin gốc cho `HELD` `id_conflict` ở cả hai lần giao (§3.8), hướng an toàn (U13). Với TR3 điều này đúng nhờ thứ tự chuẩn và đánh giá lại; khi hai tiến trình chạy cùng lúc, đúng nhờ khoá tuần tự hoá (cả hai ở §5.6). Quyết định của người xen giữa các lần giao có thể đổi bản nào bị giữ nhưng không đổi việc tổng không cộng đôi (§5.6 mục 3). Sổ lần giao không nằm trong bất biến này: nó ghi đúng thứ tự đến. |
+| **7.5 Dừng giữa lô, khởi động lại** | Mỗi đơn vị một giao dịch (dòng sổ lần giao + bản ghi + phép chiếu fact). Chạy lại lô (là một lô mới, §3.8) hội tụ về cùng trạng thái cuối (§5.4; trừ ngoại lệ (e) của §7.4): không mất, không nhân đôi (khoá duy nhất `(tenant, unit_key)` của kho bản ghi; thua đua thì so lại nội dung chuẩn hoá với bản thắng: cùng nội dung → `DUPLICATE`, dòng sổ trỏ bản thắng; khác nội dung → `HELD` `id_conflict` với `unit_key` có hậu tố băm, §2.4). Đua giữa hai `unit_key` khác nhau (TR3) do khoá tuần tự hoá chặn (§5.6). Đua giữa lần giao thu hồi và tin gốc cùng `unit_key` cũng do khoá duy nhất phân xử: bên thua đọc lại rồi đi theo hàng tương ứng của bảng §3.8. |
 | **7.6 Đổi luật rồi xử lý lại** | Đổi lexicon hay danh bạ rồi `REPROCESS` các mục `QUARANTINED` / `HELD`. Mỗi quyết định ghi `pack_version`; quyết định cũ không bị xoá. Bản đã có quyết định của người không bị xử lý lại (BB7). |
 
 ---
@@ -462,11 +566,11 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 
 | Mặt | Trả lời |
 |---|---|
-| 1. Trạng thái | bản ghi báo cáo (mỗi đơn vị một dòng, kèm lịch sử phiên bản); fact chỉ là phép chiếu |
+| 1. Trạng thái | bản ghi báo cáo (mỗi đơn vị một dòng, kèm lịch sử phiên bản); sổ lần giao (mỗi lần giao một dòng, chỉ thêm, nơi duy nhất của `DUPLICATE`); fact chỉ là phép chiếu |
 | 2. Nguồn sự thật | kho bản ghi báo cáo là nguồn của `reported_fuel` ở chế độ B; `raw` là bằng chứng gốc; tin và tệp nguồn nằm ngoài EAIS |
 | 3. Ai ghi | bộ nạp tất định; người duyệt (quyết định, §6.2); không ai khác; model không ghi |
 | 4. Ai đọc | luồng hỏi (qua fact); người duyệt (hàng chờ); báo cáo xuất (`reports.review`) |
-| 5. Vòng đời | tạo → (`ACCEPTED`, `HELD`, `QUARANTINED`, `DUPLICATE`) → quyết định → `SUPERSEDED` / `RETRACTED` / `REJECTED`; không xoá. Chính sách lưu giữ: chưa có (Phase 5) |
+| 5. Vòng đời | mỗi lần giao → một kết cục lúc xử lý (`ACCEPTED`, `HELD`, `QUARANTINED`, `DUPLICATE`) ở sổ; bản ghi (`ACCEPTED`, `HELD`, `QUARANTINED`) → quyết định hoặc đánh giá lại TR3 → `SUPERSEDED` / `RETRACTED` / `REJECTED` (riêng `REJECTED` bởi `MARK_DUPLICATE` có thể quay lại `HELD`, §5.6 mục 4 (c)); không xoá. Chính sách lưu giữ: chưa có (Phase 5) |
 | 6. Hỏng thế nào | §9 |
 | 7. Phục hồi | §7 |
 | 8. Audit | mỗi chuyển kết cục ghi ai, khi nào, vì sao; không sửa `raw` |
@@ -481,11 +585,12 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 |---|---|---|
 | tệp không mở hay giải mã được | cả lô dừng (hôm nay: `ingest.go:137-140`) | đơn vị là cả tệp, `unreadable_file`; tệp khác chạy tiếp |
 | thiếu `pdftotext` (`readers.go:29-35`) | như trên | như trên, nhãn hạ tầng `infra:pdftotext` |
-| PostgreSQL ngắt giữa lô | ghi nửa vời | một giao dịch cho mỗi đơn vị; lô chạy lại hội tụ (§7.5) |
-| tiến trình chết giữa lô | mất hoặc nhân đôi | idempotent theo `unit_key` |
-| hai tiến trình nạp cùng tệp | trùng | ràng buộc duy nhất `(tenant, unit_key)`; thua đua → `DUPLICATE` |
+| PostgreSQL ngắt giữa lô | ghi nửa vời | một giao dịch cho mỗi đơn vị; lô chạy lại hội tụ (§7.5; trừ chuỗi sửa tin từ hai lần trở lên) |
+| tiến trình chết giữa lô | mất hoặc nhân đôi | idempotent theo `unit_key` (trừ chuỗi sửa tin từ hai lần trở lên) |
+| hai tiến trình nạp cùng tệp | trùng | ràng buộc duy nhất `(tenant, unit_key)` của kho bản ghi; thua đua thì so lại nội dung với bản thắng: cùng nội dung → `DUPLICATE` (dòng sổ lần giao trỏ bản thắng), khác nội dung → `HELD` `id_conflict` (§7.5) |
+| hai tiến trình nạp hai tệp khác nhau, mỗi tệp một tin nghi trùng nhau (TR3) | cộng đôi: cả hai `ACCEPTED`; ràng buộc duy nhất không thấy vì `unit_key` khác nhau | khoá tư vấn theo (tenant, thực thể, ngày xảy ra) lấy đầu giao dịch; đánh giá nhóm TR3 trong giao dịch giữ khoá (§5.6) |
 | lexicon hay danh bạ sai | gán sai hàng loạt | `pack_version` ghi ở mỗi bản ghi; xử lý lại; không xoá lịch sử (§7.6) |
-| tệp xuất lặp nhiều lần | ngập hàng chờ | TR1, TR2 chặn; báo cáo xuất đếm `DUPLICATE` theo lô |
+| tệp xuất lặp nhiều lần | ngập hàng chờ | TR1, TR2 chặn; mỗi lần giao lặp chỉ thêm dòng `DUPLICATE` ở sổ lần giao, đếm theo lô ở biên nhận lô, không đổi báo cáo cách ly và hàng chờ (§3.8) |
 | `sender_id` bị giả | ghi cho máy không phải của mình | ngoài 0a (Phase 5, 8); phạm vi người gửi giới hạn thiệt hại (§4.4) |
 
 ---
@@ -498,7 +603,7 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 
 | Mã | Lớp ca (đầu vào) | Kỳ vọng |
 |---|---|---|
-| LC01 | lô hỗn hợp: tin tốt, tin hỏng, dòng PDF lạ, dòng trống, tệp hỏng | số đơn vị vào = tổng kết cục (BB1); dòng trống không phải đơn vị |
+| LC01 | lô hỗn hợp: tin tốt, tin hỏng, dòng PDF lạ, dòng trống, tệp hỏng, và đơn vị giao trùng (cùng mã tin, cùng nội dung) | số đơn vị vào = số dòng sổ = tổng kết cục, kể cả `DUPLICATE` (BB1); dòng trống không phải đơn vị |
 | LC02 | dòng PDF không khớp mẫu `n. chữ`, không thuộc danh sách bỏ qua | `QUARANTINED` `unrecognized_line` |
 | LC03 | tệp hỏng, sai định dạng hoặc thiếu công cụ đọc | `QUARANTINED` `unreadable_file` (đơn vị là tệp); các tệp khác nạp đủ |
 | LC04 | tin chỉ có ảnh hoặc tệp đính kèm, `text` rỗng | `QUARANTINED` `unsupported_media`, giữ `attachments`; không `unknown_entity` |
@@ -528,14 +633,20 @@ Hạn xử lý và nhắc việc không thuộc Phase 0a (BR-RPT-04, Phase 2).
 
 | Mã | Lớp ca | Kỳ vọng |
 |---|---|---|
-| LC21 | cùng tin giao hai lần (cùng `source_message_id`, cùng nội dung) | `DUPLICATE`; tổng không đổi |
-| LC22 | cùng nội dung, giờ, người gửi, khác mã tin (xuất chồng lấp) | `DUPLICATE` |
-| LC23 | nạp lại nguyên tệp đã nạp | mọi đơn vị `DUPLICATE`; trạng thái cuối giống hệt |
-| LC24 | gửi lại sau vài phút, cùng người, cùng chữ | `HELD` `possible_duplicate`; không vào tổng |
-| LC25 | người khác báo cùng (máy, ngày, giá trị) trong cửa sổ W | `HELD` `possible_duplicate` |
+| LC21 | cùng tin giao hai lần (cùng `source_message_id`, cùng nội dung) | lần giao thứ hai `DUPLICATE` (sổ lần giao, trỏ bản đã có), không thêm bản ghi; tổng không đổi |
+| LC22 | cùng nội dung, giờ, người gửi, khác mã tin (xuất chồng lấp) | `DUPLICATE` (trỏ bản đã có), không thêm bản ghi |
+| LC23 | nạp lại nguyên tệp đã nạp (tệp không có chuỗi sửa tin từ hai lần trở lên: §7.4 (e)) | mọi đơn vị `DUPLICATE` ở lô mới; kho bản ghi, hàng chờ, báo cáo cách ly, tổng giống hệt từng byte (§5.4); sổ lần giao thêm đúng N dòng cho N đơn vị |
+| LC24 | gửi lại sau vài phút, cùng người, cùng chữ | bản gửi sau (theo `sent_at`) `HELD` `possible_duplicate`; không vào tổng |
+| LC25 | người khác báo cùng (máy, ngày, giá trị) trong cửa sổ W | bản gửi sau (theo `sent_at`) `HELD` `possible_duplicate` |
 | LC26 | hai tin cùng giá trị, cách nhau hơn W, chữ khác nhau | cả hai `ACCEPTED`; tổng gồm cả hai (không gộp oan) |
 | LC27 | hai lần cấp thật cách nhau dưới W, cùng giá trị | `HELD`; người quyết `KEEP_BOTH` thì cả hai vào tổng |
 | LC28 | tin giống hệt ở hai tenant | mỗi tenant một bản ghi; không `DUPLICATE` xuyên tenant |
+| LC74 | hai tiến trình nạp **đồng thời** hai tệp khác nhau, mỗi tệp một tin; hai tin cùng (máy, ngày, giá trị, đơn vị), cách nhau dưới W; lặp ít nhất 100 lần, đảo bên khởi động trước | mọi lần: đúng một bản `ACCEPTED` (bản có `sent_at` sớm hơn) và một bản `HELD` `possible_duplicate`; tổng bằng đúng một lần giá trị; không lần nào cả hai `ACCEPTED` (§5.6) |
+| LC75 | bản gửi sớm hơn **đến muộn** (ở lô sau) so với bản nghi trùng đã được nhận; và chuỗi ba bản, mỗi cặp liền kề cách nhau dưới W nhưng bản đầu và bản cuối cách nhau hơn W, đến theo mọi thứ tự | kết cục cuối giống nhau với mọi thứ tự đến (§5.6): bản gửi sớm nhất `ACCEPTED`, các bản sau lần lượt `HELD` `possible_duplicate`; bản đã `ACCEPTED` trước đó mà nay đứng sau một bản cách ≤ W chuyển `HELD` (có lịch sử); tổng không cộng cả hai; cặp mà người đã `KEEP_BOTH` không bị giữ lại lần nữa |
+| LC77 | bản A đã `ACCEPTED`; bản B cùng (máy, ngày, giá trị, đơn vị), gửi sau A trong W, `HELD` vì lý do khác (`ambiguous_entity`, `sender_not_authorized` hoặc `number_reading_uncertain`); người quyết cho B (`CHOOSE`, `AUTHORIZE` hoặc `CORRECT`); lặp với cả hai thứ tự đến của A và B | B **không** `ACCEPTED`: `HELD` `possible_duplicate`, `duplicate_of` = A, lý do trước và quyết định ghi ở lịch sử; tổng chỉ gồm A; người `KEEP_BOTH` thì cả hai vào tổng, `MARK_DUPLICATE` thì B `REJECTED` (§5.6 mục 3) |
+| LC78 | bản B đã `ACCEPTED` sau quyết định của người (lúc quyết chưa có bản nghi trùng); sau đó bản A gửi sớm hơn B, cách B ≤ W, đến muộn (cùng máy, ngày, giá trị, đơn vị) | A `ACCEPTED`; B chuyển `HELD` `possible_duplicate` (`duplicate_of` = A; quyết định cũ còn ở lịch sử; B vào hàng chờ có người nhận, không đổi im lặng); tổng một lần giá trị; người `KEEP_BOTH` thì cả hai vào tổng (§5.6 mục 3) |
+| LC79 | tệp báo cáo hoặc bảng (đơn vị không có `sent_at`): (i) cùng một dòng chữ (cùng số dòng, máy, giá trị) ở hai tệp ngày khác nhau; (ii) hai dòng cùng chữ, khác số dòng, trong cùng một tệp | cả hai đơn vị `ACCEPTED` ở mọi trường hợp; tổng gồm cả hai (không gộp oan, §5.1 TR2, §5.3) |
+| LC80 | cùng một tệp báo cáo hoặc bảng (cùng nội dung, cùng ngày) giao lại ở đường dẫn khác | mọi đơn vị `DUPLICATE` (`duplicate_fingerprint`, trỏ bản đã có), không thêm bản ghi; tổng, báo cáo cách ly và hàng chờ không đổi (§5.1 TR2) |
 
 **Nhóm D: số và đơn vị (dòng GA5)**
 
@@ -576,14 +687,15 @@ Nhóm D không có ca phụ thuộc cách viết nhóm nghìn bằng dấu cách
 | LC49 | các biểu diễn của một máy (mã chuẩn, mã viết liền không gạch, tên theo kiểu báo cáo, bí danh viết tắt) | cùng một thực thể |
 | LC50 | tin kế thừa thực thể sau tin `PLAN`, `CORRECTION` hoặc không `ACCEPTED` của cùng người | không `ACCEPTED` tự động (LK7) |
 | LC51 | payload có `tenant` khác tenant của danh tính; canary hai tenant | bỏ qua hoặc từ chối; 0 bản ghi hiện ở tenant kia |
+| LC82 | kế thừa thực thể (LK7), cùng người gửi, cùng ngày: (i) tin mang thực thể gửi trước, tin chỉ có lượng gửi sau, cùng một lô, các dòng đến theo thứ tự thuận rồi đảo; (ii) hai tin mang hai thực thể khác nhau, tin chỉ có lượng gửi sau cả hai, cùng một lô, các dòng đến theo thứ tự thuận rồi đảo; (iii) tin chỉ có lượng ở một lô, tin mang thực thể ở lô khác | (i), (ii): cả hai thứ tự dòng cho cùng kết cục: tin chỉ có lượng kế thừa thực thể của tin mang thực thể gần nhất trước nó theo `sent_at`, `note` ghi nguồn; (iii): `QUARANTINED` `unknown_entity`, không kế thừa xuyên lô |
 
 **Nhóm G: cách ly, chờ xác nhận, xuất (dòng GA2)**
 
 | Mã | Lớp ca | Kỳ vọng |
 |---|---|---|
-| LC52 | mọi kết cục khác `ACCEPTED` | có mã lý do trong danh sách đóng và người nhận (BB2) |
+| LC52 | mọi kết cục khác `ACCEPTED` | có mã lý do trong danh sách đóng (BB2); mọi `HELD` và `QUARANTINED` có người nhận; mọi `DUPLICATE` trỏ về một bản ghi có thật |
 | LC53 | dừng đột ngột dịch vụ giữa lô, khởi động lại | `HELD` và `QUARANTINED` còn nguyên (đối chứng HT-10) |
-| LC54 | xuất báo cáo cách ly cho một ngày | đủ dòng, đủ cột; số dòng theo mã lý do khớp kho; cùng trạng thái cho cùng byte qua 100 lần chạy |
+| LC54 | xuất báo cáo cách ly cho một ngày | đủ dòng, đủ cột; số dòng theo mã lý do khớp kho; cùng đầu vào cho cùng byte qua 100 lần chạy, sau khi bỏ cột của hệ (§3.7) |
 | LC55 | người không có `reports.review` đòi đọc hoặc xuất | bị từ chối |
 | LC56 | người nhận gán đúng (`project_manager` chứa máy; không xác định máy thì `director`) | khớp §6.3 |
 | LC57 | đọc lại tổng của (máy, ngày) có bản `HELD`, `QUARANTINED`, `PLAN` | tổng loại trừ chúng (BB3) |
@@ -593,22 +705,25 @@ Nhóm D không có ca phụ thuộc cách viết nhóm nghìn bằng dấu cách
 
 | Mã | Lớp ca | Kỳ vọng |
 |---|---|---|
-| LC59 | sửa tin (cùng mã, có `edited_of`) | bản mới thay; tổng dùng bản mới; bản cũ `SUPERSEDED` còn lịch sử |
-| LC60 | sửa tin khi bản cũ đã có quyết định của người | `HELD`, không ghi đè im lặng (BB7) |
-| LC61 | thu hồi tin | `RETRACTED`; trừ khỏi tổng |
-| LC62 | thu hồi đến trước tin gốc | cùng trạng thái cuối như thứ tự thường |
-| LC63 | đảo thứ tự đến của cả lô | cùng tổng, cùng cờ, cùng tập `HELD` (trừ tham chiếu đính chính) |
-| LC64 | dừng giữa lô rồi chạy lại | 0 mất, 0 nhân đôi |
-| LC65 | hai tiến trình nạp cùng một tệp đồng thời | một kết quả |
-| LC66 | cùng mã tin, khác nội dung, không có `edited_of` | `HELD` `id_conflict` |
+| LC59 | sửa tin (cùng mã, có `edited_of`), gồm sửa hai lần quay về nội dung đầu (A, B, A) và sửa không đổi nội dung | bản mới thay; tổng dùng bản hiện hành (A, B, A: nội dung A, `version` 3); bản cũ `SUPERSEDED` còn lịch sử; sửa không đổi nội dung là `DUPLICATE`, không thêm phiên bản (§3.8) |
+| LC60 | sửa tin hoặc thu hồi khi bản cũ đã có quyết định của người, hoặc do người gửi khác người gửi bản ghi | lần giao `HELD` (`id_conflict` khi bản cũ đã có quyết định của người; `sender_not_authorized` khi người gửi khác); bản ghi không đổi, không ghi đè im lặng (BB7); người quyết `APPLY` hoặc `AUTHORIZE` thì áp, `REJECT` thì bỏ |
+| LC61 | thu hồi tin, gồm thân thu hồi trùng chữ với tin gốc hoặc rỗng, và thu hồi lần hai | `RETRACTED`; trừ khỏi tổng; lần giao thu hồi đầu không phải `DUPLICATE` hay `id_conflict`; thu hồi lần hai là `DUPLICATE` (§3.8) |
+| LC62 | thu hồi đến trước tin gốc (tin gốc không có bản nghi trùng đứng cạnh) | cùng trạng thái cuối như thứ tự thường: bản ghi `RETRACTED`, trừ khỏi tổng |
+| LC63 | đảo thứ tự đến của cả lô và giữa các lô, gồm cả các nhóm nghi trùng TR3; chỉ gồm đơn vị thường (không sửa tin, không thu hồi, không quyết định của người xen giữa) | cùng tổng, cùng cờ, cùng tập `HELD` (trừ tham chiếu đính chính, cặp `id_conflict` và cách chia lô của kế thừa thực thể, §7.4) |
+| LC64 | dừng giữa lô rồi chạy lại | 0 mất, 0 nhân đôi; sau khởi động lại và trước khi chạy lại, mọi mục `HELD` và `QUARANTINED` của đơn vị đã xử lý còn nguyên |
+| LC65 | hai tiến trình nạp đồng thời: (i) cùng một tệp; (ii) hai tệp có đơn vị cùng mã tin, một lần cùng nội dung và một lần khác nội dung | (i) một kết quả; (ii) cùng nội dung: một bản ghi và một `DUPLICATE`; khác nội dung: một bản ghi và một `HELD` `id_conflict`, hai bản không chung `unit_key`; không lần nào mất đơn vị (§7.5) |
+| LC66 | cùng mã tin, khác nội dung, không có `edited_of`; thứ tự đến nêu rõ trong ca | bản đến sau `HELD` `id_conflict` (bản đến trước giữ nguyên); không hai bản chung `unit_key` |
+| LC81 | bản rời nhóm nghi trùng: cặp a, b cùng (máy, ngày, giá trị, đơn vị), b gửi sau a trong W; a bị thu hồi, hoặc sửa sang giá trị khác, hoặc (khi a đang `HELD` `possible_duplicate`) người bác; thứ tự đến nêu rõ trong ca: (i) a, b, rồi a rời nhóm; (ii) a rời nhóm trước khi a và b đến (chỉ với thu hồi); (iii) a, a rời nhóm, rồi b; (iv) ba bản a, m, c cùng (máy, ngày, giá trị, đơn vị), gửi lần lượt, m cách a ≤ W và c cách m ≤ W (nên m, c đều `HELD` `possible_duplicate`), người `KEEP_BOTH` cho c, rồi m rời nhóm (thu hồi, hoặc sửa sang giá trị khác, hoặc `MARK_DUPLICATE`); hai biến thể: c cách a ≤ W, và c cách a hơn W | (i) b vẫn `HELD` `possible_duplicate` (không tự nới), `duplicate_of` không trỏ bản đã rời nhóm mà không có lý do ở `detail`, tổng không gồm a; (ii), (iii) b `ACCEPTED`; ở mọi thứ tự tổng không gồm cả a và b và b không rơi khỏi tổng hay hàng chờ; ở (i) người `KEEP_BOTH` thì b vào tổng; (iv) c cách a ≤ W: c chuyển `HELD` `possible_duplicate` (`duplicate_of` = a; quyết định `KEEP_BOTH` cũ còn ở lịch sử; c vào hàng chờ có người nhận), tổng không gồm cả a và c, người `KEEP_BOTH` cho cặp (c, a) thì c vào tổng; c cách a hơn W: c giữ `ACCEPTED` (§5.6 mục 4) |
+| LC83 | quyết định trên màn hình cũ: bản b `HELD` `possible_duplicate`, `duplicate_of` = a; người quyết mở b (thấy `duplicate_of` = a); trước khi người quyết gửi lệnh, cặp đổi: (i) a bị thu hồi (b còn `HELD`, `duplicate_of` rỗng); (ii) một bản d gửi sớm hơn b nhưng muộn hơn a, đến muộn, đứng giữa a và b (`duplicate_of` của b đổi sang d); rồi người quyết gửi `MARK_DUPLICATE`, và ở ca riêng `KEEP_BOTH`, mang `duplicate_of` đã thấy (a); (iii) màn hình đã ghi `duplicate_of` rỗng (a đã rời nhóm): người quyết gửi `MARK_DUPLICATE`, và ở ca riêng `KEEP_BOTH`, mang `duplicate_of` rỗng | (i), (ii): lệnh bị từ chối kèm audit và lý do "quyết định trên màn hình cũ"; b vẫn `HELD` `possible_duplicate` ở hàng chờ, có người nhận; không `REJECTED`, không cặp đã xét mới; tổng không đổi; không bản nào rơi khỏi tổng hay hàng chờ; lệnh gửi lại mang `duplicate_of` hiện tại thì xử lý như (iii) khi `duplicate_of` rỗng, và được nhận khi còn; (iii): `MARK_DUPLICATE` bị từ chối; `KEEP_BOTH` được nhận: b vào tổng, không thêm cặp (§6.2) |
+| LC84 | bản được giữ của `MARK_DUPLICATE` rời nhóm **sau** quyết định: bản b `HELD` `possible_duplicate`, `duplicate_of` = a; người quyết `MARK_DUPLICATE` mang `duplicate_of` đã thấy (a), nên b `REJECTED`; rồi a rời nhóm: (i) a bị thu hồi; (ii) a bị sửa sang nhóm khác (giá trị khác); (iii) a bị sửa thành `HELD` vì lý do khác (ví dụ `ambiguous_entity`); (iv) a rời bằng chính `MARK_DUPLICATE`: ba bản z, a, b cùng (máy, ngày, giá trị, đơn vị), gửi lần lượt, mỗi bản cách bản đứng trước ≤ W; người `MARK_DUPLICATE` b (b `REJECTED` theo a), rồi `MARK_DUPLICATE` a (a `REJECTED` theo z), rồi z bị thu hồi; (v) ba bản a, b, c cùng (máy, ngày, giá trị, đơn vị), gửi lần lượt, mỗi bản cách bản đứng trước ≤ W; người `MARK_DUPLICATE` b rồi c (cả hai theo a), rồi a bị thu hồi; (vi) a đã có quyết định của người: lần giao thu hồi a là `HELD` `id_conflict` (BB7), rồi người quyết `APPLY`; (vii) bản được giữ đang `REJECTED` bị thu hồi hoặc sửa: ba bản a, b, c cùng (máy, ngày, giá trị, đơn vị), gửi lần lượt, mỗi bản cách bản đứng trước ≤ W; người `MARK_DUPLICATE` c (c `REJECTED` theo b), rồi `MARK_DUPLICATE` b (b `REJECTED` theo a); lần giao thu hồi b (hoặc sửa b sang giá trị khác, hoặc thành `HELD` vì lý do khác) là phiên bản chờ (§3.8), người `APPLY`; rồi a bị thu hồi; hai biến thể: phiên bản chờ tạo sau `MARK_DUPLICATE` b, và phiên bản chờ tạo trước `MARK_DUPLICATE` b (b đã có quyết định của người) | (i), (ii), (iii): b quay lại `HELD` `possible_duplicate` (quyết định cũ còn ở lịch sử; vào hàng chờ có người nhận; `duplicate_of` rỗng kèm `detail` vì không còn bản đứng trước); tổng không gồm a và chưa gồm b; không bản nào rơi khỏi cả tổng lẫn hàng chờ; người `KEEP_BOTH` thì b vào tổng; (iv): khi a rời bằng `MARK_DUPLICATE`, b vẫn `REJECTED` (đi theo z, còn trong tổng) và tổng gồm z; khi z bị thu hồi, a quay lại `HELD` như (i) còn b vẫn `REJECTED` theo a (đang ở hàng chờ); (v): b và c cùng quay lại `HELD`, `duplicate_of` của b rỗng, của c là b; người `KEEP_BOTH` cho b rồi cho c thì cả hai vào tổng; (vi): cho tới khi `APPLY`, a vẫn trong tổng và b vẫn `REJECTED`; khi `APPLY`, a `RETRACTED` và b quay lại `HELD` như (i) (§5.6 mục 4 (c)); (vii): cho tới khi `APPLY`, a còn trong tổng, b và c vẫn `REJECTED`; khi `APPLY`, b `RETRACTED` (hoặc `SUPERSEDED`, hoặc `HELD` vì lý do khác) và c quay lại `HELD` `possible_duplicate` (`duplicate_of` = a; quyết định cũ còn ở lịch sử; vào hàng chờ có người nhận), không muộn hơn lúc `APPLY`; khi a bị thu hồi, c vẫn `HELD` (`duplicate_of` rỗng kèm `detail`); ở mọi thời điểm tổng hoặc hàng chờ còn chứa giá trị của c; người `KEEP_BOTH` thì c vào tổng (§5.6 mục 4 (c)) |
 
-**Nhóm I: hạ tầng và ràng buộc chung**
+**Nhóm I: hạ tầng và ràng buộc chung** (mỗi ca thuộc một dòng cổng: LC67 → GA9, LC68 và LC69 → GA5, LC70 → GA1; §11.1)
 
 | Mã | Lớp ca | Kỳ vọng |
 |---|---|---|
-| LC67 | PostgreSQL ngắt giữa lô | lỗi nhãn hạ tầng; không ghi nửa đơn vị; chạy lại hội tụ |
+| LC67 | PostgreSQL ngắt giữa lô (lô không có chuỗi sửa tin từ hai lần trở lên: §7.4 (e)) | lỗi nhãn hạ tầng; không ghi nửa đơn vị; chạy lại hội tụ |
 | LC68 | đếm lời gọi model trên toàn bộ đường nạp | đúng 0 (câu 5 của cổng QuânIT) |
-| LC69 | 100 lần chạy cùng đầu vào, tiến trình khác nhau | kết cục, trường và báo cáo xuất giống hệt (BB5) |
+| LC69 | 100 lần chạy cùng đầu vào, tiến trình khác nhau | kết cục, trường và báo cáo xuất giống hệt (BB5), trừ trường của hệ (§3.7) |
 | LC70 | tin thiếu hoặc trùng `record_id` | không hai đơn vị khác nhau chung `unit_key` (HT-8) |
 
 **Nhóm J: nhánh form / bot (dòng GA11)**
@@ -618,6 +733,7 @@ Nhóm D không có ca phụ thuộc cách viết nhóm nghìn bằng dấu cách
 | LC71 | bản chiếu có cấu trúc của các ca nhóm B, D, E | cùng kết cục ngữ nghĩa như đường chat ở phần chung |
 | LC72 | form thiếu trường bắt buộc, hoặc giá trị ngoài danh sách chọn | `QUARANTINED` (`missing_value` hoặc `unparseable`) hoặc từ chối ở điểm nhận có ghi vết |
 | LC73 | `kind` và `approx` tường minh trong bản ghi form | được tôn trọng, không bị luật đọc chữ ghi đè |
+| LC76 | gửi hai lần từ form hoặc bot: (i) cùng `unit_id`; (ii) khác `unit_id`, cùng người báo, máy, ngày xảy ra, giá trị, đơn vị, gửi liên tiếp trong W | (i) lần thứ hai `DUPLICATE` (sổ lần giao, trỏ bản đã có), không thêm bản ghi; (ii) lần thứ hai `HELD` `possible_duplicate`; tổng không đổi ở cả hai |
 
 ---
 
@@ -625,62 +741,82 @@ Nhóm D không có ca phụ thuộc cách viết nhóm nghìn bằng dấu cách
 
 ### 11.1 Các dòng cổng
 
-Mỗi dòng cần: bộ ca độc lập, lệnh, kết quả, ca âm (`docs/PROMPT-BUILD-EAIS.md` §9.3). **Lệnh: chưa có**; do làn viết mã và làn phép đo viết khi mở mã. Bộ kiểm cho GA1 phải **không import bộ nạp**, theo cách của G1 DATA (`docs/04-core-mvp.md` §6, dòng G1 DATA: so tập mã bản ghi của manifest với tập quan sát cộng cách ly).
+Mỗi dòng cần: bộ ca độc lập, lệnh, kết quả, ca âm (`docs/PROMPT-BUILD-EAIS.md` §9.3). **Lệnh: chưa có**; do làn viết mã và làn phép đo viết khi mở mã. Bộ kiểm cho GA1 phải **không import bộ nạp**, theo cách của G1 DATA (`docs/04-core-mvp.md` §6, dòng G1 DATA: so tập mã bản ghi của manifest với tập quan sát cộng cách ly); ở GA1 là so manifest của lô với sổ lần giao và kho bản ghi, đọc thẳng từ PostgreSQL.
 
 | Dòng | Đo gì | Ngưỡng (nhị phân) | Nguồn của dòng | Ca âm, đột biến |
 |---|---|---|---|---|
-| **GA1** | Bảo toàn: tập `unit_key` của bộ ca = tập (bản ghi ∪ chờ ∪ cách ly ∪ trùng); thiếu hoặc thừa là ĐỎ | 100% đơn vị có đúng một kết cục; 0 rơi im lặng | §9.3 L1; `docs/04-core-mvp.md` §6 | nhóm A; DB01, DB02, DB20 |
-| **GA2** | Cách ly: mọi kết cục khác `ACCEPTED` có mã lý do thuộc danh sách đóng và người nhận; lưu bền qua khởi động lại; báo cáo xuất khớp kho | 100% | §9.3 L1 | nhóm G; DB11, DB14 |
+| **GA1** | Bảo toàn: với mỗi lô của bộ ca, mỗi đơn vị trong manifest của lô khớp đúng một dòng sổ lần giao (số đơn vị vào = số dòng sổ = tổng các kết cục); mọi dòng khác `DUPLICATE` có đúng một bản ghi hiện hành theo `unit_key`, mọi dòng `DUPLICATE` trỏ về một bản ghi có thật; thiếu hoặc thừa là ĐỎ | 100% lần giao có đúng một kết cục; 0 rơi im lặng, kể cả lần giao trùng | §9.3 L1; `docs/04-core-mvp.md` §6 | nhóm A, LC70; DB01, DB02, DB20, DB28 |
+| **GA2** | Cách ly: mọi `HELD` và `QUARANTINED` có mã lý do thuộc danh sách đóng và người nhận, mọi `DUPLICATE` có mã lý do và trỏ về bản đã có; lưu bền qua khởi động lại; báo cáo xuất khớp kho | 100% | §9.3 L1 | nhóm G; DB01, DB11, DB14, DB17 |
 | **GA3** | Cờ loại: ca bơm đính chính, kế hoạch, ước lượng gắn đúng; đọc lại tổng (máy, ngày) qua kho sự thật khớp kỳ vọng | 100% ca bơm; 0 bản ghi sai loại vào tổng | §9.3 L1 | nhóm B; DB03, DB04, DB17, DB19 |
-| **GA4** | Không cộng đôi, không gộp oan | 100% ca trùng TR1, TR2 không đổi tổng; 100% ca TR3 vào `HELD`; 0 ca hợp lệ lặp bị gộp | §9.3 L1 ("phiếu trùng không bị cộng đôi"); "không gộp oan" do hợp đồng này thêm | nhóm C; DB05, DB06, DB07 |
-| **GA5** | Đọc số tất định và đúng | 100% trên bộ ca số và đơn vị (số bằng chữ, nhóm nghìn, không dấu); 100/100 lần chạy qua tiến trình khác nhau giống hệt; số nói tắt đọc đúng quy ước D-OP-14; dãy "linh" / "lẻ" không `ACCEPTED` với `approx` sai | §9.3 S2 | nhóm D; DB12, DB13 |
-| **GA6** | Độ chính xác trên ca "tự nhiên" của bộ độc lập (SLA, §11.2) | sai im lặng S1 = 0; đúng ≥ **97%**; phủ nhận tự động ≥ **85%** [ĐỀ XUẤT] | `docs/ROADMAP-DAY-DU.md` §5b (M2), §6 (Phase 0a) | toàn bộ |
+| **GA4** | Không cộng đôi, không gộp oan | 100% ca trùng TR1, TR2 không đổi tổng; 100% bản đứng sau trong ca TR3 vào `HELD`; kết cục TR3 giống nhau với mọi thứ tự đến và với hai tiến trình chạy song song (LC74, LC75); bản vào nhóm bằng quyết định của người cũng qua TR3 (LC77, LC78); đơn vị không có `sent_at` không bị gộp oan và tệp chép sang đường dẫn khác không bị cộng đôi (LC79, LC80); 0 ca hợp lệ lặp bị gộp | §9.3 L1 ("phiếu trùng không bị cộng đôi"); "không gộp oan" do hợp đồng này thêm | nhóm C; DB05, DB06, DB07, DB16, DB26, DB27, DB29, DB30, DB33 |
+| **GA5** | Đọc số tất định và đúng; đường nạp tất định và không gọi model | 100% trên bộ ca số và đơn vị (số bằng chữ, nhóm nghìn, không dấu); 100/100 lần chạy qua tiến trình khác nhau giống hệt (kết cục, trường, báo cáo xuất; trừ trường của hệ, §3.7); số nói tắt đọc đúng quy ước D-OP-14; dãy "linh" / "lẻ" không `ACCEPTED` với `approx` sai; 0 lời gọi model trên đường nạp | §9.3 S2 | nhóm D, LC68, LC69; DB12, DB13, DB18 |
+| **GA6** | Độ chính xác trên ca "tự nhiên" của bộ độc lập (SLA, §11.2) | sai im lặng S1 = 0; đúng ≥ **97%**; phủ nhận tự động ≥ **85%** [ĐỀ XUẤT] | `docs/ROADMAP-DAY-DU.md` §5b (M2), §6 (Phase 0a) | toàn bộ ca tự nhiên và ca bơm; DB22, DB23 |
 | **GA7** | Thời gian: ngày xảy ra đúng, không rơi về ngày gửi im lặng | 100% ca nhóm E (trừ ca phụ thuộc câu mở) | do hợp đồng này thêm (HT-4) | nhóm E; DB08 |
-| **GA8** | Quyền người gửi và tenant | 100% ca nhóm F; canary hai tenant: 0 rò | do hợp đồng này thêm; S5 là của làn 2 | nhóm F; DB09, DB10 |
-| **GA9** | Phục hồi: gửi lại, sửa tin, thu hồi, đảo thứ tự, dừng giữa lô, khởi động lại | 100% ca nhóm H; hội tụ | §9.3 Vận hành (khởi động lại) cộng phần thêm | nhóm H; DB15, DB16, DB21 |
-| **GA10** | Vết: mỗi đơn vị (kể cả cách ly, trùng) có vết từng bước, kèm lý do và phương án bị loại | 100% đơn vị | §9.3 Vết / debug (phần nạp) | toàn bộ; vết do làn 0 |
-| **GA11** | Nhánh form / bot: cùng hợp đồng, parity trên bản chiếu cặp; bảng so hai đường được ghi | 100% ca nhóm J; bảng so có mặt | `docs/ROADMAP-DAY-DU.md` §6 (Phase 0a: "có nhánh so sánh") | nhóm J |
+| **GA8** | Quyền người gửi và tenant | 100% ca nhóm F; canary hai tenant: 0 rò | do hợp đồng này thêm; S5 là của làn 2 | nhóm F; DB09, DB10, DB32 |
+| **GA9** | Phục hồi: gửi lại, sửa tin, thu hồi, đảo thứ tự, dừng giữa lô, khởi động lại | 100% ca nhóm H; hội tụ (trừ chuỗi sửa tin từ hai lần trở lên) | §9.3 Vận hành (khởi động lại) cộng phần thêm | nhóm H, LC67; DB11, DB15, DB16, DB21, DB27, DB31, DB34, DB35, DB36 |
+| **GA10** | Vết: mỗi lần giao của mỗi đơn vị (kể cả cách ly, trùng) có vết từng bước của tầng nạp (đọc, chuẩn hoá, thực thể, gán nghĩa, thời gian, kiểm miền, cách ly, đối soát), kèm lý do và phương án bị loại | 100% đơn vị | §9.3 Vết / debug (phần nạp) | mọi ca của bộ độc lập (đọc vết từng đơn vị); DB24 |
+| **GA11** | Nhánh form / bot: cùng hợp đồng, parity trên bản chiếu cặp; bảng so hai đường được ghi | 100% ca nhóm J; bảng so có mặt | `docs/ROADMAP-DAY-DU.md` §6 (Phase 0a: "có nhánh so sánh") | nhóm J; DB25 |
 
 - **M2 ra khi GA1–GA6 đạt** (đúng chữ khối M2: bản ghi có cờ, cách ly hiện ra, không cộng đôi, đọc số tất định, độ chính xác trên bộ độc lập).
 - **"PHASE 0A RA"** đòi thêm GA7–GA11, hoặc chủ dự án gỡ dòng nào bằng lời ghi ở `docs/CHO-QUYET-DINH.md`.
 - **Không tự nới ngưỡng** (§9.3, D-AI-01). Dòng không đạt được chỉ bằng luật: ghi vào CHO để chủ dự án chọn.
 - Mọi kết luận kèm câu: "trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt".
+- *(Không giao cho người soạn bộ ca.)* **Mỗi dòng GA có ít nhất một đột biến bắt buộc đỏ**, và hai bảng §11.1 (cột "Ca âm, đột biến") với §11.3 (cột "Dòng phải đỏ") **đối xứng**: dòng GA liệt kê đột biến ⇔ đột biến trỏ dòng GA đó. Mỗi cặp (đột biến, dòng GA) ở §11.3 ghi, trong ngoặc, lớp ca **của chính dòng đó** làm đột biến ấy đỏ.
+- *(Không giao cho người soạn bộ ca.)* **Điều kiện đo phụ thuộc làn khác** (§14.1): phần "≈" của GA3 (LC09, DB03) cần HT-1 đã sửa ở main (làn 1); GA10 và đường nạp từng đơn vị qua HTTP cần việc của làn 0 (phát bước `L1.*`, nối `POST /v1/ingest`). Chưa có thì dòng đó đỏ đúng hiện trạng và ghi vào báo cáo ca; **không** tự sửa tệp ngoài write-set, **không** nới ngưỡng.
+- **Mỗi lớp ca âm ở §10 thuộc đúng một dòng GA:** nhóm A và LC70 → GA1; nhóm G → GA2; nhóm B → GA3; nhóm C → GA4; nhóm D, LC68, LC69 → GA5; nhóm E → GA7; nhóm F → GA8; nhóm H và LC67 → GA9; nhóm J → GA11; GA6 và GA10 đo trên mọi ca. Không có nhóm ca nằm ngoài cổng.
 
 ### 11.2 GA6: độ chính xác (SLA) [ĐỀ XUẤT]
 
-- **Bộ ca độc lập gồm hai lớp:** (a) **ca tự nhiên**: tin hiện trường viết như người thật viết (viết tắt, lỗi gõ, cách nói khác nhau), kỳ vọng do người soạn gán; (b) **ca bơm**: các lớp LC01–LC73 ở trên.
-- **Đúng** (một đơn vị): kết cục thuộc kỳ vọng; nếu `ACCEPTED` thì mọi trường khớp (thực thể, ngày xảy ra, giá trị và đơn vị, `kind`, `approx`); nếu `HELD` hay `QUARANTINED` thì mã lý do khớp.
-- **Sai im lặng S1:** đơn vị `ACCEPTED` hoặc `DUPLICATE` mà có trường sai; hoặc đơn vị kỳ vọng không-nhận mà được `ACCEPTED`.
-- **Phủ nhận tự động:** (đơn vị kỳ vọng `ACCEPTED` được nhận đúng) / (đơn vị kỳ vọng `ACCEPTED`). Dòng phủ có mặt để một cài đặt "cách ly hết" không qua cổng.
+- **Bộ ca độc lập gồm hai lớp:** (a) **ca tự nhiên**: tin hiện trường viết như người thật viết (viết tắt, lỗi gõ, cách nói khác nhau), kỳ vọng do người soạn gán; (b) **ca bơm**: các lớp LC01–LC84 ở trên.
+- **Đúng** (một đơn vị): kết cục thuộc kỳ vọng; nếu `ACCEPTED` thì mọi trường khớp (thực thể, ngày xảy ra, giá trị và đơn vị, `kind`, `approx`); nếu `HELD` hay `QUARANTINED` thì mã lý do khớp. Kết cục và trường so với **trạng thái của bản ghi sau khi ca chạy xong**, không so với sổ lần giao (§3.8): đánh giá lại TR3 có thể đổi bản `ACCEPTED` thành `HELD` về sau.
+- **Sai im lặng S1:** đơn vị `ACCEPTED` mà có trường sai; lần giao `DUPLICATE` mà trỏ sai bản đã có, hoặc đơn vị kỳ vọng là một bản ghi riêng mà bị `DUPLICATE` (gộp oan); hoặc đơn vị kỳ vọng không-nhận mà được `ACCEPTED`.
+- **Phủ nhận tự động:** (đơn vị kỳ vọng `ACCEPTED` được nhận đúng) / (đơn vị kỳ vọng `ACCEPTED`). Dòng phủ có mặt để một cài đặt "cách ly hết" không qua cổng (đột biến DB22); dòng "sai im lặng S1 = 0" có mặt để một cài đặt "nhận hết" không qua cổng (DB23).
 - **Báo cáo kèm bảng thành phần theo nhóm lớp**, không chỉ một số gộp.
 - **Cỡ mẫu** [ĐỀ XUẤT]: ít nhất 100 ca tự nhiên và ít nhất 12 ca mỗi nhóm A–J. Với 100 ca tự nhiên, 97% nghĩa là tối đa 3 ca lệch; khoảng tin cậy rộng (chưa tính).
 - **Vì sao 97% và 85%:** hai số là **điểm xuất phát của người viết, không suy từ dữ liệu**, không có số nền và không có người ký (câu 8 của cổng QuânIT). Mục đích: chấp nhận vài ca chọn nhầm mã lý do hoặc nhầm "chờ" với "nhận" mà **không** chấp nhận lỗi im lặng S1. Chủ dự án hoặc người nghiệp vụ sửa số (Q-0A-1). Ngưỡng thật của doanh nghiệp (SLA) do người nghiệp vụ ký, ngoài tầm của hợp đồng này.
 
 ### 11.3 Danh mục đột biến (cổng đỏ được)
 
-| Mã | Đột biến | Dòng phải đỏ |
+| Mã | Đột biến | Dòng phải đỏ (lớp ca của chính dòng đó làm nó đỏ) |
 |---|---|---|
-| DB01 | bỏ ghi cách ly (rơi im lặng) | GA1, GA2 |
-| DB02 | nuốt dòng PDF không khớp mẫu (như hôm nay) | GA1 |
-| DB03 | gỡ "≈" khỏi nhận dạng ước lượng (như hôm nay) | GA3 |
-| DB04 | gắn `OCCURRED` cho mọi tin | GA3 |
-| DB05 | tắt khử trùng TR1 và TR2 | GA4 |
-| DB06 | khử trùng theo giá trị (gộp oan) | GA4 |
-| DB07 | bỏ TR3 (nghi trùng) | GA4 |
-| DB08 | `occurred_on` luôn bằng ngày gửi | GA7 |
-| DB09 | bỏ kiểm phạm vi người gửi | GA8 |
-| DB10 | lấy tenant từ nội dung nạp | GA8 |
-| DB11 | cách ly chỉ giữ trong RAM | GA2, GA9 |
-| DB12 | duyệt `map` ngẫu nhiên khi đọc số không dấu | GA5 |
-| DB13 | nhận ngay số bằng chữ hai nghĩa (như hôm nay) | GA5 |
-| DB14 | báo cáo xuất bỏ bớt một mã lý do, hoặc không sắp xếp | GA2 |
-| DB15 | sửa tin tạo bản ghi mới thay vì `SUPERSEDED` | GA9 |
-| DB16 | nạp lại không idempotent | GA4, GA9 |
-| DB17 | phép chiếu fact lấy cả `PLAN` hoặc `HELD` | GA2, GA3 |
-| DB18 | một lời gọi model trên đường nạp | LC68 |
-| DB19 | đính chính tự áp, không chờ người | GA3 |
-| DB20 | `unit_key` rỗng khi thiếu `record_id` (như hôm nay) | GA1 |
-| DB21 | tin sửa ghi đè quyết định của người | GA9 |
+| DB01 | bỏ ghi cách ly (rơi im lặng) | GA1 (LC01, LC02, LC03, LC04), GA2 (LC53, LC54) |
+| DB02 | nuốt dòng PDF không khớp mẫu (như hôm nay) | GA1 (LC01, LC02) |
+| DB03 | gỡ "≈" khỏi nhận dạng ước lượng (như hôm nay) | GA3 (LC09) |
+| DB04 | gắn `OCCURRED` cho mọi tin | GA3 (LC12, LC14) |
+| DB05 | tắt khử trùng TR1 và TR2 | GA4 (LC21, LC22, LC23, LC80) |
+| DB06 | khử trùng theo giá trị (gộp oan) | GA4 (LC26, LC79) |
+| DB07 | bỏ TR3 (nghi trùng) | GA4 (LC24, LC25) |
+| DB08 | `occurred_on` luôn bằng ngày gửi | GA7 (LC37) |
+| DB09 | bỏ kiểm phạm vi người gửi | GA8 (LC44) |
+| DB10 | lấy tenant từ nội dung nạp | GA8 (LC51) |
+| DB11 | cách ly chỉ giữ trong RAM | GA2 (LC53), GA9 (LC64) |
+| DB12 | duyệt `map` ngẫu nhiên khi đọc số không dấu | GA5 (LC31, LC69) |
+| DB13 | nhận ngay số bằng chữ hai nghĩa (như hôm nay) | GA5 (LC29) |
+| DB14 | báo cáo xuất bỏ bớt một mã lý do, hoặc không sắp xếp | GA2 (LC54) |
+| DB15 | sửa tin tạo bản ghi mới thay vì `SUPERSEDED` | GA9 (LC59) |
+| DB16 | nạp lại không idempotent | GA4 (LC23), GA9 (LC64, LC65) |
+| DB17 | phép chiếu fact lấy cả `PLAN` hoặc `HELD` | GA2 (LC57), GA3 (LC12, LC14) |
+| DB18 | một lời gọi model trên đường nạp | GA5 (LC68) |
+| DB19 | đính chính tự áp, không chờ người | GA3 (LC14) |
+| DB20 | `unit_key` rỗng khi thiếu `record_id` (như hôm nay) | GA1 (LC70) |
+| DB21 | tin sửa ghi đè quyết định của người | GA9 (LC60) |
+| DB22 | cách ly hết: mọi đơn vị đọc được lượng đều thành `QUARANTINED` hoặc `HELD` với lý do hợp lệ và người nhận | GA6 (phủ nhận tự động: các ca tự nhiên và ca bơm kỳ vọng `ACCEPTED`, ví dụ LC11, LC26) |
+| DB23 | nhận hết: mọi đơn vị đọc được lượng đều thành `ACCEPTED` loại `OCCURRED`, bỏ qua luật loại tin, ngày, quyền và chống trùng | GA6 (sai im lặng S1 = 0: các ca tự nhiên và ca bơm kỳ vọng không-nhận, ví dụ LC12, LC38, LC44) |
+| DB24 | bỏ ghi vết một bước của tầng nạp (ví dụ `L1.entity`), hoặc ghi vết không có lý do và phương án bị loại | GA10 (mọi ca đọc vết từng đơn vị, ví dụ LC01) |
+| DB25 | đường form / bot bỏ chống trùng (bấm gửi hai lần ra hai bản ghi) | GA11 (LC76) |
+| DB26 | bỏ khoá tuần tự hoá TR3 (bản đột biến cài điểm dừng giữa lúc đọc nhóm và lúc ghi để đua xảy ra chắc chắn, không dựa vào lịch chạy) | GA4 (LC74) |
+| DB27 | TR3 theo thứ tự đến: bản đến sau luôn bị giữ, không xếp theo `sent_at`, không đánh giá lại khi bản gửi sớm hơn đến muộn | GA4 (LC75), GA9 (LC63) |
+| DB28 | lần giao `DUPLICATE` không ghi dòng sổ (trùng rơi im lặng) | GA1 (LC01, LC70) |
+| DB29 | quyết định của người miễn TR3: bản `HELD` vì lý do khác được người quyết thành `ACCEPTED` mà không chạy TR3 với bản đứng trước | GA4 (LC77) |
+| DB30 | đánh giá lại TR3 bỏ qua bản đã có quyết định của người: bản gửi sớm hơn đến muộn không làm bản đó `HELD` | GA4 (LC78) |
+| DB31 | đánh giá lại nới: bản `HELD` `possible_duplicate` tự thành `ACCEPTED` khi bản đứng trước rời nhóm (thu hồi, sửa, bác) | GA9 (LC81) |
+| DB32 | kế thừa thực thể theo thứ tự dòng, không theo `sent_at`, hoặc xuyên lô | GA8 (LC82) |
+| DB33 | vân tay của đơn vị không có `sent_at` bỏ ngày xảy ra hoặc mã nguồn trong tệp (gộp oan hai ngày hoặc hai dòng) | GA4 (LC79) |
+| DB34 | đánh giá lại bỏ sót bản đứng sau bản rời nhóm: bản `ACCEPTED` đứng ngay sau bản vừa rời nhóm giữ `ACCEPTED` dù bản đứng trước mới cách ≤ W và người chưa xét cặp | GA9 (LC81) |
+| DB35 | quyết định `possible_duplicate` bỏ kiểm cặp đã thấy: ghi `REJECTED` hoặc cặp đã xét theo `duplicate_of` lúc ghi dù bản kia đã đổi hoặc đã rời nhóm, hoặc nhận `MARK_DUPLICATE` khi `duplicate_of` rỗng | GA9 (LC83) |
+| DB36 | bản `REJECTED` bởi `MARK_DUPLICATE` không quay lại `HELD` khi bản được giữ rời nhóm bằng thu hồi hoặc sửa tin (cả hai bản rời tổng, không bản nào ở hàng chờ), hoặc chỉ chạy việc đó cho bản được giữ đang ở trong nhóm (bỏ sót bản được giữ đang `REJECTED` bị thu hồi hoặc sửa tin sau khi người `APPLY`, kể cả khi phiên bản chờ có trước `MARK_DUPLICATE`), hoặc quay lại cả khi bản được giữ rời nhóm bằng chính `MARK_DUPLICATE` | GA9 (LC84) |
+
+Hai bảng §11.1 và §11.3 đối xứng: đột biến trỏ dòng GA nào thì dòng đó liệt kê đột biến ấy; mỗi dòng GA có ít nhất một đột biến. Cột "Dòng phải đỏ" là điều kiện tối thiểu: dòng khác đỏ thêm là chuyện thường. Trong ngoặc là các lớp ca của chính dòng đó (nhóm → dòng, §11.1) mà kỳ vọng làm đột biến ấy đỏ; GA6 và GA10 đo trên mọi ca nên ghi loại ca. Đó là kỳ vọng trên giấy, chưa có ca nào được soạn. **Chưa có bản đột biến nào chạy**: "cổng đỏ được" mới được viết trên giấy, chưa được chứng minh (bước đột biến ở §14.2).
 
 ### 11.4 Mức bằng chứng
 
@@ -723,7 +859,7 @@ Bản ghi có cấu trúc (kênh KV3):
 | Trường | Cách nhập |
 |---|---|
 | `unit_id` | mã phiếu do form hoặc bot sinh (khoá TR1) |
-| `submitted_at`, `reporter_id` | do hệ nhận sinh |
+| `submitted_at`, `reporter_id` | do hệ nhận sinh; `submitted_at` là `sent_at` của bản ghi (cho TR2, TR3). Trong bộ kiểm, bộ chạy đặt đồng hồ của hệ nhận để cùng đầu vào cho cùng `submitted_at` |
 | `entity` | chọn từ danh sách (đã lọc theo phạm vi người gửi) |
 | `quantity`, `unit` | số và chọn đơn vị (L, m3) |
 | `occurred_on` | chọn ngày |
@@ -735,7 +871,7 @@ Loại nguồn: một loại có cấu trúc mới cho `reported_fuel`, hạng t
 
 ### 13.3 Bản chiếu cặp
 
-Mỗi ca nhóm B, D, E của bộ độc lập có hai bản: chữ tự do và bản có cấu trúc, **cùng kỳ vọng ngữ nghĩa**. Đo trên mỗi đường: số ca đúng, số ca `HELD`, số ca `QUARANTINED`, số bước người cần, thời gian xử lý. Báo cáo là một **bảng theo nhóm**, không chấm "đường nào thắng" bằng một số.
+Mỗi ca nhóm B, D, E của bộ độc lập có hai bản: chữ tự do và bản có cấu trúc, **cùng kỳ vọng ngữ nghĩa**. Đo trên mỗi đường: số ca đúng, số ca `HELD`, số ca `QUARANTINED`, số bước người cần, thời gian xử lý. Báo cáo là một **bảng theo nhóm**, không chấm "đường nào thắng" bằng một số. Nhóm C (trùng) không có bản chiếu cặp: chống trùng của đường form do LC76 đo.
 
 ### 13.4 Cái gì đơn giản hơn, cái gì vẫn phải có
 
@@ -748,7 +884,7 @@ Mỗi ca nhóm B, D, E của bộ độc lập có hai bản: chữ tự do và 
 
 ### 13.6 Điều kiện của dòng GA11
 
-Đường form chạy đủ LC71–LC73 và đạt parity trên phần chung; bảng so hai đường (§13.3) được ghi vào báo cáo.
+Đường form chạy đủ LC71–LC73 và LC76, và đạt parity trên phần chung; bảng so hai đường (§13.3) được ghi vào báo cáo.
 
 ---
 
@@ -758,15 +894,31 @@ Mỗi ca nhóm B, D, E của bộ độc lập có hai bản: chữ tự do và 
 
 1. H4 đã chạy xong (D-RM-04 = A; `docs/PROMPT-BUILD-EAIS.md` §9.2, làn 4).
 2. D-OP-14 (bộ đọc số, làn 1) đã vào main (`7e1d8ca`, `017495c`); mọi thay đổi sau đó của `data/normalization/` phải kèm đo lại GA5.
-3. Hợp đồng `POST /v1/ingest` của làn 0 đã chốt đơn vị nạp và Principal.
-4. **Write-set của làn 4** mở rộng thêm `data/ingestion/` và `platform/pgstore/`: hiện `docs/PROMPT-BUILD-EAIS.md` §9.2 ghi làn 4 là `execution/`, migration mới, pack, trong khi mã 0a nằm ở tầng nạp (`docs/01-architecture.md` §3). Câu Q-0A-12.
+3. Hợp đồng `POST /v1/ingest` của M1 đã chốt Principal (tenant từ token, không từ body) và nạp lại thư mục đã cấu hình (`41bc3cf`, §1.4). Còn phải chốt khi mở mã: đường nạp từng đơn vị (phong bì tin, §2.2) đi qua cùng cổng xác thực; chỗ phát bước `L1.*` và lưu vết của đơn vị nạp (GA10); quan hệ giữa kho bản ghi, sổ lần giao và `quarantine_records` (U2). Làn nào làm từng việc: mục 4.
+4. **Việc chéo làn và write-set.** `docs/PROMPT-BUILD-EAIS.md` §9.2 giao làn 4 `execution/` (mới), migration mới và pack; mã 0a lại nằm ở tầng nạp (`docs/01-architecture.md` §3) và dính vào mã của làn 0 và làn 1. Bảng dưới liệt kê từng việc, tệp, và làn có tệp đó trong write-set (tệp tại `269a539`):
+
+| # | Việc của mã 0a | Tệp | Làn có tệp trong write-set (§9.2 của brief) |
+|---|---|---|---|
+| 1 | kho bản ghi, sổ lần giao, quyết định, báo cáo xuất, khoá tuần tự hoá TR3 (PostgreSQL) | `platform/pgstore/` (tệp mới); `db/migrations/` (migration mới) | migration mới: làn 4 (và làn 0, cho bảng vết). `platform/pgstore/`: **không làn nào** (làn 0 chỉ có "bảng vết trong `platform/`") |
+| 2 | luật nạp: phong bì, `kind` và `approx`, TR1–TR3, quyền người gửi, kết cục; phép chiếu fact | `data/ingestion/` (tệp mới; `bridge.go`) | **không làn nào** |
+| 3 | đường nạp từng đơn vị qua cùng cổng xác thực; nối `POST /v1/ingest` sang kho bản ghi (hôm nay `ingest` gọi `Load` thay trọn dữ liệu từ mọi quan sát: `cmd/eais/app.go:247-292`, `:286` [CODE]) | `cmd/eais/server.go`, `cmd/eais/app.go` | làn 0 (M1 đã RA) |
+| 4 | phát bước `L1.*` và lưu vết của đơn vị nạp (GA10); hôm nay chỉ có hằng số, không nơi phát [ĐO `grep`] | `observability/traces/` (`step.go:32-39`), `platform/pgstore/vet.go`, `cmd/eais/` | làn 0 |
+| 5 | nhận "≈" là dấu ước lượng (HT-1: `matchApprox` chỉ nhận `~`, `data/normalization/engine.go:198-211`; `lexicon.yaml:26` đã có "≈") [CODE] | `data/normalization/engine.go` | làn 1 |
+| 6 | pack: capability `reports.*`, vai, loại nguồn, từ khoá, danh sách bỏ qua dòng PDF | `tenants/construction/pack/{lexicon,policy,sources}.yaml` | làn 1 và làn 4 ("pack"): phối hợp |
+| 7 | bộ kiểm bảo toàn không import bộ nạp, chạy ca, đột biến | `tenants/construction/win/`, `evals/`, `scripts/dot-bien/` | làn 2 |
+| 8 | bộ ca độc lập | `tenants/*/evals/` | làn 3 |
+
+   Việc 1 và 2 cần Q-0A-12 (mở rộng write-set làn 4); việc 3 và 4 cần Q-0A-15 (giao cho làn 0); việc 5 chờ làn 1 (mục 6). Phase 1 (ADR-0011, bảng "Nơi đặt mã") cũng thêm một tệp mới ở `platform/pgstore/`, là hàm mở giao dịch đã đặt GUC tenant, vì `Store.inTenant` không xuất (`platform/pgstore/pgstore.go:59` [CODE]): hai phase dùng chung một hàm; bên mở mã trước thêm, bên sau dùng, không tạo hai hàm cùng việc.
+
+   **Phương án lùi nếu Q-0A-12 = không** [ĐỀ XUẤT]: việc 1 và 2 đặt trong một gói mới dưới `execution/` (ví dụ `execution/reports/`; `execution/` thuộc write-set làn 4), chỉ import hàm xuất của `data/ingestion`, `data/normalization`, `data/entityresolution` và `platform/pgstore`, không sửa chúng. Hạn chế đã thấy: nếu `platform/pgstore/` chưa có hàm mở giao dịch tenant (đoạn trên) thì gói mới phải tự dựng giao dịch đặt GUC tenant và kiểm vai, nhân đôi mã nhạy cảm; `bridge.go` không sửa được nên gói mới tự dựng fact của bản ghi `ACCEPTED` loại `OCCURRED` và chọn cách đưa vào `Load` (U2). Việc nào buộc phải sửa tệp ngoài write-set thì ghi vào `CHO` và chờ; dòng GA phụ thuộc việc đó giữ ĐỎ và ghi vào báo cáo ca. Không tự mở rộng write-set, không nới ngưỡng (`docs/PROMPT-BUILD-EAIS.md` §9.3).
 5. Bộ ca độc lập đã soạn, đóng băng, băm (§12).
+6. **"≈" (HT-1, làn 1) đã sửa ở main** trước khi đo phần "≈" của GA3 (LC09, DB03). Hôm nay `lexicon.yaml` có "≈" nhưng `matchApprox` chỉ nhận ký hiệu `~`. Chưa sửa thì LC09 đỏ đúng hiện trạng và GA3 đỏ; làn 4 **không** sửa `data/normalization/` và không tiền xử lý "≈" ở tầng nạp; ghi vào báo cáo ca.
 
 ### 14.2 Thứ tự chứng minh (đỏ trước)
 
-1. **Đo nền trên mã hiện tại** (luật trước và sau khi đo, `docs/PROMPT-BUILD-EAIS.md` §3): bộ kiểm bảo toàn độc lập cộng bộ ca độc lập → báo cáo đỏ theo nhóm. Đỏ dự kiến: A (HT-9), B (HT-1, 2, 3), C (HT-5), D (HT-6, 7), E (HT-4), F (chưa có quyền), G (HT-10), H, I (HT-8).
-2. Dựng kho bản ghi và kết cục (nền của mọi thứ sau).
-3. Khử trùng TR1, TR2, TR3.
+1. **Đo nền trên mã hiện tại** (luật trước và sau khi đo, `docs/PROMPT-BUILD-EAIS.md` §3): bộ kiểm bảo toàn độc lập cộng bộ ca độc lập → báo cáo đỏ theo nhóm. Đỏ dự kiến: A (HT-9), B (HT-1, 2, 3), C (HT-5), E (HT-4), F (chưa có quyền), G (HT-10), H, I (HT-8); nhóm D có thể xanh phần lớn vì D-OP-14 đã sửa HT-6 và HT-7 [SUY, chưa đo bằng bộ độc lập].
+2. Dựng kho bản ghi, sổ lần giao và kết cục (nền của mọi thứ sau).
+3. Khử trùng TR1, TR2, TR3 (TR3: thứ tự chuẩn, đánh giá lại, khoá tuần tự hoá, quyết định của người, bản rời nhóm, §5.6).
 4. Cờ loại.
 5. Thời gian (`occurred_on`).
 6. Quyền người gửi và danh bạ.
@@ -788,7 +940,7 @@ Khuôn của `docs/CHO-QUYET-DINH.md`. Cột "Trả lời" **để trống**. Ph
 | Mã | Câu | Lựa chọn | Khuyến nghị (vì sao) | Chưa quyết thì | Trả lời |
 |---|---|---|---|---|---|
 | **Q-0A-1** | Ngưỡng GA6: đúng ≥ 97%, phủ nhận tự động ≥ 85% | **a** dùng số đề xuất · **b** sửa số · **c** bỏ dòng GA6 (chỉ giữ GA1–GA5) | **a** như điểm xuất phát, vì không có số nền. Cách ly hết thì sai im lặng bằng 0 nhưng phủ bằng 0 nên cần dòng phủ | dùng a (§9.7: ngưỡng đề xuất) | |
-| **Q-0A-2** | Nghĩa hậu tố "k": D-OP-17 đã có trong CHO (mục 3, `docs/CHO-QUYET-DINH.md:133`): "2k" có tính là ước lượng không | theo D-OP-17: **a** "k" = ước lượng (sửa bộ nạp theo bộ sinh) · **b** "k" = số chính xác (sửa bộ sinh) | theo khuyến nghị của D-OP-17 (a); hợp đồng này không phụ thuộc: cờ `approx` của "2k" theo quyết định đó | giữ danh sách lệch đã biết của G1; bộ ca độc lập không có ca phụ thuộc | |
+| **Q-0A-2** | Nghĩa hậu tố "k": D-OP-17 đã có trong CHO (mục 3, `docs/CHO-QUYET-DINH.md`, dòng D-OP-17: dòng 134 tại `269a539`): "2k" có tính là ước lượng không | theo D-OP-17: **a** "k" = ước lượng (sửa bộ nạp theo bộ sinh) · **b** "k" = số chính xác (sửa bộ sinh) | theo khuyến nghị của D-OP-17 (a); hợp đồng này không phụ thuộc: cờ `approx` của "2k" theo quyết định đó | giữ danh sách lệch đã biết của G1; bộ ca độc lập không có ca phụ thuộc | |
 | **Q-0A-3** | Số ước lượng vào tổng "đội báo" hay tách riêng | **a** cộng, kèm cờ (hiện trạng) · **b** tách hai tổng | **a**: đường chuyển cờ tới câu trả lời đã có (`query.go:208-210`, `ask.go:289`) | giữ a | |
 | **Q-0A-4** | Tin đính chính được áp khi nào | **a** luôn chờ người (đề xuất) · **b** tự áp khi có đúng một bản gốc ứng viên · **c** để Phase 3 | **a**: ít rủi ro nhất; giá là người xác nhận mọi đính chính (tần suất chưa đo) | a | |
 | **Q-0A-5** | Định nghĩa "trùng": cửa sổ W và có tính người gửi khác nhau không | **a** W = 60 phút, bất kể người gửi (đề xuất) · **b** chỉ cùng người gửi · **c** W khác | **a**: an toàn; giá là có lần giữ oan khi hai lần cấp thật cùng số trong W (chưa đo tần suất) | a | |
@@ -798,7 +950,11 @@ Khuôn của `docs/CHO-QUYET-DINH.md`. Cột "Trả lời" **để trống**. Ph
 | **Q-0A-9** | Tin nhiều máy hoặc nhiều lượng | **a** cách ly `multiple_items` (đề xuất) · **b** tách theo dấu phẩy hay xuống dòng khi mỗi đoạn đúng một máy một lượng | **a** trước; **b** sau khi đo tỉ lệ cách ly trên dữ liệu thật (chưa đo) | a | |
 | **Q-0A-10** | Nhóm nghìn bằng dấu cách (D-OP-9, đã có) | theo CHO | xem D-OP-9 | ca độc lập không phụ thuộc | |
 | **Q-0A-11** | Kênh cho nhánh form / bot | form có sẵn · bot Zalo OA · mini app · chưa chọn | chưa chọn: dựng nhánh dùng chung lõi, quyết sau số đo và chi phí đổi thói quen; phụ thuộc D-RM-03 | chưa chọn | |
-| **Q-0A-12** | Mở rộng write-set làn 4 thêm `data/ingestion/`, `platform/pgstore/` | có · không (đặt chỗ khác) | có: mã 0a thuộc tầng nạp (`docs/01-architecture.md` §3) | điều phối làn 4 theo mặc định hiện hành, ghi mâu thuẫn vào báo cáo ca | |
+| **Q-0A-12** | Mở rộng write-set làn 4 thêm `data/ingestion/`, `platform/pgstore/` (việc 1 và 2 của bảng việc, làn, tệp ở mục điều kiện mở mã) | **a** có · **b** không (dùng phương án lùi: gói mới dưới `execution/`) | **a**: mã 0a thuộc tầng nạp (`docs/01-architecture.md` §3); **b** nhân đôi mã giao dịch tenant, chỉ chọn khi không muốn đổi write-set | **b**, tức phương án lùi ghi ở mục điều kiện mở mã; ghi mâu thuẫn vào báo cáo ca | |
+| **Q-0A-13** | Bản rời nhóm TR3 (thu hồi, sửa tin làm bản đổi nhóm, người bác): bản nghi trùng đứng sau vẫn `HELD` hay được tính lại | **a** vẫn `HELD`, chờ người (chỉ siết; đề xuất) · **b** tính lại tất định: máy nhả `HELD` khi không còn bản đứng trước cách ≤ W | **a**: giữ nguyên tắc "`HELD` → `ACCEPTED` chỉ do người" (BB6, BB7); giá là thứ tự đến đổi kết cục `HELD` hay `ACCEPTED` của bản đứng sau (an toàn: không cộng đôi, không rơi bản) và thêm việc người (tần suất chưa đo). **b** cho kết cục là hàm của tập bản kể cả khi thu hồi, đổi nguyên tắc đã soát | a | |
+| **Q-0A-14** | Kế thừa thực thể (LK7) có xuyên lô không | **a** chỉ trong một lô, theo `(sent_at, unit_key)` (đề xuất) · **b** xuyên lô qua kho theo `sent_at`, kèm đánh giá lại tin đã cách ly khi tin mang thực thể đến muộn | **a**: bỏ phụ thuộc thứ tự dòng và chặn nhận nhầm thực thể im lặng; giá là tin chỉ có lượng ở lô khác bị cách ly `unknown_entity` (người `CORRECT`), nhất là khi connector giao từng tin (Phase 8). **b** cần máy nhả `QUARANTINED` | a | |
+| **Q-0A-15** | Ai làm việc ngoài write-set làn 4: nối `POST /v1/ingest` và đường nạp từng đơn vị (`cmd/eais/`), phát bước `L1.*` (`observability/`), "≈" (`data/normalization/`) | **a** làn 0 làm việc 3, 4 và làn 1 làm việc 5, mỗi bên theo lệnh ca riêng · **b** mở rộng write-set làn 4 thêm `cmd/eais/`, `observability/` | **a**: giữ ranh giới làn; việc nhỏ và đã có chủ (bảng việc, làn, tệp ở mục điều kiện mở mã) | chờ: làn 4 không tự sửa; GA10, đường nạp qua HTTP và phần "≈" của GA3 giữ ĐỎ, ghi vào báo cáo ca | |
+| **Q-0A-16** | Chống trùng của đơn vị không có `sent_at` (dòng PDF, hàng bảng; TR2 vế (b), §5.1): vân tay gồm (loại nguồn, ngày xảy ra, mã nguồn trong tệp, chữ chuẩn hoá), không gồm đường dẫn hay nguồn tệp. Hai hướng sai im lặng: (1) cùng một báo cáo xuất lại với số dòng hoặc chữ khác, hoặc đổi tên sang ngày khác, bị tính hai lần, không `HELD`, không cảnh báo (đánh đổi có chủ ý để không gộp oan, §5.3); (2) hai tệp khác nguồn, cùng ngày, cùng loại nguồn, có dòng cùng mã nguồn trong tệp và cùng chữ: bản thứ hai thành `DUPLICATE` (gộp oan, rơi khỏi tổng). Hôm nay chỉ có một loại nguồn báo cáo PDF, tên tệp theo ngày, một PDF mỗi ngày (`tenants/construction/pack/sources.yaml:55-60`, `data/ingestion/ingest.go:240` [CODE]), nên (2) chưa chạm được. Ký nhận nợ hay làm chặt? | **a** giữ vân tay hiện tại, ký nhận cả hai hướng là nợ · **b** làm chặt rẻ: thay "mã nguồn của đơn vị trong tệp" bằng "lần xuất hiện thứ k của đúng chữ chuẩn hoá đó trong tệp" (bỏ phụ thuộc đánh số lại dòng; vẫn không gộp hai dòng cùng chữ trong một tệp; vẫn bắt tệp chép sang đường dẫn khác; không chữa sửa chữ trong dòng) · **c** như b, và khi có loại nguồn bảng của nhiều đội thì đưa đội gửi (nguồn của tệp, không phải đường dẫn) vào vân tay hoặc cho `HELD` `possible_duplicate`, kèm lớp ca "hai tệp khác nguồn cùng ngày, cùng dòng chữ" | **a** hôm nay: (2) chưa chạm được và (1) là đánh đổi có chủ ý. **c** trước khi thêm loại nguồn bảng của nhiều đội, vì (2) là gộp oan im lặng (rơi khỏi tổng). **b** rẻ (một câu đổi luật) nếu chủ dự án muốn bớt (1) ngay; giá của b và c: đổi luật vân tay và thêm lớp ca; tần suất xuất lại ở (1) chưa đo | a: giữ vân tay hiện tại, (1) ghi nợ (ADR-0012, nợ 20); chưa thêm loại nguồn bảng nhận tệp của nhiều đội cho `reported_fuel`, nên (2) chưa chạm được; LC79, LC80 đúng với cả ba lựa chọn | |
 
 ---
 
@@ -807,10 +963,17 @@ Khuôn của `docs/CHO-QUYET-DINH.md`. Cột "Trả lời" **để trống**. Ph
 | Mã | Điều chưa biết |
 |---|---|
 | U1 | Mọi số [ĐO] ở §1.3 chạy đường bộ nhớ, một tenant giả lập, 20 tin; chưa đo PDF, xlsx, ảnh, tổng ở kho; K1–K5 đo ở `7cad584`. Tầng nạp (`data/ingestion`, `sourceoftruth`, `platform`, pack `sources` / `metrics`) không đổi từ `7cad584` tới `2b80a38`. |
-| U2 | Cách phối hợp kho bản ghi với `Load` (thay trọn dữ liệu tenant, `load.go:21-48`) và với bảng vết của làn 0: chọn khi mở mã (ADR-0012, quyết định D1, D3). Bộ đếm "mục chưa dùng được" cho phía hỏi–đáp là yêu cầu cho làn đọc, chưa có. |
+| U2 | Cách phối hợp kho bản ghi và sổ lần giao với `Load` (thay trọn dữ liệu tenant, `load.go:21-48`; từ M1 có khoá tư vấn) và với các bảng của M1 (`quarantine_records`, `decision_records`; mã lần nạp suy từ nội dung so với mã lô cấp mới; quyền đổi trạng thái của kho bản ghi so với `eais_app` chỉ SELECT + INSERT): chọn khi mở mã (ADR-0012, quyết định D1, D3). Bộ đếm "mục chưa dùng được" cho phía hỏi–đáp là yêu cầu cho làn đọc, chưa có. |
 | U3 | Tải thật (số tin mỗi ngày, cỡ lô): chưa đo. Cửa sổ W và độ phủ 85% là điểm xuất phát. |
 | U4 | Tần suất tin đính chính, kế hoạch, nghi trùng trong thực tế, và chi phí người xác nhận: chưa đo. |
 | U5 | Hình dạng tin nhóm Zalo thật khi xuất (có mã tin, `reply_to`, sửa, thu hồi không): chưa biết; §2.2 là giả định. |
 | U6 | "hơn" nằm trong `approx_markers` (`lexicon.yaml:26`) nhưng nghĩa thường là cận dưới, không phải ước lượng đối xứng: chưa xác minh; không thuộc hợp đồng này. |
 | U7 | Tài liệu bot Zalo OA: thân trang không đọc được; chưa so (`CONG-QUANIT.md` §4). |
-| U8 | Hợp đồng chưa được soát độc lập; các luật LK3, LT3, TR3 chưa kiểm bằng bộ ca nào. |
+| U8 | Hợp đồng đã qua năm vòng soát độc lập (vòng 1 ĐẠT CÓ GHI CHÚ; vòng 2 đến vòng 5 KHÔNG ĐẠT, vòng 4 chỉ vì R4-01 và vòng 5 chỉ vì R5-01); bản sửa vòng 6 (chỉ vá R5-01, thêm một câu ở §3.8 cho R5-03 và đo lại số cho R5-02) chưa được soát lại. Các luật LK3, LK7, LT3, TR2 (vân tay đơn vị không có `sent_at`), TR3 (thứ tự chuẩn, đánh giá lại kể cả bản đứng sau bản rời nhóm, khoá tuần tự hoá, quyết định của người gắn với cặp đã thấy, bản rời nhóm, bản bị bác theo bản được giữ), sổ lần giao và các đột biến DB22–DB36 chưa kiểm bằng bộ ca nào; chưa đột biến nào chạy. Các bất biến của TR3 ở §5.6 mới được kiểm bằng mô phỏng luật bằng script, không bằng mã. Giả định của mô phỏng (đo lại ở vòng 6, R5-02): chỉ MỘT nhóm, thời gian rời rạc, mỗi bản một phiên bản chờ tại một thời điểm; gồm sự kiện thu hồi, sửa tin chạm bản `REJECTED` bởi `MARK_DUPLICATE` (phiên bản chờ, người `APPLY`) và phiên bản chờ có trước `MARK_DUPLICATE`; không gồm đồng thời, nhiều nhóm, TR1 và TR2, đổi `sent_at` của bản `REJECTED`; ba bản duyệt hết, bốn bản trở lên chỉ ngẫu nhiên. |
+| U9 | `id_conflict` phụ thuộc thứ tự đến (ngoại lệ có tên của §7.4 và LC63): không có thông tin nào ngoài thứ tự để biết bản nào là bản đầu. Luật đối xứng (cả hai bản `HELD`, không bản nào vào tổng cho tới khi người quyết) chưa được chọn; tần suất chưa đo. |
+| U10 | Bản rời nhóm TR3 (thu hồi, sửa tin đổi nhóm, bác; ngoại lệ (c) của §7.4): thứ tự đến đổi kết cục `HELD` hay `ACCEPTED` của bản nghi trùng đứng sau; tính lại tất định là Q-0A-13. Hai bản `ACCEPTED` không liền kề (có bản `HELD` ở giữa), cách ≤ W, không bị luật chặn trực tiếp (mô phỏng: 875 trong 195.052 trạng thái; hợp lý khi bản ở giữa là bản trùng của bản đầu). Tần suất chưa đo. |
+| U11 | Kế thừa thực thể chỉ trong lô (LK7, Q-0A-14): tần suất tin chỉ có lượng nằm ở lô khác chưa đo; Zalo xuất theo thứ tự nào và chia lô ra sao chưa biết (U5). Hôm nay bộ nạp kế thừa theo thứ tự dòng; thay bằng `(sent_at, unit_key)` chưa kiểm bằng mã. |
+| U12 | Đơn vị không có `sent_at` (dòng PDF, hàng bảng) không vào nhóm TR3; chống trùng chỉ bằng TR1 và vân tay theo (ngày, mã nguồn trong tệp, chữ). Hai hướng sai im lặng của vân tay (cùng một báo cáo xuất lại với số dòng hoặc chữ khác, hoặc đổi tên sang ngày khác, bị tính hai lần; hai tệp khác nguồn cùng ngày có dòng cùng mã nguồn và cùng chữ bị gộp oan) đã thành câu mở Q-0A-16. Tần suất chưa đo. |
+| U13 | Chuỗi sửa tin từ hai lần trở lên (ngoại lệ (e) của §7.4 và của §5.4): lần sửa được so với phiên bản **hiện hành** (§7.2), không có khoá thứ tự giữa các lần sửa. Hệ quả [SUY, người soát vòng 3 mô phỏng luật bằng script, không phải mã]: (1) giao lại cả tệp chứa chuỗi A, B, C thêm phiên bản (A, B, C, B, C), giữa hai lần sửa tổng tạm hiện B; (2) lần sửa cũ đến sau lần sửa mới (hai lần sửa đảo thứ tự đến, hoặc một lô sau chỉ chứa lần sửa cũ do xuất chồng lấp) làm bản hiện hành quay về nội dung cũ, nên tổng dùng giá trị cũ, còn giá trị mới ở lịch sử phiên bản. Không cộng đôi, không rơi bản ghi; chuỗi một lần sửa vẫn idempotent. Sửa tin đến trước tin gốc cho `HELD` `id_conflict` ở cả hai lần giao (hướng an toàn), khác thứ tự thường. Hướng chữa chưa áp: cho lần sửa một khoá thứ tự đơn điệu (`sent_at` của lần sửa, hoặc số thứ tự sửa nếu kênh cho): lần sửa có khoá ≤ khoá của phiên bản hiện hành thì `DUPLICATE` nếu nội dung bằng một phiên bản bất kỳ, ngược lại `HELD` `id_conflict`; chỉ lần sửa có khoá lớn hơn mới tạo phiên bản. Hình dạng sửa tin của kênh thật (U5) và tần suất chưa biết. |
+| U14 | Bốn điểm chưa định nghĩa, hướng an toàn hoặc hẹp (chọn khi mở mã): (a) phiên bản do sửa tin tạo mang `sent_at` của tin gốc hay của lần sửa (TR3 xếp theo `sent_at`, nên chọn đổi vị trí trong nhóm); (b) `DISMISS` (cho `QUARANTINED`) chưa có trạng thái đích ở §3.1 và cột "Hệ quả" của §6.2; (c) lần giao thu hồi hoặc sửa tin thiếu `source_message_id` (§2.2 "nên có", HT-8): dấu thu hồi mang khoá tổng hợp `<tệp>#L<n>` không khớp tin gốc, nên thu hồi vô hiệu và tin vẫn được tính; (d) TR2 vế (a) cho bản ghi form (§13.2 nói dùng cho TR2) cần "chữ chuẩn hoá" mà bản ghi có cấu trúc không có. Thêm một điểm tác giả vòng 4 thấy khi sửa R3-04: bản `HELD` `possible_duplicate` có `duplicate_of` rỗng chỉ còn lối ra `KEEP_BOTH` (§6.2 không có quyết định bỏ bản đó vì không có bản kia); bản không mất, nằm ở hàng chờ cho tới khi người quyết; người soát vòng 4 (R4-04) thấy bản như vậy chiếm tỉ lệ đáng kể trong mô phỏng của họ [kết luận của người soát, chưa đo thật], và vòng 5 thêm một đường tạo ra chúng (§5.6 mục 4 (c), khi không còn bản đứng trước); hướng chữa khi mở mã: lối "bác kèm lý do" cho bản đó, hoặc Q-0A-13 b. Thêm một điểm của người soát vòng 4 (R4-03, ghi nợ): `seen_duplicate_of` "có mặt nhưng rỗng" (màn hình ghi bản đứng trước đã rời nhóm) khác "thiếu" (lệnh bị từ chối, §6.2); cài đặt phải phân biệt hai trường hợp, vì kiểu giá trị mặc định của ngôn ngữ cài đặt dễ làm mất sự khác nhau đó; chưa có ca riêng cho lệnh thiếu trường (LC83) và DB35 chưa nêu "nhận lệnh thiếu trường"; giá trị do người gửi lệnh cấp được ghi vào audit và trả lại người quyết, chưa nêu giới hạn độ dài hay ký tự (nêu khi mở mã). Chưa đo. |
+| U15 | **Đã vá ở vòng 5 và vòng 6** (R4-01 ở vòng 5: §5.6 mục 4 (c), §6.2, LC84, DB36; R5-01 ở vòng 6: (c) chạy cho bản được giữ từ bất kỳ trạng thái, kể cả khi nó đang `REJECTED` bởi `MARK_DUPLICATE`; §3.8, LC84 (vii), DB36). Lỗ cũ: bản được giữ của một cặp `MARK_DUPLICATE` bị thu hồi, hoặc sửa sang nhóm khác, **sau** quyết định (quyết định đúng ở lúc quyết, §6.2): bản bị bác vẫn `REJECTED`, nên cả hai bản rời tổng và không bản nào quay lại hàng chờ. Luật vòng 5: bản bị bác quay lại `HELD` `possible_duplicate` (hướng (1) của vòng 4); hướng (2) (coi bản được giữ là bản đã có quyết định của người, BB7) bị bỏ vì chỉ dời chỗ rơi (§5.6, "Phương án đã bỏ ở vòng 5 và vòng 6"). Chỗ hở còn lại sau vòng 5 (R5-01): (c) chỉ chạy khi bản được giữ "vừa rời nhóm" từ `ACCEPTED` hoặc `HELD`, nên bỏ sót chuỗi qua một bản đang `REJECTED` (a, b, c; `MARK_DUPLICATE` c rồi b; thu hồi b và người `APPLY`; thu hồi a: tổng rỗng, hàng chờ rỗng, c còn sống); vòng 6 sửa một mệnh đề. [SUY, mô phỏng luật bằng script tạm không commit, không phải mã; bản `REJECTED` chạm được, phiên bản chờ có trước `MARK_DUPLICATE` còn hiệu lực (U8): chữ vòng 4 có 1.399 đến 3.371 chuỗi rơi trong 300.000 chuỗi ngẫu nhiên (W = 1, 2, 3, 5); chữ vòng 5 sát chữ còn 7.524 và 10.692 trạng thái rơi khi duyệt hết 3 bản (W = 1 và 2, thời điểm 0 đến 2); chữ vòng 6: 0 ở cả hai phép, và 0 trên 862.308, 1.288.656 và 1.459.029 trạng thái ở thời điểm 0 đến 3 (W = 1, 2, 3).] Còn chưa biết: tần suất bản quay lại (thêm việc người, kể cả bản `HELD` rỗng `duplicate_of`: U14); lệnh thu hồi, sửa tin và `APPLY` phải tìm các bản `REJECTED` trỏ tới bản đích trong cùng giao dịch, dưới khoá (cài đặt, chưa viết); chưa đo. |

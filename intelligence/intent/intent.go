@@ -248,6 +248,44 @@ type Result struct {
 	Compare string
 	// Unclear: khe mà câu nêu nhiều giá trị khác nhau hoặc một ngày hỏng — khe để trống, router hỏi lại.
 	Unclear Unclear
+	// Why: giải thích của chặng S4 do Classify ghi ngay tại chỗ quyết định (R2-03) — chỉ để đọc vết, không bước nào đọc lại nó để quyết.
+	Why Why
+}
+
+// Why là phần giải thích của chặng S4: đầu vào quyết định (từ khoá khớp, thuật ngữ, khe), ý định đã xét và vì sao thắng / bị loại,
+// và nguồn của từng ứng viên thực thể dùng để hỏi lại.
+type Why struct {
+	Reasons  []string
+	Rejected []string
+	// Origins: nơi sinh ra từng ứng viên thực thể trong Result.Candidates và Result.Unclear.Entities.
+	Origins []Origin
+}
+
+// Origin cho biết một ứng viên thực thể (dùng để hỏi lại) đến từ đâu.
+type Origin struct {
+	ID   string // mã thực thể ứng viên
+	From string // OriginS3: ứng viên của cụm mơ hồ do S3 thấy · OriginS4: S4 gộp thêm vì khe chỉ nhận một thực thể mà câu nêu nhiều
+	Note string // cụm mơ hồ nào, hay thực thể rõ nào bị gộp và vì sao
+}
+
+// Nguồn của ứng viên thực thể (Origin.From).
+const (
+	OriginS3 = "S3"
+	OriginS4 = "S4"
+)
+
+func (w *Why) reason(format string, a ...any) {
+	w.Reasons = append(w.Reasons, fmt.Sprintf(format, a...))
+}
+func (w *Why) reject(format string, a ...any) {
+	w.Rejected = append(w.Rejected, fmt.Sprintf(format, a...))
+}
+
+// addOrigin ghi nguồn của một ứng viên nếu chưa có (mỗi thực thể một nguồn — nguồn đầu tiên; một bí danh nhắc N lần không sinh N bản ghi).
+func (w *Why) addOrigin(o Origin) {
+	if !slices.ContainsFunc(w.Origins, func(x Origin) bool { return x.ID == o.ID }) {
+		w.Origins = append(w.Origins, o)
+	}
 }
 
 // Unclear ghi phần câu hỏi nêu NHIỀU giá trị khác nhau, hoặc một giá trị hỏng, cho một khe chỉ nhận MỘT: khe đó không
@@ -269,70 +307,117 @@ func (u Unclear) Any() bool { return len(u.Entities)+len(u.Periods)+len(u.Invali
 // Classify chạy luật trên đầu vào đã chuẩn hoá và đã nhận dạng thực thể.
 // Không khớp ý định nào → Intent.Name rỗng.
 func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
-	r := s.classify(in, res, now)
+	w := &Why{}
+	r := s.classify(in, res, now, w)
 	// N1 (ADR-0010 bất biến (c)): câu hỏi lại vì hoà ý định hay thiếu thuật ngữ mà câu còn bí danh mơ hồ thì mang cả ứng viên của bí danh — người
 	// hỏi trả lời cả hai điều một lượt; bỏ rơi ứng viên là chỉ hỏi nửa câu.
 	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {
-		r.Candidates = aliasCandidates(res)
+		r.Candidates = aliasCandidates(res, w)
+		if len(r.Candidates) > 0 {
+			w.reason("câu hỏi lại vì hoà ý định hay thiếu thuật ngữ mà còn bí danh mơ hồ — mang cả ứng viên của bí danh (%s) để người hỏi trả lời một lượt (N1)", contracts.Brief(refKeys(r.Candidates), 6, "thực thể"))
+		}
 	}
+	r.Why = *w
 	return r
 }
 
-// aliasCandidates trả ứng viên của mọi bí danh mơ hồ trong câu, mỗi thực thể một lần, theo thứ tự nhắc.
-func aliasCandidates(res contracts.Resolution) []contracts.EntityRef {
+// aliasCandidates trả ứng viên của mọi bí danh mơ hồ trong câu, mỗi thực thể một lần, theo thứ tự nhắc; ghi nguồn (S3) của từng ứng viên vào w.
+func aliasCandidates(res contracts.Resolution, w *Why) []contracts.EntityRef {
 	var out []contracts.EntityRef
 	for _, m := range res.Ambiguous {
 		for _, c := range m.Candidates {
 			if !slices.ContainsFunc(out, func(o contracts.EntityRef) bool { return o.ID == c.ID }) {
 				out = append(out, c)
+				w.addOrigin(Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s", contracts.Quote(m.Mention))})
 			}
 		}
 	}
 	return out
 }
 
-func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
+// classify là thân của Classify; w nhận giải thích tại đúng chỗ từng quyết định (chỉ ghi, không đọc lại).
+func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time, w *Why) Result {
 	// ADR-0010 bất biến (b): từ khoá lấy ở mệnh đề HỎI; mệnh đề ngữ cảnh (nêu một con số, đứng trước câu hỏi) bị che khỏi phép đếm
 	prem := s.premiseRanges(in, res)
 	text := maskRanges(in.Raw, prem)
+	for _, r := range prem {
+		w.reason("mệnh đề ngữ cảnh %s nêu một con số và đứng trước mệnh đề hỏi — chữ của nó chỉ nguồn của con số, không quyết định ý định (bất biến (b))", contracts.Quote(in.Raw[r[0]:r[1]]))
+	}
 	ignore := append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...) // cụm báo nghĩa chưa hỗ trợ chiếm chỗ: "báo" của "dự báo" không phải từ khoá
-	counts, firsts := keywordHits(s.defs, text, ignore)
+	counts, firsts, phrases := keywordHits(s.defs, text, ignore)
 	if un := s.unsupportedIn(in, res, text, prem, counts); len(un) > 0 {
-		return Result{Unsupported: un, NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}
+		names := make([]string, len(un))
+		for i, u := range un {
+			names[i] = u.Name
+		}
+		w.reason("câu mang nghĩa hệ chưa hỗ trợ (%s) — hỏi lại và nói rõ nghĩa nào chưa hỗ trợ, kể các nghĩa số liệu có thể hỏi thay (D-OP-18 = c)", strings.Join(names, ", "))
+		return Result{Unsupported: un, NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res, w)}
 	}
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
-		if focus, f := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
-			counts, firsts = focus, f
+		if focus, f, fp := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
+			counts, firsts, phrases = focus, f, fp
+			w.reason("từ khoá lấy trong mệnh đề hỏi %s (mệnh đề chứa cụm xác nhận quyết định ý định, các mệnh đề trước là ngữ cảnh)", contracts.Quote(in.Raw[fs:fe]))
 		}
+	}
+	if hits := hitsText(s.defs, counts, phrases); hits != "" {
+		w.reason("từ khoá khớp (luật khớp dài nhất): %s", hits)
+	} else {
+		w.reason("không từ khoá ý định nào khớp (luật khớp dài nhất)")
 	}
 	first := map[string]int{}
 	implicit, other := s.implicitTerm(in, res)
+	if implicit != "" {
+		w.reason("thuật ngữ hiểu ngầm %s (câu nhắc thực thể mà không nói vật tư và không có đại lượng đo được nào khác — chính sách của pack)", implicit)
+	}
 	var matched, partial []Def
 	score := map[string]int{}
 	for i, d := range s.defs {
 		if counts[i] == 0 {
 			continue
 		}
+		kw := quoteAll(phrases[i])
 		switch {
 		case hasTerm(d, in) || (implicit != "" && requires(d, implicit)):
 			matched = append(matched, d)
 			score[d.Name], first[d.Name] = counts[i], firsts[i]
+			via := "không đòi thuật ngữ"
+			switch {
+			case len(d.Terms) > 0 && hasTerm(d, in):
+				via = "câu có thuật ngữ " + strings.Join(d.Terms, "|")
+			case len(d.Terms) > 0:
+				via = "thuật ngữ hiểu ngầm " + implicit
+			}
+			w.reason("khớp đủ: %s (ưu tiên %d, từ khoá %s, %s)", d.Name, d.Priority, kw, via)
 		case !d.Weak && !other: // câu nói về đại lượng khác thì không hỏi lại về dầu
 			partial = append(partial, d)
+			w.reject("%s: khớp một phần — từ khoá %s khớp nhưng câu thiếu thuật ngữ %s", d.Name, kw, strings.Join(d.Terms, "|"))
+		case d.Weak:
+			w.reject("%s: ý định yếu — chỉ có từ khoá chung chung (%s), thiếu thuật ngữ %s nên một mình không đủ", d.Name, kw, strings.Join(d.Terms, "|"))
+		default:
+			w.reject("%s: từ khoá %s khớp nhưng câu nói về đại lượng đo được khác nên không hỏi lại thuật ngữ %s", d.Name, kw, strings.Join(d.Terms, "|"))
 		}
 	}
 	if len(matched) == 0 {
 		if len(partial) > 0 || !s.scopeSignal(in, res, implicit) {
+			if len(partial) > 0 {
+				w.reason("không ý định nào khớp đủ — hỏi lại thuật ngữ cho %s (ưu tiên cao nhất trong các ý định khớp một phần)", strings.Join(topPriority(partial), ", "))
+			} else {
+				w.reason("không ý định nào khớp và câu không đủ tín hiệu thuộc phạm vi số liệu (cần cả thực thể lẫn thuật ngữ mà một ý định đòi, hoặc lượng cùng chiều đo kèm chữ của từ khoá chỉ số) — ngoài phạm vi")
+			}
 			return Result{NeedTerm: topPriority(partial)}
 		}
 		// ADR-0010 (a), D-OP-15 = a2: có thực thể + thuật ngữ mà không từ khoá nào khớp KHÔNG phải ngoài phạm vi — trả lời theo ý
 		// định chung khi câu không nói gì thêm ngoài nghĩa của nó (generic), còn lại hỏi lại nghĩa số liệu.
-		g, ok := s.generic(in, res, implicit)
+		g, ok, why := s.generic(in, res, implicit)
 		if !ok {
-			return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}
+			cands := aliasCandidates(res, w)
+			opts := s.meaningOptions()
+			w.reason("có thực thể và thuật ngữ nhưng không từ khoá ý định nào khớp, và câu không trả lời được theo ý định chung (%s) — hỏi lại nghĩa số liệu: %s", why, strings.Join(opts, ", "))
+			return Result{NeedMeaning: opts, Mentioned: res.Entities, Candidates: cands}
 		}
+		w.reason("không từ khoá nào khớp — trả lời theo ý định chung %s (D-OP-15 a2): %s", g.Name, why)
 		matched = []Def{g}
 		score[g.Name], first[g.Name] = 1, 0
 	}
@@ -349,9 +434,9 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 	}
 	if len(data) == 0 {
-		return s.build(knowledge, score, first, in, res, now, implicit)
+		return s.build(knowledge, score, first, in, res, now, implicit, w)
 	}
-	r := s.build(data, score, first, in, res, now, implicit)
+	r := s.build(data, score, first, in, res, now, implicit, w)
 	if len(knowledge) == 0 || len(r.Ambiguous) > 0 {
 		return r
 	}
@@ -362,13 +447,18 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		// chúng chỉ là chủ đề của một câu hỏi quy trình thuần ("Khi lệch phiếu kho của EX-03 và RL-02 thì phải làm gì?"): hỏi lại "máy hoặc dự án"
 		// ở đó là hỏi OAN.
 		if _, dated := firstPeriod(in); dated || len(in.InvalidDates) > 0 || (len(r.Unclear.Entities) > 0 && s.asksData(in.Raw)) {
+			w.reject("%s (tri thức): khớp cùng nhưng bị bỏ — câu đã nêu mốc thời gian, ngày hỏng hay nhiều thực thể của một câu hỏi số liệu, hỏi lại phần số liệu thay vì chuyển sang câu hỏi quy trình", defNames(knowledge))
 			return r
 		}
-		return s.build(knowledge, score, first, in, res, now, implicit)
+		w.reject("%s: ý định số liệu bị bỏ — thiếu khe thực thể và câu không có dấu hiệu hỏi số liệu, coi là câu hỏi quy trình", r.Intent.Name)
+		return s.build(knowledge, score, first, in, res, now, implicit, w)
 	}
-	k := s.build(knowledge, score, first, in, res, now, implicit)
+	k := s.build(knowledge, score, first, in, res, now, implicit, &Why{}) // chỉ để biết có hoà không; lời giải thích của nhóm tri thức gói ở dòng dưới
 	if len(k.Ambiguous) == 0 {
 		r.Knowledge = k.Intent.Name
+		w.reason("ý định tri thức %s khớp cùng ý định số liệu — router ghép HYBRID nếu đủ khe", k.Intent.Name)
+	} else {
+		w.reject("%s (tri thức): khớp cùng nhưng hoà nhau nên không ghép HYBRID", defNames(knowledge))
 	}
 	return r
 }
@@ -387,7 +477,7 @@ func (s *Set) asksData(text string) bool {
 		return true
 	}
 	for _, clause := range clausesOf(text) {
-		counts, _ := keywordHits(s.defs, clause, s.opt.IgnorePhrases)
+		counts, _, _ := keywordHits(s.defs, clause, s.opt.IgnorePhrases)
 		data, knowledge := 0, 0
 		for i, d := range s.defs {
 			switch contracts.RouteKind(d.Route) {
@@ -434,8 +524,8 @@ func missingEntity(d Def, it contracts.Intent) bool {
 }
 
 // build chọn ý định thắng trong một nhóm và điền khe của nó.
-func (s *Set) build(matched []Def, score, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) Result {
-	if r, ok := s.comparison(matched, first, in, res, now, implicit); ok {
+func (s *Set) build(matched []Def, score, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) Result {
+	if r, ok := s.comparison(matched, first, in, res, now, implicit, w); ok {
 		return r
 	}
 	// Ưu tiên cao hơn thắng; cùng ưu tiên thì ý định có NHIỀU cụm từ khoá khớp hơn thắng
@@ -450,14 +540,28 @@ func (s *Set) build(matched []Def, score, first map[string]int, in contracts.Nor
 	top := matched[0]
 	var ambiguous []string
 	for _, d := range matched[1:] {
-		if d.Priority == top.Priority && score[d.Name] == score[top.Name] {
+		switch {
+		case d.Priority == top.Priority && score[d.Name] == score[top.Name]:
 			ambiguous = append(ambiguous, d.Name)
+		case d.Priority != top.Priority:
+			w.reject("%s: khớp đủ nhưng bị loại — ưu tiên %d thấp hơn %s (%d)", d.Name, d.Priority, top.Name, top.Priority)
+		default:
+			w.reject("%s: khớp đủ nhưng bị loại — %d cụm từ khoá, ít hơn %s (%d) cùng ưu tiên %d", d.Name, score[d.Name], top.Name, score[top.Name], top.Priority)
 		}
 	}
 	if len(ambiguous) > 0 {
+		w.reason("hoà: %s cùng ưu tiên %d và cùng %d cụm từ khoá — không chọn bừa, hỏi lại", strings.Join(append([]string{top.Name}, ambiguous...), ", "), top.Priority, score[top.Name])
 		return Result{Ambiguous: append([]string{top.Name}, ambiguous...)}
 	}
-	return s.fill(top, in, res, now, implicit)
+	switch {
+	case len(matched) == 1:
+		w.reason("chọn %s: ý định duy nhất khớp đủ", top.Name)
+	case matched[1].Priority != top.Priority:
+		w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority)
+	default:
+		w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name])
+	}
+	return s.fill(top, in, res, now, implicit, w)
 }
 
 // comparison xử lý câu SO SÁNH hai chỉ số (ADR-0010, cụm C4). Câu có dấu hiệu so sánh — một ý định dẫn xuất khớp ("chênh", "lệch") hoặc cụm so sánh
@@ -466,7 +570,7 @@ func (s *Set) build(matched []Def, score, first map[string]int, in contracts.Nor
 // một cụm; "chênh" không ép cặp mặc định của nó lên cặp khác). Ý định dẫn xuất chỉ trả cặp mặc định khi các chỉ số câu nêu đều nằm trong cặp ấy; câu
 // nêu chỉ số ngoài cặp mà không phải đúng hai chỉ số thì không có cặp nào để trả thay người hỏi: hỏi lại. ok = false: không phải câu so sánh, build
 // chọn như thường.
-func (s *Set) comparison(matched []Def, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) (Result, bool) {
+func (s *Set) comparison(matched []Def, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) (Result, bool) {
 	var named, derived []Def
 	metrics := map[string]string{}
 	for _, d := range matched {
@@ -504,10 +608,11 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 		if first[right.Name] < first[left.Name] {
 			left, right = right, left
 		}
-		r := s.fill(left, in, res, now, implicit)
+		r := s.fill(left, in, res, now, implicit, w)
 		r.Intent.Slots["compare_metric"] = contracts.Slot{Name: "compare_metric", Text: metrics[right.Name]}
 		r.Intent.Rule += "+compare:" + right.Name
 		r.Compare = right.Name
+		w.reason("câu so sánh: %s so với %s (hai chỉ số khác nhau kèm dấu hiệu so sánh) — phép tính hiệu theo thứ tự nhắc, không phải câu mơ hồ", left.Name, right.Name)
 		return r, true
 	}
 	if len(derived) == 0 {
@@ -517,6 +622,7 @@ func (s *Set) comparison(matched []Def, first map[string]int, in contracts.Norma
 	for _, d := range slices.Concat(derived, named) {
 		names = append(names, d.Name)
 	}
+	w.reason("câu có dấu hiệu so sánh nhưng các chỉ số nêu (%s) không thành đúng một cặp hai chỉ số khác nhau — không chọn cặp thay người hỏi, hỏi lại", strings.Join(names, ", "))
 	return Result{Ambiguous: names}, true
 }
 
@@ -542,10 +648,11 @@ func metricOf(d Def, in contracts.NormalizedInput, implicit string) (metric, rul
 }
 
 // fill điền khe của một ý định đã chọn.
-func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) Result {
+func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string, w *Why) Result {
 	it := contracts.Intent{Name: top.Name, Confidence: 1, Slots: map[string]contracts.Slot{}, Rule: "intent:rules"}
 	var candidates []contracts.EntityRef
 	var unclear Unclear
+	clashSlot := ""
 	for _, sd := range top.Slots {
 		switch sd.From {
 		case "entity":
@@ -562,15 +669,19 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 				// Câu nêu ≥ 2 thực thể KHÁC NHAU cùng loại cho khe chỉ nhận một: không lấy thực thể nhắc đầu (P5).
 				it.Missing = append(it.Missing, sd.Name)
 				unclear.Entities = append(unclear.Entities, clash...)
+				clashSlot = sd.Name
+				w.reason("khe %s thiếu: câu nêu %d thực thể khác nhau cùng loại (%s) cho khe chỉ nhận một — không lấy thực thể nhắc đầu", sd.Name, len(clash), contracts.Brief(refKeys(clash), 6, "thực thể"))
 				continue
 			}
 			if e, ok := firstOfTypes(res.Entities, sd.Types); ok {
 				ref := e
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Entity: &ref}
+				w.reason("khe %s ← %s (thực thể rõ đầu tiên đúng loại)", sd.Name, e.Key)
 				continue
 			}
 			if sd.Required {
 				it.Missing = append(it.Missing, sd.Name)
+				w.reason("khe %s thiếu: không có thực thể rõ đúng loại (%s)%s", sd.Name, orAny(sd.Types), ambiguousHint(res))
 			}
 		case "period":
 			ps := distinctPeriods(in)
@@ -581,19 +692,24 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 					unclear.Periods = ps
 				}
 				unclear.Invalid = in.InvalidDates
+				w.reason("khe %s thiếu: câu nêu %d mốc thời gian khác nhau và %d ngày hỏng — không lấy mốc nhắc đầu, không rơi về ngày mặc định", sd.Name, len(ps), len(in.InvalidDates))
 				continue
 			}
 			if len(ps) == 1 { // kỳ duy nhất (kỳ hẹp, nếu câu viết lồng nhiều kỳ)
 				v := ps[0].Value
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: ps[0].Raw}
+				// giá trị mốc đã chuẩn hoá (ISO) cũng là chữ lấy từ câu của người hỏi: cũng qua Quote để câu mang bí mật dạng ngày không để lọt nó
+				w.reason("khe %s ← %s (mốc %s trong câu)", sd.Name, contracts.Quote(v.Text), contracts.Quote(ps[0].Raw))
 				continue
 			}
 			if v, ok := defaultPeriod(sd.Default, now); ok {
 				it.Slots[sd.Name] = contracts.Slot{Name: sd.Name, Value: &v, Text: sd.Default}
+				w.reason("khe %s ← %s (câu không nêu mốc: mặc định %s của pack)", sd.Name, v.Text, sd.Default)
 				continue
 			}
 			if sd.Required {
 				it.Missing = append(it.Missing, sd.Name)
+				w.reason("khe %s thiếu: câu không nêu mốc và pack không có mặc định", sd.Name)
 			}
 		}
 	}
@@ -601,18 +717,23 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 	if m, rule := metricOf(top, in, implicit); m != "" {
 		it.Slots["metric"] = contracts.Slot{Name: "metric", Text: m}
 		it.Rule += rule
+		w.reason("chỉ số %s (theo thuật ngữ %s của ý định %s)", m, termFor(top, in, implicit), top.Name)
 	}
 	if top.Derived != "" {
 		it.Slots["metric"] = contracts.Slot{Name: "metric", Text: top.Derived}
+		w.reason("chỉ số dẫn xuất %s (ý định %s khai)", top.Derived, top.Name)
 	}
 	if len(top.MetricByTerm) > 0 || top.Derived != "" {
 		if _, ok := it.Slots["metric"]; !ok {
 			it.Missing = append(it.Missing, "metric")
+			w.reason("chỉ số thiếu: ý định %s chọn chỉ số theo thuật ngữ mà câu không có thuật ngữ nào trong %s", top.Name, mapKeys(top.MetricByTerm))
 		}
 	}
 	if len(unclear.Entities) > 0 {
 		candidates = nil // thực thể người hỏi viết rõ đang tranh nhau: không để bí danh mơ hồ làm router chọn thay
 	}
+	w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot)
+	w.reason("luật %s", it.Rule)
 	return Result{Intent: it, Candidates: candidates, Unclear: unclear}
 }
 
@@ -899,10 +1020,10 @@ func (s *Set) meaningOptions() []string {
 // số mà các nguồn đang lệch thì hỏi lại, không xác nhận).
 // Mảnh từ khoá của ý định số liệu khác ("tiêu" của "tiêu thụ", "đo" của "đo được") không được coi là trung tính. Còn chữ lạ ("xài",
 // "hao", "đổ", "tính tiền", "định mức") ⇒ không chọn: câu có thể hỏi một chỉ số khác, nên hỏi lại (D-OP-15 điều kiện (ii)).
-func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, implicit string) (Def, bool) {
+func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, implicit string) (Def, bool, string) {
 	raw := in.Raw
 	if !slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return len(normalization.PhraseSpans(raw, m)) > 0 }) {
-		return Def{}, false
+		return Def{}, false, "câu không có cụm xác nhận"
 	}
 	var gen []Def
 	term := ""
@@ -921,7 +1042,7 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 		}
 	}
 	if len(gen) != 1 || gen[0].MetricByTerm[term] == "" {
-		return Def{}, false
+		return Def{}, false, fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen))
 	}
 	metric := gen[0].MetricByTerm[term]
 	var own, other []string // từng chữ của từ khoá: ý định riêng cùng chỉ số với ý định chung / ý định số liệu khác
@@ -1025,19 +1146,22 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 		if !slices.ContainsFunc(own, func(c string) bool {
 			return slices.ContainsFunc(normalization.PhraseSpans(raw, c), func(sp [2]int) bool { return sp[0] == i && sp[1] == j })
 		}) {
-			return Def{}, false
+			return Def{}, false, fmt.Sprintf("chữ %s chưa được giải thích (không phải tên, mốc, lượng, thuật ngữ, cụm xác nhận, từ trung tính hay mảnh từ khoá của ý định riêng)", contracts.Quote(raw[i:j]))
 		}
 		meaning = true
 		i = j
 	}
-	return gen[0], meaning
+	if !meaning {
+		return gen[0], false, "câu không nêu nghĩa số liệu nào (không có mảnh từ khoá của ý định riêng)"
+	}
+	return gen[0], true, "mọi chữ còn lại được giải thích (tên, mốc, lượng, thuật ngữ, cụm xác nhận, mảnh từ khoá của ý định riêng)"
 }
 
 // keywordHits báo ý định nào có từ khoá khớp, theo luật KHỚP DÀI NHẤT trên từ khoá của MỌI ý
 // định: lần khớp nằm trọn trong lần khớp dài hơn của từ khoá khác thì không tính. Câu gõ
 // không dấu "bao nhieu" khớp cả "bao nhiêu" lẫn "báo" — "báo" nằm trong "bao nhiêu" nên bị
 // bỏ; xét từng ý định riêng lẻ thì câu hỏi chung chung bị hiểu thành "dầu đội báo".
-func keywordHits(defs []Def, text string, ignore []string) (counts, first []int) {
+func keywordHits(defs []Def, text string, ignore []string) (counts, first []int, phrases [][]string) {
 	type hit struct{ def, start, end int }
 	var all []hit
 	for i, d := range defs {
@@ -1052,7 +1176,7 @@ func keywordHits(defs []Def, text string, ignore []string) (counts, first []int)
 			all = append(all, hit{-1, sp[0], sp[1]})
 		}
 	}
-	counts, first = make([]int, len(defs)), make([]int, len(defs))
+	counts, first, phrases = make([]int, len(defs)), make([]int, len(defs)), make([][]string, len(defs))
 	for i := range first {
 		first[i] = len(text)
 	}
@@ -1070,9 +1194,119 @@ func keywordHits(defs []Def, text string, ignore []string) (counts, first []int)
 		if !covered {
 			counts[h.def]++
 			first[h.def] = min(first[h.def], h.start)
+			phrases[h.def] = append(phrases[h.def], text[h.start:h.end])
 		}
 	}
-	return counts, first
+	return counts, first, phrases
+}
+
+// hitsText kể các ý định có từ khoá khớp kèm cụm đã khớp, theo thứ tự khai báo ("fuel_issued [được cấp] · fuel_generic [bao nhiêu]").
+func hitsText(defs []Def, counts []int, phrases [][]string) string {
+	var out []string
+	for i, d := range defs {
+		if counts[i] > 0 {
+			out = append(out, fmt.Sprintf("%s [%s]", d.Name, quoteAll(phrases[i])))
+		}
+	}
+	return strings.Join(out, " · ")
+}
+
+// quoteAll đặt từng đoạn chữ NGUYÊN VĂN của người hỏi (cụm từ khoá khớp trong câu) vào cặp “…” rồi nối bằng ", ": mọi chữ lấy từ câu đều qua
+// contracts.Quote để Why.WithholdQuoted che được khi câu mang bí mật.
+func quoteAll(phrases []string) string {
+	quoted := make([]string, len(phrases))
+	for i, p := range phrases {
+		quoted[i] = contracts.Quote(p)
+	}
+	return strings.Join(quoted, ", ")
+}
+
+// defNames là tên các ý định, nối bằng ", ".
+func defNames(defs []Def) string {
+	names := make([]string, len(defs))
+	for i, d := range defs {
+		names[i] = d.Name
+	}
+	return strings.Join(names, ", ")
+}
+
+// refKeys là khoá các thực thể, theo thứ tự đưa vào.
+func refKeys(refs []contracts.EntityRef) []string {
+	out := make([]string, len(refs))
+	for i, r := range refs {
+		out[i] = r.Key
+	}
+	return out
+}
+
+func orAny(types []string) string {
+	if len(types) == 0 {
+		return "mọi loại"
+	}
+	return strings.Join(types, "|")
+}
+
+// ambiguousHint nhắc các cụm mơ hồ của S3 khi khe thực thể thiếu (router còn có thể gỡ ở S5 bằng phạm vi / dự án).
+func ambiguousHint(res contracts.Resolution) string {
+	if len(res.Ambiguous) == 0 {
+		return ""
+	}
+	var ms []string
+	for _, m := range res.Ambiguous {
+		ms = append(ms, contracts.Quote(m.Mention))
+	}
+	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng dự án đã nêu hay phạm vi dữ liệu của người hỏi)"
+}
+
+// termFor trả thuật ngữ đã quyết chỉ số (cùng thứ tự với metricOf): thuật ngữ trong câu, không có thì thuật ngữ hiểu ngầm.
+func termFor(d Def, in contracts.NormalizedInput, implicit string) string {
+	for _, sp := range in.SpansOf(contracts.ValueTerm) {
+		if _, ok := d.MetricByTerm[sp.Value.Text]; ok {
+			return sp.Value.Text
+		}
+	}
+	return implicit + " (hiểu ngầm)"
+}
+
+// mapKeys liệt kê khoá của map theo thứ tự tăng dần.
+func mapKeys(m map[string]string) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return strings.Join(keys, "|")
+}
+
+// originsOf ghi nơi sinh ra từng ứng viên dùng để hỏi lại: ứng viên của cụm mơ hồ do S3 thấy (cands), và các thực thể S4 gộp thêm vì khe
+// chỉ nhận một mà câu nêu nhiều (clash) — mỗi thực thể gộp kèm gốc của nó ở S3 (thực thể rõ, hay ứng viên của một cụm mơ hồ).
+func originsOf(res contracts.Resolution, cands, clash []contracts.EntityRef, clashSlot string) []Origin {
+	mentionOf := func(id string) string {
+		for _, m := range res.Ambiguous {
+			for _, c := range m.Candidates {
+				if c.ID == id {
+					return m.Mention
+				}
+			}
+		}
+		return ""
+	}
+	// mỗi thực thể một nguồn (nguồn đầu tiên): một bí danh nhắc nhiều lần không sinh hàng nghìn dòng trùng
+	var w Why
+	for _, c := range cands {
+		if !slices.ContainsFunc(w.Origins, func(o Origin) bool { return o.ID == c.ID }) {
+			w.addOrigin(Origin{ID: c.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s", contracts.Quote(mentionOf(c.ID)))})
+		}
+	}
+	for _, e := range clash {
+		why := fmt.Sprintf("khe %s chỉ nhận một thực thể mà câu nêu %d", clashSlot, len(clash))
+		if slices.ContainsFunc(res.Entities, func(r contracts.EntityRef) bool { return r.ID == e.ID }) {
+			w.addOrigin(Origin{ID: e.ID, From: OriginS4, Note: fmt.Sprintf("thực thể rõ %s ở S3, S4 gộp vào danh sách vì %s", contracts.Quote(e.Mention), why)})
+		} else if !slices.ContainsFunc(w.Origins, func(o Origin) bool { return o.ID == e.ID }) {
+			w.addOrigin(Origin{ID: e.ID, From: OriginS3, Note: fmt.Sprintf("ứng viên của cụm mơ hồ %s, S4 giữ trong danh sách vì %s", contracts.Quote(mentionOf(e.ID)), why)})
+		}
+	}
+	return w.Origins
 }
 
 // implicitTerm trả thuật ngữ mặc định được hiểu ngầm ("" khi không áp) và báo câu có nói về một

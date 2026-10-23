@@ -7,6 +7,8 @@ package router
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -51,10 +53,10 @@ func (p Policy) Validate() error {
 //	(b) khe còn thiếu: giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi; đúng 1 thì chọn
 //	    (người hỏi không thể muốn thiết bị mình không được xem). Vai phạm vi "all" thì mọi ứng
 //	    viên đều trong phạm vi nên vẫn phải hỏi lại.
-func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, lineage func(contracts.EntityRef) []string) contracts.Intent {
+func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, lineage func(contracts.EntityRef) []string) (contracts.Intent, contracts.Narrowing) {
 	it := cls.Intent
 	if len(cls.Candidates) == 0 {
-		return it
+		return it, contracts.Narrowing{}
 	}
 	slot := ""
 	for _, sd := range def.Slots {
@@ -64,13 +66,16 @@ func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Polic
 		}
 	}
 	if slot == "" {
-		return it
+		return it, contracts.Narrowing{}
 	}
+	// nar chỉ GHI lại việc lọc (ứng viên trước / sau) để vết giải thích được — không điều khiển gì
+	nar := contracts.Narrowing{Slot: slot, Before: keysOf(cls.Candidates)}
 	var keep []contracts.EntityRef
 	if cur, ok := it.Slots[slot]; ok && cur.Entity != nil {
 		if cur.Entity.Type != "project" {
-			return it
+			return it, contracts.Narrowing{}
 		}
+		nar.By = contracts.NarrowByProject
 		for _, c := range cls.Candidates {
 			for _, k := range lineage(c) {
 				if k == cur.Entity.Key {
@@ -79,19 +84,22 @@ func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Polic
 				}
 			}
 		}
+		nar.After = keysOf(keep)
 		if len(keep) != 1 {
 			delete(it.Slots, slot)
 			it.Missing = append(it.Missing, slot)
-			return it
+			return it, nar
 		}
 	} else {
+		nar.By = contracts.NarrowByScope
 		for _, c := range cls.Candidates {
 			if pol.InScope(pr, lineage(c)) {
 				keep = append(keep, c)
 			}
 		}
+		nar.After = keysOf(keep)
 		if len(keep) != 1 {
-			return it
+			return it, nar
 		}
 		var rest []string
 		for _, m := range it.Missing {
@@ -108,7 +116,18 @@ func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Polic
 	ref := keep[0]
 	slots[slot] = contracts.Slot{Name: slot, Entity: &ref}
 	it.Slots = slots
-	return it
+	nar.Chosen = ref.Key
+	return it, nar
+}
+
+// keysOf trả khoá của các thực thể theo đúng thứ tự và số lượng router đã xét — KHÔNG gộp trùng: một thực thể là ứng viên của hai cụm mơ hồ
+// được đếm hai lần ở bước "đúng một ứng viên", và vết phải cho thấy chính con số đó.
+func keysOf(refs []contracts.EntityRef) []string {
+	out := make([]string, len(refs))
+	for i, r := range refs {
+		out[i] = r.Key
+	}
+	return out
 }
 
 // terminalOutcome là kết quả của route kết thúc ngay ở router; route còn phải thực thi trả rỗng.
@@ -167,25 +186,37 @@ type Settings struct {
 }
 
 // Route quyết kế hoạch cho một lượt hỏi. lineage trả khoá thực thể + tổ tiên (từ danh mục).
+//
+// Mỗi bậc kiểm được ghi vào plan.Checked ĐÚNG LÚC nó được xét (hàm check), kể cả bậc không chặn — nên vết cho biết router đã đi qua
+// những bậc nào, bậc nào chặn và dữ kiện nào đã kiểm; không bậc nào đọc lại danh sách này để quyết, nên ghi không đổi quyết định.
 func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr contracts.Principal, pol Policy, st Settings,
-	lineage func(e contracts.EntityRef) []string) contracts.RoutePlan {
+	lineage func(e contracts.EntityRef) []string) (plan contracts.RoutePlan) {
+
+	var checked []contracts.RouteCheck
+	var narrowed contracts.Narrowing
+	defer func() { plan.Checked, plan.Narrowed = checked, narrowed }()
+	check := func(rule string, route contracts.RouteKind, fired bool, detail string) bool {
+		checked = append(checked, contracts.RouteCheck{Rule: rule, Route: route, Fired: fired, Detail: detail})
+		return fired
+	}
 	switch {
-	case len(cls.Ambiguous) > 0:
+	case check("nhiều ý định cùng khớp", contracts.RouteClarification, len(cls.Ambiguous) > 0, orNone(strings.Join(cls.Ambiguous, ", "), "không có ý định nào hoà nhau")):
 		return contracts.RoutePlan{
 			Route: contracts.RouteClarification, Template: "clarify_intent",
 			Reason:  "nhiều ý định cùng khớp: " + strings.Join(cls.Ambiguous, ", "),
 			Outcome: contracts.OutcomeClarificationRequired,
 		}
-	case len(cls.NeedTerm) > 0:
+	case check("thiếu thuật ngữ bắt buộc", contracts.RouteClarification, len(cls.NeedTerm) > 0, orNone(strings.Join(cls.NeedTerm, ", "), "không có ý định nào khớp từ khoá mà thiếu thuật ngữ")):
 		return contracts.RoutePlan{
 			Route: contracts.RouteClarification, Template: "clarify_intent",
 			Reason:  "khớp từ khoá nhưng thiếu thuật ngữ bắt buộc: " + strings.Join(cls.NeedTerm, ", "),
 			Outcome: contracts.OutcomeClarificationRequired,
 		}
-	case len(cls.NeedMeaning) > 0:
+	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification, len(cls.NeedMeaning) > 0, orNone(strings.Join(cls.NeedMeaning, ", "), "không rơi vào trường hợp có thực thể và thuật ngữ mà không từ khoá nào khớp")):
 		// thực thể ngoài phạm vi dữ liệu của người hỏi: nghĩa nào cũng bị từ chối, nên từ chối ngay, không hỏi lại
 		for _, e := range cls.Mentioned {
-			if !pol.InScope(pr, lineage(e)) {
+			out := !pol.InScope(pr, lineage(e))
+			if check("phạm vi dữ liệu (câu hỏi nghĩa số liệu)", contracts.RouteReject, out, e.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")) {
 				return contracts.RoutePlan{
 					Route: contracts.RouteReject, Template: "forbidden", Outcome: contracts.OutcomePermissionDenied,
 					Reason: "thực thể " + e.Key + " ngoài phạm vi dữ liệu của người hỏi",
@@ -205,7 +236,7 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 			plan.Template, plan.Reason = "unsupported_meaning", "nghĩa chưa hỗ trợ: "+strings.Join(names, ", ")
 		}
 		return plan
-	case cls.Intent.Name == "":
+	case check("không ý định nào khớp", contracts.RouteKind(st.UnmatchedRoute), cls.Intent.Name == "", pick(cls.Intent.Name == "", "route do pack chọn cho câu không khớp ý định nào", "đã có ý định "+cls.Intent.Name)):
 		r := contracts.RouteKind(st.UnmatchedRoute)
 		return contracts.RoutePlan{
 			Route: r, Template: st.UnmatchedTemplate,
@@ -213,38 +244,54 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		}
 	}
 	def, _ := set.Def(cls.Intent.Name)
-	plan := contracts.RoutePlan{Intent: narrow(cls, def, pr, pol, lineage)}
+	var it contracts.Intent
+	it, narrowed = narrow(cls, def, pr, pol, lineage)
+	plan = contracts.RoutePlan{Intent: it}
 	cls.Intent = plan.Intent
 
 	// Ý định không khai capability chỉ có thể là route thuần trả lời (intent.Compile chặn
 	// mọi trường hợp khác), nên bỏ qua kiểm quyền ở đây là an toàn.
-	if def.Capability != "" && !pol.Allows(pr, def.Capability) {
-		plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
-		plan.Reason = "thiếu capability " + def.Capability
-		return plan
+	if def.Capability != "" {
+		ok := pol.Allows(pr, def.Capability)
+		if check("capability của ý định", contracts.RouteReject, !ok, def.Capability+": "+pick(ok, "có", "thiếu")+" (vai "+strings.Join(pr.Roles, ", ")+")") {
+			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
+			plan.Reason = "thiếu capability " + def.Capability
+			return plan
+		}
 	}
 	if cls.Compare != "" { // câu so sánh đọc cả hai chỉ số: cần quyền của cả hai vế
-		if cdef, _ := set.Def(cls.Compare); cdef.Capability != "" && !pol.Allows(pr, cdef.Capability) {
-			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
-			plan.Reason = "thiếu capability " + cdef.Capability + " cho vế so sánh"
-			return plan
+		if cdef, _ := set.Def(cls.Compare); cdef.Capability != "" {
+			ok := pol.Allows(pr, cdef.Capability)
+			if check("capability của vế so sánh", contracts.RouteReject, !ok, cdef.Capability+": "+pick(ok, "có", "thiếu")) {
+				plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
+				plan.Reason = "thiếu capability " + cdef.Capability + " cho vế so sánh"
+				return plan
+			}
 		}
 	}
 	if cls.Knowledge != "" { // HYBRID cần cả quyền đọc tài liệu
-		if kdef, _ := set.Def(cls.Knowledge); kdef.Capability != "" && !pol.Allows(pr, kdef.Capability) {
-			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
-			plan.Reason = "thiếu capability " + kdef.Capability + " cho phần tri thức"
-			return plan
+		if kdef, _ := set.Def(cls.Knowledge); kdef.Capability != "" {
+			ok := pol.Allows(pr, kdef.Capability)
+			if check("capability của phần tri thức", contracts.RouteReject, !ok, kdef.Capability+": "+pick(ok, "có", "thiếu")) {
+				plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
+				plan.Reason = "thiếu capability " + kdef.Capability + " cho phần tri thức"
+				return plan
+			}
 		}
 	}
-	for _, s := range cls.Intent.Slots {
-		if s.Entity != nil && !pol.InScope(pr, lineage(*s.Entity)) {
+	for _, name := range slices.Sorted(maps.Keys(cls.Intent.Slots)) {
+		s := cls.Intent.Slots[name]
+		if s.Entity == nil {
+			continue
+		}
+		out := !pol.InScope(pr, lineage(*s.Entity))
+		if check("phạm vi dữ liệu", contracts.RouteReject, out, s.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi") {
 			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
 			plan.Reason = "thực thể " + s.Entity.Key + " ngoài phạm vi dữ liệu của người hỏi"
 			return plan
 		}
 	}
-	if len(cls.Intent.Missing) > 0 {
+	if check("thiếu khe bắt buộc", contracts.RouteClarification, len(cls.Intent.Missing) > 0, orNone(strings.Join(cls.Intent.Missing, ", "), "mọi khe bắt buộc đã có")) {
 		plan.Route, plan.Template, plan.Outcome = contracts.RouteClarification, "clarify_missing", contracts.OutcomeClarificationRequired
 		plan.Reason = "thiếu khe bắt buộc: " + strings.Join(cls.Intent.Missing, ", ")
 		if cls.Unclear.Any() { // không thiếu — câu nêu nhiều giá trị khác nhau hoặc ngày hỏng cho khe đó
@@ -258,11 +305,14 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 
 	plan.Route, plan.Template = contracts.RouteKind(def.Route), def.Template
 	plan.Reason = "ý định " + def.Name + " khớp luật"
-	if cls.Compare != "" {
+	check("route khai của ý định", plan.Route, true, def.Name+" → "+def.Route)
+	compare := check("câu so sánh hai nghĩa", contracts.RouteCalculation, cls.Compare != "", orNone(cls.Compare, "không có vế so sánh"))
+	if compare {
 		plan.Route, plan.Template = contracts.RouteCalculation, "compare_total"
 		plan.Reason += ", so với " + cls.Compare
 	}
-	if cls.Knowledge != "" && (plan.Route == contracts.RouteSQLQuery || plan.Route == contracts.RouteCalculation) {
+	if check("ý định tri thức khớp kèm", contracts.RouteHybrid, cls.Knowledge != "" && (plan.Route == contracts.RouteSQLQuery || plan.Route == contracts.RouteCalculation),
+		orNone(cls.Knowledge, "không có ý định tri thức khớp kèm")) {
 		plan.Route = contracts.RouteHybrid
 		plan.Reason += " + tri thức " + cls.Knowledge
 	}
@@ -281,4 +331,20 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		}
 	}
 	return plan
+}
+
+// pick trả yes khi ok, ngược lại no — để ghi dữ kiện của bậc kiểm thành một câu.
+func pick(ok bool, yes, no string) string {
+	if ok {
+		return yes
+	}
+	return no
+}
+
+// orNone trả s, hoặc none khi s rỗng.
+func orNone(s, none string) string {
+	if s == "" {
+		return none
+	}
+	return s
 }

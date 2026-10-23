@@ -49,6 +49,8 @@ const (
 
 // NotRecorded là giá trị của trường "lý do" / "phương án bị loại" mà luồng hỏi chưa xuất ra ngoài Handle. Ghi thẳng điều này thay
 // vì suy đoán: một lý do bịa trong vết còn tệ hơn một chỗ trống ghi rõ là trống. Nội dung sau dấu hai chấm nói chỗ cần móc.
+// Các chặng S2, S3, S4, S5, S7 và cổng phán quyết ở S9 đã được móc (Decision.Why, R2-03) nên lượt chạy thật không còn chỗ trống ở đó;
+// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột, S8, bản nháp bị loại ở S9.
 const NotRecorded = "chưa ghi — cần móc trong core/pipeline (làn 1)"
 
 func notRecorded(what string) string { return NotRecorded + ": " + what }
@@ -135,9 +137,10 @@ func SpanStage(name string) (stage string, ok bool) {
 	return "", false
 }
 
-// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Thứ gì luồng hỏi chưa xuất ra
-// (luật sinh từng đoạn chuẩn hoá, ứng viên bị loại, bản nháp của model, bằng chứng bị loại khỏi ngữ cảnh…) thì Reason /
-// Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của route (không có span tương ứng) có Status skipped.
+// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7 và
+// cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
+// vấn khi không xung đột, bản nháp của model…) thì Reason / Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của
+// route (không có span tương ứng) có Status skipped.
 // Thời gian của bước lấy từ span cùng chặng theo bảng stageSpans: normalize→S2, resolve→S3, intent→S4, route→S5, execute và
 // retrieve→S6, generate→S8, validate→S9 (tổng khi một tên span xuất hiện nhiều lần, ví dụ route HYBRID); span lạ không gắn vào bước
 // nào nhưng vẫn nằm nguyên trong Record.Spans.
@@ -192,8 +195,12 @@ func BuildSteps(t Turn) []Step {
 		s.Input = []string{"question=" + d.Question}
 		s.Output = slices.Clone(d.Normalized)
 		s.Decision = fmt.Sprintf("%d đoạn đã chuẩn hoá", len(d.Normalized))
-		s.Reason = notRecorded("luật sinh từng đoạn (Span.Rule) chưa xuất khỏi Handle")
-		s.Rejected = []string{notRecorded("cách đọc khác của chỗ mơ hồ (NormalizedInput.Ambiguities) chưa xuất khỏi Handle")}
+		if n := d.Why.Normalize; n.Recorded() {
+			s.Reason, s.Rejected = joinReasons(n), slices.Clone(n.Rejected)
+		} else {
+			s.Reason = notRecorded("luật sinh từng đoạn (Span.Rule) chưa xuất khỏi Handle")
+			s.Rejected = []string{notRecorded("cách đọc khác của chỗ mơ hồ (NormalizedInput.Ambiguities) chưa xuất khỏi Handle")}
+		}
 		if slices.ContainsFunc(d.Normalized, func(x string) bool { return strings.HasSuffix(x, "=invalid") }) {
 			s.Status = StatusDeviant // có ngày hỏng: không đoán im lặng
 		}
@@ -208,8 +215,12 @@ func BuildSteps(t Turn) []Step {
 			}
 		}
 		s.Decision = fmt.Sprintf("%d thực thể rõ, %d cụm mơ hồ", len(d.Entities)-ambiguous, ambiguous)
-		s.Reason = notRecorded("bí danh / khoá khớp từng thực thể chưa xuất khỏi Handle")
-		s.Rejected = []string{notRecorded("ứng viên bị loại của entityresolution.Resolve chưa xuất khỏi Handle (cụm mơ hồ ghi ở Output dạng ?id|id)")}
+		if n := d.Why.Resolve; n.Recorded() {
+			s.Reason, s.Rejected = joinReasons(n), slices.Clone(n.Rejected)
+		} else {
+			s.Reason = notRecorded("bí danh / khoá khớp từng thực thể chưa xuất khỏi Handle")
+			s.Rejected = []string{notRecorded("ứng viên bị loại của entityresolution.Resolve chưa xuất khỏi Handle (cụm mơ hồ ghi ở Output dạng ?id|id)")}
+		}
 		if ambiguous > 0 {
 			s.Status = StatusDeviant
 		}
@@ -224,8 +235,12 @@ func BuildSteps(t Turn) []Step {
 				s.Decision += fmt.Sprintf(" (độ tin cậy %.2f)", plan.Intent.Confidence)
 			}
 		}
-		s.Reason = orNotRecorded(plan.Intent.Rule, "RoutePlan.Intent.Rule rỗng")
-		s.Rejected = []string{notRecorded("ý định ứng viên khác (intent.Result.Candidates / Ambiguous) chưa xuất khỏi Handle")}
+		if n := d.Why.Intent; n.Recorded() {
+			s.Reason, s.Rejected = joinReasons(n), slices.Clone(n.Rejected)
+		} else {
+			s.Reason = orNotRecorded(plan.Intent.Rule, "RoutePlan.Intent.Rule rỗng")
+			s.Rejected = []string{notRecorded("ý định ứng viên khác (intent.Result.Candidates / Ambiguous) chưa xuất khỏi Handle")}
+		}
 		if d.Intent == "" || slices.ContainsFunc(d.Slots, func(x string) bool { return strings.HasSuffix(x, "=?") }) {
 			s.Status = StatusDeviant // chưa có ý định, hoặc còn khe bắt buộc thiếu
 		}
@@ -240,8 +255,12 @@ func BuildSteps(t Turn) []Step {
 			s.Output = append(s.Output, "step "+stepText(st))
 		}
 		s.Decision = "route " + d.Route
-		s.Reason = orNotRecorded(plan.Reason, "RoutePlan.Reason rỗng")
-		s.Rejected = []string{notRecorded("route khác router đã xét chưa xuất khỏi Handle")}
+		if n := d.Why.Route; n.Recorded() {
+			s.Reason, s.Rejected = joinReasons(n), slices.Clone(n.Rejected)
+		} else {
+			s.Reason = orNotRecorded(plan.Reason, "RoutePlan.Reason rỗng")
+			s.Rejected = []string{notRecorded("route khác router đã xét chưa xuất khỏi Handle")}
+		}
 		switch route {
 		case contracts.RouteClarification, contracts.RouteReject, contracts.RouteHumanEscalation:
 			s.Status = StatusDeviant // kết thúc sớm: hỏi lại, từ chối hoặc chuyển người
@@ -303,8 +322,12 @@ func BuildSteps(t Turn) []Step {
 			s.Evidence = append(s.Evidence, EvidenceRef{ID: c.EvidenceID, Source: c.Source})
 		}
 		s.Decision = fmt.Sprintf("%d bằng chứng được trích dẫn", len(d.Evidence))
-		s.Reason = notRecorded("lý do chọn / loại bằng chứng (ContextPackage.Dropped) chưa xuất khỏi Handle")
-		s.Rejected = []string{notRecorded("bằng chứng bị loại khỏi ngữ cảnh (ContextPackage.Dropped) chưa xuất khỏi Handle")}
+		if n := d.Why.Context; n.Recorded() {
+			s.Reason, s.Rejected = joinReasons(n), slices.Clone(n.Rejected)
+		} else {
+			s.Reason = notRecorded("lý do chọn / loại bằng chứng (ContextPackage.Dropped) chưa xuất khỏi Handle")
+			s.Rejected = []string{notRecorded("bằng chứng bị loại khỏi ngữ cảnh (ContextPackage.Dropped) chưa xuất khỏi Handle")}
+		}
 	})
 	add(StageGenerate, "generate", func(s *Step) {
 		switch {
@@ -342,8 +365,13 @@ func BuildSteps(t Turn) []Step {
 		if len(vs) > 0 {
 			s.Reason = strings.Join(vs, "; ")
 		}
+		// cổng phán quyết của câu xác nhận (verdictGap) chạy trước khi dựng câu: phán quyết hay không và vì sao
+		if n := d.Why.Validate; n.Recorded() {
+			s.Reason += "; " + joinReasons(n)
+			s.Rejected = slices.Clone(n.Rejected)
+		}
 		if !resp.Verdict.Pass {
-			s.Rejected = []string{notRecorded("bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle")}
+			s.Rejected = append(s.Rejected, notRecorded("bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"))
 		}
 		if !resp.Verdict.Pass || resp.Verdict.Action == contracts.ActionFallback || resp.Verdict.Action == contracts.ActionEscalate {
 			s.Status = StatusDeviant
@@ -363,6 +391,9 @@ func BuildSteps(t Turn) []Step {
 	})
 	return steps
 }
+
+// joinReasons nối các ý của Notes.Reasons thành lý do MỘT dòng của bước (cùng quy ước "; " với lý do của S6 / S9).
+func joinReasons(n Notes) string { return strings.Join(n.Reasons, "; ") }
 
 func orNotRecorded(v, what string) string {
 	if v != "" {

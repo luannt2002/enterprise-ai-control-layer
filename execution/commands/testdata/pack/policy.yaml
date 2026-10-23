@@ -1,0 +1,4 @@
+# Vai GIẢ: một vai tạo được phiếu (có cả quyền đọc), một vai chỉ đọc.
+roles:
+  creator: {capabilities: [tickets.create, metrics.read], scope: all}
+  reader: {capabilities: [metrics.read], scope: attribute}

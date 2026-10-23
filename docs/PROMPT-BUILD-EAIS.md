@@ -297,6 +297,7 @@ Trước đó, mọi lỗi phải được bắt bằng **model giả** (extract
 
 - **Cổng phán quyết:** đóng R5-4, R5-5 xong thì **KHOÁ**. Lỗ mới cùng họ: ghi nợ, giữ fail-closed (không phán quyết). Chỉ mở lại khi gặp phán quyết **sai chiều**.
 - **Một việc bất kỳ** quá 3 vòng soát mà còn lỗi cùng họ: khoá, ghi nợ, chuyển việc khác. Ngoại lệ: an ninh, sai chiều, mất dữ liệu.
+- **Từ 23/10:** giấy (hợp đồng việc, ADR, giấy đo) tối đa 3 vòng soát; ngoại lệ an ninh / sai chiều / mất dữ liệu ở trên chỉ áp cho MÃ (§9.10 mục 2).
 - **Dừng toàn bộ** chỉ khi: mọi làn bị chặn (bởi `CHO` hoặc tài nguyên), hoặc cổng an ninh đỏ mà không sửa được. Khi đó ghi "DỪNG — lý do" vào TIEN-DO, kèm một báo cáo.
 
 ### 9.7 Câu chờ quyết và mặc định khi chưa có trả lời
@@ -328,3 +329,14 @@ Trước đó, mọi lỗi phải được bắt bằng **model giả** (extract
 - đẻ thêm roadmap / prompt mới;
 - báo "xong" khi chưa có lệnh chứng minh.
 
+### 9.10 Luật làm việc bổ sung (chủ dự án 23/10, áp từ 23/10)
+
+Chép từ lời chủ dự án chuyển ngày 23/10 (`docs/CHO-QUYET-DINH.md` mục 0, dòng "23/10 sáng — Luật làm việc mới"):
+
+1. Câu có mặc định an toàn VÀ đảo lại được ⇒ làm theo mặc định ngay, ghi `CHO` cột "Đang chạy", KHÔNG dừng đường găng. Chỉ dừng chờ khi:
+   tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đè dữ liệu thật, đổi quyền.
+2. Giấy tối đa 3 vòng soát. Hết 3 vòng ⇒ khoá giấy; phát hiện còn lại thành nợ có mã, chặn bằng TEST ĐỎ trong mã. Ngoại lệ an ninh / mất dữ
+   liệu của §9.6 chỉ áp cho MÃ.
+3. Nhánh máy: push lên origin (nhánh riêng, không main) khi xong mỗi việc, chậm nhất 2 giờ một lần.
+4. Một phát hiện = một commit (không gộp nhiều phát hiện vào một commit).
+5. Không viết giấy cho việc chưa tới lượt; hợp đồng việc mới ≤ 300 dòng.

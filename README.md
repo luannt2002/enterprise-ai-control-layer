@@ -37,7 +37,7 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 
 Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go).
 
-Chạy nhanh (Go 1.26, Docker, `pdftotext`):
+Chạy nhanh (Go 1.26, Docker, `pdftotext`, `flock`):
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d --wait
@@ -52,7 +52,7 @@ Mọi dữ liệu trong repo là dữ liệu giả lập; repo công khai không
 
 ## Chạy thử trong 5 phút
 
-Ứng dụng `eais` (một binary: HTTP + CLI) chạy trên PostgreSQL với dữ liệu giả lập seed 42. Mặc định **không gọi model**: luồng hỏi dùng model tất định (extractive) và ứng dụng không có cờ hay đường nào tới model trả tiền. Cần: Go (theo `go.mod`), Docker, `curl`, `python3`, `pdftotext` (`poppler-utils`).
+Ứng dụng `eais` (một binary: HTTP + CLI) chạy trên PostgreSQL với dữ liệu giả lập seed 42. Mặc định **không gọi model**: luồng hỏi dùng model tất định (extractive) và ứng dụng không có cờ hay đường nào tới model trả tiền. Cần: Go (theo `go.mod`), Docker, `curl`, `python3`, `pdftotext` (`poppler-utils`), `flock` (util-linux; tuỳ chọn cho script — thiếu thì script chạy không có khoá dự án và in cảnh báo —, nhưng bắt buộc cho bộ test `go test ./cmd/eais/`; macOS: `brew install flock`).
 
 **Một lệnh** (dựng PG → migrate → sinh seed 42 → nạp → chạy server nền → smoke E2E bằng curl → dừng server):
 
@@ -63,7 +63,14 @@ scripts/chay-thu.sh          # EAIS_PG_DOWN=1 để gỡ PG khi xong
 
 > **Cảnh báo: script GHI vào PG mà nó dùng** (migrate rồi nạp THAY toàn bộ dữ liệu của tenant trong pack construction). Với giá trị mặc định nó chỉ chạy trên PG do chính nó dựng (container `eais-pg`, cổng `127.0.0.1:25432`) và **từ chối** — thoát 2, chưa ghi gì — nếu container đó đang chạy, cổng đó đã có tiến trình nghe, hoặc dự án compose (`eais`) đã có container nào đang chạy hay tạm dừng, kể cả PG còn sót lại của lần chạy trước. Đã có PG khác đang chạy: đổi **cả ba** `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT` để script dựng PG riêng (đổi tên và cổng mà giữ dự án thì `docker compose up` cùng dự án sẽ tạo lại container đang chạy và dữ liệu của nó mất, nên script từ chối); chỉ khi chắc PG đang chạy là của bạn và ghi đè được mới đặt `EAIS_REUSE_PG=1`. Ngoại lệ: đã `export` cả `EAIS_PG_ADMIN_DSN` và `EAIS_PG_DSN` (như ở mục "Chạy nhanh" trên) thì script dùng đúng PG đó, không dựng gì và không hỏi — bỏ chúng khỏi shell (`unset`) nếu không muốn script ghi vào PG ấy.
 
-Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **9,6 giây** với bộ nhớ đệm build rỗng (PG do chính script dựng), **3,9 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 21 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không bao giờ gỡ container PG đã chạy từ trước. Server của script nghe ở cổng do hệ điều hành chọn (`127.0.0.1:0`) và script chỉ gọi đúng địa chỉ mà server của nó đã báo, nên một server khác đang giữ cổng cũng không bị gọi nhầm (đặt `EAIS_ADDR` cố định mà cổng bận thì script dừng với "server thoát sớm").
+Thời gian đo ngày 22/10/2026 từ một clone sạch (16 vCPU, ảnh PG đã kéo sẵn, module Go có sẵn; thời gian kéo ảnh lần đầu **chưa đo**): **9,6 giây** với bộ nhớ đệm build rỗng (PG do chính script dựng), **3,9 giây** với bộ nhớ đệm ấm. Thành công khi in `smoke E2E: 21 đạt, 0 hỏng`. Đổi tên container / cổng / địa chỉ nghe bằng `EAIS_PG_CONTAINER`, `EAIS_PG_PORT`, `EAIS_COMPOSE_PROJECT`, `EAIS_ADDR` (đầu `scripts/chay-thu.sh` ghi đủ biến); script không gỡ container PG đang chạy hay tạm dừng (nó từ chối); container đã **dừng hẳn** của cùng dự án thì không chặn: cùng tên và cổng thì `docker compose up` khởi động lại chính container đó (dữ liệu PG trên tmpfs đã mất lúc dừng, mã thoát cũ bị ghi đè, log cũ còn); đổi tên hoặc cổng mà giữ dự án thì compose xoá container cũ rồi tạo mới và log cũ mất (cần `docker logs` của PG đã chết thì lấy trước khi chạy lại, hoặc đổi cả ba biến). Mỗi dự án compose chỉ một lần chạy tại một lúc (mục "Khoá theo dự án" ngay dưới). Server của script nghe ở cổng do hệ điều hành chọn (`127.0.0.1:0`) và script chỉ gọi đúng địa chỉ mà server của nó đã báo, nên một server khác đang giữ cổng cũng không bị gọi nhầm (đặt `EAIS_ADDR` cố định mà cổng bận thì script dừng với "server thoát sớm").
+
+**Khoá theo dự án** (`flock`):
+- Hai lần chạy đồng thời cùng `EAIS_COMPOSE_PROJECT` thì lần sau bị **từ chối** (thoát 2, chưa làm gì). Khoá giữ suốt đời script, kể cả bước gỡ PG (`docker compose down`), và vẫn áp dụng khi đặt `EAIS_REUSE_PG=1`. Dự án khác chạy song song bình thường; đường dùng PG có sẵn (cả hai DSN) không chạm compose nên không khoá.
+- Tệp khoá là `$EAIS_LOCK_DIR/eais-chay-thu-<dự án>.lock` (0 byte, script không bao giờ xoá). `EAIS_LOCK_DIR` mặc định là `/tmp` viết cứng, **không theo `TMPDIR`**: hai lần chạy cùng dự án từ hai nơi có `TMPDIR` khác nhau (shell thường, IDE, sandbox dùng chung `/tmp`, cron) vẫn khoá cùng một tệp, miễn là cùng thấy một `/tmp` (xem gạch cuối). Đừng đổi `EAIS_LOCK_DIR` giữa hai lần chạy cùng dự án.
+- Script bị `SIGKILL` thì khoá nhả khi tiến trình con của bước đang chạy thoát (đã đo với smoke; `docker compose up`, `go build` cùng cơ chế nhưng chưa đo); server nền đã đóng fd khoá nên server mồ côi không giữ khoá hộ (có test và đột biến canh dòng này).
+- Khoá chỉ che các lần chạy **cùng thấy một tệp khoá**. Chưa che: người dùng unix khác (không mở được tệp do người kia tạo thì script cảnh báo rồi chạy không khoá; chưa thử với hai tài khoản) và namespace `/tmp` riêng (container, sandbox) mà dùng chung một daemon docker. Che cả hai cần khoá phía daemon, chưa làm.
+- Máy không có `flock` (macOS mặc định: `brew install flock`), `EAIS_LOCK_DIR` không ghi được, hay `flock` báo mã lạ (khác 0 và 1, vd hệ tệp không hỗ trợ khoá): script in cảnh báo và đi tiếp **không có khoá**, nên đừng chạy hai lần cùng dự án cùng lúc trên máy đó.
 
 **Từng bước** (cùng việc script làm). Các lệnh dùng `$W/eais` và `$W/data`, nên **đặt `W` trước** (không đặt thì thành `/eais` và `/data`):
 

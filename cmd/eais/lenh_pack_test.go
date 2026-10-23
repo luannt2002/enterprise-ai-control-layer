@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/execution/commands"
@@ -177,9 +178,10 @@ func TestServeDevCauHinhLenhHongKhongChay(t *testing.T) {
 	openPG(t)
 	packDir, dataRoot := tenantFixtures(t, uniqTenant("lenh-hong"))
 	mutatePack(t, packDir, "tools.yaml", "capability: tickets.create", `capability: ""`)
-	var stdout, stderr strings.Builder
-	rc := run([]string{"serve", "-dev", "-addr", "127.0.0.1:0", "-pack", packDir, "-world", repoPath("tenants/construction/win/world.yaml"), "-data", dataRoot}, &stdout, &stderr)
-	if rc != 1 || !strings.Contains(stderr.String(), "tools.yaml") || strings.Contains(stdout.String(), "đang nghe") {
-		t.Fatalf("muốn mã 1, lý do nêu tools.yaml và KHÔNG nghe cổng; được rc=%d stdout=%q stderr=%q", rc, stdout.String(), stderr.String())
+	// runCLIFor chứ không run: nếu một thay đổi làm serve CHẠY ĐƯỢC với cấu hình hỏng thì test ĐỎ sau 30 giây (ngữ cảnh hết hạn
+	// tắt máy chủ, rc khác 1, stdout có "đang nghe") thay vì treo tới hạn của go test (soát K3, K3S-04).
+	rc, stdout, stderr := runCLIFor(30*time.Second, "serve", "-dev", "-addr", "127.0.0.1:0", "-pack", packDir, "-world", repoPath("tenants/construction/win/world.yaml"), "-data", dataRoot)
+	if rc != 1 || !strings.Contains(stderr, "tools.yaml") || strings.Contains(stdout, "đang nghe") {
+		t.Fatalf("muốn mã 1, lý do nêu tools.yaml và KHÔNG nghe cổng; được rc=%d stdout=%q stderr=%q", rc, stdout, stderr)
 	}
 }

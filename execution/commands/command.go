@@ -10,6 +10,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -105,7 +106,7 @@ type Result struct {
 	// InvalidFields chỉ có khi INVALID_REQUEST: tên trường của Request mà chặng từ chối thấy là sai, theo thứ tự command_id,
 	// subject_key, metric, day.
 	InvalidFields []string `json:"invalid_fields,omitempty"`
-	// Fault là nhãn đầy đủ của docs/CONVENTIONS.md §4.3, ví dụ "infra:postgres". Qua HTTP chỉ còn lớp lỗi: FaultClass.
+	// Fault là nhãn đầy đủ của docs/CONVENTIONS.md §4.3, ví dụ "infra:postgres". Qua JSON (và HTTP) chỉ còn lớp lỗi: MarshalJSON, FaultClass.
 	Fault    string  `json:"fault,omitempty"`
 	Retry    Retry   `json:"retry"`
 	Replayed bool    `json:"replayed"` // chỉ có nghĩa khi DONE
@@ -128,6 +129,16 @@ func (r Result) HTTPStatus() int {
 func (r Result) FaultClass() string {
 	class, _, _ := strings.Cut(r.Fault, ":")
 	return class
+}
+
+// MarshalJSON in Result ra JSON với trường fault CHỈ là lớp lỗi: nhãn đầy đủ (infra:postgres) có tên thành phần nội bộ nên không được ra khỏi
+// tiến trình (HOP-DONG §2.3, §2.6.2). Nơi gọi quên FaultClass cũng không lộ; nhãn đầy đủ vẫn nằm ở trường Fault trong tiến trình, ở bước vết
+// và ở log. Các trường khác giữ nguyên tag của Result.
+func (r Result) MarshalJSON() ([]byte, error) {
+	type plain Result // cùng cấu trúc nhưng không có phương thức, để Marshal không đệ quy vào chính hàm này
+	p := plain(r)
+	p.Fault = r.FaultClass()
+	return json.Marshal(p)
 }
 
 // withFields trả bản sao có invalid_fields; danh sách rỗng giữ nil để JSON không in trường này.

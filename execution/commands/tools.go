@@ -38,6 +38,10 @@ type toolsFile struct {
 	Tools []Tool `yaml:"tools"`
 }
 
+// installedCommands là các lệnh mà gói này đã cài, tức có mã xử lý đứng sau. tools.yaml chỉ khai cấu hình đi cùng pack, không tạo ra lệnh:
+// tên không có ở đây bị từ chối lúc nạp (đóng mặc định, CLAUDE.md §19), để một tool gõ nhầm hay thêm bừa không thành route lệnh không có mã.
+var installedCommands = []string{CommandOpenDiscrepancyTicket}
+
 // Tools là tập tool đã nạp và đã kiểm chéo, theo thứ tự khai trong tệp.
 type Tools struct{ list []Tool }
 
@@ -66,14 +70,15 @@ func (t *Tools) Names() []string {
 }
 
 // LoadTools nạp packDir/tools.yaml và kiểm chéo với policy và danh mục chỉ số đã nạp. Pack không có tools.yaml thì không có lệnh
-// nào (tập rỗng, không lỗi: đóng mặc định, tenant có thể chỉ hỏi). Cấu hình hỏng thì trả lỗi gom đủ thông tin để sửa và KHÔNG
+// nào (tập rỗng, không lỗi: đóng mặc định, tenant có thể chỉ hỏi). Vì vậy packDir sai hay gõ nhầm tên tệp cũng ra tập rỗng và tắt lệnh mà không
+// báo: nơi gọi (cmd/eais) nên ghi một dòng cảnh báo khi len(Names()) == 0. Cấu hình hỏng thì trả lỗi gom đủ thông tin để sửa và KHÔNG
 // trả tập tool nào. Pack nạp lỗi nếu (§4.3):
 //  1. một tool không khai capability;
 //  2. một vai có capability của tool mà thiếu metrics.read (phiếu không được là đường vòng quyền đọc);
 //  3. một chỉ số trong danh sách của tool không phải chỉ số DẪN XUẤT đã khai ở metrics.yaml.
 //
-// Ngoài ba luật đó: khoá lạ bị từ chối (gõ nhầm không được thành giá trị rỗng), tên tool phải có và không trùng, danh sách chỉ số
-// không rỗng, min_abs_diff là số không âm, timeout không âm.
+// Ngoài ba luật đó: khoá lạ bị từ chối (gõ nhầm không được thành giá trị rỗng), tên tool phải có, không trùng và là lệnh mà gói đã cài
+// (installedCommands), danh sách chỉ số không rỗng, min_abs_diff là số không âm, timeout không âm.
 func LoadTools(packDir string, policy router.Policy, catalog *sourceoftruth.Catalog) (*Tools, error) {
 	if catalog == nil {
 		return nil, errors.New("LoadTools: thiếu danh mục chỉ số (metrics.yaml) để kiểm chéo luật 3")
@@ -96,6 +101,8 @@ func LoadTools(packDir string, policy router.Policy, catalog *sourceoftruth.Cata
 			problems = append(problems, fmt.Sprintf("tool %s: thiếu name", label))
 		case seen[t.Name]:
 			problems = append(problems, fmt.Sprintf("tool %s: tên trùng", label))
+		case !slices.Contains(installedCommands, t.Name):
+			problems = append(problems, fmt.Sprintf("tool %s: chưa cài trong gói (đã cài: %s)", label, strings.Join(installedCommands, ", ")))
 		}
 		seen[t.Name] = true
 		if t.MinAbsDiff == "" {
@@ -133,15 +140,26 @@ func (t Tool) problems(label string, policy router.Policy, catalog *sourceoftrut
 			bad("chỉ số %q không phải chỉ số dẫn xuất đã khai ở metrics.yaml", m)
 		}
 	}
-	if v, ok := decimal.Parse(t.MinAbsDiff); !ok {
-		bad("min_abs_diff %q không phải số", t.MinAbsDiff)
-	} else if v.Sign() < 0 {
-		bad("min_abs_diff %q không được âm", t.MinAbsDiff)
+	if msg := minAbsDiffProblem(t.MinAbsDiff); msg != "" {
+		bad("min_abs_diff %s", msg)
 	}
 	if t.Timeout < 0 {
 		bad("timeout %s không được âm", t.Timeout)
 	}
 	return out
+}
+
+// minAbsDiffProblem trả lý do một giá trị min_abs_diff không dùng được ("" khi dùng được): phải là số thập phân và không âm, vì ngưỡng âm vô
+// hiệu hoá R4 (chênh lệch bằng 0 vẫn tạo phiếu). Dùng chung cho LoadTools (lúc nạp pack) và New (lúc dựng pipeline bằng cấu hình tay).
+func minAbsDiffProblem(v string) string {
+	n, ok := decimal.Parse(v)
+	switch {
+	case !ok:
+		return fmt.Sprintf("%q không phải số", v)
+	case n.Sign() < 0:
+		return fmt.Sprintf("%q không được âm", v)
+	}
+	return ""
 }
 
 // decodeStrict đọc một tệp YAML và từ chối khoá lạ: gõ nhầm "capabilty" phải đỏ lúc khởi động, không được âm thầm thành giá trị

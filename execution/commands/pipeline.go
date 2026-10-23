@@ -11,9 +11,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -67,7 +69,9 @@ type Step struct {
 	Reason   string
 	Rejected []string // phương án đã xét và bị loại (C5: nguồn và số bị loại khi hai nguồn ngang thẩm quyền lệch)
 	Evidence []string // mã bằng chứng (C5)
-	Fault    string   // nhãn fault của bước dừng
+	// Fault là nhãn fault của bước dừng. Bước lỗi hạ tầng mang nhãn THẬT của thành phần hỏng khi tầng dưới đã gắn (contracts.FaultOf, ví dụ
+	// infra:directory), không thì nhãn của bảng §2.4 như ở Result: Result giữ nhãn của bảng, còn bảng vết nói đúng thành phần.
+	Fault string
 	// Error là lỗi gốc CHƯA làm sạch của bước lỗi. Chỉ trace.go được ghi nó vào vết, và phải qua traces.Sanitize trước khi lưu.
 	Error string
 }
@@ -260,8 +264,8 @@ func New(d Deps) (*Pipeline, error) {
 	if d.Tool.MinAbsDiff == "" {
 		d.Tool.MinAbsDiff = "0"
 	}
-	if _, ok := decimal.Parse(d.Tool.MinAbsDiff); !ok {
-		return nil, fmt.Errorf("commands.New: Tool.MinAbsDiff %q không phải số", d.Tool.MinAbsDiff)
+	if msg := minAbsDiffProblem(d.Tool.MinAbsDiff); msg != "" { // cùng phép kiểm với LoadTools: ngưỡng âm vô hiệu hoá R4
+		return nil, fmt.Errorf("commands.New: Tool.MinAbsDiff %s", msg)
 	}
 	if d.Now == nil {
 		d.Now = time.Now
@@ -272,18 +276,59 @@ func New(d Deps) (*Pipeline, error) {
 	return &Pipeline{d: d}, nil
 }
 
-// Run chạy một lượt lệnh C0 → C7. Luôn trả Outcome: mọi thất bại là một Result, không có lỗi riêng. Lượt chạy dưới một hạn chót:
-// cái đến trước giữa ngữ cảnh của bên gọi và Timeout của tool (nếu có).
-func (p *Pipeline) Run(ctx context.Context, pr contracts.Principal, req Request) Outcome {
+// Run chạy một lượt lệnh C0 → C7. Luôn trả Outcome: mọi thất bại là một Result, không có lỗi riêng; panic của kho, danh mục, số liệu hay hàm
+// của Deps cũng được bắt lại và thành INTERNAL_ERROR (panicked). Lượt chạy dưới một hạn chót: cái đến trước giữa ngữ cảnh của bên gọi và
+// Timeout của tool (nếu có).
+func (p *Pipeline) Run(ctx context.Context, pr contracts.Principal, req Request) (out Outcome) {
+	var r *run
+	defer func() {
+		if rec := recover(); rec != nil {
+			out = p.recovered(r, pr, req, rec)
+		}
+	}()
 	if p.d.Tool.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, p.d.Tool.Timeout)
 		defer cancel()
 	}
-	r := p.newRun(pr, req)
+	r = p.newRun(pr, req)
 	ctx = r.exec(ctx)
 	r.conclude(ctx)
 	return r.outcome()
+}
+
+// recovered dựng Outcome cho lượt bị panic. r nil nghĩa là panic ngay lúc dựng lượt (Now hay NewID của Deps): dựng lượt tối thiểu, mã vết lấy
+// thẳng từ uuid vì chính NewID có thể là thứ vừa panic.
+func (p *Pipeline) recovered(r *run, pr contracts.Principal, req Request, rec any) Outcome {
+	if r == nil {
+		r = &run{p: p, pr: pr, req: req, traceID: uuid.NewString(), question: question(req), stop: -1}
+	}
+	r.panicked(rec)
+	return r.outcome()
+}
+
+// panicked là lưới đỡ cuối của Run: một panic không được thoát ra ngoài làm mất Result, vết và câu trả lời "chưa biết" của một phiếu có thể đã
+// commit. Chưa gọi đơn vị ghi phiếu (và chưa thấy dòng sổ lệnh nào của khoá này) thì chắc chắn chưa ghi: INTERNAL_ERROR FAILED. Từ lúc gọi nó,
+// hoặc khi lượt đang phát lại một phiếu có thật mà chưa xác nhận được, thì không biết: INTERNAL_ERROR UNKNOWN (§2.4, §9.2.1). Bước đang chạy
+// là bước error; C7 vẫn trả kết quả (không đọc lại, không audit: kho có thể chính là thứ vừa panic). Lỗi gốc ở Cause kèm ngăn xếp để ghi log;
+// Step.Error chỉ một dòng.
+func (r *run) panicked(rec any) {
+	err := fmt.Errorf("panic: %v", rec)
+	if e, ok := rec.(error); ok {
+		err = fmt.Errorf("panic: %w", e)
+	}
+	res, noRead := internalResult(StatusFailed), "lỗi mã (panic) trước khi ghi"
+	if r.unit != nil || r.replay != nil {
+		res, noRead = internalResult(StatusUnknown), "lỗi mã (panic) sau khi ghi hoặc phát lại, chưa xác nhận được"
+	}
+	st := r.at
+	r.setStep(st, Step{Status: StepError, Fault: res.Fault, Error: err.Error(), Decision: "lỗi mã", Reason: "panic không lường trước"})
+	r.res, r.noRead = res, noRead
+	r.cause = fmt.Errorf("%w\n%s", err, debug.Stack())
+	if st != stVerify {
+		r.stop = st
+		r.setStep(stVerify, Step{Status: StepOK, Output: []string{"không đọc lại: " + noRead}, Decision: "trả kết quả", Reason: "không đọc lại: " + noRead})
+	}
 }
 
 // Malformed dựng kết quả cho thân yêu cầu mà lớp HTTP không giải mã được (JSON hỏng, trường lạ, nội dung thừa): INVALID_REQUEST
@@ -328,6 +373,7 @@ type run struct {
 	committed bool
 	replay    *LedgerRecord
 	audit     *Audit // dòng audit riêng phải ghi ở C7 (REFUSED)
+	at        int    // chặng đang chạy (enter): nếu chặng đó panic thì đây là bước lỗi (panicked)
 }
 
 func (p *Pipeline) newRun(pr contracts.Principal, req Request) *run {
@@ -344,22 +390,29 @@ func (p *Pipeline) newRun(pr contracts.Principal, req Request) *run {
 
 // exec chạy C0 → C6 và trả ngữ cảnh đã gắn tenant để C7 dùng tiếp. Mỗi chặng trả true khi lượt đi tiếp.
 func (r *run) exec(ctx context.Context) context.Context {
-	if !r.accept() || !r.tenant() {
+	if !r.enter(stAccept).accept() || !r.enter(stTenant).tenant() {
 		return ctx
 	}
 	ctx = contracts.WithTenant(ctx, r.pr.TenantID) // từ đây mọi truy vấn mang tenant của Principal
 	r.setStep(stUnderstand, Step{Status: StepSkipped, Reason: "Phase 1 không dùng C2: đầu vào đã có cấu trúc, không cần hiểu lệnh"})
-	if r.params() && r.permission(ctx) && r.ledger(ctx) && r.rules(ctx) {
-		r.write(ctx)
+	if r.enter(stParams).params() && r.enter(stPermission).permission(ctx) && r.enter(stLedger).ledger(ctx) && r.enter(stRules).rules(ctx) {
+		r.enter(stWrite).write(ctx)
 	}
 	return ctx
+}
+
+// enter ghi lại chặng sắp chạy, để panic ở chặng đó được đánh dấu đúng bước (panicked).
+func (r *run) enter(st int) *run {
+	r.at = st
+	return r
 }
 
 // ---------------------------------------------------------------------------
 // C0 accept
 // ---------------------------------------------------------------------------
 
-// accept kiểm hình dạng: đủ bốn trường, command_id đúng dạng UUID, không trường nào có ký tự NUL. Không audit.
+// accept kiểm hình dạng: đủ bốn trường, command_id đúng dạng UUID, không trường nào có ký tự NUL hay chuỗi UTF-8 hỏng (PostgreSQL từ chối cả
+// hai ở câu INSERT phiếu và audit). Không audit.
 func (r *run) accept() bool {
 	in := []string{
 		"command_id=" + clean(r.req.CommandID), "subject_key=" + clean(r.req.SubjectKey),
@@ -368,7 +421,7 @@ func (r *run) accept() bool {
 	if bad := shapeProblems(r.req); len(bad) > 0 {
 		r.stopStep(stAccept, StepDeviant, resultFor(ReasonInvalidRequest).withFields(bad), Step{
 			Input: in, Output: []string{"invalid_fields=" + strings.Join(bad, ",")},
-			Decision: "từ chối", Reason: "trường thiếu, sai dạng hoặc có ký tự NUL",
+			Decision: "từ chối", Reason: "trường thiếu, sai dạng, có ký tự NUL hoặc chuỗi UTF-8 hỏng",
 		})
 		r.noRead = "lượt dừng ở C0"
 		return false
@@ -386,7 +439,7 @@ func shapeProblems(req Request) []string {
 		bad = append(bad, "command_id")
 	}
 	for _, f := range []struct{ name, value string }{{"subject_key", req.SubjectKey}, {"metric", req.Metric}, {"day", req.Day}} {
-		if f.value == "" || strings.ContainsRune(f.value, 0) {
+		if f.value == "" || strings.ContainsRune(f.value, 0) || !utf8.ValidString(f.value) {
 			bad = append(bad, f.name)
 		}
 	}
@@ -462,10 +515,12 @@ func (r *run) params() bool {
 	return true
 }
 
-// pastDay báo day là ngày YYYY-MM-DD CHÍNH XÁC (đúng hai chữ số tháng và ngày, có trên lịch) và đứng trước today.
+// pastDay báo day là ngày YYYY-MM-DD CHÍNH XÁC (đúng hai chữ số tháng và ngày, có trên lịch) và đứng trước today. Năm 0000 bị loại: Go nhận nó
+// nhưng kiểu date của PostgreSQL không có năm 0, nên truy vấn số liệu của ngày đó lỗi tất định và thành STORE_UNAVAILABLE "gửi lại cùng khoá"
+// mãi. Không có cận nghiệp vụ nào khác: ngày xa mà PostgreSQL biểu diễn được đi tiếp và dừng vì thiếu số liệu.
 func pastDay(day, today string) bool {
 	t, err := time.Parse(time.DateOnly, day)
-	return err == nil && t.Format(time.DateOnly) == day && day < today
+	return err == nil && t.Year() >= 1 && t.Format(time.DateOnly) == day && day < today
 }
 
 // ---------------------------------------------------------------------------
@@ -494,6 +549,9 @@ func (r *run) permission(ctx context.Context) bool {
 	if !d.Policy.Allows(r.pr, CapMetricsRead) {
 		return deny("thiếu capability " + CapMetricsRead)
 	}
+	// Danh mục chỉ được đọc MỘT lần: tổ tiên tính trên chính ảnh chụp này (Lineage tự đọc danh mục nên đưa cho nó một danh mục trong bộ nhớ).
+	// Số lần đọc không phụ thuộc máy có tồn tại hay không, nên độ trễ không lộ điều §4.4 giấu; và Load nạp lại xen giữa hai lần đọc không còn
+	// làm phạm vi tính trên một danh mục khác với danh mục đã tìm thấy máy.
 	ents, err := d.Directory.Entities(ctx)
 	if err != nil {
 		r.infra(stPermission, err, in, "không đọc được danh mục thực thể nên không kết luận được quyền")
@@ -503,7 +561,7 @@ func (r *run) permission(ctx context.Context) bool {
 	if i < 0 {
 		return deny("khoá thực thể không có trong danh mục")
 	}
-	lineage, err := entityresolution.Lineage(ctx, d.Directory, ents[i].ID)
+	lineage, err := entityresolution.Lineage(ctx, entityresolution.MemoryDirectory(ents), ents[i].ID)
 	if err != nil {
 		r.infra(stPermission, err, in, "không đọc được danh mục thực thể nên không kết luận được quyền")
 		return false
@@ -524,7 +582,13 @@ func (r *run) permission(ctx context.Context) bool {
 
 // ledger là nửa đọc của Idempotency, đặt ngay sau quyền (HOP-DONG §3, Q-P1-7): thấy cùng nội dung thì phát lại; thấy khác nội
 // dung thì từ chối; không thấy thì đi tiếp. Trả true khi lượt đi tiếp sang C5.
-func (r *run) ledger(ctx context.Context) bool {
+func (r *run) ledger(ctx context.Context) bool { return r.consultLedger(ctx, false) }
+
+// consultLedger tra sổ lệnh và ghi kết cục vào bước C4b. late = false là lần tra của C4b; late = true là lần tra LẠI mà R5 làm khi thấy phiếu
+// OPEN (§6.3 hàng 3, I5): giữa C4b và R5 một lượt gửi trước CÙNG khoá có thể đã ghi xong, và phiếu OPEN R5 vừa thấy chính là của nó, nên bên
+// gọi phải nhận phát lại (hoặc IDEMPOTENCY_KEY_REUSED nếu nội dung khác), không phải DUPLICATE_OPEN_TICKET. Mọi kết cục của việc tra sổ lệnh, kể
+// cả lỗi hạ tầng, đều ở C4b. Lần tra lại không thấy dòng nào thì để nguyên bước C4b "mới": phiếu mở là của người khác. Trả true khi lượt đi tiếp.
+func (r *run) consultLedger(ctx context.Context, late bool) bool {
 	in := []string{"caller=" + r.caller.ID, "command_id=" + r.req.CommandID, "fingerprint=" + r.fp}
 	led, found, err := r.p.d.Store.FindLedger(ctx, r.caller.ID, r.req.CommandID)
 	switch {
@@ -532,8 +596,10 @@ func (r *run) ledger(ctx context.Context) bool {
 		r.infra(stLedger, err, in, "không đọc được sổ lệnh")
 		return false
 	case !found:
-		r.setStep(stLedger, Step{Status: StepOK, Input: in, Output: []string{"new"},
-			Decision: "mới", Reason: "chưa có trong sổ lệnh"})
+		if !late {
+			r.setStep(stLedger, Step{Status: StepOK, Input: in, Output: []string{"new"},
+				Decision: "mới", Reason: "chưa có trong sổ lệnh"})
+		}
 		return true
 	case led.Fingerprint != r.fp:
 		r.refuse(stLedger, resultFor(ReasonIdempotencyKeyReused), Step{
@@ -542,8 +608,12 @@ func (r *run) ledger(ctx context.Context) bool {
 		return false
 	}
 	r.replay = &led
+	reason := "cùng command_id, cùng nội dung: không tính lại, không ghi"
+	if late {
+		reason += " (thấy ở lần tra lại của R5: lượt gửi trước cùng khoá đã ghi xong sau lần tra đầu)"
+	}
 	r.setStep(stLedger, Step{Status: StepOK, Input: in, Output: []string{"replay ticket=" + led.TicketID},
-		Decision: "phát lại", Reason: "cùng command_id, cùng nội dung: không tính lại, không ghi"})
+		Decision: "phát lại", Reason: reason})
 	r.stop = stLedger
 	return false
 }
@@ -616,6 +686,8 @@ func (r *run) rules(ctx context.Context) bool {
 		}, "thiếu số liệu có thẩm quyền ở ít nhất một vế")
 		return false
 	}
+	// R4 đứng trước R5: khi chênh lệch không vượt ngưỡng mà còn phiếu OPEN, NO_DISCREPANCY thắng DUPLICATE_OPEN_TICKET. Hợp đồng §5 chưa đặc
+	// tả thứ tự này (chỉ cố định R3: xung đột trước thiếu vế); TestR4DungTruocR5KhiCaHaiCungDung ghim lựa chọn để đổi thứ tự phải có chủ ý.
 	diff := res.Total.Number
 	cmp, err := decimal.Cmp(strings.TrimPrefix(diff, "-"), d.Tool.MinAbsDiff)
 	if err != nil {
@@ -634,6 +706,11 @@ func (r *run) rules(ctx context.Context) bool {
 		return false
 	}
 	if found {
+		// Giữa C4b và R5 một lượt gửi trước cùng khoá có thể đã ghi xong, và phiếu OPEN vừa thấy chính là của nó: tra lại sổ lệnh trước khi
+		// kết luận "người khác đã tạo" (§6.3 hàng 3, I5).
+		if !r.consultLedger(ctx, true) {
+			return false // phát lại, khoá bị dùng lại cho nội dung khác, hoặc không đọc được sổ lệnh: kết cục đã nằm ở C4b
+		}
 		r.refuse(stRules, duplicateResult(ref), Step{
 			Input: in, Output: []string{"open_ticket=" + ref.ID}, Decision: "từ chối", Reason: "đã có phiếu OPEN cùng khoá nghiệp vụ",
 		}, "đã có phiếu OPEN "+ref.ID)
@@ -728,16 +805,18 @@ func (r *run) write(ctx context.Context) {
 		r.committed = true
 		r.setStep(stWrite, Step{Status: StepOK, Input: in, Output: []string{"commit"},
 			Decision: "ghi phiếu", Reason: "một giao dịch: phiếu, sổ lệnh, audit EXECUTED"})
+	case errors.Is(err, ErrCommitUnknown):
+		// Xét TRƯỚC hai loại kia: lỗi còn mang dấu "từ lúc gửi COMMIT" thì không được báo FAILED dù nó mang thêm dấu khác (§9.2.1: nghi ngờ thì
+		// UNKNOWN). Kho chỉ nên trả đúng một loại; đây là lưới đỡ khi kho trả nhiều.
+		r.fail(stWrite, resultFor(ReasonCommitUnknown), err, Step{
+			Input: in, Output: []string{"commit_unknown"}, Decision: "không biết", Reason: "lỗi hoặc hết hạn từ lúc gửi COMMIT",
+		}, "commit chưa xác nhận")
 	case errors.Is(err, ErrUniqueViolation):
 		r.reclassify(ctx, err, in)
 	case errors.Is(err, ErrBeforeCommit):
 		r.fail(stWrite, resultFor(ReasonStoreUnavailable), err, Step{
 			Input: in, Output: []string{"rollback"}, Decision: "không ghi", Reason: "lỗi trước khi gửi COMMIT, chắc chắn chưa ghi",
 		}, "đã xác nhận chưa ghi (lỗi trước COMMIT)")
-	case errors.Is(err, ErrCommitUnknown):
-		r.fail(stWrite, resultFor(ReasonCommitUnknown), err, Step{
-			Input: in, Output: []string{"commit_unknown"}, Decision: "không biết", Reason: "lỗi hoặc hết hạn từ lúc gửi COMMIT",
-		}, "commit chưa xác nhận")
 	default:
 		r.fail(stWrite, internalResult(StatusUnknown), err, Step{
 			Input: in, Decision: "không biết", Reason: "lỗi của đơn vị ghi không thuộc loại nào đã biết",
@@ -768,9 +847,11 @@ func (r *run) reclassify(ctx context.Context, cause error, in []string) {
 			}, "vi phạm khoá duy nhất rồi phân loại lại: cùng (người gọi, command_id), khác fingerprint")
 			return
 		}
+		// Phát lại là kết cục DONE nên C6 là ok (A29 (b): lượt DONE, kể cả phát lại, không có bước lệch); chỉ phân loại lại thành từ chối
+		// (khoá dùng lại, trùng phiếu mở) mới là deviant.
 		r.replay = &led
-		r.setStep(stWrite, Step{Status: StepDeviant, Input: in, Output: []string{"phân loại lại: phát lại ticket=" + led.TicketID},
-			Decision: "phát lại", Reason: "vi phạm khoá duy nhất, đọc lại thấy cùng command_id cùng nội dung"})
+		r.setStep(stWrite, Step{Status: StepOK, Input: in, Output: []string{"phân loại lại: phát lại ticket=" + led.TicketID},
+			Decision: "phát lại", Reason: "phát lại sau vi phạm khoá duy nhất: đọc lại thấy cùng command_id cùng nội dung"})
 		r.stop = stWrite
 		return
 	}
@@ -798,6 +879,7 @@ func (r *run) reclassify(ctx context.Context, cause error, in []string) {
 // conclude là C7, luôn chạy: đọc lại khi có gì để đọc lại (đã ghi, hoặc phát lại), ghi audit riêng của lượt nếu lượt có audit,
 // rồi chốt kết quả. DONE chỉ khi đọc lại thấy đúng phiếu, kể cả phát lại (I3).
 func (r *run) conclude(ctx context.Context) {
+	r.at = stVerify
 	switch {
 	case r.committed:
 		r.verify(ctx, r.unit.Ticket.ID, false)
@@ -817,7 +899,7 @@ func (r *run) verify(ctx context.Context, ticketID string, replayed bool) {
 	st, err := r.p.d.Store.ReadBack(ctx, r.caller.ID, r.req.CommandID, ticketID)
 	if err != nil {
 		r.cause, r.res = err, resultFor(ReasonReadbackUnavailable)
-		r.setStep(stVerify, Step{Status: StepError, Fault: r.res.Fault, Error: err.Error(), Input: in,
+		r.setStep(stVerify, Step{Status: StepError, Fault: faultLabel(err, r.res.Fault), Error: err.Error(), Input: in,
 			Decision: "chưa xác nhận", Reason: "đọc lại lỗi hoặc hết hạn"})
 		return
 	}
@@ -836,7 +918,9 @@ func (r *run) verify(ctx context.Context, ticketID string, replayed bool) {
 	}
 	rec := st.Tickets[0]
 	r.res = doneResult(rec, replayed)
-	r.evidence = r.evidence[:0] // mã bằng chứng lấy từ chính phiếu đã đọc lại, nên phát lại (không qua C5) cũng có
+	// Mã bằng chứng lấy từ chính phiếu đã đọc lại, nên phát lại (không qua C5) cũng có. Mảng MỚI, không cắt r.evidence về độ dài 0: bước C5 đang
+	// trỏ vào mảng nền của nó, ghi đè sẽ đổi luôn Steps[C5].Evidence.
+	r.evidence = make([]string, 0, len(rec.Evidence))
 	for _, e := range rec.Evidence {
 		r.evidence = append(r.evidence, e.ID)
 	}
@@ -934,7 +1018,10 @@ func (r *run) setStep(st int, s Step) {
 
 // stopStep ghi bước dừng (deviant hoặc error, kèm nhãn fault của kết quả) và kết quả của lượt.
 func (r *run) stopStep(st int, status string, res Result, s Step) {
-	s.Status, s.Fault = status, res.Fault
+	s.Status = status
+	if s.Fault == "" { // bước lỗi có thể đã mang nhãn thật của thành phần hỏng (fail)
+		s.Fault = res.Fault
+	}
 	r.setStep(st, s)
 	r.stop, r.res = st, res
 }
@@ -954,9 +1041,19 @@ func (r *run) refuse(st int, res Result, s Step, real string) {
 // kho có thể đang hỏng, và lần gửi lại cùng khoá để lại dòng của kết cục thật (HOP-DONG §7.3).
 func (r *run) fail(st int, res Result, err error, s Step, noRead string) {
 	s.Error = err.Error()
+	s.Fault = faultLabel(err, res.Fault)
 	r.cause = err
 	r.stopStep(st, StepError, res, s)
 	r.noRead = noRead
+}
+
+// faultLabel là nhãn fault của một bước lỗi: nhãn thật của thành phần hỏng nếu tầng dưới đã gắn (contracts.FaultOf, ví dụ infra:directory),
+// không thì nhãn của bảng §2.4. Result luôn giữ nhãn của bảng; chỉ bước vết mang nhãn thật.
+func faultLabel(err error, table string) string {
+	if label := contracts.FaultOf(err); label != "" {
+		return label
+	}
+	return table
 }
 
 // infra là dừng vì hạ tầng TRƯỚC khi mở giao dịch ghi (đọc danh mục, sổ lệnh, số liệu, tìm phiếu mở lỗi hoặc hết hạn): biết
@@ -1017,5 +1114,8 @@ func question(req Request) string {
 		" day=" + clean(req.Day) + " command_id=" + clean(req.CommandID)
 }
 
-// clean đổi ký tự NUL thành chữ để dòng vết lưu được: kho vết (PostgreSQL) không nhận NUL trong chuỗi.
-func clean(s string) string { return strings.ReplaceAll(s, "\x00", "<NUL>") }
+// clean làm một chuỗi lấy từ yêu cầu lưu được vào dòng vết: đổi ký tự NUL thành chữ và byte UTF-8 hỏng thành ký tự thay thế, vì kho vết
+// (PostgreSQL) không nhận cả hai. Lượt bị C0 từ chối vì đúng hai lý do đó vẫn phải có vết.
+func clean(s string) string {
+	return strings.ToValidUTF8(strings.ReplaceAll(s, "\x00", "<NUL>"), string(utf8.RuneError))
+}

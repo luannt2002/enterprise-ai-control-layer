@@ -1,0 +1,4 @@
+# Vai THÊM chỉ cho ca phát triển (A09): có tickets.create mà thiếu metrics.read. Pack hợp lệ không cho cấu hình này (luật nạp §4.3), nên vai
+# này được thêm SAU khi LoadTools đã kiểm chính sách thật; bộ chạy giữ lại không dùng tệp này.
+roles:
+  ticket_only: {capabilities: [tickets.create], scope: all}

@@ -15,8 +15,22 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   Đóng C3-02, C3-05 và các lỗi đã đo của hàng D-OP-9. Giá đã đo: H1 92 → 91, H3 113 → 112, H4 104 → 103 (WIN-I-264, 509, 717 hỏi lại thay
   vì trả số). Nợ S1 có từ trước, ghi ở CỔNG TRƯỚC AI: S2AS-01, S2AS-02.
 - **M3:** bộ giữ lại H6 (94 ca) đóng băng bằng cam kết băm TRƯỚC bản sửa S4 (`6734cff`).
-- **M4:** K1 lõi lệnh `execution/commands` (`e1ce950`), K2 kho PG của phiếu + migration 0004 (`d919ebf`).
+- **M4:** K1 lõi lệnh `execution/commands` (`e1ce950`), K2 kho PG của phiếu + migration 0004 (`d919ebf`); K3 route
+  `POST /v1/commands/<tool>` ở `cmd/eais` (tools.yaml của pack, vết chín bước C0…C7, `eais trace` đọc lượt lệnh) cùng bảy lỗi P2 C1–C7 —
+  migration 0005: vai ứng dụng không đọc được `audit_log.reason_detail`, CHECK `tenant_id <> ''` cho ba bảng của 0004; đọc lại so đủ 15 cột
+  của dòng EXECUTED; trần 128 byte cho subject_key; ca quyền A07–A10 trên PG; `classifyCommit` chỉ coi đúng mức ERROR là "chưa ghi"
+  (`3892be2`; hai vòng soát C1–C7, soát K3, soát lại cây gộp — ĐẠT CÓ GHI CHÚ). K4: bộ chạy ca lệnh chung, chín điểm chèn lỗi, danh mục đột
+  biến, demo (`b22e1e6`). **Bộ giữ lại P1 chạy một lần: 153 / 157** — 4 đỏ cùng một lỗi chuẩn hoá (`"≈"` không là dấu ước lượng); M4 chưa RA.
+- **5b, 5c (lỗi của soát độc lập 23/10), gộp `32f4930`:** chỉ lỗi PG tạm thời mang nhãn hạ tầng (thử lại, 503); lỗi dữ liệu / mã không thử lại,
+  không lộ thông điệp PG thô qua API; pipeline lệnh coi lỗi đọc tất định là INTERNAL_ERROR; `scripts/mutate.sh` chạy lượt nền xanh trước khi đo
+  đột biến, "bị bắt" chỉ tính khi đỏ đúng test nhắm tới. 5a (che bí mật) còn một đường lọt (Cookie sau giá trị kết thúc bằng `\`), sửa tiếp.
 - **M1:** R2-03 vết xuất lý do và phương án đã xét (`5fd463f`); `scripts/chay-thu.sh` khoá theo dự án bằng flock (`c97a989`).
+- **M1, bốn lỗi P2 của R2-03 (C8–C11, lệnh ca chiều 23/10), sửa qua hai vòng soát độc lập:** S5 của lượt chuyển người ghi lý do thật của
+  việc ghi đè route (C8); vết của người hỏi phạm vi hạn chế không còn mang khoá / tên thực thể ngoài phạm vi mà họ không tự gõ — che ở MỘT
+  chỗ cho mọi bề mặt của bản ghi (`core/pipeline/scope_redact.go`, dấu `‹ngoài phạm vi›`; khoá người hỏi tự gõ vẫn kể, tên thì không), kiểm
+  bằng test quét toàn bản ghi 2440 lượt (C9; vòng 2: khoá, mã, tên xét riêng, danh mục đọc một lần mỗi lượt; KHÔNG hồi tố — bản ghi đã lưu
+  trước đó không được che lại, Replay bản ghi cũ báo lệch "resolve" giả); router và luồng hỏi duyệt khe theo tên đã sắp xếp — ADR-0002 D18 (C10); test so route /
+  outcome / câu trả lời / bản ghi quyết định giữa có vết và không vết, có công tắc `noWhy` CHỈ test trong gói đặt (C11).
 
 ### 22/10/2026 tối — bộ ca giữ lại Phase 1 đóng băng, ADR-0011 CHỐT; M1 đóng thêm ghi chú soát; bảng lệnh M5; đo người đọc vết lần 1
 

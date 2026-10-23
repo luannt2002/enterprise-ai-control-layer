@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Danh mục đột biến "W4 — PostgreSQL RLS / GUC (cần PG của deploy/docker-compose.yml)" đã chạy ngày 20/10/2026 (xem docs/ops/NHAT-KY-2026-10-20.md).
-# Mỗi dòng: m <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>. Kỳ vọng: mọi dòng in "BỊ BẮT" (rc=0).
+# Mỗi dòng: m <tệp> <chuỗi gốc> <chuỗi đột biến> <nhãn>. Kỳ vọng: mọi dòng in "BỊ BẮT" (rc=0); cuối cùng in tổng và thoát 0 chỉ khi
+# không đột biến nào sống sót hay "khác" (nền đỏ rc=5, đỏ sai chỗ rc=6, chuỗi gốc không khớp rc=2…).
 # Mã đổi sau ngày đó thì chuỗi gốc có thể không còn khớp (mutate.sh báo "xuất hiện 0 lần", rc=2):
 # sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
 cd "$(dirname "$0")/../.." || exit 1
@@ -8,16 +9,32 @@ cd "$(dirname "$0")/../.." || exit 1
 export EAIS_PG_ADMIN_DSN="${EAIS_PG_ADMIN_DSN:-postgres://postgres@127.0.0.1:25432/eais?sslmode=disable}"
 export EAIS_PG_DSN="${EAIS_PG_DSN:-postgres://eais_app@127.0.0.1:25432/eais?sslmode=disable}"
 export PKGS="./platform/... ./tenants/construction/win/winrun/ ./core/..."
-m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
+bat=0 song=0 khac=0
+m() {
+	scripts/mutate.sh "$1" "$2" "$3" "$4"
+	local rc=$?
+	echo "rc=$rc"
+	case $rc in 0) bat=$((bat + 1)) ;; 3) song=$((song + 1)) ;; *) khac=$((khac + 1)) ;; esac
+}
 # Đột biến MIGRATION: migration chỉ áp MỘT lần mỗi database, nên mỗi đột biến chạy trên database eais_dot_bien vừa tạo lại
 # (bản SQL đột biến được áp ở lần Migrate đầu tiên của test). Vai là của cả cụm PG: đột biến "không tạo vai" không đo được ở đây.
 DB_DOT_BIEN=${DB_DOT_BIEN:-eais_dot_bien}
 fresh() { psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)" -c "CREATE DATABASE $DB_DOT_BIEN"; }
 # dsn_db <dsn> <database>: thay tên database trong DSN dạng postgres://vai@máy:cổng/<database>[?tham số].
 dsn_db() { printf '%s' "$1" | sed -E 's#^([a-z]+://[^/]*)/[^/?]*#\1/'"$2"'#'; }
+# Nền xanh trên database đột biến (lỗi 5c): chạy `mutate.sh --nen` MỘT lần trên database vừa dựng, rồi dựng lại database cho đột biến —
+# để mutate.sh tự chạy nền ở đó thì nền áp migration GỐC trước đột biến và đột biến migration sống giả.
+nen_mm=""
 mm() {
-	fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; return; }
-	EAIS_PG_ADMIN_DSN="$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN")" EAIS_PG_DSN="$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")" m "$@"
+	fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; khac=$((khac + 1)); return; }
+	local a d
+	a="$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN")" d="$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")"
+	if [ -z "$nen_mm" ]; then
+		nen_mm=$(EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d scripts/mutate.sh --nen)
+		echo "$nen_mm"
+		fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; khac=$((khac + 1)); return; }
+	fi
+	EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d MUTATE_NEN_CO_SAN=1 m "$@"
 }
 m platform/pgstore/pgstore.go '		if _, err := tx.Exec(ctx, "SELECT set_config('"'"'eais.tenant_id'"'"', $1, true)", string(tenant)); err != nil {' '		if _, err := tx.Exec(ctx, "SELECT 1 WHERE $1::text IS NOT NULL", string(tenant)); err != nil {' 'PA không đặt GUC'
 m platform/pgstore/pgstore.go '	t, ok := contracts.TenantFrom(ctx)
@@ -49,3 +66,5 @@ mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t); EXECUTE format('GRANT UPDATE (tenant_id) ON %I TO eais_app', t);" 'X10 0002 cấp UPDATE theo cột'
 mm $M2 "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t);" "    EXECUTE format('GRANT SELECT, INSERT, DELETE ON %I TO eais_app', t); EXECUTE format('GRANT REFERENCES (tenant_id) ON %I TO eais_app', t);" 'X11 0002 cấp REFERENCES theo cột'
 psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
+echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"
+[ "$song" -eq 0 ] && [ "$khac" -eq 0 ]

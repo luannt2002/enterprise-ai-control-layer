@@ -1,0 +1,16 @@
+revision: 18fb206a6ee724f213decbf0b4269d139bf9794d
+mã (cây git không tính docs/): 7918a7e8858999375c0894c6aa97fc15edc7a2ae3cbe179bad367c34883ca063
+origin/main: 18fb206a6ee724f213decbf0b4269d139bf9794d
+commit tệp ca: 18fb206 2026-10-23T14:29:13+07:00
+sha256 tệp ca: 122637193a8dd713a1265241f2560a8ed7c9e7d70c522f65c3fa875931bdd9ba  docs/g7/holdout-p1/p1.yaml
+sha256 tệp thế giới: f46c3b467fd7149023ff2a46b02d9fd91fad606c95394b3076ee7fe69a47c27f  docs/g7/holdout-p1/world-p1.yaml
+sha256 holdout-manifest.json: 432e80998565f700503a781bf9a07740ebc88c78fdc0719ddc4beac58e2b1100
+sha256 công cụ: execution/commands/bochay_test.go 51d78273ce94204def5194bc654eb7155f90520ac08453c2d7fd74d5071aba3c; bochay_giulai_test.go 10b18921edf7cec578aa4c01702906c509b4259ce4feb3d203aaabba34bca1cb
+database PG: giulai_p1 (riêng; bộ chạy tạo database tạm trong cụm rồi xoá)
+go: go version go1.26.4 linux/amd64
+nền: ca-hai (bộ nhớ và PG), không overlay (pack có tools.yaml)
+bắt đầu: 2026-10-23T14:29:44+07:00
+lệnh: EAIS_GIULAI_CA=docs/g7/holdout-p1/p1.yaml EAIS_GIULAI_SHA256_CA=<băm manifest> EAIS_GIULAI_THEGIOI=docs/g7/holdout-p1/world-p1.yaml EAIS_GIULAI_SHA256_THEGIOI=<băm manifest> EAIS_GIULAI_BAO_CAO=<ra>/bao-cao go test -tags giulai -count=1 -run '^TestBoChayGiuLai$' -v ./execution/commands/
+mã thoát: 1 (0 mọi ca đạt · 1 có ca đỏ · khác: hỏng hạ tầng / biên dịch)
+kết thúc: 2026-10-23T14:29:46+07:00
+trạng thái: HOÀN TẤT (mã thoát 1 = có ca đỏ; không hỏng hạ tầng: 157 ca chạy đủ trên cả hai nền)

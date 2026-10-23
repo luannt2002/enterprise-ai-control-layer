@@ -1,0 +1,81 @@
+# Thế giới PHÁT TRIỂN cho bộ chạy ca lệnh (HOP-DONG §12.1) — dữ liệu GIẢ LẬP, mọi tên đều hư cấu. Viết từ ví dụ của §10, §12.1 và định dạng của
+# tenants/construction/win/world.yaml (bản chép khung + phần thêm); KHÔNG chép từ bộ giữ lại độc lập. Bộ sinh tenants/construction/win/gen
+# render tệp này ra dữ liệu nguồn, đường nạp thật (data/ingestion) đọc lại thành fact và danh mục, rồi nạp vào bộ nhớ hoặc PostgreSQL.
+#
+# "Hôm nay" = reference_date lúc 10:00 giờ tenant, nên "hôm qua" = 2026-10-19. Mỗi máy mang MỘT tính chất để một lớp ca của §10 dùng:
+#   EX-03  hai vế đủ, chênh lệch 68 (ví dụ §1.1); có thêm ngày 2026-10-18 (chênh lệch 10) cho ca "cùng khoá, khác ngày"
+#   EX-04  50 · EX-05  100: máy khác cho ca đua khác nội dung và hai người gọi
+#   EX-01  hai vế bằng nhau (NO_DISCREPANCY)
+#   EX-02  thiếu vế đo · EX-11 không có số liệu nào (INSUFFICIENT_EVIDENCE)
+#   EX-06  vế xuất có hai nguồn NGANG thẩm quyền (erp, excel_summary) lệch 200 > dung sai 10 (HUMAN_REVIEW_REQUIRED)
+#   EX-07  như EX-06 và THIẾU vế đo: xung đột phải thắng thiếu vế
+#   EX-08  vế xuất là số ước lượng (ô lượng của phiếu kho ghi "~500")
+#   EX-09  máy của dự án PRJ-B, ngoài phạm vi của người chỉ được giao dự án PRJ-A
+#   EX-10  kho xuất ÍT hơn lượng đo: chênh lệch âm vẫn là chênh lệch
+# Tenant thứ hai def-build dùng CÙNG khoá EX-03 với số liệu khác (ca hai tenant dùng cùng khoá).
+
+reference_date: 2026-10-20
+
+tenants:
+  - id: abc-infra
+    projects:
+      - {id: PRJ-A, name: Cầu A, aliases: [dự án A]}
+      - {id: PRJ-B, name: Đường B, aliases: [dự án B]}
+    equipment:
+      - {id: EX-01, type: excavator, name: Máy xúc EX-01, project: PRJ-A, aliases: [], source_ids: {erp: asset-5001, fuel_sensor: EX001, warehouse_slip: EX-01}}
+      - {id: EX-02, type: excavator, name: Máy xúc EX-02, project: PRJ-A, aliases: [], source_ids: {erp: asset-5002, fuel_sensor: EX002, warehouse_slip: EX-02}}
+      - {id: EX-03, type: excavator, name: Máy xúc EX-03, project: PRJ-A, aliases: [máy 03, máy xúc 03, MX-03], source_ids: {erp: asset-5003, fuel_sensor: EX003, warehouse_slip: EX-03}}
+      - {id: EX-04, type: excavator, name: Máy xúc EX-04, project: PRJ-A, aliases: [], source_ids: {erp: asset-5004, fuel_sensor: EX004, warehouse_slip: EX-04}}
+      - {id: EX-05, type: excavator, name: Máy xúc EX-05, project: PRJ-A, aliases: [], source_ids: {erp: asset-5005, fuel_sensor: EX005, warehouse_slip: EX-05}}
+      - {id: EX-06, type: excavator, name: Máy xúc EX-06, project: PRJ-A, aliases: [], source_ids: {erp: asset-5006, fuel_sensor: EX006, warehouse_slip: EX-06}}
+      - {id: EX-07, type: excavator, name: Máy xúc EX-07, project: PRJ-A, aliases: [], source_ids: {erp: asset-5007, fuel_sensor: EX007, warehouse_slip: EX-07}}
+      - {id: EX-08, type: excavator, name: Máy xúc EX-08, project: PRJ-A, aliases: [], source_ids: {erp: asset-5008, fuel_sensor: EX008, warehouse_slip: EX-08}}
+      - {id: EX-09, type: excavator, name: Máy xúc EX-09, project: PRJ-B, aliases: [], source_ids: {erp: asset-5009, fuel_sensor: EX009, warehouse_slip: EX-09}}
+      - {id: EX-10, type: excavator, name: Máy xúc EX-10, project: PRJ-A, aliases: [], source_ids: {erp: asset-5010, fuel_sensor: EX010, warehouse_slip: EX-10}}
+      - {id: EX-11, type: excavator, name: Máy xúc EX-11, project: PRJ-A, aliases: [], source_ids: {erp: asset-5011, fuel_sensor: EX011, warehouse_slip: EX-11}}
+
+  - id: def-build
+    projects:
+      - {id: PRJ-Z, name: Cầu Z, aliases: [dự án Z]}
+    equipment:
+      - {id: EX-03, type: excavator, name: Máy xúc EX-03 (B), project: PRJ-Z, aliases: [], source_ids: {erp: asset-7003, fuel_sensor: EX003, warehouse_slip: EX-03}}
+
+records:
+  # R-001 và R-004 là hai bản ghi mà bộ sinh dùng làm gốc cho các biến thể metamorphic (CONTRACT §4): tệp thế giới phải có chúng. R-001 là tin nhắn
+  # của vế đội báo (reported_fuel), không ảnh hưởng chỉ số issue_vs_measured.
+  - {id: R-001, tenant: abc-infra, entity: EX-03, on: 2026-10-19, semantic: reported_fuel, source: chat_message, value_l: "2000", approx: true, raw: "máy 03 sáng 2k", by: đội trưởng Hùng}
+  # EX-03: hôm qua kho xuất 3850, cảm biến đo 3782 ⇒ 68; hôm kia 100 và 90 ⇒ 10
+  - {id: R-004, tenant: abc-infra, entity: EX-03, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "3850", ref: PX-D001}
+  - {id: D-002, tenant: abc-infra, entity: EX-03, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "3782", ref: SNS-D002}
+  - {id: D-003, tenant: abc-infra, entity: EX-03, on: 2026-10-18, semantic: issued_fuel, source: warehouse_slip, value_l: "100", ref: PX-D003}
+  - {id: D-004, tenant: abc-infra, entity: EX-03, on: 2026-10-18, semantic: measured_consumption, source: fuel_sensor, value_l: "90", ref: SNS-D004}
+  # EX-04: 2000 và 1950 ⇒ 50
+  - {id: D-005, tenant: abc-infra, entity: EX-04, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "2000", ref: PX-D005}
+  - {id: D-006, tenant: abc-infra, entity: EX-04, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "1950", ref: SNS-D006}
+  # EX-05: 1500 và 1400 ⇒ 100
+  - {id: D-007, tenant: abc-infra, entity: EX-05, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "1500", ref: PX-D007}
+  - {id: D-008, tenant: abc-infra, entity: EX-05, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "1400", ref: SNS-D008}
+  # EX-01: hai vế bằng nhau
+  - {id: D-009, tenant: abc-infra, entity: EX-01, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "1000", ref: PX-D009}
+  - {id: D-010, tenant: abc-infra, entity: EX-01, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "1000", ref: SNS-D010}
+  # EX-02: thiếu vế đo
+  - {id: D-011, tenant: abc-infra, entity: EX-02, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "800", ref: PX-D011}
+  # EX-06: vế xuất có hai nguồn ngang thẩm quyền lệch quá dung sai; vế đo đủ
+  - {id: D-012, tenant: abc-infra, entity: EX-06, on: 2026-10-19, semantic: issued_fuel, source: erp, value_l: "3000", ref: ERP-D012}
+  - {id: D-013, tenant: abc-infra, entity: EX-06, on: 2026-10-19, semantic: issued_fuel, source: excel_summary, value_l: "3200", ref: XLS-D013}
+  - {id: D-014, tenant: abc-infra, entity: EX-06, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "3000", ref: SNS-D014}
+  # EX-07: như EX-06 và thiếu vế đo
+  - {id: D-015, tenant: abc-infra, entity: EX-07, on: 2026-10-19, semantic: issued_fuel, source: erp, value_l: "3000", ref: ERP-D015}
+  - {id: D-016, tenant: abc-infra, entity: EX-07, on: 2026-10-19, semantic: issued_fuel, source: excel_summary, value_l: "3200", ref: XLS-D016}
+  # EX-08: vế xuất là số ước lượng
+  - {id: D-017, tenant: abc-infra, entity: EX-08, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "500", raw: "~500 L", ref: PX-D017}
+  - {id: D-018, tenant: abc-infra, entity: EX-08, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "480", ref: SNS-D018}
+  # EX-09 (PRJ-B): 700 và 650 ⇒ 50
+  - {id: D-019, tenant: abc-infra, entity: EX-09, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "700", ref: PX-D019}
+  - {id: D-020, tenant: abc-infra, entity: EX-09, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "650", ref: SNS-D020}
+  # EX-10: kho xuất ít hơn lượng đo ⇒ -50
+  - {id: D-021, tenant: abc-infra, entity: EX-10, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "900", ref: PX-D021}
+  - {id: D-022, tenant: abc-infra, entity: EX-10, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "950", ref: SNS-D022}
+  # def-build: cùng khoá EX-03, số liệu khác ⇒ 999
+  - {id: D-B01, tenant: def-build, entity: EX-03, on: 2026-10-19, semantic: issued_fuel, source: warehouse_slip, value_l: "9999", ref: PX-DB01}
+  - {id: D-B02, tenant: def-build, entity: EX-03, on: 2026-10-19, semantic: measured_consumption, source: fuel_sensor, value_l: "9000", ref: SNS-DB02}

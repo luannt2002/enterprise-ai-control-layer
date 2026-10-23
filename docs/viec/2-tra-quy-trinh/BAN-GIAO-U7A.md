@@ -35,6 +35,8 @@
 
 **Ráp lên `baaf834` (23/10 11:1x):** 4 tệp giao nhau (`contracts.go`, `ask.go` ráp tự động; `migrate_test.go`, `vet_test.go` xung đột đúng một dòng danh sách migration). Migration RAG đổi `0004` → `0005` vì team đã dùng 0004 cho phiếu. Cổng của bản ráp: 1.109 test pass (1.054 của team + 55 của RAG), so theo tên với `baaf834` 0 mất / 0 đổi; winreport 117 / H1 / H3 / H4 hai đường 0 dòng khác; smoke 21/21.
 
+**Ráp lên main `086fff9` (23/10 chiều):** main đã lấy số 0005 (`0005_audit_va_tenant.sql`) ⇒ migration RAG đổi `0005` → `0006_tai_lieu_phien_ban.sql` (đúng luật "ai gộp main trước giữ số"). Tệp chạy lại được nên DB đã áp bản mang số cũ chỉ chạy lại nó, không hỏng. Đổi theo: danh sách migration của `migrate_test.go` / `vet_test.go`, cột kiểm của `ready.go`, `tai_lieu_test.go`. Migration RAG kế tiếp lấy số sau số lớn nhất của main lúc gộp.
+
 **Vận hành:** chỉ nạp tài liệu có phiên bản khi mọi binary trước U6a đã dừng — binary cũ đọc bảng mới nhưng bỏ qua cột trạng thái / hiệu lực / phạm vi, sẽ phục vụ bản nháp như bản chính. Không có migration ngược.
 
 **Việc còn cần team (không tự sửa):**

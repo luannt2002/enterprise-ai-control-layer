@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 
@@ -81,11 +82,26 @@ func cmdTraceDiff(ctx context.Context, args []string, stdout, stderr io.Writer) 
 		recs[i] = rec
 	}
 	a, b := recs[0], recs[1]
+	if isCommandRecord(a) || isCommandRecord(b) {
+		fmt.Fprint(stderr, commandDiffRefusal)
+		return 2
+	}
 	fmt.Fprint(stdout, diffReport(rest[0], rest[1], a, b))
 	if _, differ := traces.FirstDifferentStep(a, b); differ {
 		return 1
 	}
 	return 0
+}
+
+// commandDiffRefusal là lời từ chối so lượt lệnh (HOP-DONG §15 U9 (3)): FirstDifferentStep chỉ so các trường quyết định của luồng hỏi và gọi tên chặng S2…S9, nên với
+// lượt lệnh nó chỉ nhầm sang chặng của luồng hỏi (đo 23/10: lượt DONE so với lượt PERMISSION_DENIED ra "S3 (resolve)" trong khi chặng gây ra là C4). Từ chối bằng lời
+// rõ ràng tốt hơn một câu trả lời trông có nghĩa mà sai; so hai lượt lệnh có nghĩa gì là việc của Phase sau.
+const commandDiffRefusal = "trace diff: không so được lượt lệnh (C0…C7): phép so chỉ gọi tên chặng của luồng hỏi (S2…S9) và sẽ chỉ nhầm chặng cho lượt lệnh.\n" +
+	"Xem từng lượt bằng `eais trace -tenant T <trace_id>`: dòng BƯỚC LỆCH ĐẦU TIÊN chỉ đúng chặng dừng của lượt đó (HOP-DONG §15 U9).\n"
+
+// isCommandRecord báo bản ghi vết có phải của một lượt lệnh không: mọi lượt lệnh có chín bước mang mã C…, lượt hỏi chỉ có S… hoặc S?.
+func isCommandRecord(r traces.Record) bool {
+	return slices.ContainsFunc(r.Steps, func(s traces.Step) bool { return strings.HasPrefix(s.Stage, "C") })
 }
 
 // diffReport dựng báo cáo so hai vết: câu hỏi và phiên bản của từng bên (so hai MỐC cho cùng câu mới có nghĩa), rồi bước đầu tiên khác.

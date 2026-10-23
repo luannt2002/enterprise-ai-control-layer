@@ -699,3 +699,48 @@ func TestCaBienDungSaiMoiCapNguon(t *testing.T) {
 	}
 	t.Logf("%d cặp nguồn × 2 ca biên", pairs)
 }
+
+// C8 (lệnh ca chiều 23/10): lượt chuyển người (hai nguồn ngang thẩm quyền lệch quá dung sai) ghi ở S5 lý do THẬT của việc luồng hỏi ghi
+// đè route — xung đột cần người duyệt — chứ không lặp lý do của router ("ý định … khớp luật"), ở cả dòng lý do lẫn dòng route bị bỏ.
+func TestS5LuotChuyenNguoiGhiLyDoThat(t *testing.T) {
+	a := newAsk(t)
+	out := ask(t, a, user("director", ""), "DZ-03 hôm nay được cấp bao nhiêu dầu?")
+	if out.Response.Outcome != contracts.OutcomeHumanReviewRequired {
+		t.Fatalf("ca phải là chuyển người, được %q", out.Response.Outcome)
+	}
+	var lines []string
+	for _, r := range append(slices.Clone(out.Decision.Why.Route.Reasons), out.Decision.Why.Route.Rejected...) {
+		if strings.Contains(r, "ghi đè") {
+			lines = append(lines, r)
+		}
+	}
+	if len(lines) != 2 {
+		t.Fatalf("S5 phải có đúng một dòng lý do ghi đè và một dòng route bị bỏ, được %q", lines)
+	}
+	for _, l := range lines {
+		if strings.Contains(l, "khớp luật") || !strings.Contains(l, "cần người duyệt") {
+			t.Errorf("dòng S5 không nói lý do thật của việc chuyển người: %q", l)
+		}
+	}
+}
+
+// C9 (lệnh ca chiều 23/10): vết S3 do chính người hỏi đọc không được để lộ khoá ứng viên NGOÀI phạm vi — kể cả gián tiếp, bằng cách lấy
+// hiệu danh sách "khớp N thực thể: …" (trước lọc) với "sau lọc …" (lời hứa ở core/pipeline/why.go, explainResolve). Người có phạm vi
+// hạn chế chỉ thấy số lượng trước lọc; người toàn quyền vẫn thấy đủ khoá.
+func TestS3KhongLoKhoaNgoaiPhamViQuaHieuHaiDanhSach(t *testing.T) {
+	a := newAsk(t)
+	for _, c := range []struct {
+		scope, hidden string
+	}{{"PRJ-A", "DZ-03"}, {"PRJ-B", "EX-03"}} {
+		out := ask(t, a, user("site_engineer", c.scope), "Máy 03 hôm nay được cấp bao nhiêu dầu?")
+		for _, r := range append(slices.Clone(out.Decision.Why.Resolve.Reasons), out.Decision.Why.Resolve.Rejected...) {
+			if strings.Contains(r, c.hidden) {
+				t.Errorf("phạm vi %s: vết S3 lộ khoá ngoài phạm vi %s: %q", c.scope, c.hidden, r)
+			}
+		}
+	}
+	out := ask(t, a, user("director", ""), "Máy 03 hôm nay được cấp bao nhiêu dầu?")
+	if !slices.ContainsFunc(out.Decision.Why.Resolve.Reasons, func(r string) bool { return strings.Contains(r, "DZ-03, EX-03") }) {
+		t.Errorf("người toàn quyền phải thấy đủ khoá ứng viên: %q", out.Decision.Why.Resolve.Reasons)
+	}
+}

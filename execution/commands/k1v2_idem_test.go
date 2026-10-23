@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -87,8 +88,13 @@ func TestR5ThayPhieuCuaBanSinhDoiThiPhatLai(t *testing.T) {
 	if c4b := second.Steps[stLedger]; c4b.Status != StepOK || c4b.Decision != "phát lại" {
 		t.Fatalf("C4b phải ok và ghi 'phát lại': %+v", c4b)
 	}
-	if second.Steps[stRules].Status != StepSkipped || second.Steps[stWrite].Status != StepSkipped {
-		t.Fatalf("phát lại: C5 và C6 skipped; được %+v", second.Steps[stRules:stVerify])
+	// C6 (lệnh ca chiều 23/10): ở lượt này C5 ĐÃ chạy (Derive, R3, R4) trước khi R5 thấy phiếu của chính khoá lệnh và chuyển sang phát
+	// lại — vết C5 ghi đúng điều đó, không phải "skipped — không tính lại"; C6 vẫn skipped (không ghi).
+	if c5 := second.Steps[stRules]; c5.Status != StepOK || !strings.Contains(c5.Reason, "Derive đã chạy") || !slices.Contains(c5.Output, "open_ticket="+tk.ID) {
+		t.Fatalf("phát lại do R5: C5 phải ok, ghi Derive đã chạy và phiếu OPEN đã thấy; được %+v", c5)
+	}
+	if c6 := second.Steps[stWrite]; c6.Status != StepSkipped || c6.Reason != "phát lại (R5 thấy phiếu của chính khoá lệnh này): không ghi" {
+		t.Fatalf("phát lại do R5: C6 skipped với lý do R5; được %+v", c6)
 	}
 	w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, replayed: 1})
 	w.counters(1, 1) // đơn vị ghi phiếu chỉ do bản sinh đôi gọi; lượt này chỉ ghi audit REPLAYED

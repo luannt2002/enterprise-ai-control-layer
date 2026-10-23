@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/ingestion"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
+	"github.com/luannt2002/enterprise-ai-control-layer/execution/commands"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
@@ -69,6 +71,11 @@ type app struct {
 	// ask là luồng hỏi đang phục vụ. Deps của Ask là giá trị (DataVersion nằm trong đó) nên nạp lại dữ liệu không sửa tại chỗ — sẽ là
 	// data race với các lượt đang chạy — mà dựng Ask mới rồi thế con trỏ; lượt đang chạy dùng nốt bản cũ.
 	ask atomic.Pointer[pipeline.Ask]
+	// tools là tools.yaml của pack, đã nạp và kiểm chéo với policy và danh mục chỉ số (HOP-DONG §4.3): cấu hình hỏng thì newApp lỗi nên không có
+	// app nào chạy. cmds là pipeline lệnh theo tên tool, mỗi tool một route lệnh (server.handler); rỗng khi kho không có kho phiếu (bản dựng thử
+	// bằng kho bộ nhớ), khi đó không có route lệnh nào.
+	tools *commands.Tools
+	cmds  map[string]*commands.Pipeline
 }
 
 // newApp tải pack, bản đồ nguồn, đồng hồ; tính phiên bản dữ liệu hiện có trên đĩa và dựng luồng hỏi trên kho st. Chưa chạm kho.
@@ -88,12 +95,61 @@ func newApp(cfg config, st store, log *slog.Logger) (*app, error) {
 	if a.clock, err = parseClock(cfg, rt); err != nil {
 		return nil, err
 	}
+	if err := a.loadCommands(cfg.Pack); err != nil {
+		return nil, err
+	}
 	dv, err := dataVersion(a.tenantDir())
 	if err != nil {
 		return nil, err
 	}
 	a.setAsk(dv)
 	return a, nil
+}
+
+// loadCommands nạp tools.yaml của pack ngay sau tenant.Load (core/tenant không biết tệp này: luồng hỏi và công cụ đo giữ nguyên hành vi nạp) và
+// dựng pipeline lệnh cho từng tool. Cấu hình hỏng thì trả lỗi gom đủ thông tin: ứng dụng không khởi động (HOP-DONG §4.3, A12). Số liệu, danh mục
+// thực thể và đồng hồ là của chính app (luồng hỏi cũng đọc chúng từ đó); kho phiếu là của kho (commandStoreOf).
+func (a *app) loadCommands(packDir string) error {
+	tools, err := commands.LoadTools(packDir, a.rt.Policy, a.rt.Metrics)
+	if err != nil {
+		return err
+	}
+	a.tools = tools
+	if len(tools.Names()) == 0 { // route lệnh sẽ im lặng thành 404: nói ra lúc khởi động (soát K3, K3S-02; chú thích của LoadTools đòi vậy)
+		a.log.Warn("pack không có tool lệnh nào (tools.yaml vắng, đổi tên hay rỗng): không có route /v1/commands/<tool>", "pack", packDir)
+	} else {
+		a.log.Info("đã nạp tool lệnh của pack", "pack", packDir, "tools", strings.Join(tools.Names(), ","))
+	}
+	ts := commandStoreOf(a.st)
+	if ts == nil {
+		return nil
+	}
+	a.cmds = map[string]*commands.Pipeline{}
+	for _, name := range tools.Names() {
+		tool, _ := tools.Get(name)
+		p, err := commands.New(commands.Deps{
+			Tenant: a.tenantID(), Location: a.rt.Location, Tool: tool, Policy: a.rt.Policy, Catalog: a.rt.Metrics,
+			Facts: a.st, Directory: a.st, Store: ts, PackVersion: a.rt.PackVersion, CodeVersion: buildRevision(), Now: a.now,
+		})
+		if err != nil {
+			return fmt.Errorf("lệnh %s: %w", name, err)
+		}
+		a.cmds[name] = p
+	}
+	return nil
+}
+
+// commandStoreOf trả kho phiếu của st, hoặc nil khi st không có. *pgstore.Store mở được giao dịch đã đặt tenant (commands.TxBeginner) nên được bọc
+// bằng kho PG của phiếu; một kho tự cài commands.Store (bản dựng thử) thì dùng thẳng. Giao diện store của app không đổi: kho bộ nhớ có sẵn của
+// test vẫn là một store và đơn giản là không có lệnh.
+func commandStoreOf(st store) commands.Store {
+	switch s := any(st).(type) {
+	case commands.Store:
+		return s
+	case commands.TxBeginner:
+		return commands.NewPGStore(s)
+	}
+	return nil
 }
 
 // tenantID là tenant của pack mà app này phục vụ: MỘT tenant mỗi tiến trình.

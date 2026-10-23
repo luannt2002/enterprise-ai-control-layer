@@ -7,7 +7,7 @@ hành vi của hai bản đó.
     python3 -I scripts/cam-ket-bo-ca-0a.py <tệp ca> <thư mục ra> --bo-do-nghe <thư mục> --the-gioi <tệp> [--the-gioi <tệp> …]
 
 Tệp ca: YAML {suite: 0a, cases: [...]}. Mỗi ca có id (0A-I-NNN), class (mã lớp LC-xx hoặc "tự nhiên"), input, world (tên một tệp
---the-gioi), rationale; ca có blocked_by (phụ thuộc câu chưa chốt) KHÔNG được có expected, ca không blocked phải có expected (§12).
+--the-gioi, hoặc danh sách tên không trùng khi ca dùng nhiều thế giới — vd lượt đi qua hai tenant), rationale; ca có blocked_by (phụ thuộc câu chưa chốt) KHÔNG được có expected, ca không blocked phải có expected (§12).
 Chỉ in sha256 và số đếm, không in input hay kỳ vọng (phiên viết mã không được đọc chúng). Từ chối khi thư mục ra đã có manifest
 (cam kết không ghi đè), tệp hỏng, thiếu khoá, id sai mẫu / trùng, world không phải tệp thế giới đã khai, kỳ vọng đặt cho ca blocked.
 Thoát 0 khi ghi xong, 2 khi bị từ chối.
@@ -90,8 +90,9 @@ def main():
         cid = str(c["id"])
         if not ID.match(cid):
             refuse(f"ca thứ {n}: id không đúng mẫu 0A-I-NNN")
-        if str(c["world"]) not in names:
-            refuse(f"ca thứ {n}: world không phải tệp thế giới đã khai")
+        wl = [str(w) for w in c["world"]] if isinstance(c["world"], list) else [str(c["world"])]
+        if any(w not in names for w in wl) or len(set(wl)) != len(wl):
+            refuse(f"ca thứ {n}: world không phải tệp thế giới đã khai (hoặc danh sách có tên trùng)")
         is_blocked = not empty(c.get("blocked_by"))
         if is_blocked and not empty(c.get("expected")):
             refuse(f"ca thứ {n}: ca blocked_by không được đặt kỳ vọng (§12)")
@@ -100,7 +101,7 @@ def main():
         blocked += is_blocked
         ids[cid] += 1
         per_class[str(c["class"])] += 1
-        used_worlds[str(c["world"])] += 1
+        used_worlds.update(wl)
         keys.update(c.keys())
     dup = sorted(k for k, v in ids.items() if v > 1)
     if dup:

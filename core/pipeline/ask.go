@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -64,6 +65,9 @@ type Deps struct {
 type Ask struct {
 	RT   *tenant.Runtime
 	Deps Deps
+	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
+	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
+	noWhy bool
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -217,12 +221,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
-	why.Normalize = explainNormalize(in)
-	// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ chúng
-	// cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
-	why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
-	why.Intent = explainIntent(cls, ci)
-	why.Route = a.explainRoute(routed, plan)
+	if !a.noWhy {
+		why.Normalize = explainNormalize(in)
+		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
+		// chúng cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
+		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
+		why.Intent = explainIntent(cls, ci)
+		why.Route = a.explainRoute(routed, plan)
+	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
 	// rộng) có ranh giới từ ở câu gốc mà mất ranh giới ở in.Raw, nơi ký tự đó đã gấp thành chữ ASCII dính liền; ngược lại khoá viết bằng chữ toàn chiều rộng
@@ -230,8 +236,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {
 		why = why.WithholdQuoted()
 	}
+	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
+	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá.
+	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
-	d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
+	red.decision(&d)
+	if !a.noWhy {
+		d.Why = finalWhy(why, red)
+	}
 	return Outcome{
 		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),
@@ -383,7 +395,9 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		prefix = "số liệu: "
 	}
 	// S7 ghi lúc trả về, khi gói ngữ cảnh đã là gói CUỐI (có thể đã thêm số của người hỏi và các chỉ số khác cùng kỳ)
-	defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	if !a.noWhy {
+		defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	}
 	for _, e := range result.Evidence {
 		resp.Citations = append(resp.Citations, contracts.Citation{EvidenceID: e.ID, Source: e.Source})
 	}
@@ -408,6 +422,8 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 			}
 		}
 		vars["reason"] = strings.Join(reasons, "; ")
+		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
+		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired
@@ -502,8 +518,10 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		claims = append(claims, otherClaims...)
 	}
 	_, base := a.RT.Metrics.Metric(metric)
-	a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
-		tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	if !a.noWhy {
+		a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
+			tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	}
 	// S8 — dựng câu bằng mẫu của tenant (route số liệu không gọi model)
 	text := a.render(tmpl, vars)
 	if withheld != "" {
@@ -1206,20 +1224,23 @@ func validateRequest(req contracts.AskRequest) error {
 	return nil
 }
 
+// firstEntitySlot lấy khe thực thể đứng đầu theo TÊN khe — chủ thể truy vấn của S6. Duyệt theo tên đã sắp xếp như router (ADR-0002 D18; soát
+// C8–C11 C10-S3): thứ tự lặp của map ngẫu nhiên mỗi lần chạy, nên với ý định có hai khe thực thể trở lên thì chủ thể (và câu trả lời) sẽ đổi
+// giữa các lần chạy. Pack construction chỉ có một khe thực thể.
 func firstEntitySlot(it contracts.Intent) contracts.Slot {
-	for _, s := range it.Slots {
-		if s.Entity != nil {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Entity != nil {
 			return s
 		}
 	}
 	return contracts.Slot{Entity: &contracts.EntityRef{}}
 }
 
-// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày).
+// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày) — khe kỳ đứng đầu theo TÊN khe, cùng lý do với firstEntitySlot.
 func periodBounds(it contracts.Intent, now time.Time) (time.Time, time.Time, error) {
 	text := now.Format("2006-01-02")
-	for _, s := range it.Slots {
-		if s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
 			text = s.Value.Text
 			break
 		}

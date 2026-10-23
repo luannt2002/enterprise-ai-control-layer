@@ -46,6 +46,13 @@ func TestA01GuiDoiTuanTu(t *testing.T) {
 	if o2.Steps[stLedger].Decision != "phát lại" || o2.Steps[stRules].Status != StepSkipped || o2.Steps[stWrite].Status != StepSkipped {
 		t.Fatalf("phát lại: C4b ghi 'phát lại', C5 và C6 skipped; được %+v", o2.Steps[stLedger:stVerify])
 	}
+	// lý do của C5 và C6 ở phát lại thường (bắt ở C4b) đúng điều đã xảy ra: không tính lại, không ghi — không lẫn lý do của phát lại do R5
+	// (soát độc lập C1–C7, C17S-01: bản sửa C6 làm C6 ghi nhầm "R5 thấy phiếu …")
+	for _, st := range []int{stRules, stWrite} {
+		if got := o2.Steps[st].Reason; got != "phát lại ở C4b: không tính lại, không ghi" {
+			t.Errorf("phát lại thường: lý do của %s = %q, muốn %q", o2.Steps[st].Code, got, "phát lại ở C4b: không tính lại, không ghi")
+		}
+	}
 	w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, replayed: 1})
 	w.counters(1, 1)
 }
@@ -619,6 +626,31 @@ func TestA23DocLaiHong(t *testing.T) {
 			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
 		})
 	}
+	// C2 (lệnh ca chiều 23/10): dòng audit EXECUTED đọc lại phải khớp MỌI cột đọc được với bản chụp ý định, không chỉ kết cục + mã phiếu.
+	for _, mode := range []string{"audit-fp", "audit-trace", "audit-caller", "audit-roles", "audit-day", "audit-action", "audit-reason",
+		"audit-scope", "audit-pack", "audit-code", "audit-cmd", "audit-subject", "audit-metric"} { // đủ 15 cột so được (C17S-02)
+		t.Run("F6 audit EXECUTED lệch: "+mode, func(t *testing.T) {
+			w := newWorld(t)
+			w.probe.f6stale, w.probe.staleMode = 1, mode
+			o := w.run(p, req(79, "EX-03", day1))
+			wantFail(t, o, StatusUnknown, ReasonVerifyMismatch)
+			assertSteps(t, o, "C7")
+			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
+		})
+	}
+	// phát lại: không có bản chụp ý định của lượt gốc, nên so với dòng sổ lệnh và chính yêu cầu — các cột suy ra được từ đó
+	// pack / code: phiếu và dòng EXECUTED cùng một đơn vị ghi nên phiên bản phải bằng nhau — phát lại so với phiếu đọc lại (C17S-07)
+	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason", "audit-cmd", "audit-subject", "audit-metric",
+		"audit-pack", "audit-code"} {
+		t.Run("phát lại, audit EXECUTED lệch: "+mode, func(t *testing.T) {
+			w := newWorld(t)
+			r := req(80, "EX-03", day1)
+			wantDone(t, w.run(p, r), false)
+			w.probe.f6stale, w.probe.staleMode = 1, mode
+			wantFail(t, w.run(p, r), StatusUnknown, ReasonVerifyMismatch)
+			w.check(tenantA, want{tickets: 1, ledger: 1, executed: 1, verifyFailed: 1})
+		})
+	}
 	for _, mode := range []string{"missing", "subject"} { // phát lại cũng đọc lại: không thấy phiếu, hoặc thấy phiếu của khoá khác
 		t.Run("phát lại cũng đọc lại: "+mode, func(t *testing.T) {
 			w := newWorld(t)
@@ -691,6 +723,44 @@ func TestMalformedLaLuotDungOC0(t *testing.T) {
 	assertSteps(t, o, "C0")
 	if !slices.Equal(w.pipe.Malformed().Result.InvalidFields, nil) {
 		t.Fatalf("lỗi không quy về một trường thì invalid_fields rỗng")
+	}
+}
+
+// Soát lại 5abc (5b-R1): lỗi đọc mà tầng dưới đã gắn nhãn MÃ hay DỮ LIỆU (pgstore sau 5b: ràng buộc, quyền, sai kiểu — lỗi tất định) không phải
+// "hạ tầng, gửi lại cùng khoá": ở cả bốn chỗ đọc trước BEGIN (danh mục, sổ lệnh, số liệu, tìm phiếu mở) là FAILED INTERNAL_ERROR, fault code, không
+// thử lại — đúng bảng §2.4 (STORE_UNAVAILABLE là lỗi hạ tầng; INTERNAL_ERROR là lỗi mã, FAILED khi trước BEGIN). Lỗi chưa gắn nhãn hay nhãn infra:*
+// vẫn là STORE_UNAVAILABLE (TestLoiDocLaStoreUnavailable).
+func TestLoiDocTatDinhLaInternalError(t *testing.T) {
+	boom := contracts.Label(contracts.FaultData, errors.New("lỗi thô: 23514 vi phạm ràng buộc ở db-noi-bo"))
+	cases := []struct {
+		name string
+		arm  func(*world)
+		stop string
+	}{
+		{"danh mục thực thể", func(w *world) { w.data.dirErr = boom }, "C4"},
+		{"sổ lệnh", func(w *world) { w.deps.Store = &failReads{Store: w.probe, ledger: boom}; w.restart() }, "C4b"},
+		{"số liệu", func(w *world) { w.data.factsErr = boom }, "C5"},
+		{"tìm phiếu mở", func(w *world) { w.deps.Store = &failReads{Store: w.probe, open: boom}; w.restart() }, "C5"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w := newWorld(t)
+			c.arm(w)
+			o := w.run(user("p-1", "director", ""), req(81, "EX-03", day1))
+			wantFail(t, o, StatusFailed, ReasonInternalError)
+			if o.Result.Retry != RetryNone || o.Result.HTTPStatus() != 500 {
+				t.Fatalf("lỗi tất định không được khuyên gửi lại: %+v (HTTP %d)", o.Result, o.Result.HTTPStatus())
+			}
+			if strings.Contains(o.Result.Detail, "db-noi-bo") || strings.Contains(o.Result.Detail, "lỗi thô") {
+				t.Fatalf("detail lộ lỗi gốc: %q", o.Result.Detail)
+			}
+			if !errors.Is(o.Cause, boom) {
+				t.Fatalf("lỗi gốc phải nằm ở Outcome.Cause để ghi log: %v", o.Cause)
+			}
+			assertSteps(t, o, c.stop)
+			w.check(tenantA, want{})
+			w.counters(0, 0)
+		})
 	}
 }
 

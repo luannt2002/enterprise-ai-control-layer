@@ -2,9 +2,10 @@
 # prompt của model không bao giờ được dùng để phân quyền.
 # scope: all = xem mọi thực thể; attribute = chỉ thực thể (hoặc con cháu của thực thể)
 # có khoá trong thuộc tính entity_scope của người dùng.
+# tickets.create (tạo phiếu kiểm tra chênh lệch, tools.yaml): chỉ director, accountant, project_manager (Q-P1-1); vai nào có nó phải có cả metrics.read.
 roles:
-  director: {capabilities: [metrics.read, documents.read], scope: all}
-  accountant: {capabilities: [metrics.read], scope: all}
-  project_manager: {capabilities: [metrics.read, documents.read], scope: attribute}
+  director: {capabilities: [metrics.read, documents.read, tickets.create], scope: all}
+  accountant: {capabilities: [metrics.read, tickets.create], scope: all}
+  project_manager: {capabilities: [metrics.read, documents.read, tickets.create], scope: attribute}
   site_engineer: {capabilities: [metrics.read, documents.read], scope: attribute}
   driver: {capabilities: [], scope: attribute}

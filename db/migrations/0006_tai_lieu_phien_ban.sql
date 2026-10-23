@@ -1,4 +1,4 @@
--- 0005 — tài liệu tri thức có phiên bản (nhánh RAG, docs/viec/2-tra-quy-trinh/KE-HOACH.md U6; BR-DOC-01/02/03).
+-- 0006 — tài liệu tri thức có phiên bản (nhánh RAG, docs/viec/2-tra-quy-trinh/KE-HOACH.md U6; BR-DOC-01/02/03).
 -- Trước bản này bảng documents chỉ giữ id / tiêu đề / thân / acl với khoá (tenant_id, id): nạp tài liệu có phiên bản thì bản nháp,
 -- bản hết hiệu lực, bản ngoài phạm vi bị phục vụ như bản chính, còn hai bản cùng mã thì nạp hỏng vì trùng khoá.
 -- Cột mới mang đúng các trường của rag.Document; giá trị mặc định = tài liệu không khai phiên bản (version 0, chưa giới hạn gì),

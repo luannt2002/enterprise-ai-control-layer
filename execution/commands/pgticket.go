@@ -8,8 +8,8 @@ package commands
 // thứ tự đó (sổ lệnh có khoá ngoại thường tới phiếu). Lỗi của đơn vị ghi chỉ có ba loại, và loại nào cũng gắn thêm lỗi gốc bằng %w:
 //
 //	ErrBeforeCommit    biết CHẮC chưa ghi: lỗi một câu lệnh (giao dịch đã huỷ), lỗi kết nối hay hết hạn TRƯỚC khi gửi COMMIT (kể cả
-//	                   khi đang chờ khoá), hoặc COMMIT chưa rời máy (ngữ cảnh đã xong từ trước), hoặc PG trả lỗi không-FATAL cho
-//	                   chính COMMIT;
+//	                   khi đang chờ khoá), hoặc COMMIT chưa rời máy (ngữ cảnh đã xong từ trước), hoặc PG trả lỗi đúng mức ERROR
+//	                   cho chính COMMIT (mức lạ, rỗng hay WARNING ⇒ ErrCommitUnknown — C7);
 //	ErrUniqueViolation SQLSTATE 23505, ở bất cứ câu lệnh nào kể cả COMMIT; giao dịch đã huỷ. Pipeline đọc lại để phân loại (§6.4);
 //	ErrCommitUnknown   từ lúc COMMIT đã gửi đi mà không có câu trả lời "đã huỷ" của PG: lỗi kết nối, backend bị kết thúc, hết hạn.
 //
@@ -81,7 +81,8 @@ const (
 			evidence::text, created_by, pack_version, code_version, command_id
 		FROM discrepancy_tickets WHERE id = $1`
 
-	sqlReadExecuted = `SELECT outcome, reason_code, reason_detail, caller_id, caller_roles, entity_scope, command_id, action,
+	// reason_detail không đọc được bằng vai ứng dụng (migration 0005, C1): đọc lại so mọi cột khác.
+	sqlReadExecuted = `SELECT outcome, reason_code, caller_id, caller_roles, entity_scope, command_id, action,
 			subject_key, metric, to_char(day, 'YYYY-MM-DD'), ticket_id, fingerprint, pack_version, code_version, trace_id
 		FROM audit_log WHERE outcome = 'EXECUTED' AND caller_id = $1 AND command_id = $2 ORDER BY id`
 )
@@ -260,7 +261,7 @@ func (s *PGStore) ReadBack(ctx context.Context, caller, commandID, ticketID stri
 		for rows.Next() {
 			var a Audit
 			var outcome, code string
-			if err := rows.Scan(&outcome, &code, &a.ReasonDetail, &a.Caller.ID, &a.Caller.Roles, &a.Caller.EntityScope, &a.CommandID, &a.Action,
+			if err := rows.Scan(&outcome, &code, &a.Caller.ID, &a.Caller.Roles, &a.Caller.EntityScope, &a.CommandID, &a.Action,
 				&a.SubjectKey, &a.Metric, &a.Day, &a.TicketID, &a.Fingerprint, &a.PackVersion, &a.CodeVersion, &a.TraceID); err != nil {
 				return err
 			}
@@ -319,8 +320,9 @@ func isUniqueViolation(err error) bool {
 	return ok && pe.Code == sqlstateUniqueViolation
 }
 
-// isStatementError báo err là một lỗi mức ERROR do PG TRẢ LỜI cho một lệnh (giao dịch bị huỷ, không có gì được commit), khác với
-// FATAL / PANIC (backend chết) và với lỗi không phải của PG (đứt kết nối, hết hạn).
+// isStatementError báo err là một lỗi mức ERROR do PG TRẢ LỜI cho một lệnh (giao dịch bị huỷ, không có gì được commit). Chỉ đúng
+// mức ERROR (bản không dịch; không có thì bản đã dịch): FATAL / PANIC (backend chết), mức rỗng, mức lạ hay chỉ có bản đã dịch khác
+// "ERROR" đều KHÔNG phải — classifyCommit coi chúng là không biết (C7, lệnh ca chiều 23/10). Lỗi không phải của PG cũng không phải.
 func isStatementError(err error) bool {
 	pe, ok := pgError(err)
 	if !ok {
@@ -330,7 +332,7 @@ func isStatementError(err error) bool {
 	if sev == "" {
 		sev = pe.Severity
 	}
-	return sev != "FATAL" && sev != "PANIC"
+	return sev == "ERROR"
 }
 
 // classifyStatement phân loại lỗi của MỘT câu lệnh trong giao dịch, tức trước khi COMMIT được gửi: chắc chắn chưa ghi (giao dịch chưa
@@ -343,9 +345,9 @@ func classifyStatement(err error) error {
 }
 
 // classifyCommit phân loại lỗi của chính lệnh COMMIT. "Chắc chắn chưa ghi" chỉ khi COMMIT chưa rời máy (notSentYet), khi PG trả tag
-// ROLLBACK, hoặc khi PG trả một lỗi mức ERROR cho COMMIT (giao dịch bị huỷ, ví dụ ràng buộc hoãn, CancelRequest).
+// ROLLBACK, hoặc khi PG trả một lỗi đúng mức ERROR cho COMMIT (giao dịch bị huỷ, ví dụ ràng buộc hoãn, CancelRequest).
 // Mọi lỗi còn lại xảy ra SAU khi COMMIT đã gửi mà không có câu trả lời "đã huỷ" của PG nên không biết: lỗi kết nối, backend bị kết thúc
-// (FATAL), ngữ cảnh hết hạn khi đang đợi.
+// (FATAL), mức nghiêm trọng rỗng hay lạ, ngữ cảnh hết hạn khi đang đợi.
 func classifyCommit(err error) error {
 	switch {
 	case err == nil:

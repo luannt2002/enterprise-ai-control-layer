@@ -24,18 +24,20 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   soạn khác soạn, băm trước khi bản sửa lên main, chạy một lần.
 - **M4**: ADR-0011 CHỐT; bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG bằng cam kết băm (`1ddd10b`, `docs/g7/holdout-p1/holdout-manifest.json`,
   157 ca / 23 lớp) ⇒ đủ điều kiện mở mã. K1 (lõi lệnh `execution/commands`, kho giả) đã gộp (`e1ce950`; soát vòng 2 ĐẠT CÓ GHI CHÚ);
-  K2 (kho PG của phiếu, migration 0004) đã gộp (`d919ebf`; soát ĐẠT CÓ GHI CHÚ); còn K3 (route `cmd/eais`), K4 (vết, bộ chạy ca, đột biến), rồi chạy
-  bộ P1.
+  K2 (kho PG của phiếu, migration 0004) đã gộp (`d919ebf`; soát ĐẠT CÓ GHI CHÚ); K3 (route `POST /v1/commands/<tool>` ở `cmd/eais`) cùng bảy
+  lỗi P2 C1–C7 (migration 0005: vai ứng dụng không đọc được `audit_log.reason_detail`, CHECK tenant không rỗng) đã gộp (`3892be2`; soát lại
+  độc lập ĐẠT CÓ GHI CHÚ, ghi chú M4R-01…08 sửa trước khi gộp); K4 (bộ chạy ca, điểm chèn lỗi, đột biến, demo) đã gộp (`b22e1e6`). **Bộ giữ
+  lại P1 chạy MỘT lần** (23/10 14:29): 153 / 157 đạt, 4 đỏ cùng một lỗi chuẩn hoá (`"≈"` không nhận là dấu ước lượng ⇒ phiếu mất cờ `approx`);
+  X1, X5 ĐỎ ⇒ M4 CHƯA RA; phân tích `docs/g7/holdout-p1/ket-qua-p1/phan-tich.md`, câu Q-P1-15.
 - **M2**: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10: giấy tối đa 3 vòng soát); R6-01, R6-02 thành nợ có mã, chặn bằng test đỏ trong mã Phase 0a.
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
   đo đã khoá); Vết: vế ≥ 90% KHÔNG ĐẠT.
-- Cổng cuối (cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit D-OP-9 (a'); sau đó chỉ đổi tài liệu), lúc 23/10 12:03, database PG
-  riêng `lead_s2g`, 5 agent chạy song song: `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...`
-  có PG: **1062** test pass, 0 fail, 0 skip — so theo tên với cổng K2 (`d919ebf`, 1054): 0 đổi, 0 mất, 8 mới; `python3 -I
-  scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4
-  103/119** (hai đường giống nhau) — mốc so: đầu ra cổng K2 (`d919ebf`); khác đúng 3 ca, đều có chủ ý theo D-OP-9 (a'): WIN-I-264, 509, 717
-  (nhóm nghìn không đứng đầu câu ⇒ hỏi lại). CI GitHub: chờ lượt của commit gộp.)
+- Cổng cuối (cổng §6 ở cây tích hợp `32f4930` = main `d614395` + 15 commit 5b / 5c (11 cherry-pick + 4 sửa theo soát lại); sau đó chỉ đổi tài
+  liệu; lúc 23/10 14:49, database PG riêng `lead_5bcf`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp;
+  `go test -count=1 -json ./...` có PG: **1956** test pass, 0 fail, 0 skip — so theo tên với cổng `b22e1e6` (1942): 0 đổi, 0 mất, 14 mới;
+  `python3 -I scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134,
+  H4 103/119** (hai đường giống nhau) — mốc so: đầu ra cổng `b22e1e6`; 0 dòng khác ở cả 7 tệp. CI GitHub: chờ lượt của commit gộp.
 
 ## Tiến độ WIN MVP: trên bộ giữ lại độc lập H1 và H3, phần ca của G1–G5 KHÔNG ĐẠT — CHƯA phải WIN
 

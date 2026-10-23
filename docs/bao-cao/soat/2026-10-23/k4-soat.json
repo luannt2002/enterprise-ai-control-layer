@@ -1,0 +1,101 @@
+{
+ "soat": {
+  "ket_luan": "ĐẠT CÓ GHI CHÚ. Không có S1 (bộ chạy không báo ĐẠT cho ca lẽ ra ĐỎ, không đếm sai phiếu, không để lọt rò tenant ở nền PG; không đọc/chạy bộ giữ lại). Có 2 S2 mà tác giả đã tự khai và tôi xác nhận độc lập (F8 chưa nối mã thật; M5 không làm A01/A21 đỏ như §11.2 đòi), 6 S3 và nhóm S4. Bằng chứng chính: [ĐO] 48 ca RIÊNG của tôi (34 ca đúng, 8 ca sai có chủ ý, 4 ca sai hình dạng, 2 ca không khẳng định gì) chạy trên bộ nhớ và PostgreSQL: 0 lệch kỳ vọng; ca sai đỏ đúng từng khẳng định sai; lặp 10 lần không chập chờn. [ĐO] F7 song song thật: số lời gọi ĐỒNG THỜI tối đa trong kho gốc = N (N = 2, 4, 8) trên cả hai nền, cửa sổ vào kho 0,5 đến 130 microgiây; không đủ N tới rào thì ca ĐỎ sau 5 giây. [ĐO] Danh mục đột biến của tác giả chạy lại: 29 đúng chỗ, 0 sống sót, 0 khác, 3 chờ K3, cả trên nhánh K4 (446 giây) lẫn trên main mới f3e4c72 + K4 gộp thử; 14 đột biến của danh mục (M1, M2, M3, M4, M6, M7, M9a, M12, M13, M14, M19, M20, M21, M26) đỏ đúng lớp §11.2 trên bộ ca RIÊNG của tôi; 3 dòng CHỜ K3 bật được trên main mới và bị bắt đúng test của K3. [ĐO] Cổng: gofmt rỗng; go vet (thường và -tags giulai) sạch; go test so THEO TÊN với origin/main: không PG 1032 (960 pass, 72 skip) lên 1416 (1341 pass, 75 skip), 0 mất, 0 đổi, 384 mới, 3 SKIP mới là test PG khi thiếu DSN; có PG 1062 lên 1784 pass, 0 skip; kiem-skip-test XANH; trên main mới f3e4c72 + K4: không PG 1157 lên 1541, có PG 1187 lên 1909, 0 mất 0 đổi, XANH. [ĐO] demo-m4.sh: sáu bước đúng, 1 phiếu OPEN, trên cây gộp K3+K4 và trên main mới + K4; K4 đơn dừng ở bước 3 với lời nói rõ; thiếu DSN thoát 2. Số đo thời gian chỉ để tham khảo: lúc phóng có 5 agent (theo lệnh điều phối), ps lúc đo thấy 2 tiến trình claude, load average dao động 1,3 đến 12 vì máy dùng chung (agent khác chạy go test và đột biến song song). Điều kiện trước khi chạy bộ giữ lại: sửa hoặc chấp nhận S2 theo đề xuất, gộp main vào nhánh K4 (gộp thử không xung đột, không rebase), bật 3 dòng CHỜ K3.",
+  "phat_hien": [
+   {
+    "ma": "K4S-01",
+    "muc": "S2",
+    "mo_ta": "F8 (trace_save_fail) chưa bắn ở chỗ lưu vết thật: ca A29e chỉ kiểm sổ sách của chính bộ chạy (tự hoàn thành), không chứng minh gì về mã sản xuất. Tác giả khai là NỢ; sau khi K3 vào main thì nợ đến hạn.",
+    "bang_chung": "[CODE] bochay_test.go execute(): r.saver là faultTraceSaver bọc memTraceSaver; khi Save lỗi, chính bộ chạy gán TraceID rỗng và tăng traceSaveFailures, không dòng mã sản xuất nào phản ứng. [CODE] persistTrace thật ở cmd/eais/server.go (nay có trên main f3e4c72) không đi qua bộ chạy. [SUY] không đột biến nào của pipeline làm A29e đỏ. [ĐO] M25a và M25b (đang comment trong danh mục) bật được trên main mới và bị bắt đúng bởi TestLenhHTTPMatVetKhongDoiKetQua và TestLenhHTTPVet|TestLenhHTTPKetCuc của K3: bằng chứng thật của A29 (e) là test của K3, không phải bộ chạy.",
+    "de_xuat": "Không ghi F8 là 'đã bắn đúng chỗ' trong bảng bằng chứng X4 và X9 cho tới khi faultTraceSaver được nối vào persistTrace (cần một seam ở cmd/eais, ngoài write-set K4: giao làn K3 hoặc cmd/eais); trong lúc chờ ghi rõ A29 (e) do test của K3 đo. Bật 3 dòng CHỜ K3 của danh mục (neo còn đúng 1 lần trên main mới)."
+   },
+   {
+    "ma": "K4S-02",
+    "muc": "S2",
+    "mo_ta": "M5 (đặt tra sổ lệnh sau R5) không làm A01 và A21 đỏ như §11.2 và §11.4 (X1, X3) đòi; dòng danh mục phải khẳng định một test khác. Tác giả đã khai; tôi xác nhận độc lập. Mâu thuẫn nằm ở hợp đồng (lần tra lại sổ lệnh của R5 từ K1v2 che thứ tự), không ở bộ chạy.",
+    "bang_chung": "[ĐO] danh mục chạy lại (nhánh K4 và main mới + K4): M5 BỊ BẮT bởi TestStepFaultMangNhanThatCuaThanhPhanHong cùng hàng chục test K1 (TestA03CungKhoaKhacNoiDung, TestR4DungTruocR5..., TestA13YeuCauSai...), KHÔNG ca nào của bộ chạy. [ĐO] trên bộ ca RIÊNG của tôi (34 ca đúng, cả hai nền): đổi thứ tự C4b và C5 cho 0 ca đỏ, kể cả A01, A21; M5b (C4b không tra gì) đỏ đúng A03 ở write_unit_calls.",
+    "de_xuat": "Chủ dự án quyết định sửa §11.2 cột M5 và §11.4 (hàng X1, X3 liệt kê M5) theo đề xuất của tác giả (M5 do test thứ tự nhãn lỗi của K1, M5b do A03), hoặc bỏ lần tra lại ở R5 nếu muốn M5 phải đỏ ở A01 và A21. Cho tới khi sửa, báo X8 kèm ngoại lệ M5 chứ không báo 'M1–M26 đều làm một ca của bộ chạy đỏ'."
+   },
+   {
+    "ma": "K4S-03",
+    "muc": "S3",
+    "mo_ta": "Lỗi evals.Validate (thiếu khoá, khoá lạ, id trùng) làm test con hinh_dang_tep đỏ và go test thoát khác 0, nhưng báo cáo text và JSON theo ca vẫn ghi các ca đó 'ok' và cổng X không đổi: trái chữ §12.1 ('ca sai hình dạng là ca ĐỎ') ở mức báo cáo.",
+    "bang_chung": "[ĐO] tệp 3 ca (1 xanh, 1 thiếu khoá severity, 1 khoá lạ): JSON by_case ok=true cho cả ba, text 'TỔNG: 3 ca, 0 đỏ'; chỉ có dòng 'evals.Validate: ca #2 ... thiếu khoá severity' trong t.Errorf và FAIL của hinh_dang_tep. Ca khoá lạ vẫn được chạy.",
+    "de_xuat": "Đưa cs.Problems vào chayReport, đánh dấu ĐỎ đúng ca theo id và không chạy ca đó; hoặc gom: có Problems thì mọi cổng ghi ĐỎ."
+   },
+   {
+    "ma": "K4S-04",
+    "muc": "S3",
+    "mo_ta": "Ca không khẳng định gì (expected_state và expected_output_properties là null, {} hoặc []) vẫn ĐẠT với 0 khẳng định: test không chứng minh.",
+    "bang_chung": "[ĐO] hai ca CON-T-401 (khoá {}), CON-T-402 (null): subtests=0, ca cha pass, cả hai nền; lớp A01 tính đạt.",
+    "de_xuat": "Ca không có khẳng định nào là lỗi hình dạng (ĐỎ), cùng chỗ với kiểm hình dạng hiện có."
+   },
+   {
+    "ma": "K4S-05",
+    "muc": "S3",
+    "mo_ta": "Test AST TestBoChayKhongReNhanhTheoMaCa chỉ bắt phép so sánh Scenario với chuỗi literal trong hai tệp; lách được bằng bốn cách nên lời khai 'có test AST canh' nói quá. Đọc tay execute/evaluate: không thấy rẽ nhánh theo mã ca.",
+    "bang_chung": "[ĐO] đối chứng dương if pc.Scenario == \"A01\" bị bắt; test vẫn PASS khi chèn: switch pc.Scenario {case ...}, strings.HasPrefix(pc.Scenario, ...), biến cục bộ sc := pc.Scenario rồi so sánh, và rẽ nhánh ở tệp bochay_phattrien_test.go (không được quét). [CODE] Scenario chỉ dùng cho tên test con, bảng lớp và cổng (finish), không ở execute/evaluate.",
+    "de_xuat": "Mở rộng: quét mọi tệp bochay*, cấm SwitchStmt trên Scenario/ID, cấm Scenario truyền vào hàm so chuỗi và gán sang biến; hoặc hạ lời khai thành 'lưới thô' và dựa vào soát tay."
+   },
+   {
+    "ma": "K4S-06",
+    "muc": "S3",
+    "mo_ta": "F6 readback_stale chỉ trả 'thiếu' (rỗng), chưa có biến thể 'lệch dòng' mà §10 nêu; đột biến đọc lại yếu hơn (bỏ so một trường) không bị ca nào của bộ chạy bắt.",
+    "bang_chung": "[ĐO] đột biến verifyFresh bỏ so trường diff ({\"diff\", true}): danh mục của tác giả cho 'ĐỎ SAI CHỖ' (chỉ TestDocLaiPhieuMoiLechDungMotChoThiVerifyMismatch, TestPGA23DocLaiHong của K1 và K2 đỏ, A23 của bộ chạy xanh); 0 ca đỏ trên bộ ca RIÊNG của tôi. [CODE] faultStore.ReadBack stale trả Stored{}.",
+    "de_xuat": "Thêm chế độ lệch trường vào faultStore.ReadBack (trả bản đọc có một trường khác) cho readback_stale hoặc luân phiên theo thứ tự; thêm dòng đột biến 'đọc lại bỏ so trường' vào danh mục."
+   },
+   {
+    "ma": "K4S-07",
+    "muc": "S3",
+    "mo_ta": "A25 (2) 'số phiếu = 0' đếm trên một memStore mới không nối với luồng hỏi nên luôn 0 (rỗng); chỉ A25 (1) và M18 là thật. A25 (3), A24 (phép đếm model) và A27 chưa có phép đo (tác giả đã khai).",
+    "bang_chung": "[CODE] a25_test.go: store := newMemStore() không được truyền vào pipeline.Ask; ghi chú trong tệp tự nói 'luồng hỏi không có đường nào tới nó'. [ĐO] M18 và M17 bị bắt đúng (TestA25..., TestA24VaRangBuocImport).",
+    "de_xuat": "Ghi rõ trong bằng chứng: A25 (2) và A24 được bảo đảm bằng ranh giới import, không bằng phép đếm; hoặc đếm ở kho PG thật qua handler /v1/ask của cmd/eais. Làm A25 (3) và A27 theo mốc §10 ở bước cổng."
+   },
+   {
+    "ma": "K4S-08",
+    "muc": "S3",
+    "mo_ta": "Cả bộ phát triển của tác giả lẫn bộ của tôi thiếu ca 'cùng máy, khác ngày, khác khoá lệnh: cả hai đều DONE'; đột biến R5/FindOpenTicket bỏ điều kiện ngày chỉ bị test của K2 bắt.",
+    "bang_chung": "[ĐO] sqlFindOpenTicket đổi 'day = $3::date' thành '$3::date IS NOT NULL': danh mục của tác giả báo bị bắt chỉ bởi TestPGTicketTimSoLenhVaPhieuMo; 0 ca đỏ trên bộ ca RIÊNG của tôi.",
+    "de_xuat": "Thêm một ca A04-biến thể (EX-03 ngày 19 và ngày 18, khác khoá, đều DONE, tickets_open 2) vào bộ phát triển; báo cho người soạn bộ giữ lại ở mức lớp ca (không đụng nội dung bộ giữ lại)."
+   },
+   {
+    "ma": "K4S-09",
+    "muc": "S4",
+    "mo_ta": "Nhóm nhỏ: (i) policy-them.yaml vẫn được nạp nếu thư mục overlay có nó dù chú thích nói bộ giữ lại không dùng; (ii) khoá caller của ca một lời gọi là p-<vai>, §12.1 không nêu nên không so được (đã khai); (iii) demo bước 2 và 4 chỉ in bảng vết, không khẳng định số bước hay 'không có bước lệch' (chỉ eais trace thoát 0); (iv) scenario ngoài bảng cổng (A29e, gõ nhầm A02B) không đổi trạng thái X1–X9, chỉ vào dòng TỔNG; (v) tệp ca được đọc ba lần (băm, loadCaseSet, buildWorlds): TOCTOU nhỏ; (vi) reload_before nền bộ nhớ là không đổi (đã khai); (vii) 3 test PG mới SKIP khi thiếu DSN, cùng quy ước K2, kiem-skip-test coi SKIP là đỏ nên CI có PG xanh.",
+    "bang_chung": "[CODE] buildWorlds đọc policy-them.yaml khi overlay có; parseInput đặt ID p-<vai>; demo-m4.sh bước 2 và 4. [ĐO] demo: bước 4 in 9 bước C0..C7 và 'Không có bước lệch' nhưng script không so. [ĐO] +3 SKIP khi không PG, 0 SKIP khi có PG.",
+    "de_xuat": "Để dành: bỏ policy-them.yaml khỏi thư mục dùng cho cổng; thêm grep số bước vào demo; chốt quy ước ID người gọi của ca một lời gọi trong §12.1 nếu ca giữ lại cần khoá caller."
+   },
+   {
+    "ma": "K4S-10",
+    "muc": "S4",
+    "mo_ta": "Danh mục đột biến cần mutate.sh bản mới (MUTATE_TEST_MUON, --nen) mới có trên nhánh m1/sua-5abc, chưa có trên main f3e4c72; ba dòng M9h, M25a, M25b còn tắt bằng dấu # dù K3 đã vào main.",
+    "bang_chung": "[ĐO] scripts/mutate.sh của main mới: 0 lần MUTATE_TEST_MUON, 0 lần --nen; danh mục vẫn chạy với bản cũ (M6, M21 ĐÚNG CHỖ) nhưng không có 'ĐỎ SAI CHỖ' cứng. [ĐO] trên main mới + K4, mutate.sh bản mới: M9h bị bắt bởi TestLenhHTTPThanSai và TestLenhHTTPTenTruongLaDuocCat; M25a bởi TestLenhHTTPMatVetKhongDoiKetQua; M25b bởi nhóm TestLenhHTTPVet|TestLenhHTTPKetCuc (neo khớp đúng 1 lần).",
+    "de_xuat": "Gộp mutate.sh bản mới vào main trước khi chạy X8; bỏ dấu # ba dòng, đặt PKGS=./cmd/eais/ khi chạy chúng."
+   },
+   {
+    "ma": "K4S-11",
+    "muc": "S4",
+    "mo_ta": "Tích hợp: nhánh K4 dựa trên d581899, main đã sang f3e4c72 (có K3 và các sửa M4R). Gộp thử không xung đột; pack mặc định nay có tools.yaml và tickets.create nên cổng giulai chạy không cần overlay.",
+    "bang_chung": "[ĐO] cây thử gộp main f3e4c72 + K4 (không commit): git merge không xung đột; go vet và go vet -tags giulai sạch; go test có PG ok (cmd/eais 33 giây, execution/commands 11 giây); 48 ca của tôi chạy KHÔNG overlay: 0 lệch ở cả hai nền; danh mục 29 đúng chỗ, 0 sống sót; so theo tên với main f3e4c72: 0 mất 0 đổi. [REPO] diff nhánh chỉ gồm _test.go mới, testdata/chay, scripts/demo-m4.sh, scripts/dot-bien/m4-phieu-chenh-lech.sh (14 tệp, 3961 dòng): đúng write-set; không có đường dẫn máy, bí mật, hay nhắc đường bộ giữ lại.",
+    "de_xuat": "Merge main vào nhánh K4 (không rebase, không force) hoặc gộp K4 vào main rồi chạy lại các cổng; số đo tích hợp ở trên dùng làm đối chiếu."
+   }
+  ],
+  "da_dong": [
+   "Dọn xong: gỡ 8 worktree riêng (tiền tố k4bs), không đụng worktree của tác giả hay cây chính (HEAD cây chính vẫn f3e4c72, trạng thái sạch).",
+   "Dọn xong: DROP toàn bộ 9 database tiền tố k4bs_ (kể cả database tạm của test và k4bs_mut_dotbien, k4bs_trial_dotbien); còn 0 database tiền tố k4bs.",
+   "Dọn xong: xoá 65 tệp và thư mục tạm tiền tố k4bs- trong thư mục tạm của phiên; không còn tiến trình nền của tôi.",
+   "Đã kiểm ĐÚNG lời khai tác giả: write-set (14 tệp, 3961 dòng); gofmt, go vet thường và giulai; so theo tên 0 mất 0 đổi (384 mới không PG, 722 mới có PG); kiem-skip-test XANH; danh mục 29 đúng chỗ, 0 sống sót, 0 khác, 3 chờ K3; demo sáu bước; bộ chạy từ chối khi băm lệch, thiếu băm là đỏ, nền pg thiếu DSN là đỏ.",
+   "Đã kiểm ĐÚNG: điểm chèn lỗi F1, F2, F3, F4, F5, F6, F7 bắn đúng chỗ, đúng một lần, cho lời gọi đầu tiên ĐI TỚI điểm (có ca lời gọi bị chặn trước ở C4 và kết cục vẫn đúng cả hai nền); mỗi ca bắt đầu sạch (ca thăm dò dư lượng xanh; bỏ reset thì ca đỏ); đếm bằng kết nối quản trị riêng (PG) và cross_tenant_rows bắt được rò khi nới RLS (được 4, muốn 0).",
+   "Đã kiểm: go test -race trên test mới (cả PG): sạch; lặp 15 lần test mới có PG và 10 lần cổng giulai của tôi: không chập chờn."
+  ],
+  "khong_kiem_duoc": [
+   "Bộ giữ lại độc lập P1: không đọc, không chạy (đúng luật). Chưa biết bộ chạy xử lý ra sao tệp ca và tệp thế giới bổ sung thật (rủi ro U11: bộ sinh cần R-001 và R-004; hình dạng ca; khoá caller của ca một lời gọi). Tôi dùng tệp thế giới phát triển của tác giả làm fixture nên chỉ độc lập ở tệp ca và kỳ vọng, không độc lập ở tính chất dữ liệu.",
+   "Lớp ca ngoài khuôn §12.1: A11, A12, A24 (phép đếm model), A25 (3), A26, A27, A28, A29 không có kết quả từ bộ chạy; X6, X7, X9 chỉ có test Go riêng hoặc test của K3. Cổng X7 (so hai commit đường hỏi 117/H1/H3/H4) tôi không chạy.",
+   "F3 và F5 là mô hình ở lớp bọc Store (commit thật rồi báo lỗi; giữ cả đơn vị ghi), không phải lỗi mạng thật ở ranh giới COMMIT; phần đó do TestU1RanhGioiCommit của K2 đo (chạy trong gói đầy đủ, tôi không đo riêng).",
+   "Cách ly tenant ở nền bộ nhớ bằng 0 theo cấu trúc kho giả; chỉ nền PG kiểm RLS thật. reload_before ở nền bộ nhớ không đổi dữ liệu.",
+   "Không đo hiệu năng hay độ trễ: thời gian ghi chỉ để tham khảo vì máy dùng chung (load average 1,3 đến 12, agent khác chạy song song). Không kiểm N song song lớn hơn 8 trên PG; chỉ một seed (42); dữ liệu giả lập mức D1, chưa có người nghiệp vụ duyệt.",
+   "Kết quả 'ĐỎ SAI CHỖ' của đột biến phụ thuộc mutate.sh bản mới lấy từ nhánh m1/sua-5abc (chưa gộp); với bản cũ chỉ kiểm mẫu trên danh sách test đỏ.",
+   "Chưa chạy đột biến M1–M26 trên bộ giữ lại (không có); đột biến của tôi và của tác giả đều đo trên bộ phát triển hoặc bộ ca riêng của người soát."
+  ]
+ }
+}

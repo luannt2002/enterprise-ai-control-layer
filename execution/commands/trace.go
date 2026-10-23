@@ -37,7 +37,7 @@ func NewRecord(req Request, out Outcome, pr contracts.Principal, now time.Time, 
 		d.Evidence = []string{}
 	}
 	if out.Question != "" { // thân đọc được: có các tham số của lệnh
-		d.Slots = []string{"metric=" + clean(req.Metric), "day=" + clean(req.Day)}
+		d.Slots = []string{"metric=" + echo(req.Metric), "day=" + echo(req.Day)} // echo: giá trị dài không đi nguyên vào vết bền (soát lại M4, M4R-01)
 	}
 	if out.Entity != "" {
 		d.Entities = []string{out.Entity}

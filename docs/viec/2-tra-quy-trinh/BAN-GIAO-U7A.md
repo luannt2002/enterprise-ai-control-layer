@@ -31,6 +31,8 @@
 
 | `platform/pgstore/pgstore.go` (`Retrieve`) | chỉ mục tri thức giữ sẵn theo tenant, dựng lại khi dấu nạp đổi (xmin của dòng `documents` + số dòng — lần nạp từ tiến trình khác cũng đổi dấu); quyền đọc từng tài liệu (ACL, phạm vi) do chỉ mục xét cho từng lượt, SQL không còn lọc `acl && vai` (RLS theo tenant vẫn ở SQL) | 437 ms → 22 ms mỗi câu ở ~1.000 tài liệu; test `TestChiMucGiuSanKhongCu` (nạp lại cùng / khác tiến trình không trả dữ liệu cũ) |
 
+| `cmd/eais/rag_e2e_test.go` (test mới trong gói của team) | luồng RAG trọn qua ứng dụng: tài liệu có phiên bản trong thư mục dữ liệu → nạp → PG → `/v1/ask` theo token (director, kỹ sư PRJ-A / PRJ-B) → `/v1/trace`; nạp lại qua `POST /v1/ingest` | cần PG như TestServer; 4 đột biến (vùng đệm không dựng lại, bỏ chủ đề, PG bỏ trạng thái, vết không ghi thông báo) đều bị bắt |
+
 **Ráp lên `baaf834` (23/10 11:1x):** 4 tệp giao nhau (`contracts.go`, `ask.go` ráp tự động; `migrate_test.go`, `vet_test.go` xung đột đúng một dòng danh sách migration). Migration RAG đổi `0004` → `0005` vì team đã dùng 0004 cho phiếu. Cổng của bản ráp: 1.109 test pass (1.054 của team + 55 của RAG), so theo tên với `baaf834` 0 mất / 0 đổi; winreport 117 / H1 / H3 / H4 hai đường 0 dòng khác; smoke 21/21.
 
 **Vận hành:** chỉ nạp tài liệu có phiên bản khi mọi binary trước U6a đã dừng — binary cũ đọc bảng mới nhưng bỏ qua cột trạng thái / hiệu lực / phạm vi, sẽ phục vụ bản nháp như bản chính. Không có migration ngược.

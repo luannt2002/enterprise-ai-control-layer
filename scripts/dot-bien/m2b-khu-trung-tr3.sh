@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Danh mục đột biến của gói execution/reports (Phase 0a, khối M2, bước 2 đến 3b và kho PG): kho bản ghi, sổ lần giao, TR1, TR2, TR3, quyết định của người, bản rời nhóm (R6-01, R6-02),
-# khoá tuần tự hoá, lược đồ PostgreSQL. Đối chiếu HOP-DONG 0a §11.3: DB05, DB07, DB26 đến DB36 và các đột biến của bất biến BB1, BB2, BB3, BB4, BB8; mã M01..M33 và S1..S8 là mã của danh mục này.
+# khoá tuần tự hoá, lược đồ PostgreSQL. Đối chiếu HOP-DONG 0a §11.3: DB05, DB07, DB26 đến DB36 và các đột biến của bất biến BB1, BB2, BB3, BB4, BB8; mã M01..M34 và S1..S8 là mã của danh mục này.
 # Mỗi đột biến sửa MỘT chỗ ở MỘT tệp (scripts/mutate.sh: chuỗi gốc phải xuất hiện đúng 1 lần, tệp luôn được khôi phục) rồi chạy test của gói. "ĐÚNG CHỖ" nghĩa là: có test đỏ VÀ mỗi mẫu "phải thấy"
 # khớp ít nhất một tên test đỏ (mẫu là biểu thức chính quy ERE khớp tên test, kể cả test con). Đỏ mà thiếu một mẫu là "khác"; không test nào đỏ là "SỐNG SÓT"; đỏ sai chỗ là "khác".
 #
@@ -69,6 +69,11 @@ mm M01 "DB07 bỏ TR3 (nghi trùng)" $R/tr3.go 'TestLC24' 'TestLC25' 'TestR601_P
 				if p != nil && r.SentAt.Sub(p.SentAt) <= w && !r.reviewedWith(p.Key) {
 === ĐỘT BIẾN ===
 				if false && p != nil && r.SentAt.Sub(p.SentAt) <= w && !r.reviewedWith(p.Key) {
+EOF
+mm M34 "DB06 TR3 bỏ cửa sổ W: gộp oan hai tin cùng giá trị cách xa nhau" $R/tr3.go 'TestLC26' 'TestLC25' <<'EOF'
+				if p != nil && r.SentAt.Sub(p.SentAt) <= w && !r.reviewedWith(p.Key) {
+=== ĐỘT BIẾN ===
+				if p != nil && !r.reviewedWith(p.Key) {
 EOF
 mm M02 "DB27 không đánh giá lại bản đã có khi bản gửi sớm hơn đến muộn" $R/tr3.go 'TestLC75_BanGuiSomDenMuon' 'TestLC63' <<'EOF'
 				if p != nil && r.SentAt.Sub(p.SentAt) <= w && !r.reviewedWith(p.Key) {

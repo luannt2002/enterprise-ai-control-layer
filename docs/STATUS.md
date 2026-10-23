@@ -17,7 +17,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   không lấy tenant từ thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`,
   kể cả lượt lỗi; một lệnh `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21; từ chối dùng lại PG đang chạy trừ khi `EAIS_REUSE_PG=1`, và
   từ chối khi compose project đã có container chạy / tạm dừng); `code_version` của vết là mã git, giá trị nhúng bằng `-ldflags`, hoặc băm của
-  binary; CI GitHub có PG, cấm SKIP. Tiếp: R2-03 vòng 4 (an ninh) → gộp → đo lại trên bộ thẻ mới chia đều theo tầng, có ca xanh đối chứng.
+  binary; CI GitHub có PG, cấm SKIP; vết xuất lý do và phương án đã xét ở S2–S5, S7, cổng phán quyết (R2-03, `5fd463f`). Tiếp: đo lại trên bộ
+  thẻ mới chia đều theo tầng, có ca xanh đối chứng.
 - **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu
   sai nghĩa không nhãn). Chủ dự án 23/10: D-AI-02 = a — vòng sửa S4 bằng luật đang chạy (gộp D-OP-18 = c, D-OP-11 = b); chấm trên H6 do người
   soạn khác soạn, băm trước khi bản sửa lên main, chạy một lần.

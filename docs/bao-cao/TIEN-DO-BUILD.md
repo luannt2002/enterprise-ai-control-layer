@@ -6,12 +6,12 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 10:08, ca 23/10 (09:00 → 21:30) sau lời chủ dự án 23/10 · **HEAD:** commit chứa dòng này (mã giống `7101b6a`;
+- **Cập nhật lúc:** 23/10/2026 10:14, ca 23/10 (09:00 → 21:30) sau lời chủ dự án 23/10 · **HEAD:** commit chứa dòng này (mã giống `7101b6a`;
   sau đó chỉ đổi tài liệu).
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Từ 23/10, `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của
   cổng ra (chủ dự án 23/10).
-  - M1 **CHƯA RA** — phần chạy đạt (smoke, CI có PG, vết bền); vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 vòng 4 (an ninh) đang soát; sau khi gộp:
-    đo lại trên bộ thẻ mới chia đều theo tầng, có ca xanh đối chứng.
+  - M1 **CHƯA RA** — phần chạy đạt (smoke, CI có PG, vết bền); vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 (vết xuất lý do và phương án đã xét)
+    đã gộp (`5fd463f`); tiếp: đo lại trên bộ thẻ mới — ca đỏ gieo lỗi chia đều 8 tầng, ca xanh đối chứng, người đọc mới.
   - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 bằng luật đang chạy (gộp D-OP-18 = c, D-OP-11 = b); chấm trên H6 (bộ đồ nghề đã dựng; người soạn
     chạy khi có chỗ), băm H6 trước khi bản sửa S4 lên main.
   - M4: bộ ca P1 đóng băng, ADR-0011 CHỐT; K1 soát vòng 1 KHÔNG ĐẠT (0 S1, 2 S2), đang sửa vòng 2; K2 (kho PG, migration 0004) đang viết.
@@ -19,7 +19,7 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     (bộ ca băm trước khi mã lên main).
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm; S7 NGOÀI MVP
     ("MVP không gồm câu hỏi quy trình (RAG)"); S9 chưa có bộ ca độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
-- **Đang làm** (tối đa 5 agent): R2-03 vòng 4 (soát), K1 vòng 2 (tác giả), K2 (tác giả), vòng sửa S4 (tác giả), người soạn H6 phần A1. `flock` vòng 2 đã gộp (`c97a989`). Nhánh
+- **Đang làm** (tối đa 5 agent): K1 vòng 2, K2, vòng sửa S4, người soạn H6 phần A1 và A2. Đã gộp hôm nay: `flock` (`c97a989`), R2-03 (`5fd463f`). Chờ soát độc lập: 5a che bí mật hai dạng (nhánh `m1/che-bi-mat-5a`). Nhánh
   máy push lên origin từ 23/10 (nhánh riêng, không main; chậm nhất 2 giờ một lần).
 - **Xong từ lần trước:** câu trả lời 23/10 ghi vào `CHO`; luật làm việc mới vào brief §9.10; nhãn khớp số (STATUS, CONG-TRUOC-AI, đính chính
   báo cáo ca 22/10); giấy M2 vòng 7 dừng (nhánh `m2/phase0a-vong7-bo`, không gộp); 7 nhánh máy đã push.
@@ -102,3 +102,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 10:4x | commit chứa dòng này | Nhãn khớp số theo lời chủ dự án 23/10: M1 CHƯA RA (§5b); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm; G1 KHÔNG ĐẠT 2.736/2.739; L1 KHÔNG ĐẠT; S7 ngoài MVP; "0 đổi theo tên; kỳ vọng đổi có chủ ý ở `f0e1e93`, `723a570`" (kiểm: hai commit đó sửa `claim_test.go`, `pipeline_cong_phan_quyet_test.go`, `construction_test.go`); đính chính ở báo cáo ca 22/10 | — | Không đổi mã |
 | 23/10 10:0x | `7ce6095`, `f4565d0`, `d455720`, `c97a989` | M1: khoá `flock` theo dự án cho `scripts/chay-thu.sh` (R5-01, R5-02; vòng 2 R6-01…05) gộp lên main bằng cherry-pick (nhánh đã push nên không rebase); hai sửa chữ R7-01, R7-02 mỗi cái một commit | Soát vòng 2 ĐẠT (0 S1 / S2 / S3, 3 S4). Cổng §6 của điều phối trên cây tích hợp: vet 0, gofmt 0, test có PG 639 → 648 (theo tên 0 đổi / 0 mất / 9 mới — đúng các ca khoá), kiem-skip XANH, 117 / H1 / H3 / H4 hai đường 0 dòng khác; quét riêng tư sạch | Commit vòng 2 gom R6-01…05 vì làm trước luật "một phát hiện một commit" (23/10); nhánh `m1/r5-01-flock` đã xoá (git cherry: 2 / 2 đã có trên main) |
 | 23/10 10:08 | (đính chính) | Giờ ghi ở các dòng 23/10 phía trên là ước, đi trước giờ thật. Giờ commit thật: `a9ce6ed` 09:42, push 7 nhánh 09:52, `cb54bc8` 09:58, `51eb393` 09:59, `8fabf33` 10:02, `146c2b0` 10:03 (`git log --date=format:%H:%M`) | — | Từ nay ghi giờ bằng `date` lúc viết |
+| 23/10 10:13 | `07d6665`, `00536bb`, `4307d9b`, `d03f2b5`, `5fd463f` | M1 R2-03: vết xuất đầu vào quyết định, phương án đã xét và lý do bị loại ở S2, S3, S4, S5, S7 và cổng phán quyết; chữ của người hỏi qua một hàm (Quote), trần độ dài vết; vòng 4 (ngoại lệ an ninh N1'): cổng giữ chữ nhìn cả câu gốc lẫn câu đã gấp ký tự; chú thích WithholdQuoted sửa theo V4-1 (commit riêng) | Soát vòng 4 ĐẠT (46.880 câu qua pipeline, 8.400 câu dài, 4.262 câu qua HTTP: 0 chỗ lọt mới ở câu bộ che nhận ra; trước sửa 2.794 / 11.029 lọt); cổng §6 của điều phối trên cây tích hợp: vet 0, gofmt 0, test có PG 648 → 760 (theo tên 0 đổi / 0 mất / 112 mới), kiem-skip XANH, 117 / H1 / H3 / H4 hai đường 0 dòng khác | Nợ: V4-1 (có sẵn trên main, an ninh: bí mật chỉ nhận ra ở dạng đã gấp ký tự còn nguyên ở Decision.Question, S0 / S2 input) ⇒ xếp làm 5a(3); N3' (trần độ dài), N5 / N6, N7, V4-2. Bốn commit vòng gộp nhiều phát hiện vì làm trước luật "một phát hiện một commit" |

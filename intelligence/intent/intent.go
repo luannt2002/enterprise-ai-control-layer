@@ -246,6 +246,29 @@ func (u Unclear) Any() bool { return len(u.Entities)+len(u.Periods)+len(u.Invali
 // Classify chạy luật trên đầu vào đã chuẩn hoá và đã nhận dạng thực thể.
 // Không khớp ý định nào → Intent.Name rỗng.
 func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
+	r := s.classify(in, res, now)
+	// N1 (ADR-0010 bất biến (c)): câu hỏi lại vì hoà ý định hay thiếu thuật ngữ mà câu còn bí danh mơ hồ thì mang cả ứng viên của bí danh — người
+	// hỏi trả lời cả hai điều một lượt; bỏ rơi ứng viên là chỉ hỏi nửa câu.
+	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {
+		r.Candidates = aliasCandidates(res)
+	}
+	return r
+}
+
+// aliasCandidates trả ứng viên của mọi bí danh mơ hồ trong câu, mỗi thực thể một lần, theo thứ tự nhắc.
+func aliasCandidates(res contracts.Resolution) []contracts.EntityRef {
+	var out []contracts.EntityRef
+	for _, m := range res.Ambiguous {
+		for _, c := range m.Candidates {
+			if !slices.ContainsFunc(out, func(o contracts.EntityRef) bool { return o.ID == c.ID }) {
+				out = append(out, c)
+			}
+		}
+	}
+	return out
+}
+
+func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
 	counts, firsts := keywordHits(s.defs, in.Raw, s.opt.IgnorePhrases)
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
@@ -278,11 +301,7 @@ func (s *Set) Classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		// định chung khi câu không nói gì thêm ngoài nghĩa của nó (generic), còn lại hỏi lại nghĩa số liệu.
 		g, ok := s.generic(in, res)
 		if !ok {
-			var cands []contracts.EntityRef
-			for _, m := range res.Ambiguous {
-				cands = append(cands, m.Candidates...)
-			}
-			return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: cands}
+			return Result{NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}
 		}
 		matched = []Def{g}
 		score[g.Name], first[g.Name] = 1, 0

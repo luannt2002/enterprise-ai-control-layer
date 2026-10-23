@@ -7,7 +7,7 @@ templates:
   compare_total: "{left_label} của {entity_name} {period} chênh {value} {unit} so với {right_label} ({left_value} {unit} so với {right_value} {unit}).{approx_note}{conflict_note}"
   greeting: "Chào bạn. Bạn cần tra số liệu dầu của máy hay dự án nào?"
   out_of_scope: "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
-  clarify_intent: "Bạn muốn hỏi {options}?"
+  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"
   clarify_missing: "Bạn cho biết thêm {missing}. {candidates}"
   forbidden: "Bạn không có quyền xem dữ liệu này."
   no_data: "Chưa có dữ liệu {metric_label} của {entity_name} {period}.{assumption_note}"

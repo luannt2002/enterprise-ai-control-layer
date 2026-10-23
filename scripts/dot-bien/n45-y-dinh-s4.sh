@@ -115,3 +115,7 @@ m $I '	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return via
 m $I '	if slices.ContainsFunc(out, func(e contracts.EntityRef) bool { return viable[e.ID] }) {' '	if true {' 'S71 hai thực thể đều đã giải cũng bị lọc (danh sách hỏi lại rỗng)'
 m $I '			viable[c.ID] = true
 ' '' 'S72 ứng viên của bí danh không được đánh dấu (bộ lọc không bao giờ chạy)'
+# N1 (bất biến (c)): hoà ý định / thiếu thuật ngữ mà câu còn bí danh mơ hồ thì câu hỏi lại mang ứng viên của bí danh.
+m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if false {' 'S73 hoà ý định / thiếu thuật ngữ bỏ rơi ứng viên của bí danh mơ hồ'
+m $I '	if (len(r.Ambiguous) > 0 || len(r.NeedTerm) > 0) && len(r.Candidates) == 0 {' '	if len(r.Ambiguous) > 0 && len(r.Candidates) == 0 {' 'S74 chỉ hoà ý định mang ứng viên, thiếu thuật ngữ thì bỏ rơi'
+m tenants/construction/pack/templates.yaml '  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"' '  clarify_intent: "Bạn muốn hỏi {options}?"' 'S75 mẫu hỏi lại nghĩa số liệu không kể ứng viên (người dùng không thấy máy nào cần chọn)'

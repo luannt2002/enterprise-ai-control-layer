@@ -342,3 +342,42 @@ func TestYDinhChungKhongChiSoThiHoiLai(t *testing.T) {
 		t.Errorf("muốn hỏi lại nghĩa số liệu [q], được intent=%q needMeaning=%v", r.Intent.Name, r.NeedMeaning)
 	}
 }
+
+// N1 (ADR-0010 bất biến (c)): hai ý định hoà nhau, hoặc ý định khớp từ khoá mà thiếu thuật ngữ, trong khi câu còn một bí danh mơ hồ — kết quả phải
+// mang ứng viên của bí danh để câu hỏi lại hỏi được cả hai điều; không có bí danh thì không có ứng viên.
+func TestHoaYDinhVaThieuThuatNguGiuUngVienCuaBiDanh(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	s, err := Compile([]Def{
+		{Name: "a", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ex, dz := ent("EX-03", "equipment"), ent("DZ-03", "equipment")
+	m3 := alias("máy 03", "equipment", ex, dz)
+	fuel := contracts.Span{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}
+	for _, c := range []struct {
+		name   string
+		raw    string
+		spans  []contracts.Span
+		res    contracts.Resolution
+		tie    bool // kết quả là hoà ý định (Ambiguous), không phải thiếu thuật ngữ (NeedTerm)
+		wantID []string
+	}{
+		{"hoà ý định + bí danh mơ hồ", "máy 03 cấp báo dầu", []contracts.Span{fuel}, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3}}, true, []string{"EX-03", "DZ-03"}},
+		{"thiếu thuật ngữ + bí danh mơ hồ", "máy 03 cấp bao nhiêu", nil, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3}}, false, []string{"EX-03", "DZ-03"}},
+		{"hoà ý định, máy đã rõ: không có ứng viên", "EX-03 cấp báo dầu", []contracts.Span{fuel}, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, true, nil},
+		{"thiếu thuật ngữ, máy đã rõ: không có ứng viên", "EX-03 cấp bao nhiêu", nil, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, false, nil},
+	} {
+		r := s.Classify(contracts.NormalizedInput{Raw: c.raw, Spans: c.spans}, c.res, testNow)
+		if c.tie && len(r.Ambiguous) != 2 || !c.tie && len(r.NeedTerm) == 0 {
+			t.Errorf("%s: không phải kết quả muốn thử: Ambiguous = %v, NeedTerm = %v", c.name, r.Ambiguous, r.NeedTerm)
+			continue
+		}
+		if got := ids(r.Candidates); !slices.Equal(got, c.wantID) {
+			t.Errorf("%s: Candidates = %v, muốn %v", c.name, got, c.wantID)
+		}
+	}
+}

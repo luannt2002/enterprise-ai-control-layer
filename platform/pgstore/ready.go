@@ -12,6 +12,8 @@ import (
 // readyNeeds là các bảng mà ứng dụng (cmd/eais) đụng tới và quyền vai ứng dụng cần có trên mỗi bảng. Bốn bảng dữ liệu nghiệp vụ
 // cần thêm DELETE vì Load xoá rồi ghi lại; ba bảng vết chỉ SELECT + INSERT (vết là bằng chứng, không sửa, không xoá — 0003); ba bảng của phiếu (0004:
 // phiếu, sổ lệnh, audit) cũng chỉ SELECT + INSERT (tính chỉ-thêm do quyền bảo đảm, HOP-DONG I8) — thiếu chúng thì lượt lệnh đầu tiên mới hỏng.
+// Sổ nạp load_records (0006, việc 5e) cũng chỉ SELECT + INSERT: Load ghi nó cùng giao dịch thay dữ liệu và mỗi lượt hỏi đọc nó để biết phiên bản dữ liệu —
+// thiếu bảng thì lần nạp đầu tiên và lượt hỏi đầu tiên mới hỏng.
 // Riêng audit_log từ migration 0005: INSERT mức bảng, SELECT THEO CỘT (selectCols) và reason_detail KHÔNG được đọc (noSelectCols) — lý do thật
 // của lần từ chối chỉ vai quản trị đọc (lệnh ca chiều 23/10 C1; soát C1–C7 C17S-03). Ready coi cấp lại quyền đọc cột đó là chưa sẵn sàng.
 var readyNeeds = []struct {
@@ -32,6 +34,7 @@ var readyNeeds = []struct {
 	{"audit_log", []string{"INSERT"}, []string{"tenant_id", "id", "at", "outcome", "reason_code", "caller_id", "caller_roles", "entity_scope",
 		"command_id", "action", "subject_key", "metric", "day", "ticket_id", "fingerprint", "pack_version", "code_version", "trace_id"},
 		[]string{"reason_detail"}},
+	{"load_records", []string{"SELECT", "INSERT"}, nil, nil},
 }
 
 // Ping kiểm kết nối còn sống — rẻ, dành cho healthz gọi thường xuyên; Ready kiểm cả schema và quyền (đắt hơn, gọi lúc khởi động).

@@ -566,10 +566,16 @@ func TestVetRangBuocDB(t *testing.T) {
 	}
 }
 
-// vetSchemaProblems đòi trạng thái ĐÍCH của migration 0003 trên một DB và trả các chỗ lệch (rỗng = đúng): bảng có đủ, RLS ENABLE + FORCE, đúng MỘT chính sách
-// tenant_isolation đọc GUC eais.tenant_id, vai ứng dụng có đúng SELECT + INSERT (không UPDATE / DELETE / TRUNCATE / REFERENCES /
-// TRIGGER / MAINTAIN, không GRANT OPTION, không cả ở mức cột), PUBLIC không có quyền nào, vai ứng dụng không làm chủ bảng.
+// vetSchemaProblems đòi trạng thái ĐÍCH của migration 0003 trên một DB và trả các chỗ lệch (rỗng = đúng): xem appendOnlySchemaProblems.
 func vetSchemaProblems(t *testing.T, conn *pgx.Conn) []string {
+	t.Helper()
+	return appendOnlySchemaProblems(t, conn, vetTables)
+}
+
+// appendOnlySchemaProblems đòi, cho từng bảng trong tables, trạng thái đích của một bảng chỉ-thêm có RLS (0003, 0006) và trả các chỗ lệch (rỗng = đúng): bảng có
+// đủ, RLS ENABLE + FORCE, đúng MỘT chính sách tenant_isolation đọc GUC eais.tenant_id, vai ứng dụng có đúng SELECT + INSERT (không UPDATE / DELETE / TRUNCATE /
+// REFERENCES / TRIGGER / MAINTAIN, không GRANT OPTION, không cả ở mức cột), PUBLIC không có quyền nào, vai ứng dụng không làm chủ bảng, khoá chính bắt đầu bằng tenant_id.
+func appendOnlySchemaProblems(t *testing.T, conn *pgx.Conn, tables []string) []string {
 	t.Helper()
 	ctx := context.Background()
 	var problems []string
@@ -582,7 +588,7 @@ func vetSchemaProblems(t *testing.T, conn *pgx.Conn) []string {
 	if version >= 170000 {
 		privs = append(privs, "MAINTAIN")
 	}
-	for _, table := range vetTables {
+	for _, table := range tables {
 		var oid *string
 		if err := conn.QueryRow(ctx, "SELECT to_regclass($1)::text", table).Scan(&oid); err != nil || oid == nil {
 			add("%s: bảng không tồn tại (%v)", table, err)
@@ -624,6 +630,12 @@ func vetSchemaProblems(t *testing.T, conn *pgx.Conn) []string {
 		}
 		if public != 0 {
 			add("%s: PUBLIC có %d quyền, muốn 0", table, public)
+		}
+		var pk string
+		if err := conn.QueryRow(ctx, "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = $1::regclass AND contype = 'p'", table).Scan(&pk); err != nil {
+			add("%s: không có khoá chính (%v)", table, err)
+		} else if !strings.HasPrefix(pk, "PRIMARY KEY (tenant_id,") {
+			add("%s: khoá chính %q không bắt đầu bằng tenant_id (mọi bảng theo tenant có tenant_id trong khoá)", table, pk)
 		}
 		var n int
 		var name, cmd, qual, check string
@@ -703,7 +715,7 @@ func TestVetMigration0003TrenDBTrong(t *testing.T) {
 		versions = append(versions, v)
 	}
 	rows.Close()
-	if got := strings.Join(versions, ","); got != "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql,0005_audit_va_tenant.sql" {
+	if got := strings.Join(versions, ","); got != "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql,0005_audit_va_tenant.sql,0006_so_nap_du_lieu.sql" {
 		t.Errorf("schema_migrations sau hai lần Migrate: %s", got)
 	}
 	checkVetSchema(t, conn)
@@ -913,4 +925,5 @@ func cleanupVetRows() {
 }
 
 // vetTablesChildFirst: usage_records có khoá ngoại tới decision_records nên xoá bảng con trước.
-var vetTablesChildFirst = []string{"usage_records", "quarantine_records", "decision_records"}
+// load_records: mọi Load của test (seed) để lại một dòng sổ nạp (migration 0006).
+var vetTablesChildFirst = []string{"usage_records", "quarantine_records", "decision_records", "load_records"}

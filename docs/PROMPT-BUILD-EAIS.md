@@ -360,3 +360,12 @@ Chép từ `docs/CHO-QUYET-DINH.md` mục 0, các dòng "23/10 chiều". Thay da
 5. **Cách điều phối thi hành "rebase" (ghi để soát):** nhánh đã push không rebase / force push (luật "Không được: force push"). "Đưa lên
    main hiện tại" = merge `main` vào nhánh khi đang làm, rồi cherry-pick lên `main` hiện tại ở cây tích hợp lúc gộp — lịch sử `main` thẳng
    như rebase, nhánh đã push không bị viết lại.
+
+#### 9.10c Lệnh ca trưa 23/10 (chủ dự án; thuộc §9.10)
+
+Thứ tự giữ như §9.10b. Nhánh `m2/0a-ma-truoc-dong-bang`: giữ, KHÔNG gộp; người soạn bộ ca 0a không đọc nhánh đó; soạn bộ ca 0a → băm → rồi
+mới tiếp tục / gộp mã → chạy bộ ca 0a một lần. Nhánh RAG `origin/rag/0-viec` CHỈ ĐỂ BIẾT: không so, không gộp, không soát, không cherry-pick.
+Tệp dùng chung nhánh RAG có sửa (agent tránh đổi khi không bắt buộc): `core/contracts/{contracts.go, tenantctx.go}`; `core/pipeline/ask.go`
+(answerKnowledge, versionNotice, noteNotice); `core/pipeline/chu_de.go`; `core/tenant/pack.go`; `tenants/construction/pack/templates.yaml`;
+`intelligence/rag/rag.go`; `platform/pgstore/{load.go, pgstore.go, ready.go}`; danh sách migration trong `platform/pgstore/{migrate_test.go,
+vet_test.go}`; `tenants/construction/pipeline_hoi_quy_r_test.go`. Số migration: ai gộp main trước lấy số.

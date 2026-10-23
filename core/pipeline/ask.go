@@ -207,7 +207,11 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
 	why.Intent = explainIntent(cls, ci)
 	why.Route = a.explainRoute(routed, plan)
-	if traces.Sanitize(in.Raw) != in.Raw { // câu mang bí mật mà bộ làm sạch nhận ra: không trích chữ nào của câu vào giải thích
+	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
+	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
+	// rộng) có ranh giới từ ở câu gốc mà mất ranh giới ở in.Raw, nơi ký tự đó đã gấp thành chữ ASCII dính liền; ngược lại khoá viết bằng chữ toàn chiều rộng
+	// chỉ nhận ra ở in.Raw. Chữ trích từ in.Raw đi vào vết bền, nơi SanitizeRecord chỉ thấy dạng đã gấp nên cũng không che được.
+	if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {
 		why = why.WithholdQuoted()
 	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)

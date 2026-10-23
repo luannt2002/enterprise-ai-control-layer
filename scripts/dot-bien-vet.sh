@@ -200,7 +200,7 @@ m $CT 's = strings.Join(strings.Fields(s), " ")' '_ = strings.Fields' 'CV3 Quote
 m $CT 'if r := []rune(s); len(r) > maxQuoteRunes {' 'if r := []rune(s); len(r) > 1<<20 {' 'CV4 Quote không cắt chữ dài'
 m $CT 'if len(items) <= max {' 'if len(items) <= max+1000 {' 'CV5 Brief không cắt danh sách dài'
 m $D 'out[i] = quoted.ReplaceAllString(l, Withheld)' 'out[i] = l' 'DV1 câu mang bí mật vẫn trích chữ của câu vào giải thích'
-m $ASK 'if traces.Sanitize(in.Raw) != in.Raw {' 'if false && traces.Sanitize(in.Raw) != in.Raw {' 'AV6 Handle không giữ lại chữ của câu khi câu mang bí mật'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if false && (traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text) {' 'AV6 Handle không giữ lại chữ của câu khi câu mang bí mật'
 # F3: vết có trần
 m $D 'if count[l]++; count[l] == 1 {' 'if count[l]++; true {' 'DV2 dòng giống nhau không được gộp'
 m $D 'if i == limit {' 'if i == limit+100000 {' 'DV3 danh sách giải thích không bị cắt ở trần'
@@ -219,7 +219,8 @@ m $W 'n.Reject("%d ứng viên bị loại khỏi câu hỏi lại: %s (vết kh
 # F1 qua cửa HTTP thật (test cmd/eais chạy trên bộ nhớ và PG) và F5 (đầu vào của cổng phán quyết khớp điều kiện của verdictGap — chỉ test của gói
 # observability/traces phải bắt, không nhờ test của luồng hỏi): đổi điều kiện ở verdictGap mà vết vẫn nói như cũ thì test đỏ.
 export PKGS=./cmd/eais/
-m $ASK 'if traces.Sanitize(in.Raw) != in.Raw {' 'if false && traces.Sanitize(in.Raw) != in.Raw {' 'AV9 qua HTTP: vết người hỏi tự đọc còn đuôi bí mật của câu'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if false && (traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text) {' 'AV9 qua HTTP: vết người hỏi tự đọc còn đuôi bí mật của câu'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if traces.Sanitize(in.Raw) != in.Raw {' 'AV11 [soát vòng 3] qua HTTP: điều kiện giữ chữ bỏ vế câu gốc, vết người hỏi tự đọc còn token đứng sau ký tự bị gấp'
 export PKGS=./observability/traces/
 CL=core/pipeline/claim.go
 m $CL 'if len(readPeriods(in)) != 1 {' 'if len(readPeriods(in)) > 1 {' 'GV1 [F5] cổng: câu không nêu mốc nào vẫn qua chiều "period"'
@@ -250,7 +251,9 @@ m $W 'contracts.RouteKind(def.Route) != routed.Route {' 'contracts.RouteKind(def
 m $ASK 'hidden = append(hidden, hiddenCandidate{c, "ngoài phạm vi dữ liệu của người hỏi"})' 'hidden = append(hidden, hiddenCandidate{c, "không tra được tổ tiên trong danh mục (đóng mặc định)"})' 'XV18 [soát vòng 2] ứng viên ngoài phạm vi bị kể là không tra được tổ tiên'
 m $ASK 'ci.shown, ci.suppressed = nil, "câu hỏi lại về con số hay mốc thời gian, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"' 'ci.shown, ci.suppressed = nil, ""' 'XV19 [soát vòng 2] không nói vì sao không kể ứng viên (nguồn)'
 m $ASK 'confirm: confirm, compare: compare != "", withheld: withheld,' 'confirm: confirm, compare: false, withheld: withheld,' 'XV21 [soát vòng 2] cổng không biết câu so sánh'
-m $ASK 'if traces.Sanitize(in.Raw) != in.Raw {' 'if traces.Sanitize(req.Text) != req.Text {' 'XV42 [soát vòng 2] điều kiện giữ chữ dùng câu gốc thay vì câu đã gấp ký tự'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if traces.Sanitize(req.Text) != req.Text {' 'XV42 [soát vòng 2] điều kiện giữ chữ chỉ dùng câu gốc, bỏ vế câu đã gấp ký tự'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if traces.Sanitize(in.Raw) != in.Raw {' 'XV43 [soát vòng 3] điều kiện giữ chữ chỉ dùng câu đã gấp ký tự, bỏ vế câu gốc: token đứng sau ký tự bị gấp lọt vào giải thích và vết bền'
+m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if traces.Sanitize(in.Raw) != in.Raw || in.Raw != req.Text {' 'XV44 [soát vòng 3] cổng che mọi câu có ký tự bị gấp, không chỉ câu mang bí mật nhận ra được (che oan)'
 m $IN 'sd.Name, len(ps), len(in.InvalidDates))' 'sd.Name, len(in.InvalidDates), len(ps))' 'XV23 [soát vòng 2] số mốc và số ngày hỏng đảo chỗ'
 m $IN 'fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen))' 'fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen)+1)' 'XV24 [soát vòng 2] số ý định yếu ghi sai'
 m $IN 'w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name])' 'w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name]+1)' 'XV26 [soát vòng 2] số cụm từ khoá của ý định thắng ghi sai'

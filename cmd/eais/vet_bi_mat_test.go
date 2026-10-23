@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"unicode"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 )
 
 // R2-03 vòng 2 (F1, S1): bí mật có nháy kép trong câu hỏi nhiều mệnh đề không được lọt vào vết mà CHÍNH người hỏi đọc lại qua HTTP — cả JSON lẫn
@@ -159,5 +162,90 @@ func vetKhongLoGiaTriBiMat(t *testing.T, e *env) {
 	}
 	if asked != len(pieces)*2*2 {
 		t.Errorf("đã hỏi %d lượt, muốn %d", asked, len(pieces)*2*2)
+	}
+}
+
+// R2-03 vòng 4 (N1', S1): bí mật dạng token (AKIA, ghp_, github_pat_, sk-, xox, AIza, JWT) hay Bearer / Cookie đứng ngay sau một ký tự mà bộ chuẩn hoá gấp thành chữ
+// ASCII (ký hiệu lít, chữ / số / gạch dưới toàn chiều rộng) không được lọt vào vết mà CHÍNH người hỏi đọc lại qua HTTP — cả JSON lẫn bảng chữ (?format=table). Mẫu che neo bằng `\b`:
+// câu gốc có ranh giới nên Sanitize nhận ra, câu đã gấp ký tự thì không, và cổng giữ chữ của Handle từng chỉ nhìn câu đã gấp (ma trận đầy đủ ở observability/traces).
+// Chạy trên hai kho như bộ test lớp HTTP: bộ nhớ luôn chạy, PG chỉ khi có EAIS_PG_*.
+func TestServerVetKhongLoBiMatNeoSauKyTuGap(t *testing.T) {
+	t.Run("bo-nho", func(t *testing.T) { vetKhongLoBiMatNeo(t, newEnv(t, newMemStore())) })
+	t.Run("pg", func(t *testing.T) {
+		st, _ := openPG(t)
+		vetKhongLoBiMatNeo(t, newEnv(t, st))
+	})
+}
+
+func vetKhongLoBiMatNeo(t *testing.T, e *env) {
+	t.Helper()
+	// Bí mật GIẢ, ghép từ mảnh để tệp nguồn không chứa nguyên một chuỗi giống khoá thật. forms: các mảnh mà vết không được in lại.
+	jwt := []string{"ey" + "J" + "hbGciOiJIUzI1NiJ9", "eyJzdWIiOiJ1c2VyIn0", "c2lnbmF0dXJlMTIzNDU2"}
+	families := []struct {
+		name, secret string
+		forms        []string
+	}{
+		{"AKIA", "AK" + "IA" + "ABCDEFGHIJKLMNOP", []string{"AK" + "IA" + "ABCDEFGHIJKLMNOP"}},
+		{"ghp_", "gh" + "p_" + strings.Repeat("Z9", 18), []string{strings.Repeat("Z9", 18)}},
+		{"github_pat_", "github" + "_pat_" + strings.Repeat("A1b2", 6), []string{strings.Repeat("A1b2", 6)}},
+		{"sk-", "sk-" + "ant-api03-" + strings.Repeat("A1b2", 8), []string{strings.Repeat("A1b2", 8)}},
+		{"xox", "xo" + "xb-" + "abcdefghij-klmnopqrst", []string{"abcdefghij-klmnopqrst"}},
+		{"AIza", "AI" + "za" + strings.Repeat("Q7r", 11), []string{strings.Repeat("Q7r", 11)}},
+		{"JWT", strings.Join(jwt, "."), jwt},
+		{"Bearer", "Bea" + "rer " + "tokenvalue12345", []string{"tokenvalue12345"}},
+		{"Cookie", "Coo" + "kie: sid=" + "cookieVal99", []string{"cookieVal99"}},
+	}
+	prefixes := []rune{0x2113, 0xFF58, 0xFF21, 0xFF14, 0xFF3F} // ký hiệu lít, chữ x thường, chữ A hoa, số 4, gạch dưới (toàn chiều rộng)
+	templates := []string{
+		"đội báo 4k, vậy EX-03 được cấp 3850 L đúng không %s",             // cuối mệnh đề hỏi: câu của người soát
+		"đội báo 4k, báo cáo ghi 4 m3, vậy EX-03 được cấp %s đúng không?", // giữa mệnh đề hỏi của câu nhiều mệnh đề
+	}
+	var fails []string
+	asked := 0
+	for _, f := range families {
+		for _, p := range prefixes {
+			for ti, tmpl := range templates {
+				q := strings.Replace(tmpl, "%s", string(p)+f.secret, 1)
+				if traces.Sanitize(q) == q {
+					t.Fatalf("tiền đề: Sanitize phải nhận ra bí mật ở câu gốc %q", q)
+				}
+				for _, tok := range []string{tokDirector, tokEng} {
+					r := e.ask(tok, q)
+					if r.status != http.StatusOK {
+						t.Fatalf("ask %q = %d: %s", q, r.status, r.body)
+					}
+					asked++
+					id := decodeAs[contracts.AskResponse](t, r).TraceID
+					js := e.trace(tok, id)
+					tab := e.do(http.MethodGet, "/v1/trace/"+id+"?format=table", tok, "", nil)
+					if js.status != http.StatusOK || tab.status != http.StatusOK {
+						t.Fatalf("đọc vết %s = %d (JSON), %d (bảng chữ)", id, js.status, tab.status)
+					}
+					var leaked []string // các mặt mà người hỏi đọc được vết còn mang mảnh bí mật
+					for _, surface := range []struct {
+						name string
+						body []byte
+					}{{"JSON", js.body}, {"bảng chữ", tab.body}} {
+						s := squashAlnum(string(surface.body))
+						if slices.ContainsFunc(f.forms, func(form string) bool { return strings.Contains(s, squashAlnum(form)) }) {
+							leaked = append(leaked, surface.name)
+						}
+					}
+					if len(leaked) > 0 {
+						fails = append(fails, fmt.Sprintf("%s / U+%04X / mẫu %d / %s: mảnh bí mật còn trong %s", f.name, p, ti, tok, strings.Join(leaked, " và ")))
+					}
+				}
+			}
+		}
+	}
+	if want := len(families) * len(prefixes) * len(templates) * 2; asked != want {
+		t.Errorf("đã hỏi %d lượt, muốn %d", asked, want)
+	}
+	if len(fails) > 0 {
+		show := fails
+		if len(show) > 12 {
+			show = show[:12]
+		}
+		t.Errorf("%d / %d lượt để lọt bí mật vào vết người hỏi tự đọc:\n%s", len(fails), asked, strings.Join(show, "\n"))
 	}
 }

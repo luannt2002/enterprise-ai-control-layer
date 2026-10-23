@@ -54,3 +54,41 @@ func TestS4BS01DoanMucDichChiCheYDinhSoLieu(t *testing.T) {
 	// cụm hỏi ở đoạn mục đích: câu hỏi chi phí thật vẫn được nói là chưa hỗ trợ (đoạn mang cụm hỏi là chính câu hỏi)
 	askBack(t, "Cần xem số liệu EX-03 hôm nay để biết chi phí dầu là bao nhiêu?", notMoney)
 }
+
+// S4BS-03 (S1, hồi quy vòng 2): cụm báo nghĩa chiếm chỗ trong luật khớp dài nhất nên chữ con của nó ("nhận" của "ghi nhận") không còn là từ khoá; câu KHÔNG được đi tiếp thành một ý định số
+// liệu khác trong im lặng. (i) lệnh mà con số ở mệnh đề kề; (ii) cụm hỏi lượng khớp theo ranh giới từ của câu gốc ("nhận định mức" không chứa cụm hỏi "định mức"); (iii) yêu cầu kèm thêm
+// ("…, kèm nhận xét luôn?") không bị bỏ lặng. Mỗi nhóm có ca âm cùng chữ.
+func TestS4BS03CumBaoNghiaKhongBiBoLang(t *testing.T) {
+	// (i) con số ở mệnh đề kề (trước hay sau), không phải câu hỏi
+	for _, q := range []string{
+		"Ghi nhận cho EX-03, dùng 3782 L dầu hôm nay.",
+		"Ghi nhận cho EX-03, dùng 3782 L dầu hôm nay nhé?",
+		"Cập nhật giúp em, EX-03 hôm nay dùng 3782 L dầu nhé?",
+		"Lưu lại giúp em, hôm nay EX-03 đã nhận 3850 L dầu.",
+		"EX-03 hôm nay dùng 3782 L dầu, ghi nhận giúp em nhé?",
+		"Ghi sổ giúp em, EX-03 hôm nay xuất 3850 L dầu được không?",
+	} {
+		askBack(t, q, notWrite)
+	}
+	// ca âm (i): mệnh đề kề là câu hỏi, hay cụm là chữ của nguồn ("theo ghi nhận của cảm biến")
+	answersIntent(t, "Ghi nhận cho EX-03, hôm nay dùng bao nhiêu dầu?", "fuel_consumed", "3.782")
+	answersIntent(t, "Theo ghi nhận của cảm biến, EX-03 hôm nay đốt bao nhiêu dầu?", "fuel_consumed", "3.782")
+	answersIntent(t, "EX-03 hôm nay ghi nhận tiêu thụ bao nhiêu dầu?", "fuel_consumed", "3.782")
+	if r := answered(t, "EX-03 hôm nay ghi nhận tiêu thụ 3782 L dầu, đúng không?"); r.Intent != "fuel_consumed" {
+		t.Errorf("câu xác nhận có chữ ghi nhận phải trả theo tiêu thụ: [%s] %q", r.Intent, r.Answer)
+	}
+	// (ii) "nhận định mức …" là cụm đánh giá "nhận định" + "mức", không phải cụm hỏi lượng "định mức"
+	for _, q := range []string{"Nhận định mức tiêu thụ 3782 L dầu hôm nay của EX-03.", "Nhận định mức dầu 3782 L của EX-03 hôm nay."} {
+		askBack(t, q, notEval)
+	}
+	// ca âm (ii): "định mức" đứng một mình vẫn là cụm hỏi lượng
+	for _, q := range []string{"Định mức dầu của EX-03 hôm nay là bao nhiêu?", "Theo định mức, EX-03 hôm nay được cấp bao nhiêu dầu?"} {
+		answered(t, q)
+	}
+	// (iii) yêu cầu kèm thêm sau câu hỏi
+	askBack(t, "EX-03 hôm nay đội báo bao nhiêu dầu, kèm nhận xét luôn?", notEval)
+	askBack(t, "Cho em số dầu EX-03 hôm nay được cấp bao nhiêu, đánh giá luôn.", notEval)
+	askBack(t, "EX-03 hôm nay dùng bao nhiêu dầu, kèm ghi nhận luôn nhé?", notWrite)
+	// ca âm (iii): yêu cầu kèm thêm là nguồn + động từ ("theo ghi nhận của cảm biến") thì vẫn trả số
+	answersIntent(t, "EX-03 hôm nay tiêu thụ bao nhiêu dầu, theo ghi nhận của cảm biến?", "fuel_consumed", "3.782")
+}

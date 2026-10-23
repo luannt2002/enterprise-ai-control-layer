@@ -221,7 +221,29 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				ComparisonMarkers: inf.ComparisonMarkers,
 				DismissMarkers:    inf.DismissMarkers,
 				PurposeMarkers:    inf.PurposeMarkers,
-				NeutralWords:      inf.ClaimNeutralWords,
+				// tên nguồn cấp số liệu (nhãn + bí danh ở metrics.yaml) của một chỉ số; metric rỗng = mọi chỉ số
+				SourceNames: func(metric string) []string {
+					if rt.Metrics == nil {
+						return nil
+					}
+					ids := rt.Metrics.MetricIDs()
+					if metric != "" {
+						ids = []string{metric}
+					}
+					var out []string
+					for _, id := range ids {
+						if m, ok := rt.Metrics.Metric(id); ok {
+							for _, src := range m.Sources {
+								if src.Label != "" {
+									out = append(out, src.Label)
+								}
+								out = append(out, src.Aliases...)
+							}
+						}
+					}
+					return out
+				},
+				NeutralWords: inf.ClaimNeutralWords,
 				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định)
 				QuantityFits: func(metric string, v contracts.Value) bool {
 					def, ok := rt.Metrics.Metric(metric)

@@ -64,6 +64,9 @@ type Unsupported struct {
 type Options struct {
 	// Unsupported: các nghĩa hệ chưa hỗ trợ (xem Unsupported).
 	Unsupported []Unsupported
+	// SourceNames trả tên các nguồn cấp số liệu của một chỉ số (nhãn và bí danh ở metrics.yaml: "cảm biến", "phiếu kho", "ERP"); metric rỗng = mọi chỉ số. Cụm báo nghĩa ở mệnh đề có tên nguồn
+	// là động từ của NGUỒN ("theo ghi nhận của cảm biến"), không phải yêu cầu của người hỏi (S4BS-03).
+	SourceNames func(metric string) []string
 	// PurposeMarkers: từ nối mở một đoạn MỤC ĐÍCH ("để", "nhằm"). Đoạn từ từ nối tới hết mệnh đề nói VÌ SAO người hỏi cần câu trả lời, không nói câu trả lời là chỉ số nào nên chữ trong
 	// đó không góp từ khoá chỉ số và không kích hoạt cụm báo nghĩa — trừ khi chính đoạn đó mang cụm hỏi (nó LÀ câu hỏi: "…, để biết đội báo bao nhiêu dầu?"). S4BS-01 (WIN-I-086).
 	PurposeMarkers []string
@@ -836,7 +839,7 @@ func (s *Set) premiseRanges(in contracts.NormalizedInput, res contracts.Resoluti
 	}
 	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers...)
 	q := slices.IndexFunc(cl, func(c [2]int) bool {
-		return slices.ContainsFunc(markers, func(m string) bool { return normalization.ContainsPhrase(raw[c[0]:c[1]], m) })
+		return s.asking(raw[c[0]:c[1]])
 	})
 	if q < 0 {
 		return nil
@@ -1104,16 +1107,30 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			}
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
-				next := ""
-				if ci+1 < len(clauses) {
-					next = rawBG[clauses[ci+1][0]:clauses[ci+1][1]]
+				askedAt := func(j int) bool {
+					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {
+						return true
+					}
+					next := ""
+					if j+1 < len(clauses) {
+						next = rawBG[clauses[j+1][0]:clauses[j+1][1]]
+					}
+					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)
 				}
-				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)
-				if !hasFigure(in, res, c[0], c[1]) || asked {
+				if askedAt(ci) {
+					continue // cụm là chữ MÔ TẢ trong câu hỏi ("ghi nhận tiêu thụ bao nhiêu dầu?")
+				}
+				// chỗ của con số: chính mệnh đề, hay một mệnh đề KỀ không phải câu hỏi ("Ghi nhận cho EX-03, dùng 3782 L dầu"): cụm và con số ở hai mệnh đề liền nhau vẫn là một lệnh (S4BS-03 i)
+				figure := hasFigure(in, res, c[0], c[1])
+				for _, nj := range []int{ci + 1, ci - 1} {
+					figure = figure || nj >= 0 && nj < len(clauses) && hasFigure(in, res, clauses[nj][0], clauses[nj][1]) && !askedAt(nj)
+				}
+				if figure {
+					if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {
+						continue // mệnh đề ngữ cảnh mà cụm không đứng đầu: nguồn + động từ của con số, không phải lệnh
+					}
+				} else if !s.attachedRequest(clauses, ci, rawBG) {
 					continue
-				}
-				if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {
-					continue // mệnh đề ngữ cảnh mà cụm không đứng đầu: nguồn + động từ của con số, không phải lệnh
 				}
 			}
 			why = fmt.Sprintf("cụm báo nghĩa ở mệnh đề %s", contracts.Quote(ct))
@@ -1128,6 +1145,22 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 		}
 	}
 	return out
+}
+
+// attachedRequest báo mệnh đề ci là yêu cầu KÈM THÊM sau câu hỏi ("EX-03 hôm nay đội báo bao nhiêu dầu, kèm nhận xét luôn?"): đứng sau một mệnh đề là câu hỏi, không là câu hỏi, và không nêu tên nguồn
+// ("…, theo ghi nhận của cảm biến?" là nguồn + động từ). Yêu cầu ấy hệ chưa làm được: im lặng bỏ nó rồi trả số là để người dùng tưởng đã được nhận xét / ghi (S4BS-03 iii). Cụm ở mệnh đề đứng TRƯỚC câu
+// hỏi mà không có con số ("Theo ghi nhận …, …?") là dẫn đề nên không tính.
+func (s *Set) attachedRequest(clauses [][2]int, ci int, rawBG string) bool {
+	ct := rawBG[clauses[ci][0]:clauses[ci][1]]
+	if s.hasSourceName(ct) {
+		return false
+	}
+	for j := 0; j < ci; j++ {
+		if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều
@@ -1186,7 +1219,31 @@ func (s *Set) askedUnit(text, dimension string) bool {
 // asking báo phần câu là một CÂU HỎI: có cụm xác nhận hoặc cụm hỏi lượng của pack. Dấu '?' một mình KHÔNG làm câu thành câu hỏi (S4AS-01): "Ghi nhận
 // EX-03 … 3782 L dầu nhé?" kết thúc bằng '?' nhưng là một LỆNH ghi lịch sự — câu hỏi là câu đòi xác nhận ("đúng không") hay đòi một lượng ("bao nhiêu").
 func (s *Set) asking(text string) bool {
+	text = s.withoutCues(text)
 	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}
+
+// withoutCues thay mọi cụm báo nghĩa chưa hỗ trợ bằng dấu cách. Cụm hỏi chỉ khớp theo ranh giới từ của câu gốc: "định mức" không nằm trong "nhận định mức tiêu thụ" (cụm "nhận định" +
+// "mức tiêu thụ") dù hai chữ cuối của "nhận định mức" trùng cụm hỏi lượng (S4BS-03 ii).
+func (s *Set) withoutCues(text string) string {
+	cues := s.cuePhrases()
+	if len(cues) == 0 {
+		return text
+	}
+	return maskRanges(text, spansOf(text, cues))
+}
+
+// spansOf trả mọi khoảng byte mà một trong các cụm khớp trong text (cùng luật dấu / ranh giới từ của PhraseSpans).
+func spansOf(text string, phrases []string) (out [][2]int) {
+	for _, p := range phrases {
+		out = append(out, normalization.PhraseSpans(text, p)...)
+	}
+	return out
+}
+
+// hasSourceName báo mệnh đề nêu tên một nguồn cấp số liệu của pack ("cảm biến", "phiếu kho", "ERP").
+func (s *Set) hasSourceName(text string) bool {
+	return s.opt.SourceNames != nil && len(spansOf(text, s.opt.SourceNames(""))) > 0
 }
 
 // meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.

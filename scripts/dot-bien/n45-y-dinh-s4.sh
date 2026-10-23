@@ -265,3 +265,11 @@ m $I '		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r 
 m tenants/construction/pack/intents.yaml 'ignore_phrases: [người dùng, người sử dụng, xác nhận]' 'ignore_phrases: [người dùng, người sử dụng]' 'S150 "xác nhận" lại là chữ "nhận" của kho xuất (nhờ xác nhận làm hoà với đội báo)'
 m tenants/construction/pack/intents.yaml 'purpose_markers: [để, nhằm]' 'purpose_markers: [để]' 'S151 từ nối "nhằm" không mở đoạn mục đích'
 m $I '				ct := rawBG[c[0]:c[1]]' '				ct := in.Raw[c[0]:c[1]]' 'S152 cụm báo nghĩa trong đoạn mục đích ("để tính chi phí") vẫn kích hoạt'
+
+# ---- S4BS-03 (vòng 3): cụm báo nghĩa chiếm chỗ không được để câu đi tiếp thành ý định số liệu khác trong im lặng
+m $I '		for _, nj := range []int{ci + 1, ci - 1} {' '		for _, nj := range []int{} {' 'S153 lệnh có con số ở mệnh đề kề ("Ghi nhận cho EX-03, dùng 3782 L dầu") bị trả số tiêu thụ'
+m $I '				if askedAt(ci) {' '				if false {' 'S154 cụm trong câu hỏi xác nhận ("ghi nhận tiêu thụ 3782 L, đúng không?") bị coi là lệnh ghi'
+m $I '	text = s.withoutCues(text)' '	_ = s.withoutCues(text)' 'S155 "định mức" trong "nhận định mức tiêu thụ" khớp cụm hỏi lượng (lệnh nhận định bị coi là câu hỏi)'
+m $I '	if s.hasSourceName(ct) {' '	if false {' 'S156 yêu cầu kèm thêm tính cả nguồn + động từ ("…, theo ghi nhận của cảm biến?")'
+m $I '	for j := 0; j < ci; j++ {' '	for j := 0; j < len(clauses); j++ {' 'S157 yêu cầu kèm thêm tính cả cụm đứng TRƯỚC câu hỏi ("Ghi nhận cho EX-03, hôm nay dùng bao nhiêu dầu?")'
+

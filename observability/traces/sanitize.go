@@ -37,7 +37,8 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // đều có từ trước 5a): mật khẩu URL chứa "@" hay "/" thô, không mã hoá % ("postgres://u:ab@xy@máy" chỉ che "ab"; có "/" thì không che);
 // JSON lồng dạng chuỗi ({"msg":"{\"password\":\"…\"}"}: khoá đứng sau \" không được nhận ra); giá trị là mảng ("password":["a","b"] chỉ
 // che "["); giá trị trần chứa ; , & " (phần sau dấu đó lọt); Cookie có giá trị trong nháy rồi thêm cặp sau ";" (Cookie: "a=1"; sid=…:
-// phần sau nháy đóng không được che). Che thừa: "http://máy:8080,me@x.com" bị coi là mật khẩu URL. Mẫu URL người dùng rỗng nuốt tên khoá
+// phần sau nháy đóng không được che); dòng Cookie có cặp KHÔNG phải tên bí mật mà giá trị trong nháy qua xuống dòng
+// (Cookie: theme="x⏎y"; sid=…: giá trị trần dừng ở xuống dòng đầu tiên, phần sau nháy đóng ở dòng kế tiếp lọt — main cũng lọt, đo 23/10). Che thừa: "http://máy:8080,me@x.com" bị coi là mật khẩu URL. Mẫu URL người dùng rỗng nuốt tên khoá
 // đứng ở chỗ mật khẩu ("redis://:secret=x@máy…"), nên phần sau "@" (máy, đường dẫn) không còn bị mẫu "khoá = giá trị" che thừa như trước
 // (fuzz 23/10: 105 / 300.000 chuỗi ghép). Giá trị MỞ bằng nháy thoát (password=\"…\": logfmt / slog lồng, chữ đã qua %q) chỉ che được
 // dấu \ đứng đầu, bí mật sau \" lọt (soát lại 5abc, 5a-R3; có từ trước 5a) — đường chạm tới: tên trường lạ trong thân POST

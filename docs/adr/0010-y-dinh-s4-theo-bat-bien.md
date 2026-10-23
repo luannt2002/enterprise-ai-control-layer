@@ -291,7 +291,7 @@ câu viết mới theo cặp tối thiểu, không chép từ H3 / H4. H4 là b�
 **Đo** (bộ nhớ và PG, đường nào cũng giống hệt từng ca; so với `a9ce6ed` = origin/main; 0 ca xanh → đỏ):
 - bộ 117: 117 / 117 (0 dòng khác); H1: 92 → 94 / 104; H3: 113 → 121 / 134; H4: 104 → 110 / 119.
 - 10 ca S4 của H4: 716, 740, 758, 810, 854, 862 từ đỏ thành xanh; 806, 841 từ hỏi lại / từ chối thành trả số kho xuất kèm câu giả định (còn đỏ chỉ vì a2 không
-  phán quyết "Không."); 847, 848 từ trả theo hoá đơn không nhãn / từ chối thành hỏi lại nghĩa số liệu. Không ca nào còn sai nghĩa không nhãn ở S4.
+  phán quyết "Không."); 847, 848 từ trả theo hoá đơn không nhãn / từ chối thành hỏi lại nghĩa số liệu. Không ca nào của H4 còn sai nghĩa không nhãn ở S4 — chỉ đúng trong phạm vi H4 và bộ phát triển của điều phối: soát vòng 1 tìm thấy câu sai nghĩa không nhãn ngoài hai bộ đó (xem "Vòng 2" dưới, mục Nợ).
 - Bộ phát triển (296 câu sinh theo bất biến: nghĩa chưa hỗ trợ 96, lệnh ghi / đánh giá 48, ngữ cảnh + hỏi 32, cặp so sánh 72, động từ chỉ số khác 48; do
   điều phối soạn, KHÔNG độc lập): câu trả lời sai nghĩa không nhãn 102 → 0 (64 + 18 + 0 + 20 + 0 trước; 0 ở mọi nhóm sau).
 - Test: PG 651 pass / 0 fail / 0 skip (mốc 639); không PG 609 pass / 28 skip (mốc 597); so theo tên 0 mất, 0 đổi kết quả, 12 test mới. Test ghim đổi có chủ ý theo
@@ -308,3 +308,61 @@ câu viết mới theo cặp tối thiểu, không chép từ H3 / H4. H4 là b�
   (ví dụ "báo cáo giá") cần thêm vào pack; "đồng" không là cụm tiền vì trùng "đồng hồ".
 - C4: sửa chỉ số "chênh" cho câu hai chỉ số; ba chỉ số trở lên và so sánh hai MÁY (D13 chỉ so hai chỉ số của một thực thể) vẫn hỏi lại / chưa có capability.
 - Bộ giữ lại MỚI để chấm vòng này (D-AI-02 = a, "H6") chưa được soạn / chạy: vòng này chưa có phép chấm độc lập.
+
+## Vòng 2 của vòng sửa S4 (23/10 chiều) — soát vòng 1 KHÔNG ĐẠT (S4AS-01 … S4AS-09); nhánh `m3/s4-vong-sua-2310`, CHƯA gộp main
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Chủ dự án giữ nguyên D-AI-02 = a (luật các cụm C3 / C4 / C5 / N1, không model), D-OP-18 = c, D-OP-11 = b. Mỗi phát hiện một commit, test đỏ trước bằng câu
+viết mới theo cặp tối thiểu (không chép từ H1 / H3 / H4), một dòng đột biến ở `scripts/dot-bien/n45-y-dinh-s4.sh`.
+
+**Gộp main (S4AS-07).** Gộp `origin/main` `baaf834` (K1 lõi lệnh, K2 kho PG, vết R2-03, flock, 5d). Xung đột `intent.go` (6 vùng) và `router.go` (1 vùng) giải bằng tay, giữ cả hai phía: toàn bộ vết R2-03 (`Why`, `Quote`,
+`WithholdQuoted`, dòng lý do, nguồn ứng viên, bậc kiểm của router) lẫn phần S4 (`Result.Unsupported`, ứng viên N1, `premiseRanges`, `comparison`, tín hiệu phạm vi). Mã S4 mới đều ghi lý do vào `Why` (mệnh đề ngữ cảnh bị che,
+nghĩa chưa hỗ trợ và mệnh đề chứa cụm, ứng viên N1, so sánh, phương án bị loại). Sau gộp 5 test khoá nguyên dòng của vết đỏ vì hợp đồng S4 đổi có chủ ý (D-OP-11 = b: danh sách hỏi lại không còn thực thể rõ; C5: thêm dòng
+mệnh đề ngữ cảnh; C4: dòng so sánh) — mã nay ghi vết đúng quyết định mới, test đổi theo, lý do ở commit `fix(S4AS-07)`.
+
+| Mã | Luật (theo cấu trúc / bất biến) | Chỗ trong mã |
+|---|---|---|
+| S4AS-01 | Câu hỏi = câu có cụm xác nhận hay cụm hỏi lượng của pack; dấu "?" một mình KHÔNG làm câu thành câu hỏi. Lệnh ghi = cụm lệnh + con số có đơn vị, không cụm hỏi | `asking`, `unsupportedIn` |
+| S4AS-02 | Nghĩa tiền theo cấu trúc: span kiểu tiền, "bao nhiêu" + đơn vị tiền của lexicon ở cuối mệnh đề (pack khai `signals`); nhường câu có lượng cùng chiều đo; các họ nghĩa còn lại mở danh sách THEO HỌ NGHĨA ở pack | `signalHit`, `askedUnit`, `intents.yaml` |
+| S4AS-03 | C4: hai chỉ số khác nhau trong cùng mệnh đề + từ so sánh bậc hơn / kém (hay "chênh / lệch" — phạm vi cả câu) ⇒ so đúng cặp; ≥ 2 chỉ số mà không xác định được cặp ⇒ hoà ⇒ hỏi lại, BỎ luật số cụm khớp. C3: cụm xác nhận + thực thể + lượng cùng chiều đo là tín hiệu phạm vi đủ. C5: "mấy" là cụm hỏi lượng; mệnh đề ngữ cảnh nêu con số SAU câu hỏi cũng bị che | `comparison`, `comparisonScope`, `build`, `scopeSignal`, `premiseRanges` |
+| S4AS-04 | Cụm báo nghĩa chưa hỗ trợ ở MỌI mệnh đề (kể cả ngữ cảnh) đều được nói ra; lệnh ghi đòi chính mệnh đề đó có con số và không là câu hỏi (kể cả đuôi hỏi "…, đúng không?"); ở mệnh đề ngữ cảnh cụm phải đứng đầu ("phiếu kho ghi nhận 3850 L, vậy …" là nguồn + động từ) | `unsupportedIn` |
+| S4AS-05 | "triệu" trước đơn vị thể tích không phải tiền (bỏ cụm); "chào" chỉ là lời chào khi câu không còn thực thể / con số / thuật ngữ (`alone`); cụm nghĩa trong mệnh đề bị bỏ qua ("không quan tâm", "để sau") không hỏi lại (`dismiss_markers`) | `classify`, `unsupportedIn`, pack |
+| S4AS-06 | Test nạp pack (7 ca lỗi) và test khử trùng ứng viên; S139–S143 SỐNG SÓT trước commit, BỊ BẮT sau | `pack_test.go`, `intent_test.go` |
+| S4AS-08 | Mọi đường hỏi lại về ý định (hoà, thiếu thuật ngữ, nghĩa số liệu) lọc nhãn theo capability; không còn nhãn nào ⇒ từ chối ngoài phạm vi | `ask.go` |
+| S4AS-09 | KHÔNG sửa (xem Nợ) | — |
+
+**Đánh đổi có chủ ý (D-AI-02 = a).**
+- Họ nghĩa dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá vẫn là DANH SÁCH cụm, nay mở theo họ nghĩa ở `intents.yaml` (không ở mã Go, không theo từng câu của bộ ca nào). Đây là đánh đổi, không phải "đóng theo bất biến": độ phủ do bộ giữ lại
+  độc lập (H6) đo. Danh sách KHÔNG được dùng để bỏ qua chữ (`ignore_phrases`) như nhánh nợ cũ — cụm báo nghĩa chỉ chiếm chỗ để chữ con của chúng không thành từ khoá, rồi câu được hỏi lại.
+- Chỉ nghĩa tiền có tín hiệu cấu trúc (không cần chữ nào trong danh sách): span tiền và "bao nhiêu" + đơn vị tiền.
+- Cụm chung "chào" không còn là danh sách cụm nhưng lời chào "thuần" được nhận theo cấu trúc (`alone`).
+
+**Khác chữ lệnh / ADR (có lý do, đã đo).**
+- Nhận dạng lệnh theo "cụm lệnh + con số có đơn vị, không cụm hỏi" chứ không theo "động từ lệnh đứng ĐẦU mệnh đề": đòi đứng đầu bỏ sót "Anh cập nhật …" và đánh trúng sai "ERP ghi nhận …"; câu hỏi (cụm xác nhận / hỏi lượng) mới là
+  thứ tách "ERP ghi nhận 3900 L, đúng không?" khỏi lệnh. Vị trí đầu mệnh đề chỉ dùng cho cụm ở MỆNH ĐỀ NGỮ CẢNH (≤ 1 chữ trước cụm).
+- Bỏ luật số cụm khiến WIN-I-086 (bộ 117) xanh → đỏ: ca từng đạt nhờ "xác nhận" khớp chữ con "nhận" (S4R-03) nên kho xuất 2 cụm thắng đội báo 1 cụm; hai nghĩa ngang nhau thì hỏi lại. Ca bị BỎ khỏi `win/passing.txt` kèm lý do,
+  tệp ca không sửa. WIN-I-038 và H3 509 ("Cảm biến báo …") cùng hệ quả được giữ đạt bằng cụm "cảm biến báo" của nguồn cảm biến (cụm dài thắng "báo") — cụm của nguồn, không phải thêm theo ca vì hai ca cùng một cấu trúc nguồn + động từ.
+- Thử và BỎ hai tín hiệu tiền: thuật ngữ "giá" của lexicon (khớp cả "giá trị": "báo cáo giá trị" bị hỏi về tiền) và số nói tắt ngoài miền một lần đo ("1tr dầu", "4 củ": đỏ WIN-I-010, ca ghim trả số có thẩm quyền).
+- C3 đánh đổi: "EX-03 chứa được 300 lít nước đúng không?" (lượng thể tích của chất khác) nay HỎI LẠI nghĩa số liệu thay vì từ chối; hai test vòng 1 ghim "xài 3782 L" và "300 lít nước" là giới hạn đã biết nên đổi (D-AI-02 = a đòi C3 theo cụm xác nhận).
+
+**Đo** (dữ liệu giả lập; mọi số dưới là lệnh đã chạy):
+- Bộ phát triển của tác giả (325 câu viết tay theo họ nghĩa, KHÔNG độc lập, không chép từ bộ nào), câu trả lời SAI NGHĨA KHÔNG NHÃN (trả số / chỉ số một nghĩa khác, không có câu giả định "Hiểu là …"), nền `origin/main` → vòng 1 `c7afacd` → nhánh này:
+  tổng 117 → 106 → 29, hỏi thừa 45 → 44 → 5. Theo nhóm: cụm trong danh sách vòng 1 (44 câu) 22 → 3 → 0; đồng nghĩa NGOÀI danh sách vòng 1 (82 câu, họ nghĩa mở sau khi đọc chính các câu này nên chỉ chứng minh luật mở danh sách chạy, KHÔNG chứng minh độ phủ) 49 → 47 → 7;
+  **đồng nghĩa CHƯA THẤY** (37 câu viết SAU khi đóng danh sách, cố ý ngoài danh sách: "tiên lượng", "ghi vô sổ", "chốt số", "tạo bản ghi", "cho xin bảng giá", "có vấn đề gì không", "ngày mai … bao nhiêu"…) 22 → 21 → 22 — luật theo họ KHÔNG phủ đồng nghĩa chưa thấy
+  (trừ nghĩa tiền theo cấu trúc); lệnh ghi lịch sự có "?" (14) 7 → 11 → 0; cụm nghĩa ở mệnh đề ngữ cảnh (10) 9 → 10 → 0; so sánh có dấu hiệu (18) 3 → 3 → 0 (hỏi thừa 6 → 6 → 0); hai chỉ số không dấu hiệu (16) 5 → 5 → 0; trong phạm vi không chữ "dầu" (18) từ chối oan 18 → 17 → 0 (hỏi lại);
+  hỏi lượng / ngữ cảnh trước-sau (18) hỏi thừa 10 → 5 → 0.
+- Còn sai trong bộ phát triển (29): 22 đồng nghĩa chưa thấy + 7 câu họ nghĩa ("đốt dầu hết 4tr / 4 củ / 5 tỷ" — số nói tắt không đơn vị, WIN-I-010 ghim; "mất bao nhiêu nghìn"; "sắp dùng"; "tính trước"; "có ổn không").
+- Bộ hồi quy so với mốc `origin/main` (lead-k2g), bộ nhớ và PG giống hệt từng khối: bộ 117 117/117 → 116/117 (WIN-I-086, trái hợp đồng, ghi trên); H1 92 → 97/104 (268, 318, 342, 419, 429 đỏ → xanh); H3 113 → 123/134 (538, 539, 543, 557, 603, 611, 612, 617, 660, 663 đỏ → xanh; 509 đạt → đạt nay có
+  "Đúng."; 565, 607, 646 đỏ → đỏ từ chối → hỏi lại); H4 104 → 110/119 (716, 740, 758, 810, 854, 862 đỏ → xanh; 806, 841 hỏi lại / từ chối → trả số kèm câu giả định; 847, 848 → hỏi lại). 0 ca xanh → đỏ ngoài WIN-I-086.
+- Cổng: `go vet ./...` 0 dòng; `gofmt -l` trên tệp git theo dõi 0; `go test -count=1 ./...` có PG (cơ sở dữ liệu riêng) 1077 pass / 0 fail / 0 skip (mốc 1054; so theo tên 0 mất, 0 đổi kết quả, 23 mới), không PG 975 pass / 0 fail / 72 skip (PG-only);
+  `scripts/kiem-skip-test.py` XANH khi có PG.
+- Đột biến (chạy trên bản sao riêng): n43 187 / 187, n44 16 / 16, n45 123 / 123 (122 dòng chạy trọn bộ ở mã cuối + S107, S116 viết lại cho biên dịch được và chạy riêng; lần chạy đầu cho 115 bị bắt, 2 sống, 3 không biên dịch, 4 neo gãy — đã sửa, xem commit `test(S4): n45 vòng 2`); 0 sống, 0 lỗi khôi phục. Đột biến mới S139–S143 (kiểm nạp pack, khử trùng ứng viên) SỐNG SÓT khi chạy ở commit trước test S4AS-06 (`b5aa573`) và BỊ BẮT sau — đó là bằng chứng "test đỏ trước" của S4AS-06.
+
+**Nợ còn mở (không sửa ở vòng này).**
+- S4AS-09 (có từ trước, S4R-03): từ khoá khớp chữ con của từ ghép khác nghĩa vẫn trả số một chỉ số KHÔNG nhãn ("đã được cấp phép hoạt động chưa?" → số kho xuất; "Báo cáo tình trạng máy" → số đội báo; "xác nhận" → "nhận"). Vì vậy câu "không ca nào còn sai nghĩa không nhãn"
+  chỉ đúng trong H4 và các bộ phát triển; H6 độc lập chưa chạy. Hướng: từ khoá đòi thuật ngữ + hỏi lượng, hay khớp theo từ nguyên, không theo chữ con.
+- Đồng nghĩa chưa thấy của các họ dự báo / báo giá / cảnh báo / lệnh ghi / đánh giá (22 / 37 trong bộ của tác giả) vẫn trả số. Hướng đã cân nhắc, CHƯA làm vì đụng ratchet: câu có giá trị mà không phải câu hỏi (khẳng định / lệnh) coi là lệnh — cần đo tác động lên bộ 117 / H1 / H3 / H4 trước.
+- Số tiền nói tắt không đơn vị ("1tr dầu", "4 củ", "5 tỷ"): bộ chuẩn hoá cho đơn vị suy từ thuật ngữ nên không phân biệt được với lít; WIN-I-010 ghim trả số có thẩm quyền. "bao nhiêu đồng một lít" không dính tín hiệu (mệnh đề phải kết thúc sau đơn vị).
+- "ERP ghi nhận … 3900 L, đúng không?" (nguồn lạ + động từ) hỏi lại nghĩa số liệu thay vì trả số kho xuất + xung đột như nền: tên nguồn không thuộc tập chữ giải thích được của a2; cần pack nối tên nguồn với chỉ số.
+- Nghĩa tiền / lệnh ở mệnh đề ngữ cảnh: lệnh nằm ở mệnh đề có con số nhưng cụm ở mệnh đề liền kề không bắt được ("Ghi nhận cho EX-03, dùng 3782 L").
+- "Giá nhân công …" và "nặng bao nhiêu tấn" (tên máy + từ hỏi lượng) vẫn được trả theo ý định chung kèm câu giả định ("Máy xúc EX-03 nặng bao nhiêu tấn?" → số dầu kho xuất): từ khoá yếu "bao nhiêu" — D-OP-16, có từ trước.
+- Bộ giữ lại mới (H6) để chấm vòng sửa này chưa soạn / chưa chạy: vòng này chưa có phép chấm độc lập; số đo trên là bộ phát triển của tác giả (một người soạn, oracle tự đặt).

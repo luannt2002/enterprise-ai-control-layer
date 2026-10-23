@@ -189,7 +189,7 @@ m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
 			return nil' '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG && false {
 			return nil' 'S105 câu hỏi quy trình về cảnh báo cũng bị hỏi lại'
 m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if asked {' 'S106 lệnh ghi không cần con số ("ghi nhận dầu" không có con số bị hỏi lại)'
-m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if !hasFigure(in, res, c[0], c[1]) {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
+m $I '				if !hasFigure(in, res, c[0], c[1]) || asked {' '				if !hasFigure(in, res, c[0], c[1]) || false && asked {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
 m $I '	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	return slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
 m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
@@ -204,7 +204,7 @@ m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.Quanti
 
 # ---- S4AS-02: nghĩa tiền theo cấu trúc và họ nghĩa
 m $I '				if s.onlyMarkers(text[sp[1]:end], markers) {' '				if s.onlyMarkers(text[sp[1]:end], markers) || true {' 'S115 "bao nhiêu đồng" không đòi mệnh đề kết thúc sau đơn vị ("đồng hồ", "đồng nghiệp" thành tiền)'
-m $I '		if why == "" && !measured && slices.ContainsFunc(' '		if why == "" && slices.ContainsFunc(' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
+m $I '		if why == "" && !measured && slices.ContainsFunc(' '		if why == "" && (measured || true) && slices.ContainsFunc(' 'S116 tín hiệu tiền không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
 m $I '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })' '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) })' 'S117 tín hiệu span không xét kiểu span (mọi span là tiền)'
 m $I '	case "asked_unit":
 		return s.askedUnit(in.Raw[start:end], arg)' '	case "asked_unit":

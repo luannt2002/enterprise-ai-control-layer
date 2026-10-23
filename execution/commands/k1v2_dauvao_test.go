@@ -426,6 +426,7 @@ func TestC3TruongDaiKhongVaoVetVaEcho(t *testing.T) {
 	}{
 		{"metric dài", "metric", func(r *Request) { r.Metric = strings.Repeat("m", 10000) }},
 		{"day dài", "day", func(r *Request) { r.Day = strings.Repeat("9", 10000) }},
+		{"command_id dài", "command_id", func(r *Request) { r.CommandID = strings.Repeat("x", 5000) }}, // không phải UUID (soát lại M4, M4R-02)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r := req(1142, "EX-03", day1)
@@ -434,6 +435,11 @@ func TestC3TruongDaiKhongVaoVetVaEcho(t *testing.T) {
 			o := newWorld(t).run(pr, r)
 			if o.Result.ReasonCode != ReasonInvalidRequest || fmt.Sprint(o.Result.InvalidFields) != "["+c.field+"]" {
 				t.Fatalf("muốn INVALID_REQUEST [%s], được %+v", c.field, o.Result)
+			}
+			// dạng chuẩn của yêu cầu (question(): thành Decision.Question của vết bền) không mang nguyên giá trị dài (soát lại M4, M4R-02):
+			// bốn trường qua echo() nên tối đa cỡ 4 × 150 byte
+			if len(o.Question) > 700 || !utf8.ValidString(o.Question) {
+				t.Errorf("Question mang nguyên giá trị dài hoặc UTF-8 hỏng: %d byte", len(o.Question))
 			}
 			// bản ghi BỀN (NewRecord, thứ kho vết lưu): Decision.Slots cũng không mang nguyên giá trị dài (soát lại M4, M4R-01)
 			for _, sl := range NewRecord(r, o, pr, fixedNow, testVersions, 0).Decision.Slots {

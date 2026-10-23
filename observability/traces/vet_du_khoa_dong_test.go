@@ -3,6 +3,8 @@ package traces_test
 import (
 	"strings"
 	"testing"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 )
 
 // R2-03 vòng 3 (soát vòng 2, N2): khoá NGUYÊN dòng — so cả danh sách, từng chữ — trên lượt THẬT cho các chỗ mà đột biến của người soát vòng 2 làm vết
@@ -287,7 +289,12 @@ func TestVetDuKhoaDongDongGiaiThichConLai(t *testing.T) {
 	d := whyOfTurn(t, a, dir, "EX-03 hôm nay chênh lệch bao nhiêu?")
 	wantLine(t, "S4 chỉ số dẫn xuất", d.Intent.Reasons, "chỉ số dẫn xuất issue_vs_measured (ý định fuel_variance khai)")
 
-	c := whyOfTurn(t, a, eng, "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?")
-	wantLine(t, "S4 khe thiếu vì nhiều thực thể", c.Intent.Reasons,
+	// Người toàn quyền thấy đủ ba khoá; kỹ sư phạm vi PRJ-A không thấy DZ-03 (máy của PRJ-B, câu không gõ khoá đó): dòng này từng lộ khoá ngoài
+	// phạm vi (soát C8–C11, C9-S1), nay bị che ở một chỗ (core/pipeline/scope_redact.go) như mọi dòng khác của vết.
+	full := whyOfTurn(t, a, dir, "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?")
+	wantLine(t, "S4 khe thiếu vì nhiều thực thể (toàn quyền)", full.Intent.Reasons,
 		"khe subject thiếu: câu nêu 3 thực thể khác nhau cùng loại (RL-02, DZ-03, EX-03) cho khe chỉ nhận một — không lấy thực thể nhắc đầu")
+	c := whyOfTurn(t, a, eng, "RL-02 và máy 03 hôm nay được cấp bao nhiêu dầu?")
+	wantLine(t, "S4 khe thiếu vì nhiều thực thể (phạm vi PRJ-A)", c.Intent.Reasons,
+		"khe subject thiếu: câu nêu 3 thực thể khác nhau cùng loại (RL-02, "+traces.OutOfScope+", EX-03) cho khe chỉ nhận một — không lấy thực thể nhắc đầu")
 }

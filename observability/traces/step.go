@@ -58,10 +58,13 @@ func notRecorded(what string) string { return NotRecorded + ": " + what }
 // IsNotRecorded báo một giá trị có phải chỗ trống ghi rõ của NotRecorded không.
 func IsNotRecorded(s string) bool { return strings.HasPrefix(s, NotRecorded) }
 
-// ValidStage báo mã bước có hợp lệ không: S0…S10, S? hoặc L1.<tên>.
+// ValidStage báo mã bước có hợp lệ không: S0…S10 (luồng hỏi), C0…C7 và C4b (luồng lệnh, HOP-DONG §7.5), S? hoặc L1.<tên>.
 func ValidStage(s string) bool {
 	if s == StageUnknown {
 		return true
+	}
+	if rest, ok := strings.CutPrefix(s, "C"); ok { // luồng lệnh: chín bước, C4b nằm giữa C4 và C5
+		return s == "C4b" || (len(rest) == 1 && rest[0] >= '0' && rest[0] <= '7')
 	}
 	if rest, ok := strings.CutPrefix(s, "L1."); ok {
 		return rest != ""
@@ -83,7 +86,7 @@ type EvidenceRef struct {
 type Step struct {
 	TraceID string `json:"trace_id"`
 	Seq     int    `json:"seq"`   // thứ tự trong lượt, từ 0
-	Stage   string `json:"stage"` // S0…S10, S? hoặc L1.<tên>
+	Stage   string `json:"stage"` // S0…S10, C0…C7, C4b, S? hoặc L1.<tên>
 	Name    string `json:"name"`
 	Status  string `json:"status"`
 	// Input, Output: vào / ra của bước ở dạng chuỗi phẳng, ổn định (so bằng chuỗi được).

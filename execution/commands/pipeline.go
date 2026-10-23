@@ -415,13 +415,13 @@ func (r *run) enter(st int) *run {
 // hai ở câu INSERT phiếu và audit). Không audit.
 func (r *run) accept() bool {
 	in := []string{
-		"command_id=" + clean(r.req.CommandID), "subject_key=" + clean(r.req.SubjectKey),
-		"metric=" + clean(r.req.Metric), "day=" + clean(r.req.Day),
+		"command_id=" + echo(r.req.CommandID), "subject_key=" + echo(r.req.SubjectKey),
+		"metric=" + echo(r.req.Metric), "day=" + echo(r.req.Day),
 	}
 	if bad := shapeProblems(r.req); len(bad) > 0 {
 		r.stopStep(stAccept, StepDeviant, resultFor(ReasonInvalidRequest).withFields(bad), Step{
 			Input: in, Output: []string{"invalid_fields=" + strings.Join(bad, ",")},
-			Decision: "từ chối", Reason: "trường thiếu, sai dạng, có ký tự NUL hoặc chuỗi UTF-8 hỏng",
+			Decision: "từ chối", Reason: "trường thiếu, sai dạng, quá dài, có ký tự NUL hoặc chuỗi UTF-8 hỏng",
 		})
 		r.noRead = "lượt dừng ở C0"
 		return false
@@ -432,6 +432,11 @@ func (r *run) accept() bool {
 	return true
 }
 
+// maxSubjectKeyBytes là trần độ dài (byte UTF-8) của subject_key kiểm ở C0 (C5, lệnh ca chiều 23/10). Khoá danh mục là mã ngắn (EX-03);
+// không có trần thì một khoá dài tuỳ ý đi vào câu hỏi chuẩn, vết, dòng audit và sổ lệnh. Đây là giới hạn cấu trúc, không phải giá trị
+// nghiệp vụ.
+const maxSubjectKeyBytes = 128
+
 // shapeProblems trả tên các trường sai hình dạng theo thứ tự command_id, subject_key, metric, day.
 func shapeProblems(req Request) []string {
 	var bad []string
@@ -439,7 +444,8 @@ func shapeProblems(req Request) []string {
 		bad = append(bad, "command_id")
 	}
 	for _, f := range []struct{ name, value string }{{"subject_key", req.SubjectKey}, {"metric", req.Metric}, {"day", req.Day}} {
-		if f.value == "" || strings.ContainsRune(f.value, 0) || !utf8.ValidString(f.value) {
+		if f.value == "" || strings.ContainsRune(f.value, 0) || !utf8.ValidString(f.value) ||
+			(f.name == "subject_key" && len(f.value) > maxSubjectKeyBytes) {
 			bad = append(bad, f.name)
 		}
 	}
@@ -494,7 +500,8 @@ func (r *run) tenant() bool {
 
 // params: metric thuộc danh sách của tool; day đúng dạng và là ngày đã qua theo múi giờ tenant. Không audit.
 func (r *run) params() bool {
-	in := []string{"metric=" + r.req.Metric, "day=" + r.req.Day, "today=" + r.today, "metrics_allowed=" + strings.Join(r.p.d.Tool.Metrics, ",")}
+	// echo(): metric và day chưa được kiểm ở đây — giá trị dài hay bẩn không đi nguyên vào vết (soát C1–C7, C17S-04)
+	in := []string{"metric=" + echo(r.req.Metric), "day=" + echo(r.req.Day), "today=" + r.today, "metrics_allowed=" + strings.Join(r.p.d.Tool.Metrics, ",")}
 	var bad []string
 	if !slices.Contains(r.p.d.Tool.Metrics, r.req.Metric) {
 		bad = append(bad, "metric")
@@ -709,6 +716,13 @@ func (r *run) rules(ctx context.Context) bool {
 		// Giữa C4b và R5 một lượt gửi trước cùng khoá có thể đã ghi xong, và phiếu OPEN vừa thấy chính là của nó: tra lại sổ lệnh trước khi
 		// kết luận "người khác đã tạo" (§6.3 hàng 3, I5).
 		if !r.consultLedger(ctx, true) {
+			if r.replay != nil { // C6 (lệnh ca chiều 23/10): C5 ĐÃ chạy (Derive, R3, R4) trước khi R5 chuyển sang phát lại — vết ghi đúng điều đó
+				r.setStep(stRules, Step{Status: StepOK, Input: in,
+					Output:   []string{"diff=" + diff, fmt.Sprintf("approx=%t", res.Approx), "open_ticket=" + ref.ID},
+					Decision: "phát lại",
+					Reason: "Derive đã chạy, chênh lệch vượt ngưỡng; R5 thấy phiếu OPEN của chính khoá lệnh này (lượt gửi trước cùng khoá ghi xong " +
+						"sau C4b) nên phát lại, không ghi"})
+			}
 			return false // phát lại, khoá bị dùng lại cho nội dung khác, hoặc không đọc được sổ lệnh: kết cục đã nằm ở C4b
 		}
 		r.refuse(stRules, duplicateResult(ref), Step{
@@ -957,7 +971,7 @@ func verifyFresh(st Stored, u WriteUnit) []string {
 	} else if st.Ledger[0] != u.Ledger {
 		bad = append(bad, "sổ lệnh: lệch trường")
 	}
-	if !hasExecuted(st.Executed, u.Ticket.ID) {
+	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return executedMatches(a, u.Audit) }) {
 		bad = append(bad, "audit EXECUTED: không thấy")
 	}
 	return bad
@@ -975,14 +989,35 @@ func verifyReplay(st Stored, led LedgerRecord, req Request, caller string) []str
 		t.Day != req.Day || t.CommandID != req.CommandID || t.CreatedBy != caller {
 		bad = append(bad, "phiếu: lệch so với yêu cầu đã phát lại")
 	}
-	if !hasExecuted(st.Executed, led.TicketID) {
+	// Không có bản chụp ý định của lượt gốc: so các cột suy ra được từ dòng sổ lệnh, chính yêu cầu và phiếu đọc lại (phiên bản pack / mã).
+	// Vai, phạm vi và trace_id là của lượt gốc (vai có thể đã đổi từ đó) nên không so ở đây.
+	want := Audit{Outcome: AuditExecuted, Caller: Caller{ID: led.Caller}, CommandID: led.CommandID, Action: CommandOpenDiscrepancyTicket,
+		SubjectKey: req.SubjectKey, Metric: req.Metric, Day: req.Day, TicketID: led.TicketID, Fingerprint: led.Fingerprint}
+	// phiếu và dòng EXECUTED cùng một đơn vị ghi nên phiên bản pack / mã phải bằng nhau: so với phiếu vừa đọc lại khi có đúng một phiếu (số
+	// phiếu khác một đã là chỗ lệch riêng ở trên) (C17S-07)
+	sameVersions := func(a Audit) bool {
+		return len(st.Tickets) != 1 || a.PackVersion == st.Tickets[0].PackVersion && a.CodeVersion == st.Tickets[0].CodeVersion
+	}
+	if !slices.ContainsFunc(st.Executed, func(a Audit) bool { return replayedExecutedMatches(a, want) && sameVersions(a) }) {
 		bad = append(bad, "audit EXECUTED: không thấy")
 	}
 	return bad
 }
 
-func hasExecuted(audits []Audit, ticketID string) bool {
-	return slices.ContainsFunc(audits, func(a Audit) bool { return a.Outcome == AuditExecuted && a.TicketID == ticketID })
+// executedMatches báo a là đúng dòng audit EXECUTED của bản chụp ý định want: so MỌI cột đọc lại được (HOP-DONG §7.2; C2, lệnh ca chiều
+// 23/10), trừ reason_detail — cột vai ứng dụng không được đọc (C1); dòng EXECUTED luôn ghi reason_detail rỗng.
+func executedMatches(a, want Audit) bool {
+	return replayedExecutedMatches(a, want) && slices.Equal(a.Caller.Roles, want.Caller.Roles) &&
+		a.Caller.EntityScope == want.Caller.EntityScope && a.PackVersion == want.PackVersion && a.CodeVersion == want.CodeVersion &&
+		a.TraceID == want.TraceID
+}
+
+// replayedExecutedMatches so các cột của dòng EXECUTED mà lượt phát lại suy ra được: kết cục, mã lý do, người gọi, khoá lệnh, hành động,
+// khoá thực thể, chỉ số, ngày, mã phiếu, vân tay.
+func replayedExecutedMatches(a, want Audit) bool {
+	return a.Outcome == want.Outcome && a.ReasonCode == want.ReasonCode && a.Caller.ID == want.Caller.ID && a.CommandID == want.CommandID &&
+		a.Action == want.Action && a.SubjectKey == want.SubjectKey && a.Metric == want.Metric && a.Day == want.Day &&
+		a.TicketID == want.TicketID && a.Fingerprint == want.Fingerprint
 }
 
 // diffTicket trả tên các trường lệch giữa bản chụp ý định và dòng đọc lại; chỉ tên, không giá trị.
@@ -1058,7 +1093,14 @@ func faultLabel(err error, table string) string {
 
 // infra là dừng vì hạ tầng TRƯỚC khi mở giao dịch ghi (đọc danh mục, sổ lệnh, số liệu, tìm phiếu mở lỗi hoặc hết hạn): biết
 // chắc chưa ghi gì nên FAILED STORE_UNAVAILABLE, bên gọi gửi lại cùng khoá.
+// Lỗi mà tầng dưới đã gắn nhãn MÃ hay DỮ LIỆU (pgstore sau 5b: ràng buộc, quyền, sai kiểu — lỗi tất định, gửi lại cũng hỏng như cũ) không phải
+// lỗi hạ tầng: FAILED INTERNAL_ERROR (bảng §2.4: lỗi mã, FAILED khi trước BEGIN), như nhánh Derive. Lỗi nhãn infra:*, chưa gắn nhãn hay hết hạn
+// vẫn là STORE_UNAVAILABLE (soát lại 5abc, 5b-R1).
 func (r *run) infra(st int, err error, in []string, why string) {
+	if f := contracts.FaultOf(err); f == contracts.FaultCode || f == contracts.FaultData {
+		r.fail(st, internalResult(StatusFailed), err, Step{Input: in, Decision: "lỗi mã", Reason: why}, "chưa mở giao dịch ghi")
+		return
+	}
 	r.fail(st, resultFor(ReasonStoreUnavailable), err, Step{Input: in, Decision: "lỗi hạ tầng", Reason: why}, "chưa mở giao dịch ghi")
 }
 
@@ -1075,10 +1117,17 @@ func (r *run) auditRow(outcome AuditOutcome, code ReasonCode, detail string, tic
 	return a
 }
 
+// auditTimeout là hạn riêng của một lần ghi audit ngoài đơn vị ghi phiếu (chặn treo khi kho không trả lời).
+const auditTimeout = 5 * time.Second
+
 // writeAudit ghi một dòng audit bằng giao dịch riêng, cố gắng tối đa: hỏng thì kết quả KHÔNG đổi, chỉ để lại ghi chú ở vết
-// (nhãn infra:postgres) và lỗi gốc ở Cause.
+// (nhãn infra:postgres) và lỗi gốc ở Cause. Ghi bằng ngữ cảnh KHÔNG huỷ theo bên gọi, có hạn riêng: quyết định của lượt đã có, bên gọi
+// ngắt kết nối không được xoá dấu kiểm toán của nó (soát K3, K3S-01: 300 lượt bị từ chối rồi ngắt RST chỉ còn 2 dòng REFUSED). Tenant vẫn
+// đi theo ngữ cảnh (WithoutCancel giữ các giá trị).
 func (r *run) writeAudit(ctx context.Context, a Audit) string {
-	if err := r.p.d.Store.WriteAudit(ctx, a); err != nil {
+	actx, cancel := context.WithTimeout(context.WithoutCancel(ctx), auditTimeout)
+	defer cancel()
+	if err := r.p.d.Store.WriteAudit(actx, a); err != nil {
 		if r.cause == nil {
 			r.cause = err
 		}
@@ -1089,12 +1138,18 @@ func (r *run) writeAudit(ctx context.Context, a Audit) string {
 
 // outcome chốt lượt: điền bước skipped cho chặng chưa chạy rồi đóng gói.
 func (r *run) outcome() Outcome {
+	// chụp TRƯỚC vòng lặp: vòng lặp tự đặt done[] cho bước nó vừa điền skipped, nên đọc r.done[stRules] trong vòng sẽ coi nhầm mọi phát lại
+	// thường là phát lại do R5 (soát độc lập C1–C7, C17S-01)
+	rulesRan := r.done[stRules]
 	for i := range r.steps {
 		if r.done[i] {
 			continue
 		}
 		reason := "lượt dừng ở " + stages[max(r.stop, 0)].code
-		if r.replay != nil && r.stop == stLedger {
+		switch {
+		case r.replay != nil && r.stop == stLedger && rulesRan: // phát lại do R5 (C6): C5 đã tính, chỉ không ghi
+			reason = "phát lại (R5 thấy phiếu của chính khoá lệnh này): không ghi"
+		case r.replay != nil && r.stop == stLedger:
 			reason = "phát lại ở C4b: không tính lại, không ghi"
 		}
 		r.setStep(i, Step{Status: StepSkipped, Reason: reason})
@@ -1110,8 +1165,22 @@ func (r *run) outcome() Outcome {
 
 // question là dạng chuẩn của yêu cầu đã làm sạch (HOP-DONG §7.5).
 func question(req Request) string {
-	return CommandOpenDiscrepancyTicket + " subject_key=" + clean(req.SubjectKey) + " metric=" + clean(req.Metric) +
-		" day=" + clean(req.Day) + " command_id=" + clean(req.CommandID)
+	return CommandOpenDiscrepancyTicket + " subject_key=" + echo(req.SubjectKey) + " metric=" + echo(req.Metric) +
+		" day=" + echo(req.Day) + " command_id=" + echo(req.CommandID)
+}
+
+// echo là dạng một trường thô của yêu cầu ghi vào vết: làm sạch như clean, rồi cắt ở maxSubjectKeyBytes byte (trên ranh giới ký tự) kèm
+// số byte gốc, để trường quá dài bị C0 từ chối không mang nguyên giá trị vào câu hỏi chuẩn và đầu vào của bước (C5).
+func echo(s string) string {
+	c := clean(s)
+	if len(c) <= maxSubjectKeyBytes {
+		return c
+	}
+	cut := maxSubjectKeyBytes
+	for cut > 0 && !utf8.RuneStart(c[cut]) {
+		cut--
+	}
+	return c[:cut] + fmt.Sprintf("…(%d byte)", len(s))
 }
 
 // clean làm một chuỗi lấy từ yêu cầu lưu được vào dòng vết: đổi ký tự NUL thành chữ và byte UTF-8 hỏng thành ký tự thay thế, vì kho vết

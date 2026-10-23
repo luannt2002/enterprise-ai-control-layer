@@ -9,6 +9,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"maps"
 	"runtime/debug"
 	"slices"
 	"strconv"
@@ -63,6 +64,9 @@ type Deps struct {
 type Ask struct {
 	RT   *tenant.Runtime
 	Deps Deps
+	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
+	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
+	noWhy bool
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -153,6 +157,18 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		plan.Reason = "câu xác nhận nêu mốc thời gian không đọc được"
 		notes = append(notes, "Chưa đọc được mốc thời gian: "+strings.Join(claims.doubts, ", ")+". Bạn cho biết ngày hoặc khoảng ngày cụ thể.")
 	}
+	group := len(claims.groups) > 0
+	if group {
+		// "bể 2 500 lít": 2.500 L, hay bể 2 với 500 L? "lu 2 850 lít": lu 2 với 850 L, hay lu với 2.850 L? Hệ không phán quyết theo một cách đọc
+		// tự chọn, cũng không bỏ lượng im lặng (P5; D-OP-9)
+		plan.Route, plan.Outcome = contracts.RouteClarification, contracts.OutcomeClarificationRequired
+		plan.Template, plan.Steps = "clarify_missing", nil
+		if !slices.Contains(plan.Intent.Missing, "claimed") { // câu nêu nhiều con số khác nhau đã khai khe này
+			plan.Intent.Missing = slices.Concat(plan.Intent.Missing, []string{"claimed"})
+		}
+		plan.Reason = "câu xác nhận có nhóm số chưa phân định"
+		notes = append(notes, "Chưa rõ cách đọc \""+strings.Join(claims.groups, "\", \"")+"\": một lượng, hay số hiệu đứng trước một lượng? Bạn viết lại con số liền (không dấu cách) hoặc có dấu chấm ngăn nghìn.")
+	}
 
 	resp := contracts.AskResponse{
 		Route: plan.Route, Outcome: plan.Outcome, Intent: plan.Intent.Name, PackVersion: a.RT.PackVersion, TraceID: uuid.NewString(),
@@ -170,6 +186,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
 			visible = nil
 			ci.shown, ci.suppressed = nil, "câu hỏi lại về con số hay mốc thời gian, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"
+		}
+		if group {
+			visible, ci.shown, ci.suppressed = nil, nil, "câu hỏi lại về cách đọc nhóm số, thực thể đã rõ (router đã gỡ bí danh mơ hồ)"
 		}
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
@@ -201,12 +220,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
-	why.Normalize = explainNormalize(in)
-	// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ chúng
-	// cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
-	why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
-	why.Intent = explainIntent(cls, ci)
-	why.Route = a.explainRoute(routed, plan)
+	if !a.noWhy {
+		why.Normalize = explainNormalize(in)
+		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
+		// chúng cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
+		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
+		why.Intent = explainIntent(cls, ci)
+		why.Route = a.explainRoute(routed, plan)
+	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
 	// rộng) có ranh giới từ ở câu gốc mà mất ranh giới ở in.Raw, nơi ký tự đó đã gấp thành chữ ASCII dính liền; ngược lại khoá viết bằng chữ toàn chiều rộng
@@ -214,8 +235,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {
 		why = why.WithholdQuoted()
 	}
+	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
+	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá.
+	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
-	d.Why = why.Compact(maxWhyLines, maxWhyLineRunes)
+	red.decision(&d)
+	if !a.noWhy {
+		d.Why = finalWhy(why, red)
+	}
 	return Outcome{
 		Response: resp, Plan: plan, Decision: d,
 		Spans: tr.Spans(), TotalMs: tr.TotalMs(), UnaccountedMs: tr.Unaccounted(),
@@ -367,7 +394,9 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		prefix = "số liệu: "
 	}
 	// S7 ghi lúc trả về, khi gói ngữ cảnh đã là gói CUỐI (có thể đã thêm số của người hỏi và các chỉ số khác cùng kỳ)
-	defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	if !a.noWhy {
+		defer func() { a.noteMetricContext(why, prefix, result, pkg, entitySlot.Entity.Key, len(ids)) }()
+	}
 	for _, e := range result.Evidence {
 		resp.Citations = append(resp.Citations, contracts.Citation{EvidenceID: e.ID, Source: e.Source})
 	}
@@ -392,6 +421,8 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 			}
 		}
 		vars["reason"] = strings.Join(reasons, "; ")
+		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
+		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired
@@ -486,8 +517,10 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		claims = append(claims, otherClaims...)
 	}
 	_, base := a.RT.Metrics.Metric(metric)
-	a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
-		tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	if !a.noWhy {
+		a.noteGate(why, gate{in: in, metric: metric, base: base, confirming: a.confirming(in.Raw), confirm: confirm, compare: compare != "", withheld: withheld,
+			tmpl: tmpl, claimed: claimed, total: result.Total, subject: entitySlot.Entity.Key, used: result.UsedSources})
+	}
 	// S8 — dựng câu bằng mẫu của tenant (route số liệu không gọi model)
 	text := a.render(tmpl, vars)
 	if withheld != "" {
@@ -678,7 +711,7 @@ func (a *Ask) claimedValue(in contracts.NormalizedInput, names []mention, metric
 		return contracts.Value{}, false
 	}
 	cs := a.claimNumbers(in, names, def)
-	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 {
+	if vals := cs.values; len(vals) != 1 || len(cs.doubts) > 0 || len(cs.groups) > 0 {
 		return contracts.Value{}, false
 	}
 	return cs.values[0], true
@@ -774,6 +807,10 @@ type claimSet struct {
 	// kỳ nào đã đọc được — kỳ của câu có thể khác kỳ họ nói, nên câu phải hỏi lại, không phán quyết. Mốc nêu thêm KHỚP kỳ đã đọc
 	// ("hôm nay tuần 43", khi hôm nay thuộc tuần 43) là bối cảnh vô hại.
 	doubts []string
+	// groups: chữ của các lượng viết nhóm nghìn CHƯA PHÂN ĐỊNH trong phạm vi hỏi — con số không đứng đầu câu ("bể 2 500 lít": 2.500 L hay bể 2 với
+	// 500 L: normalization.UncertainGroup) hay chồng một phần lên tên thực thể ("lu 2 850 lít": normalization.GroupSplitsName) — câu phải hỏi lại,
+	// không phán quyết theo một cách đọc.
+	groups []string
 }
 
 // claimNumbers trả các con số KHÁC NHAU (đã đổi về đơn vị chuẩn của chỉ số) mà câu xác nhận đưa ra cho chỉ số def, kèm các mốc thời gian không kiểm
@@ -796,12 +833,21 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 	var cands []claimCand
 	skip := 0      // số span còn lại thuộc một cụm ngày dd-mm đã ghi là mốc chưa đọc được
 	labelEnd := -1 // cuối số hiệu vừa bỏ ("phiếu 12-10": phần "-10" thuộc cùng số hiệu)
+	// vị trí các nhóm nghìn chưa phân định (xem claimSet.groups); chỉ giữ cái nằm trong phạm vi hỏi
+	var unsure [][2]int
 	for i, sp := range in.Spans {
 		if skip > 0 {
 			skip--
 			continue
 		}
 		if sp.Kind != contracts.ValueQuantity && sp.Kind != contracts.ValueNumber {
+			continue
+		}
+		if slices.ContainsFunc(names, func(m mention) bool { return normalization.GroupSplitsName(sp, m.start, m.end) }) {
+			// nhóm nghìn chồng MỘT PHẦN lên tên ("lu 2 850 lít"): không bỏ im lặng như số trong tên — hỏi lại (không là ứng viên: cách đọc chưa chắc)
+			if _, ok := a.inMetricUnit(sp.Value, def); ok {
+				unsure = append(unsure, [2]int{sp.Start, sp.End})
+			}
 			continue
 		}
 		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
@@ -818,6 +864,9 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		v, ok := a.inMetricUnit(sp.Value, def)
 		if !ok {
 			continue
+		}
+		if normalization.UncertainGroup(sp) {
+			unsure = append(unsure, [2]int{sp.Start, sp.End}) // vẫn là ứng viên: các luật đếm con số bên dưới giữ nguyên
 		}
 		explicit := sp.Kind == contracts.ValueQuantity && !strings.Contains(sp.Rule, "unit_from_term")
 		if explicit && rateAfter(in.Raw, sp.End) {
@@ -849,6 +898,11 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		}
 		if !slices.ContainsFunc(cands, func(c claimCand) bool { return c.start >= lo && c.start < hi }) {
 			lo = sentenceStart(in.Raw, fs)
+		}
+	}
+	for _, u := range unsure {
+		if raw := in.Raw[u[0]:u[1]]; u[0] >= lo && !slices.Contains(cs.groups, raw) {
+			cs.groups = append(cs.groups, raw)
 		}
 	}
 	var primary, trailing []claimCand
@@ -1116,20 +1170,23 @@ func validateRequest(req contracts.AskRequest) error {
 	return nil
 }
 
+// firstEntitySlot lấy khe thực thể đứng đầu theo TÊN khe — chủ thể truy vấn của S6. Duyệt theo tên đã sắp xếp như router (ADR-0002 D18; soát
+// C8–C11 C10-S3): thứ tự lặp của map ngẫu nhiên mỗi lần chạy, nên với ý định có hai khe thực thể trở lên thì chủ thể (và câu trả lời) sẽ đổi
+// giữa các lần chạy. Pack construction chỉ có một khe thực thể.
 func firstEntitySlot(it contracts.Intent) contracts.Slot {
-	for _, s := range it.Slots {
-		if s.Entity != nil {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Entity != nil {
 			return s
 		}
 	}
 	return contracts.Slot{Entity: &contracts.EntityRef{}}
 }
 
-// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày).
+// periodBounds lấy khoảng ngày của khe period (ngày hoặc khoảng ngày) — khe kỳ đứng đầu theo TÊN khe, cùng lý do với firstEntitySlot.
 func periodBounds(it contracts.Intent, now time.Time) (time.Time, time.Time, error) {
 	text := now.Format("2006-01-02")
-	for _, s := range it.Slots {
-		if s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
+	for _, n := range slices.Sorted(maps.Keys(it.Slots)) {
+		if s := it.Slots[n]; s.Value != nil && (s.Value.Kind == contracts.ValueDate || s.Value.Kind == contracts.ValuePeriod) {
 			text = s.Value.Text
 			break
 		}

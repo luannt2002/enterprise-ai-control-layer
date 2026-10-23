@@ -135,6 +135,7 @@ const (
 	tokEng        = "t-eng"        // tenant A, site_engineer, phạm vi PRJ-A
 	tokDriver     = "t-driver"     // tenant A, driver: không capability nào
 	tokDirectorB  = "t-director-b" // tenant B, vai director
+	tokPM         = "t-pm"         // tenant A, project_manager, phạm vi PRJ-A (có tickets.create; soát K3, K3S-03)
 )
 
 type syncBuffer struct {
@@ -177,6 +178,7 @@ func newEnv(t *testing.T, st store) *env {
 		tokEng:        user("u-eng-a", a, "site_engineer", "PRJ-A"),
 		tokDriver:     user("u-driver", a, "driver", "EX-03"),
 		tokDirectorB:  user("u-b-director", b, "director", ""),
+		tokPM:         user("u-pm-a", a, "project_manager", "PRJ-A"),
 	}, log)
 	srv.hostGuard = true
 	ts := httptest.NewServer(srv.handler())
@@ -259,6 +261,7 @@ type memStore struct {
 	// chèn lỗi
 	saveDecisionErrs []error         // trả lần lượt cho các lần SaveDecision (hết thì thật)
 	saveAttempts     []traces.Record // mọi bản ghi mà SaveDecision đã nhận, kể cả lần lỗi
+	loadErr          error           // khác nil: Load trả lỗi này (mô phỏng PG từ chối dữ liệu nạp)
 	panicEntities    bool
 	pingErr          error
 	touched          int // số lần gọi vào kho (để chứng minh một đường KHÔNG chạm kho)
@@ -340,6 +343,9 @@ func (m *memStore) Load(ctx context.Context, es []entityresolution.Entity, fs []
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched++
+	if m.loadErr != nil {
+		return m.loadErr
+	}
 	t, err := memTenant(ctx)
 	if err != nil {
 		return err

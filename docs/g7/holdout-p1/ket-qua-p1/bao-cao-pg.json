@@ -1,0 +1,1072 @@
+[
+  {
+    "backend": "pg",
+    "sha256": {
+      "ca": "122637193a8dd713a1265241f2560a8ed7c9e7d70c522f65c3fa875931bdd9ba",
+      "the_gioi": "f46c3b467fd7149023ff2a46b02d9fd91fad606c95394b3076ee7fe69a47c27f"
+    },
+    "cases": [
+      {
+        "id": "CON-T-701",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-702",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-703",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-704",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-705",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-706",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-707",
+        "scenario": "A01",
+        "ok": true
+      },
+      {
+        "id": "CON-T-708",
+        "scenario": "A02",
+        "ok": true
+      },
+      {
+        "id": "CON-T-709",
+        "scenario": "A02",
+        "ok": true
+      },
+      {
+        "id": "CON-T-710",
+        "scenario": "A02",
+        "ok": true
+      },
+      {
+        "id": "CON-T-711",
+        "scenario": "A02",
+        "ok": true
+      },
+      {
+        "id": "CON-T-712",
+        "scenario": "A02b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-713",
+        "scenario": "A02b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-714",
+        "scenario": "A02b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-715",
+        "scenario": "A02b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-716",
+        "scenario": "A02b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-717",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-718",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-719",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-720",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-721",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-722",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-723",
+        "scenario": "A03",
+        "ok": true
+      },
+      {
+        "id": "CON-T-724",
+        "scenario": "A04",
+        "ok": true
+      },
+      {
+        "id": "CON-T-725",
+        "scenario": "A04",
+        "ok": true
+      },
+      {
+        "id": "CON-T-726",
+        "scenario": "A04",
+        "ok": true
+      },
+      {
+        "id": "CON-T-727",
+        "scenario": "A04",
+        "ok": true
+      },
+      {
+        "id": "CON-T-728",
+        "scenario": "A04",
+        "ok": false,
+        "failed": [
+          "ticket: không khớp; mục a: approx được false muốn true"
+        ]
+      },
+      {
+        "id": "CON-T-729",
+        "scenario": "A04",
+        "ok": true
+      },
+      {
+        "id": "CON-T-730",
+        "scenario": "A04b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-731",
+        "scenario": "A04b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-732",
+        "scenario": "A04b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-733",
+        "scenario": "A04b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-734",
+        "scenario": "A04b",
+        "ok": true
+      },
+      {
+        "id": "CON-T-735",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-736",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-737",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-738",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-739",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-740",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-741",
+        "scenario": "A05",
+        "ok": true
+      },
+      {
+        "id": "CON-T-742",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-743",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-744",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-745",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-746",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-747",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-748",
+        "scenario": "A06",
+        "ok": true
+      },
+      {
+        "id": "CON-T-749",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-750",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-751",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-752",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-753",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-754",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-755",
+        "scenario": "A07",
+        "ok": true
+      },
+      {
+        "id": "CON-T-756",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-757",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-758",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-759",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-760",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-761",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-762",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-763",
+        "scenario": "A08",
+        "ok": true
+      },
+      {
+        "id": "CON-T-764",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-765",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-766",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-767",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-768",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-769",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-770",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-771",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-772",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-773",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-774",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-775",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-776",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-777",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-778",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-779",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-780",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-781",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-782",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-783",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-784",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-785",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-786",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-787",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-788",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-789",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-790",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-791",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-792",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-793",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-794",
+        "scenario": "A13",
+        "ok": true
+      },
+      {
+        "id": "CON-T-795",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-796",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-797",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-798",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-799",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-800",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-801",
+        "scenario": "A14",
+        "ok": true
+      },
+      {
+        "id": "CON-T-802",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-803",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-804",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-805",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-806",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-807",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-808",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-809",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-810",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-811",
+        "scenario": "A15",
+        "ok": true
+      },
+      {
+        "id": "CON-T-812",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-813",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-814",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-815",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-816",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-817",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-818",
+        "scenario": "A16",
+        "ok": true
+      },
+      {
+        "id": "CON-T-819",
+        "scenario": "A17",
+        "ok": false,
+        "failed": [
+          "ticket: không khớp; mục input: approx được false muốn true"
+        ]
+      },
+      {
+        "id": "CON-T-820",
+        "scenario": "A17",
+        "ok": false,
+        "failed": [
+          "ticket: không khớp; mục send#2: approx được false muốn true"
+        ]
+      },
+      {
+        "id": "CON-T-821",
+        "scenario": "A17",
+        "ok": false,
+        "failed": [
+          "ticket: không khớp; mục input: approx được false muốn true"
+        ]
+      },
+      {
+        "id": "CON-T-822",
+        "scenario": "A17",
+        "ok": true
+      },
+      {
+        "id": "CON-T-823",
+        "scenario": "A18",
+        "ok": true
+      },
+      {
+        "id": "CON-T-824",
+        "scenario": "A18",
+        "ok": true
+      },
+      {
+        "id": "CON-T-825",
+        "scenario": "A18",
+        "ok": true
+      },
+      {
+        "id": "CON-T-826",
+        "scenario": "A18",
+        "ok": true
+      },
+      {
+        "id": "CON-T-827",
+        "scenario": "A19",
+        "ok": true
+      },
+      {
+        "id": "CON-T-828",
+        "scenario": "A19",
+        "ok": true
+      },
+      {
+        "id": "CON-T-829",
+        "scenario": "A19",
+        "ok": true
+      },
+      {
+        "id": "CON-T-830",
+        "scenario": "A19",
+        "ok": true
+      },
+      {
+        "id": "CON-T-831",
+        "scenario": "A20",
+        "ok": true
+      },
+      {
+        "id": "CON-T-832",
+        "scenario": "A20",
+        "ok": true
+      },
+      {
+        "id": "CON-T-833",
+        "scenario": "A20",
+        "ok": true
+      },
+      {
+        "id": "CON-T-834",
+        "scenario": "A20",
+        "ok": true
+      },
+      {
+        "id": "CON-T-835",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-836",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-837",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-838",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-839",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-840",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-841",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-842",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-843",
+        "scenario": "A21",
+        "ok": true
+      },
+      {
+        "id": "CON-T-844",
+        "scenario": "A22",
+        "ok": true
+      },
+      {
+        "id": "CON-T-845",
+        "scenario": "A22",
+        "ok": true
+      },
+      {
+        "id": "CON-T-846",
+        "scenario": "A22",
+        "ok": true
+      },
+      {
+        "id": "CON-T-847",
+        "scenario": "A23",
+        "ok": true
+      },
+      {
+        "id": "CON-T-848",
+        "scenario": "A23",
+        "ok": true
+      },
+      {
+        "id": "CON-T-849",
+        "scenario": "A23",
+        "ok": true
+      },
+      {
+        "id": "CON-T-850",
+        "scenario": "A23",
+        "ok": true
+      },
+      {
+        "id": "CON-T-851",
+        "scenario": "A23",
+        "ok": true
+      },
+      {
+        "id": "CON-T-852",
+        "scenario": "A29",
+        "ok": true
+      },
+      {
+        "id": "CON-T-853",
+        "scenario": "A29",
+        "ok": true
+      },
+      {
+        "id": "CON-T-854",
+        "scenario": "A29",
+        "ok": true
+      },
+      {
+        "id": "CON-T-855",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-856",
+        "scenario": "A10",
+        "ok": true
+      },
+      {
+        "id": "CON-T-857",
+        "scenario": "A08",
+        "ok": true
+      }
+    ],
+    "by_class": {
+      "A01": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A02": {
+        "cases": 4,
+        "ok": 4
+      },
+      "A02b": {
+        "cases": 5,
+        "ok": 5
+      },
+      "A03": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A04": {
+        "cases": 6,
+        "ok": 5
+      },
+      "A04b": {
+        "cases": 5,
+        "ok": 5
+      },
+      "A05": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A06": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A07": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A08": {
+        "cases": 9,
+        "ok": 9
+      },
+      "A10": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A13": {
+        "cases": 26,
+        "ok": 26
+      },
+      "A14": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A15": {
+        "cases": 10,
+        "ok": 10
+      },
+      "A16": {
+        "cases": 7,
+        "ok": 7
+      },
+      "A17": {
+        "cases": 4,
+        "ok": 1
+      },
+      "A18": {
+        "cases": 4,
+        "ok": 4
+      },
+      "A19": {
+        "cases": 4,
+        "ok": 4
+      },
+      "A20": {
+        "cases": 4,
+        "ok": 4
+      },
+      "A21": {
+        "cases": 9,
+        "ok": 9
+      },
+      "A22": {
+        "cases": 3,
+        "ok": 3
+      },
+      "A23": {
+        "cases": 5,
+        "ok": 5
+      },
+      "A29": {
+        "cases": 3,
+        "ok": 3
+      }
+    },
+    "by_gate": [
+      {
+        "id": "X1",
+        "name": "gửi đôi",
+        "status": "ĐỎ",
+        "classes": {
+          "A01": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A02": {
+            "cases": 4,
+            "ok": 4
+          },
+          "A02b": {
+            "cases": 5,
+            "ok": 5
+          },
+          "A03": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A04": {
+            "cases": 6,
+            "ok": 5
+          },
+          "A04b": {
+            "cases": 5,
+            "ok": 5
+          },
+          "A05": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A06": {
+            "cases": 7,
+            "ok": 7
+          }
+        }
+      },
+      {
+        "id": "X2",
+        "name": "thiếu quyền",
+        "status": "ĐẠT phần khai được bằng khuôn (ngoài khuôn: A09, A11, A12)",
+        "classes": {
+          "A07": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A08": {
+            "cases": 9,
+            "ok": 9
+          },
+          "A10": {
+            "cases": 7,
+            "ok": 7
+          }
+        },
+        "absent": [
+          "A09",
+          "A11",
+          "A12"
+        ]
+      },
+      {
+        "id": "X3",
+        "name": "timeout sau khi ghi",
+        "status": "ĐẠT",
+        "classes": {
+          "A21": {
+            "cases": 9,
+            "ok": 9
+          },
+          "A22": {
+            "cases": 3,
+            "ok": 3
+          }
+        }
+      },
+      {
+        "id": "X4",
+        "name": "nguyên tử và hỏng giữa chừng",
+        "status": "ĐẠT",
+        "classes": {
+          "A19": {
+            "cases": 4,
+            "ok": 4
+          },
+          "A20": {
+            "cases": 4,
+            "ok": 4
+          },
+          "A23": {
+            "cases": 5,
+            "ok": 5
+          }
+        }
+      },
+      {
+        "id": "X5",
+        "name": "dữ liệu và luật",
+        "status": "ĐỎ",
+        "classes": {
+          "A13": {
+            "cases": 26,
+            "ok": 26
+          },
+          "A14": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A15": {
+            "cases": 10,
+            "ok": 10
+          },
+          "A16": {
+            "cases": 7,
+            "ok": 7
+          },
+          "A17": {
+            "cases": 4,
+            "ok": 1
+          },
+          "A18": {
+            "cases": 4,
+            "ok": 4
+          }
+        }
+      },
+      {
+        "id": "X6",
+        "name": "biên",
+        "status": "KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)",
+        "classes": {},
+        "absent": [
+          "A24",
+          "A25",
+          "A26"
+        ]
+      },
+      {
+        "id": "X7",
+        "name": "không đổi đường hỏi",
+        "status": "KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)",
+        "classes": {},
+        "absent": [
+          "A27"
+        ]
+      },
+      {
+        "id": "X8",
+        "name": "đột biến",
+        "status": "NGOÀI BỘ CHẠY (danh mục đột biến scripts/dot-bien/)",
+        "classes": {}
+      },
+      {
+        "id": "X9",
+        "name": "cửa vào và vết",
+        "status": "ĐẠT phần khai được bằng khuôn (ngoài khuôn: A28)",
+        "classes": {
+          "A29": {
+            "cases": 3,
+            "ok": 3
+          }
+        },
+        "absent": [
+          "A28"
+        ]
+      }
+    ]
+  }
+]

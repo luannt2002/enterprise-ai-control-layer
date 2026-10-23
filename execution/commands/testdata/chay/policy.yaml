@@ -1,0 +1,8 @@
+# Chính sách của ca phát triển: bảng vai §4.2 của HOP-DONG (đề xuất, chưa có người nghiệp vụ duyệt). Giống policy.yaml của pack cộng
+# capability tickets.create cho ba vai director, accountant, project_manager. Chỉ bộ chạy ca phát triển dùng tệp này (overlay).
+roles:
+  director: {capabilities: [metrics.read, documents.read, tickets.create], scope: all}
+  accountant: {capabilities: [metrics.read, tickets.create], scope: all}
+  project_manager: {capabilities: [metrics.read, documents.read, tickets.create], scope: attribute}
+  site_engineer: {capabilities: [metrics.read, documents.read], scope: attribute}
+  driver: {capabilities: [], scope: attribute}

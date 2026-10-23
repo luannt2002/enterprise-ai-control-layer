@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/evals"
@@ -724,6 +725,48 @@ func TestLuuVetLoiKhongThuLai(t *testing.T) {
 		r := e.ask(tokDirector, qSQL)
 		if r.status != c.status || len(ms.saveAttempts) != 1 || strings.Contains(string(r.body), `"answer"`) {
 			t.Errorf("lỗi lưu vết nhãn %s: %d, %d lần thử — muốn %d và đúng 1 lần, không có câu trả lời", c.fault, r.status, len(ms.saveAttempts), c.status)
+		}
+	}
+}
+
+// Lỗi dữ liệu do CHÍNH PostgreSQL trả (lớp 22 / 23, có SQLSTATE) khi ghi thứ server tự dựng là lỗi của server (soát độc lập 5b-3): lượt hỏi trả
+// 500 chứ không 409 đổ cho client, và không thử lại; lượt nạp lại vẫn 409 cho vai toàn quyền nhưng chỉ công bố mã SQLSTATE, không công bố
+// thông điệp thô của PG (tên bảng, tên ràng buộc, giá trị). Xung đột nội dung do kho tự phát hiện (TestLuuVetLoiKhongThuLai) vẫn 409.
+func TestLoiDuLieuPGKhongDoChoClient(t *testing.T) {
+	pgErr := func(table string) error {
+		return contracts.Label(contracts.FaultData, &pgconn.PgError{Code: "23514", TableName: table, ConstraintName: "chk_bi_mat_noi_bo",
+			Message: `new row for relation "` + table + `" violates check constraint "chk_bi_mat_noi_bo"`})
+	}
+	e, ms := memEnv(t)
+	ms.saveDecisionErrs = []error{pgErr("decision_records")}
+	r := e.ask(tokDirector, qSQL)
+	if r.status != http.StatusInternalServerError || len(ms.saveAttempts) != 1 || strings.Contains(string(r.body), "chk_bi_mat_noi_bo") {
+		t.Errorf("lượt hỏi, PG từ chối bản ghi vết: %d, %d lần thử, thân %s — muốn 500, đúng 1 lần, không lộ ràng buộc", r.status, len(ms.saveAttempts), r.body)
+	}
+	ms.loadErr = pgErr("facts")
+	r = e.post("/v1/ingest", tokDirector, map[string]string{})
+	if body := string(r.body); r.status != http.StatusConflict || !strings.Contains(body, "23514") || strings.Contains(body, "chk_bi_mat_noi_bo") || strings.Contains(body, "facts") {
+		t.Errorf("nạp lại, PG từ chối dữ liệu: %d %s — muốn 409 kèm SQLSTATE 23514, không lộ tên bảng / ràng buộc", r.status, body)
+	}
+}
+
+// Nhãn mà pgstore gắn cho lỗi PG đi tới đúng hành vi ở lớp HTTP (soát độc lập 5b-4): lỗi tất định (42501 thiếu quyền / RLS chặn ghi, nhãn mã)
+// trả 500 sau ĐÚNG một lần ghi; lỗi tạm thời (55P03 không lấy được khoá, nhãn hạ tầng) được thử lại đủ 3 lần rồi 503.
+func TestLoiPGQuaHTTPThuLaiDungLoai(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		err      error
+		status   int
+		attempts int
+	}{
+		{"42501 tất định", contracts.Label(contracts.FaultCode, &pgconn.PgError{Code: "42501"}), http.StatusInternalServerError, 1},
+		{"55P03 tạm thời", contracts.Label(contracts.Infra("postgres"), &pgconn.PgError{Code: "55P03"}), http.StatusServiceUnavailable, 3},
+	} {
+		e, ms := memEnv(t)
+		ms.saveDecisionErrs = []error{c.err, c.err, c.err}
+		r := e.ask(tokDirector, qSQL)
+		if r.status != c.status || len(ms.saveAttempts) != c.attempts {
+			t.Errorf("%s: %d sau %d lần ghi, muốn %d sau %d lần", c.name, r.status, len(ms.saveAttempts), c.status, c.attempts)
 		}
 	}
 }

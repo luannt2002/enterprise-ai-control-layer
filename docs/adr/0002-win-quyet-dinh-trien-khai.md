@@ -32,6 +32,7 @@ Luật chọn (CLAUDE.md §4):
 | D15 | Số âm | bộ chuẩn hoá đọc dấu `-` / `−` là dấu âm khi ngay sau là chữ số và ngay trước là khoảng trắng, đầu câu hoặc mở ngoặc. "EX-03", "R-004", "18-20" không đổi | thiếu nó thì mọi hiệu âm (được phép theo G6) bị S9 chặn khi giao | — |
 | D16 | "≥ 4 biểu diễn" của G1 | thêm biểu diễn thứ tư cho R-004: CSV gõ tay, lượng `3.850`, đơn vị `lít` | bộ sinh cũ chỉ có 3 biểu diễn cho phiếu kho | — |
 | D17 | Nhãn số trích từ SOP (G5) | mẫu `knowledge_answer` = "Trích văn bản quy trình ({title}): …" | 04 §6 đòi số trích SOP "được gắn nhãn trích văn bản quy trình" | tenant muốn câu chữ khác — sửa mẫu, không sửa mã |
+| D18 | Thứ tự duyệt khe thực thể ở bậc "phạm vi dữ liệu" của router (thêm 23/10/2026 bởi phiên BUILD theo lệnh ca chiều mục C10 — **chờ chủ dự án chấp nhận**; trạng thái TẠM CHẤP NHẬN 20/10 ở đầu ADR không phủ dòng này) | duyệt theo TÊN khe đã sắp xếp (`slices.Sorted(maps.Keys(cls.Intent.Slots))`, `intelligence/router/router.go`), không theo thứ tự lặp của map; nhiều khe cùng ngoài phạm vi ⇒ lý do từ chối và dòng vết nêu thực thể của khe đứng đầu theo tên. Luồng hỏi chọn chủ thể truy vấn S6 và kỳ theo CÙNG thứ tự (`firstEntitySlot`, `periodBounds` ở `core/pipeline/ask.go`; soát C8–C11 C10-S3) | R2-03 (`07d6665`) đổi từ thứ tự lặp của map — ngẫu nhiên mỗi lần chạy — sang thứ tự cố định: cùng câu, cùng người hỏi phải ra cùng kế hoạch và cùng vết. Ghim bằng `TestRouteDuyetKheTheoThuTuCoDinh` (200 lần chạy; đột biến trả về thứ tự map bị bắt 3/3 lần đo). Chủ thể / kỳ của luồng hỏi từng duyệt map — đổi CÂU TRẢ LỜI giữa các lần chạy khi ý định có hai khe thực thể hay hai khe kỳ trở lên (ngủ vì pack construction chỉ có một mỗi loại); ghim bằng `TestKheChuTheVaKyTheoThuTuCoDinh` (đột biến về thứ tự map ở từng hàm đều bị bắt) | pack có hai khe thực thể trở lên mà thứ tự nghiệp vụ khác thứ tự tên (pack construction hiện chỉ có một khe `subject`) |
 
 ## Phân lớp (20/10/2026, theo yêu cầu chủ dự án)
 
@@ -58,6 +59,7 @@ Năm tầng:
 | D15 số âm | lõi chuẩn hoá (đúng / sai của việc đọc số) | `data/normalization` | đúng |
 | D16 biểu diễn thứ tư của R-004 | WIN-ONLY (dữ liệu thử của G1) | `tenants/construction/win/gen` | đúng |
 | D17 nhãn "Trích văn bản quy trình" | TENANT CONFIG (câu chữ) · đòi hỏi gắn nhãn: G5 | `pack/templates.yaml` | đúng |
+| D18 thứ tự duyệt khe cố định ở bậc phạm vi | lõi router (kế hoạch và vết tất định) | `intelligence/router` | đúng |
 
 Kết quả soát: **không quyết định nào nằm sai tầng tới mức phải dời mã ngay.** Một nợ đặt chỗ (D9) được ghi lại kèm điều kiện kích hoạt.
 

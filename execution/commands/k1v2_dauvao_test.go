@@ -370,3 +370,101 @@ func TestR4DungTruocR5KhiCaHaiCungDung(t *testing.T) {
 	wantFail(t, o, StatusFailed, ReasonNoDiscrepancy)
 	assertSteps(t, o, "C5")
 }
+
+// C5 (lệnh ca chiều 23/10): subject_key có trần độ dài ở C0. Khoá dài hơn trần bị từ chối INVALID_REQUEST trước mọi tra cứu, và vết của lượt
+// đó (câu hỏi chuẩn, đầu vào bước C0) không mang nguyên giá trị dài; khoá đúng bằng trần vẫn qua C0.
+func TestC0TranDoDaiSubjectKey(t *testing.T) {
+	good := req(1141, "EX-03", day1)
+	for _, c := range []struct {
+		name string
+		key  string
+		ok   bool
+	}{
+		{"đúng bằng trần", strings.Repeat("K", maxSubjectKeyBytes), true},
+		{"hơn trần một byte", strings.Repeat("K", maxSubjectKeyBytes+1), false},
+		{"ký tự nhiều byte vượt trần", strings.Repeat("Ể", maxSubjectKeyBytes/3+1), false},
+		{"rất dài", strings.Repeat("K", 10000), false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			w := newWorld(t)
+			r := good
+			r.SubjectKey = c.key
+			o := w.run(user("p-1", "director", ""), r)
+			if c.ok {
+				if o.Result.ReasonCode == ReasonInvalidRequest {
+					t.Fatalf("khoá dài đúng bằng trần bị từ chối ở C0: %+v", o.Result)
+				}
+				return
+			}
+			wantFail(t, o, StatusFailed, ReasonInvalidRequest)
+			if fmt.Sprint(o.Result.InvalidFields) != "[subject_key]" {
+				t.Fatalf("invalid_fields = %v, muốn [subject_key]", o.Result.InvalidFields)
+			}
+			assertSteps(t, o, "C0")
+			if len(o.Question) > 2*maxSubjectKeyBytes+120 {
+				t.Errorf("câu hỏi chuẩn của lượt mang nguyên khoá dài: %d byte", len(o.Question))
+			}
+			for _, s := range o.Steps {
+				for _, str := range s.Input {
+					if len(str) > maxSubjectKeyBytes+40 {
+						t.Errorf("bước %s ghi nguyên giá trị dài vào vết: %d byte", s.Code, len(str))
+					}
+				}
+			}
+		})
+	}
+}
+
+// C17S-04 (soát C1–C7): metric và day dài cũng không đi nguyên giá trị vào vết — bước C3 kiểm chúng trước khi biết là sai, nên đầu vào của
+// bước dùng echo() như C0; và ba hành vi của echo() được ghim: trần đúng 128 byte (số thẳng, không theo hằng), cắt trên ranh giới ký tự,
+// hậu tố độ dài gốc.
+func TestC3TruongDaiKhongVaoVetVaEcho(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		field string
+		with  func(*Request)
+	}{
+		{"metric dài", "metric", func(r *Request) { r.Metric = strings.Repeat("m", 10000) }},
+		{"day dài", "day", func(r *Request) { r.Day = strings.Repeat("9", 10000) }},
+		{"command_id dài", "command_id", func(r *Request) { r.CommandID = strings.Repeat("x", 5000) }}, // không phải UUID (soát lại M4, M4R-02)
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := req(1142, "EX-03", day1)
+			c.with(&r)
+			pr := user("p-1", "director", "")
+			o := newWorld(t).run(pr, r)
+			if o.Result.ReasonCode != ReasonInvalidRequest || fmt.Sprint(o.Result.InvalidFields) != "["+c.field+"]" {
+				t.Fatalf("muốn INVALID_REQUEST [%s], được %+v", c.field, o.Result)
+			}
+			// dạng chuẩn của yêu cầu (question(): thành Decision.Question của vết bền) không mang nguyên giá trị dài (soát lại M4, M4R-02):
+			// bốn trường qua echo() nên tối đa cỡ 4 × 150 byte
+			if len(o.Question) > 700 || !utf8.ValidString(o.Question) {
+				t.Errorf("Question mang nguyên giá trị dài hoặc UTF-8 hỏng: %d byte", len(o.Question))
+			}
+			// bản ghi BỀN (NewRecord, thứ kho vết lưu): Decision.Slots cũng không mang nguyên giá trị dài (soát lại M4, M4R-01)
+			for _, sl := range NewRecord(r, o, pr, fixedNow, testVersions, 0).Decision.Slots {
+				if len(sl) > 200 || !utf8.ValidString(sl) {
+					t.Errorf("Decision.Slots của vết bền mang nguyên giá trị dài hoặc UTF-8 hỏng: %d byte", len(sl))
+				}
+			}
+			for _, s := range o.Steps {
+				for _, str := range append(append([]string{}, s.Input...), s.Output...) {
+					if len(str) > 200 {
+						t.Errorf("bước %s ghi nguyên giá trị dài vào vết: %d byte", s.Code, len(str))
+					}
+				}
+			}
+		})
+	}
+	long := strings.Repeat("K", 126) + "ế" + "Z" // 'ế' 3 byte nằm vắt qua byte thứ 128
+	got := echo(long)
+	if !utf8.ValidString(got) || !strings.HasPrefix(got, strings.Repeat("K", 126)+"…") || !strings.HasSuffix(got, fmt.Sprintf("(%d byte)", len(long))) {
+		t.Errorf("echo cắt sai ranh giới ký tự hoặc thiếu hậu tố độ dài: %q", got)
+	}
+	if got := echo(strings.Repeat("K", 128)); got != strings.Repeat("K", 128) {
+		t.Errorf("128 byte phải giữ nguyên, được %q", got)
+	}
+	if got := echo(strings.Repeat("K", 129)); !strings.HasSuffix(got, "(129 byte)") || strings.Count(got, "K") != 128 {
+		t.Errorf("129 byte phải cắt còn 128 kèm độ dài gốc, được %q", got)
+	}
+}

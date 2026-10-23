@@ -1,0 +1,619 @@
+# Bộ ca PHÁT TRIỂN của ca lệnh open_discrepancy_ticket (HOP-DONG §10, §12.1): tầng 1, do người viết mã soạn; viết từ ví dụ của §10 và §12.1,
+# KHÔNG chép từ bộ giữ lại độc lập. Dạng tệp {suite: lenh, cases: [...]}; mỗi ca đúng 23 khoá của docs/CONVENTIONS.md §5, khoá `scenario` ghi mã lớp ca.
+# Chạy bằng bộ chạy chung (execution/commands/bochay_test.go) trên bộ nhớ và PostgreSQL với tệp thế giới the-gioi-phat-trien.yaml; thay đổi một ca
+# là đổi bộ ca phát triển, không phải bộ giữ lại. Chuỗi mà YAML dễ hiểu thành kiểu khác (ngày, số) viết có nháy.
+#
+# Phủ các lớp ca khai được bằng khuôn: A01–A08 (kể cả A02b, A04b), A09 (chỉ ca phát triển: vai thêm ticket_only), A10, A13–A23, và A29e (điểm
+# chèn lỗi F8, phần đếm dòng của A29 (e); phần trace_id và bộ đếm lỗi lưu vết chờ đường lưu vết của K3). A11, A12, A24–A29 cần cửa HTTP, tệp
+# pack, đếm model, đường hỏi, quyền SQL hay vết mà khuôn chưa có (§12, U10): phủ bằng test Go riêng, không nằm trong tệp này.
+#
+# Khuôn chung (anchor khuon) là ca đầu; các ca sau chỉ ghi khoá khác (`<<: *khuon`).
+suite: lenh
+cases:
+  - &khuon
+    id: CON-T-001
+    tenant: abc-infra
+    domain: fuel
+    business_process: discrepancy-ticket
+    scenario: A01
+    entry_type: COMMAND
+    category: happy_path
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000001", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    preconditions: []
+    sources: []
+    expected_route: TOOL
+    expected_tools: [open_discrepancy_ticket]
+    expected_context: []
+    expected_output_properties:
+      results: {DONE: 2}
+      replayed_false: 1
+      replayed_true: 1
+      distinct_ticket_ids: 1
+      ticket:
+        status: OPEN
+        subject_key: EX-03
+        metric: issue_vs_measured
+        day: "2026-10-19"
+        diff: "68"
+        approx: false
+        left: {metric: issued_fuel, value: "3850", unit: L}
+        right: {metric: measured_consumption, value: "3782", unit: L}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 1}]
+      write_unit_calls: 1
+      audit_writes: 1
+    must_not_do: []
+    business_rules: []
+    permissions: null
+    failure_injection: null
+    expected_fallback: null
+    metrics: []
+    severity: S1
+    acceptance_criteria: []
+
+  - <<: *khuon
+    id: CON-T-002
+    scenario: A01
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000002", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19", repeat: 3}
+    expected_output_properties: {results: {DONE: 3}, replayed_false: 1, replayed_true: 2, distinct_ticket_ids: 1, ticket: {diff: "50", approx: false}}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 2}]
+      write_unit_calls: 1
+      audit_writes: 2
+
+  - <<: *khuon
+    id: CON-T-003
+    scenario: A01
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000003", subject_key: EX-10, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties:
+      results: {DONE: 1}
+      replayed_false: 1
+      ticket: {diff: "-50", approx: false, left: {value: "900"}, right: {value: "950"}}
+    expected_state: {tickets_open: 1, ledger_rows: 1, audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 0}]}
+
+  - <<: *khuon
+    id: CON-T-004
+    scenario: A02
+    category: adversarial
+    input:
+      - {id: a, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000004", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: b, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000004", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: c, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000004", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: race_barrier, parallel: 3}
+    expected_output_properties: {results: {DONE: 3}, replayed_false: 1, replayed_true: 2, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 2}]
+      write_unit_calls: 3
+
+  - <<: *khuon
+    id: CON-T-005
+    scenario: A02
+    category: adversarial
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000005", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19", repeat: 5}
+    failure_injection: {point: race_barrier, parallel: 5}
+    expected_output_properties: {results: {DONE: 5}, replayed_false: 1, replayed_true: 4, distinct_ticket_ids: 1, ticket: {diff: "100"}}
+    expected_state: {tickets_open: 1, ledger_rows: 1, write_unit_calls: 5}
+
+  - <<: *khuon
+    id: CON-T-006
+    scenario: A02b
+    category: adversarial
+    input:
+      - {id: a, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000006", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: b, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000006", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: c, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000006", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: race_barrier, parallel: 3}
+    expected_output_properties: {results: {DONE: 1, IDEMPOTENCY_KEY_REUSED: 2}, replayed_false: 1, replayed_true: 0, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1, write_unit_calls: 3}
+
+  - <<: *khuon
+    id: CON-T-007
+    scenario: A02b
+    category: adversarial
+    input:
+      - {id: a, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000007", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: b, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000007", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: race_barrier, parallel: 2}
+    expected_output_properties: {results: {DONE: 1, IDEMPOTENCY_KEY_REUSED: 1}, replayed_false: 1, replayed_true: 0}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-008
+    scenario: A03
+    category: adversarial
+    input:
+      - {id: dau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000008", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: sau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000008", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1, IDEMPOTENCY_KEY_REUSED: 1}, replayed_true: 0, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REFUSED, reason_code: IDEMPOTENCY_KEY_REUSED, count: 1}]
+      write_unit_calls: 1
+      audit_writes: 1
+
+  - <<: *khuon
+    id: CON-T-009
+    scenario: A03
+    category: adversarial
+    input:
+      - {id: dau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000009", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: sau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000009", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-18"}
+    expected_output_properties: {results: {DONE: 1, IDEMPOTENCY_KEY_REUSED: 1}, replayed_true: 0}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: REFUSED, reason_code: IDEMPOTENCY_KEY_REUSED, count: 1}]
+      write_unit_calls: 1
+
+  - <<: *khuon
+    id: CON-T-010
+    scenario: A04
+    category: adversarial
+    input:
+      - {id: dau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000010", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: sau, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000011", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, count: 1}]
+      write_unit_calls: 1
+      audit_writes: 1
+
+  - <<: *khuon
+    id: CON-T-011
+    scenario: A04
+    category: adversarial
+    input:
+      - {id: dau, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000012", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: sau, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000013", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, count: 1}]
+      write_unit_calls: 1
+      audit_writes: 1
+
+  - <<: *khuon
+    id: CON-T-012
+    scenario: A04b
+    category: adversarial
+    input:
+      - {id: a, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000014", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: b, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000015", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: c, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000016", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: d, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000017", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: race_barrier, parallel: 4}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 3}, replayed_true: 0, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1, write_unit_calls: 4}
+
+  - <<: *khuon
+    id: CON-T-013
+    scenario: A04b
+    category: adversarial
+    input:
+      - {id: a, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000018", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: b, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000019", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: race_barrier, parallel: 2}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-014
+    scenario: A05
+    category: permission
+    input:
+      - {id: first, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000020", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: second, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000020", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}, replayed_true: 0, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit:
+        - {outcome: EXECUTED, caller: p-1, count: 1}
+        - {outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, caller: p-2, count: 1}
+        - {outcome: REPLAYED, count: 0}
+      write_unit_calls: 1
+      audit_writes: 1
+
+  - <<: *khuon
+    id: CON-T-015
+    scenario: A05
+    category: permission
+    input:
+      - {id: first, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000021", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: second, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000021", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1, DUPLICATE_OPEN_TICKET: 1}, replayed_true: 0}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit:
+        - {outcome: EXECUTED, caller: p-2, count: 1}
+        - {outcome: REFUSED, reason_code: DUPLICATE_OPEN_TICKET, caller: p-3, count: 1}
+        - {outcome: REPLAYED, count: 0}
+
+  - <<: *khuon
+    id: CON-T-016
+    scenario: A06
+    category: permission
+    input:
+      - {id: t1, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000022", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: t2, runtime: def-build, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000022", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 2}, replayed_false: 2, replayed_true: 0, distinct_ticket_ids: 2}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      other_tenants: {def-build: {tickets_open: 1, ledger_rows: 1}}
+      cross_tenant_rows: 0
+
+  - <<: *khuon
+    id: CON-T-017
+    scenario: A07
+    category: permission
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000023", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: site_engineer, entity_scope: PRJ-A}
+    expected_output_properties: {results: {PERMISSION_DENIED: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 1}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-018
+    scenario: A07
+    category: permission
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000024", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: driver, entity_scope: EX-03}
+    expected_output_properties: {results: {PERMISSION_DENIED: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 1}]
+
+  - <<: *khuon
+    id: CON-T-019
+    scenario: A08
+    category: permission
+    input:
+      - {id: ngoai-pham-vi, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000025", subject_key: EX-09, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: khong-ton-tai, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000026", subject_key: EX-99, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: ky-tu-sql, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000027", subject_key: "EX-03'; DROP TABLE discrepancy_tickets;--", metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {PERMISSION_DENIED: 3}, distinct_details: 1}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 3}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-020
+    scenario: A08
+    category: adversarial
+    input:
+      - {id: ky-tu-sql, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000028", subject_key: "' OR '1'='1", metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: dau-nhay, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000029", subject_key: "EX-404\"", metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: ngoai-pham-vi, principal: {id: p-3, role: project_manager, entity_scope: PRJ-A}, command_id: "6f1c0d52-0000-4000-8000-000000000030", subject_key: EX-09, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {PERMISSION_DENIED: 3}, distinct_details: 1}
+    expected_state: {tickets_open: 0, ledger_rows: 0, audit: [{outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 3}]}
+
+  - <<: *khuon
+    id: CON-T-021
+    scenario: A09
+    category: permission
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000031", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: ticket_only}
+    expected_output_properties: {results: {PERMISSION_DENIED: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: PERMISSION_DENIED, count: 1}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-022
+    scenario: A10
+    category: permission
+    input:
+      - {id: lech-tenant, principal: {id: p-b, role: director, tenant: def-build}, command_id: "6f1c0d52-0000-4000-8000-000000000032", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {PERMISSION_DENIED: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: any, count: 0}]
+      write_unit_calls: 0
+      audit_writes: 0
+      other_tenants: {def-build: {tickets_open: 0, ledger_rows: 0, audit: [{outcome: any, count: 0}]}}
+
+  - <<: *khuon
+    id: CON-T-023
+    scenario: A13
+    category: dirty_data
+    input:
+      - {id: thieu-khoa, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000033", metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: id-sai, principal: {id: p-1, role: director}, command_id: khong-phai-uuid, subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: ngay-sai-dang, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000034", subject_key: EX-03, metric: issue_vs_measured, day: "2026-13-45"}
+      - {id: chi-so-goc, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000035", subject_key: EX-03, metric: issued_fuel, day: "2026-10-19"}
+      - {id: hom-nay, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000036", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-20"}
+    expected_output_properties: {results: {INVALID_REQUEST: 5}, invalid_fields: [command_id, subject_key, metric, day]}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: any, count: 0}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-024
+    scenario: A13
+    category: dirty_data
+    input:
+      - {id: tuong-lai, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000037", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-21"}
+      - {id: chi-so-dan-xuat-khac, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000038", subject_key: EX-03, metric: reported_vs_issued, day: "2026-10-19"}
+      - {id: ngay-sai-kieu, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000039", subject_key: EX-03, metric: issue_vs_measured, day: "19/10/2026"}
+    expected_output_properties: {results: {INVALID_REQUEST: 3}, invalid_fields: [metric, day]}
+    expected_state: {tickets_open: 0, ledger_rows: 0, audit: [{outcome: any, count: 0}]}
+
+  - <<: *khuon
+    id: CON-T-025
+    scenario: A13
+    category: adversarial
+    input:
+      - {id: nul-khoa-may, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000040", subject_key: "EX-03\0", metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: nul-ngay, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000041", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19\0"}
+      - {id: nul-chi-so, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000042", subject_key: EX-03, metric: "issue_vs_measured\0", day: "2026-10-19"}
+    expected_output_properties: {results: {INVALID_REQUEST: 3}, invalid_fields: [subject_key, metric, day]}
+    expected_state: {tickets_open: 0, ledger_rows: 0, audit: [{outcome: any, count: 0}]}
+
+  - <<: *khuon
+    id: CON-T-026
+    scenario: A13
+    category: dirty_data
+    input:
+      - {id: khoa-la-du-an, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000043", subject_key: PRJ-A, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {INVALID_REQUEST: 1}, invalid_fields: [subject_key]}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: REFUSED, reason_code: INVALID_REQUEST, count: 1}, {outcome: EXECUTED, count: 0}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-027
+    scenario: A14
+    category: dirty_data
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000044", subject_key: EX-01, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: director}
+    expected_output_properties: {results: {NO_DISCREPANCY: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: NO_DISCREPANCY, count: 1}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-028
+    scenario: A15
+    category: dirty_data
+    input:
+      - {id: thieu-ve-do, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000045", subject_key: EX-02, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: khong-co-so-lieu, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000046", subject_key: EX-11, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {INSUFFICIENT_EVIDENCE: 2}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: INSUFFICIENT_EVIDENCE, count: 2}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-029
+    scenario: A16
+    category: conflict
+    input:
+      - {id: xung-dot, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000047", subject_key: EX-06, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: xung-dot-thieu-ve, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000048", subject_key: EX-07, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {HUMAN_REVIEW_REQUIRED: 2}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}, {outcome: REFUSED, reason_code: HUMAN_REVIEW_REQUIRED, count: 2}]
+      write_unit_calls: 0
+
+  - <<: *khuon
+    id: CON-T-030
+    scenario: A17
+    category: dirty_data
+    input:
+      - {id: uoc-luong, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000049", subject_key: EX-08, metric: issue_vs_measured, day: "2026-10-19"}
+    expected_output_properties: {results: {DONE: 1}, ticket: {approx: true, diff: "20"}}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-031
+    scenario: A18
+    category: infrastructure
+    input:
+      - {id: tao, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000050", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: gui-lai-sau-load, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000050", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", reload_before: true}
+    expected_output_properties: {results: {DONE: 2}, replayed_false: 1, replayed_true: 1, distinct_ticket_ids: 1, ticket: {diff: "68", left: {value: "3850"}}}
+    expected_state: {tickets_open: 1, ledger_rows: 1, audit: [{outcome: REPLAYED, count: 1}]}
+
+  - <<: *khuon
+    id: CON-T-032
+    scenario: A19
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000051", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: before_begin}
+    expected_output_properties: {results: {STORE_UNAVAILABLE: 1, DONE: 1}, replayed_false: 1, replayed_true: 0, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 0}]
+      write_unit_calls: 2
+
+  - <<: *khuon
+    id: CON-T-033
+    scenario: A19
+    category: infrastructure
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000052", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: accountant}
+    failure_injection: {point: before_begin}
+    expected_output_properties: {results: {STORE_UNAVAILABLE: 1}}
+    expected_state: {tickets_open: 0, ledger_rows: 0, audit: [{outcome: EXECUTED, count: 0}], write_unit_calls: 1}
+
+  - <<: *khuon
+    id: CON-T-034
+    scenario: A20
+    category: infrastructure
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000053", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: director}
+    failure_injection: {point: in_tx_audit_insert}
+    expected_output_properties: {results: {STORE_UNAVAILABLE: 1}}
+    expected_state:
+      tickets_open: 0
+      ledger_rows: 0
+      audit: [{outcome: EXECUTED, count: 0}]
+      write_unit_calls: 1
+
+  - <<: *khuon
+    id: CON-T-035
+    scenario: A20
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000054", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: in_tx_audit_insert}
+    expected_output_properties: {results: {STORE_UNAVAILABLE: 1, DONE: 1}, replayed_false: 1, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}]
+      write_unit_calls: 2
+
+  - <<: *khuon
+    id: CON-T-036
+    scenario: A21
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000055", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: commit_ack_lost}
+    expected_output_properties: {results: {COMMIT_UNKNOWN: 1, DONE: 1}, replayed_false: 0, replayed_true: 1, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 1}]
+      write_unit_calls: 1
+
+  - <<: *khuon
+    id: CON-T-037
+    scenario: A21
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000056", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: commit_ack_lost}
+    expected_output_properties: {results: {COMMIT_UNKNOWN: 1, DONE: 1}, replayed_true: 1, distinct_ticket_ids: 1, ticket: {diff: "100"}}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-038
+    scenario: A21
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000057", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: reply_lost}
+    expected_output_properties: {results: {DONE: 1}, replayed_false: 0, replayed_true: 1, distinct_ticket_ids: 1}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: EXECUTED, count: 1}, {outcome: REPLAYED, count: 1}]
+      write_unit_calls: 1
+
+  - <<: *khuon
+    id: CON-T-039
+    scenario: A22
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000058", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: commit_delayed}
+    expected_output_properties: {results: {COMMIT_UNKNOWN: 1, DONE: 1}, replayed_true: 1, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1, audit: [{outcome: EXECUTED, count: 1}]}
+
+  - <<: *khuon
+    id: CON-T-040
+    scenario: A22
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000059", subject_key: EX-04, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: commit_delayed}
+    expected_output_properties: {results: {COMMIT_UNKNOWN: 1, DONE: 1}, replayed_true: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-041
+    scenario: A23
+    category: infrastructure
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000060", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: director}
+    failure_injection: {point: readback_fail}
+    expected_output_properties: {results: {READBACK_UNAVAILABLE: 1}}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-042
+    scenario: A23
+    category: infrastructure
+    input: {command_id: "6f1c0d52-0000-4000-8000-000000000061", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    permissions: {principal: director}
+    failure_injection: {point: readback_stale}
+    expected_output_properties: {results: {VERIFY_MISMATCH: 1}}
+    expected_state:
+      tickets_open: 1
+      ledger_rows: 1
+      audit: [{outcome: VERIFY_FAILED, count: 1}]
+
+  - <<: *khuon
+    id: CON-T-043
+    scenario: A23
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-2, role: accountant}, command_id: "6f1c0d52-0000-4000-8000-000000000062", subject_key: EX-05, metric: issue_vs_measured, day: "2026-10-19", repeat: 2}
+    failure_injection: {point: readback_fail}
+    expected_output_properties: {results: {READBACK_UNAVAILABLE: 1, DONE: 1}, replayed_true: 1, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1}
+
+  - <<: *khuon
+    id: CON-T-044
+    scenario: A29e
+    category: infrastructure
+    input:
+      - {id: gui, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000063", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+    failure_injection: {point: trace_save_fail}
+    expected_output_properties: {results: {DONE: 1}, replayed_false: 1, distinct_ticket_ids: 1}
+    expected_state: {tickets_open: 1, ledger_rows: 1, audit: [{outcome: EXECUTED, count: 1}]}
+
+  # Soát K4, K4S-08: cùng máy, KHÁC ngày, khác khoá lệnh ⇒ hai phiếu, cả hai DONE (R5 / FindOpenTicket phải xét cả ngày; trước đây đột biến bỏ
+  # điều kiện ngày chỉ bị test của K2 bắt).
+  - <<: *khuon
+    id: CON-T-045
+    scenario: A04
+    category: happy_path
+    input:
+      - {id: ngay19, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000064", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-19"}
+      - {id: ngay18, principal: {id: p-1, role: director}, command_id: "6f1c0d52-0000-4000-8000-000000000065", subject_key: EX-03, metric: issue_vs_measured, day: "2026-10-18"}
+    expected_output_properties: {results: {DONE: 2}, replayed_false: 2, distinct_ticket_ids: 2}
+    expected_state:
+      tickets_open: 2
+      ledger_rows: 2
+      audit: [{outcome: EXECUTED, count: 2}]
+      write_unit_calls: 2

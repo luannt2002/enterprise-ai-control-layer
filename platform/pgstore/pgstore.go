@@ -63,10 +63,7 @@ func (s *Store) inTenant(ctx context.Context, tenant contracts.TenantID, fn func
 		}
 		return fn(tx)
 	})
-	if err != nil {
-		return contracts.Label(contracts.Infra("postgres"), err)
-	}
-	return nil
+	return classifyPGError(err)
 }
 
 // Setting trả giá trị GUC eais.tenant_id mà một lệnh của Store thấy — để test đọc lại.

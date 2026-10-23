@@ -560,7 +560,8 @@ func TestPGTicketQuyenChiThemVaDoc(t *testing.T) {
 				table, priv).Scan(&got, &grant); err != nil {
 				t.Fatal(err)
 			}
-			if want := priv == "SELECT" || priv == "INSERT"; got != want {
+			// audit_log: SELECT chỉ theo từng cột, trừ reason_detail (migration 0005, C1) ⇒ không có SELECT mức bảng
+			if want := priv == "SELECT" && table != "audit_log" || priv == "INSERT"; got != want {
 				t.Errorf("eais_app %s trên %s: được %v, muốn %v", priv, table, got, want)
 			}
 			if grant {
@@ -622,6 +623,101 @@ func TestPGTicketQuyenChiThemVaDoc(t *testing.T) {
 	}
 	if e.openTickets(tn) != 1 || e.ledgerRows(tn) != 1 || e.auditRows(tn, AuditExecuted, "", "") != 1 {
 		t.Errorf("các lệnh bị từ chối không được để lại dấu: phiếu %d, sổ lệnh %d, audit %d", e.openTickets(tn), e.ledgerRows(tn), e.auditRows(tn, AuditExecuted, "", ""))
+	}
+}
+
+// C1 (lệnh ca chiều 23/10): reason_detail của audit_log giữ lý do THẬT của một lần từ chối (phân biệt "không tồn tại" với "ngoài phạm vi",
+// §4.4) — vai ứng dụng chỉ được GHI cột đó, không được ĐỌC; các cột khác vẫn đọc được (đọc lại sau ghi dùng chúng).
+func TestPGAuditLyDoThatChiGhi(t *testing.T) {
+	e := newPGEnv(t)
+	tn := e.tenant("lydo")
+	mustWrite(t, e, tn, richUnit(13, "p-1", "EX-03"))
+	ctx := context.Background()
+	var detail, code bool
+	if err := e.admin.QueryRow(ctx, `SELECT has_column_privilege('eais_app', 'audit_log', 'reason_detail', 'SELECT'),
+		has_column_privilege('eais_app', 'audit_log', 'reason_code', 'SELECT')`).Scan(&detail, &code); err != nil {
+		t.Fatal(err)
+	}
+	if detail || !code {
+		t.Errorf("eais_app đọc reason_detail = %v (muốn false), đọc reason_code = %v (muốn true)", detail, code)
+	}
+	app, err := pgx.Connect(ctx, e.appDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Close(ctx)
+	inTenant := func(q string) (int, error) {
+		var n int
+		err := pgx.BeginFunc(ctx, app, func(tx pgx.Tx) error {
+			if _, err := tx.Exec(ctx, "SELECT set_config('eais.tenant_id', $1, true)", string(tn)); err != nil {
+				return err
+			}
+			return tx.QueryRow(ctx, q).Scan(&n)
+		})
+		return n, err
+	}
+	_, err = inTenant("SELECT length(reason_detail) FROM audit_log LIMIT 1")
+	var pe *pgconn.PgError
+	if !errors.As(err, &pe) || pe.Code != "42501" {
+		t.Errorf("vai ứng dụng đọc reason_detail: muốn 42501, được %v", err)
+	}
+	if n, err := inTenant("SELECT count(*) FROM audit_log WHERE outcome = 'EXECUTED' AND reason_code = ''"); err != nil || n != 1 {
+		t.Errorf("vai ứng dụng đọc các cột khác của audit_log: %d dòng, lỗi %v; muốn 1, không lỗi", n, err)
+	}
+}
+
+// C3 (lệnh ca chiều 23/10): ba bảng của 0004 không nhận tenant_id rỗng, kể cả qua vai quản trị (vượt RLS) — ràng buộc ở lược đồ, không chỉ
+// ở tầng Go. Mỗi bảng: chép một dòng thật sang tenant rỗng phải bị CHECK chặn (23514). Chạy trong giao dịch rồi huỷ: không để lại dòng nào.
+func TestPGBaBangKhongNhanTenantRong(t *testing.T) {
+	e := newPGEnv(t)
+	tn := e.tenant("rong")
+	u := richUnit(14, "p-1", "EX-03")
+	mustWrite(t, e, tn, u)
+	ctx := context.Background()
+	stmts := []struct{ table, sql string }{
+		{"discrepancy_tickets", "INSERT INTO discrepancy_tickets SELECT * FROM rong_t"},
+		{"commands", "INSERT INTO commands SELECT * FROM rong_c"},
+		{"audit_log", "INSERT INTO audit_log OVERRIDING SYSTEM VALUE SELECT * FROM rong_a"},
+	}
+	errRollback := errors.New("huỷ có chủ ý")
+	err := pgx.BeginFunc(ctx, e.admin, func(tx pgx.Tx) error {
+		for _, q := range []string{
+			"CREATE TEMP TABLE rong_t ON COMMIT DROP AS SELECT * FROM discrepancy_tickets WHERE tenant_id = $1",
+			"CREATE TEMP TABLE rong_c ON COMMIT DROP AS SELECT * FROM commands WHERE tenant_id = $1",
+			"CREATE TEMP TABLE rong_a ON COMMIT DROP AS SELECT * FROM audit_log WHERE tenant_id = $1 AND outcome = 'EXECUTED'",
+		} {
+			if _, err := tx.Exec(ctx, q, string(tn)); err != nil {
+				return err
+			}
+		}
+		for _, q := range []string{"UPDATE rong_t SET tenant_id = ''", "UPDATE rong_c SET tenant_id = ''", "UPDATE rong_a SET tenant_id = '', id = id + 1000000"} {
+			if _, err := tx.Exec(ctx, q); err != nil {
+				return err
+			}
+		}
+		for _, st := range stmts {
+			sp, err := tx.Begin(ctx)
+			if err != nil {
+				return err
+			}
+			_, err = sp.Exec(ctx, st.sql)
+			var pe *pgconn.PgError
+			if !errors.As(err, &pe) || pe.Code != "23514" {
+				t.Errorf("%s nhận dòng tenant_id rỗng: muốn CHECK chặn (23514), được %v", st.table, err)
+			}
+			if err == nil { // lọt thì giữ dòng tới cuối giao dịch để bảng sau (khoá ngoại tới phiếu) đo đúng CHECK của nó
+				err = sp.Commit(ctx)
+			} else {
+				err = sp.Rollback(ctx)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return errRollback
+	})
+	if !errors.Is(err, errRollback) {
+		t.Fatalf("giao dịch thử: %v", err)
 	}
 }
 
@@ -800,6 +896,10 @@ const catalogStateSQL = `
 SELECT string_agg(x, E'\n' ORDER BY x) FROM (
   SELECT 'acl ' || c.relname || ' ' || coalesce(nullif(a.grantee, 0)::regrole::text, 'PUBLIC') || ' ' || a.privilege_type || ' ' || a.is_grantable
     FROM pg_class c, aclexplode(c.relacl) a WHERE c.relname = ANY ($1)
+  UNION ALL SELECT 'colacl ' || c.relname || '.' || at.attname || ' ' || coalesce(nullif(a.grantee, 0)::regrole::text, 'PUBLIC') || ' ' ||
+      a.privilege_type || ' ' || a.is_grantable
+    FROM pg_class c JOIN pg_attribute at ON at.attrelid = c.oid AND at.attnum > 0 AND NOT at.attisdropped, aclexplode(at.attacl) a
+    WHERE c.relname = ANY ($1)
   UNION ALL SELECT 'rls ' || relname || ' enable=' || relrowsecurity || ' force=' || relforcerowsecurity FROM pg_class WHERE relname = ANY ($1)
   UNION ALL SELECT 'policy ' || tablename || ' ' || policyname || ' ' || permissive || ' ' || cmd || ' ' || coalesce(qual, '') || ' ' || coalesce(with_check, '')
     FROM pg_policies WHERE tablename = ANY ($1)
@@ -809,13 +909,18 @@ SELECT string_agg(x, E'\n' ORDER BY x) FROM (
 
 // Migration 0004 chạy lại được (đầu tệp 0004 hứa vậy): trên database tạm, chạy lại trần tệp hai lần không lỗi và không đổi trạng thái đích;
 // rồi cho database "trôi" khỏi trạng thái đích (quyền cấp thêm, tắt FORCE hay RLS, xoá hoặc mở toang chính sách) — mỗi kiểu trôi phải
-// THẤY được trong catalogState (ca âm của chính bộ so) — và chạy lại tệp phải đưa về đúng trạng thái đích.
+// THẤY được trong catalogState (ca âm của chính bộ so) — và chạy lại tệp phải đưa về đúng trạng thái đích. Từ 0005 (C1, C3 của lệnh ca
+// chiều 23/10) trạng thái đích của ba bảng là 0004 cộng 0005, nên "chạy lại" là chạy chuỗi 0004 rồi 0005.
 func TestPGTicketMigration0004ChayLai(t *testing.T) {
 	e := newScratchEnv(t, "mig")
 	ctx := context.Background()
-	sqlText, err := db.Migrations.ReadFile("migrations/0004_phieu_chenh_lech.sql")
-	if err != nil {
-		t.Fatal(err)
+	var sqlText []byte
+	for _, f := range []string{"migrations/0004_phieu_chenh_lech.sql", "migrations/0005_audit_va_tenant.sql"} {
+		b, err := db.Migrations.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sqlText = append(append(sqlText, b...), '\n')
 	}
 	state := func() string {
 		t.Helper()
@@ -839,6 +944,8 @@ func TestPGTicketMigration0004ChayLai(t *testing.T) {
 	}
 	for _, d := range []struct{ name, stmt string }{
 		{"cấp thêm UPDATE cho vai ứng dụng", "GRANT UPDATE ON audit_log TO eais_app"},
+		{"cấp lại SELECT mức bảng của audit_log (đọc được reason_detail)", "GRANT SELECT ON audit_log TO eais_app"},
+		{"cấp quyền đọc riêng cột reason_detail", "GRANT SELECT (reason_detail) ON audit_log TO eais_app"},
 		{"cấp thêm DELETE cho vai ứng dụng", "GRANT DELETE ON commands TO eais_app"},
 		{"cấp quyền cho PUBLIC", "GRANT SELECT ON discrepancy_tickets TO PUBLIC"},
 		{"tắt FORCE", "ALTER TABLE commands NO FORCE ROW LEVEL SECURITY"},
@@ -881,7 +988,7 @@ func pgErr(code, severity string) error {
 }
 
 // Bảng phân loại khớp bảng ĐO của U1 (HOP-DONG §15): lỗi một câu lệnh trước COMMIT luôn là "chắc chắn chưa ghi"; lỗi của chính
-// COMMIT chỉ là "chắc chắn chưa ghi" khi COMMIT chưa rời máy (SafeToRetry) hoặc PG trả một lỗi không-FATAL (giao dịch đã huỷ); mọi
+// COMMIT chỉ là "chắc chắn chưa ghi" khi COMMIT chưa rời máy (SafeToRetry) hoặc PG trả một lỗi mức ERROR (giao dịch đã huỷ); mọi
 // trường hợp còn lại là không biết. Vi phạm khoá duy nhất 23505 ở đâu cũng là ErrUniqueViolation.
 func TestPGTicketPhanLoaiLoi(t *testing.T) {
 	deadline := context.DeadlineExceeded
@@ -907,6 +1014,14 @@ func TestPGTicketPhanLoaiLoi(t *testing.T) {
 		{"conn closed bọc nhiều lớp", fmt.Errorf("COMMIT: %w", lockLikeErr{}), ErrBeforeCommit, ErrCommitUnknown},
 		{"đã gửi một phần (không SafeToRetry)", retryableErr{safe: false}, ErrBeforeCommit, ErrCommitUnknown},
 		{"COMMIT trả tag ROLLBACK", pgx.ErrTxCommitRollback, ErrBeforeCommit, ErrBeforeCommit},
+		// C7 (lệnh ca chiều 23/10): chỉ mức ERROR mới là "chắc chắn chưa ghi"; mức rỗng, lạ hay chỉ có bản dịch ⇒ không biết
+		{"mức nghiêm trọng rỗng", pgErr("40001", ""), ErrBeforeCommit, ErrCommitUnknown},
+		{"mức nghiêm trọng lạ", pgErr("XX000", "WEIRD"), ErrBeforeCommit, ErrCommitUnknown},
+		{"WARNING", pgErr("01000", "WARNING"), ErrBeforeCommit, ErrCommitUnknown},
+		{"chỉ có mức đã dịch", &pgconn.PgError{Code: "40001", Severity: "LỖI", Message: "lỗi giả"}, ErrBeforeCommit, ErrCommitUnknown},
+		// C17S-10: bản không dịch thắng bản đã dịch (máy chủ khác ngôn ngữ), và khi thiếu bản không dịch thì lùi về bản đã dịch "ERROR"
+		{"bản dịch FEHLER, bản gốc ERROR", &pgconn.PgError{Code: "40001", Severity: "FEHLER", SeverityUnlocalized: "ERROR", Message: "lỗi giả"}, ErrBeforeCommit, ErrBeforeCommit},
+		{"chỉ có Severity ERROR (không bản gốc)", &pgconn.PgError{Code: "40001", Severity: "ERROR", Message: "lỗi giả"}, ErrBeforeCommit, ErrBeforeCommit},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := classifyStatement(c.err)

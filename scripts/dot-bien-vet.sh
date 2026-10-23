@@ -51,12 +51,20 @@ m() { chon || return 0; m_chay "$@"; }
 fresh() { psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)" -c "CREATE DATABASE $DB_DOT_BIEN"; }
 # dsn_db <dsn> <database>: thay tên database trong DSN dạng postgres://vai@máy:cổng/<database>[?tham số].
 dsn_db() { printf '%s' "$1" | sed -E 's#^([a-z]+://[^/]*)/[^/?]*#\1/'"$2"'#'; }
+# Nền xanh trên database đột biến (lỗi 5c): chạy `mutate.sh --nen` MỘT lần trên database vừa dựng, rồi dựng lại database cho đột biến —
+# để mutate.sh tự chạy nền ở đó thì nền áp migration GỐC trước đột biến và đột biến migration sống giả.
+nen_mm=""
 mm() {
 	chon || return 0
 	fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; khac=$((khac + 1)); return; }
 	local a d
 	a=$(dsn_db "$EAIS_PG_ADMIN_DSN" "$DB_DOT_BIEN") d=$(dsn_db "$EAIS_PG_DSN" "$DB_DOT_BIEN")
-	EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d m_chay "$@"
+	if [ -z "$nen_mm" ]; then
+		nen_mm=$(EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d scripts/mutate.sh --nen)
+		echo "$nen_mm"
+		fresh || { echo "[$4] không dựng được database $DB_DOT_BIEN"; echo "rc=5"; khac=$((khac + 1)); return; }
+	fi
+	EAIS_PG_ADMIN_DSN=$a EAIS_PG_DSN=$d MUTATE_NEN_CO_SAN=1 m_chay "$@"
 }
 
 export PKGS=./platform/pgstore/
@@ -205,7 +213,7 @@ m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req
 m $D 'if count[l]++; count[l] == 1 {' 'if count[l]++; true {' 'DV2 dòng giống nhau không được gộp'
 m $D 'if i == limit {' 'if i == limit+100000 {' 'DV3 danh sách giải thích không bị cắt ở trần'
 m $D 'if c > 1 {' 'if false && c > 1 {' 'DV4 dòng gộp không nói số lần'
-m $ASK 'd.Why = why.Compact(maxWhyLines, maxWhyLineRunes)' 'd.Why = why' 'AV7 Handle không gộp / cắt phần giải thích'
+m core/pipeline/scope_redact.go 'return red.why(w).Compact(maxWhyLines, maxWhyLineRunes)' 'return red.why(w)' 'AV7 Handle không gộp / cắt phần giải thích'
 m $W 'len(keys), contracts.Brief(keys, maxListed, "ứng viên"))' 'len(keys), strings.Join(keys, ", "))' 'WV29 danh sách ứng viên của cụm mơ hồ không bị cắt'
 m $W 'if d := distinct(keys); len(d) != len(keys) {' 'if d := distinct(keys); false && len(d) != len(keys) {' 'WV30 số ứng viên không nói khoá trùng'
 m $W 'out[i].n++' 'out[i].n += 0' 'WV31 bậc kiểm giống nhau gộp mà không nói số lần'
@@ -282,7 +290,7 @@ m $W '&& out[last].check.Rule == g.check.Rule && out[last].check.Route == g.chec
 m $W 'out[last].n += g.n' 'out[last].n++' 'WV43 [N3] gộp bậc "qua" mà đếm số lần thiếu'
 m $W 'ladder := ladderOf(groups)' 'ladder := groups' 'WV44 [N3] thang bậc không gộp bậc "qua" liên tiếp'
 m $W 'maxWhyLineRunes = 1500' 'maxWhyLineRunes = 150000' 'WV45 [N3] trần độ dài dòng quá lớn'
-m $ASK 'd.Why = why.Compact(maxWhyLines, maxWhyLineRunes)' 'd.Why = why.Compact(maxWhyLines, 0)' 'AV10 [N3] Handle không cắt dòng dài'
+m core/pipeline/scope_redact.go 'return red.why(w).Compact(maxWhyLines, maxWhyLineRunes)' 'return red.why(w).Compact(maxWhyLines, 0)' 'AV10 [N3] Handle không cắt dòng dài'
 m $D 'utf8.RuneCountInString(l) <= max {' 'utf8.RuneCountInString(l) < max {' 'DV5 [N3] dòng đúng bằng trần bị cắt'
 m $D 'string([]rune(l)[:max])' 'string([]rune(l)[:max-1])' 'DV6 [N3] dòng bị cắt ngắn hơn trần một ký tự'
 m $D 'if max <= 0 || utf8.RuneCountInString(l) <= max {' 'if utf8.RuneCountInString(l) <= max {' 'DV7 [N3] maxRunes <= 0 không còn nghĩa là không cắt'
@@ -313,6 +321,21 @@ if [ "${DOT_BIEN_SINH:-1}" != 0 ]; then
 	eval "$sinh"
 fi
 # ---- hết R2-03 vòng 3
+
+# ---- C8–C11 vòng 2 (soát độc lập C8–C11, 23/10). C9 vòng 2: bộ che khoá / tên thực thể ngoài phạm vi ở một chỗ (core/pipeline/scope_redact.go);
+# test bắt nằm ở core/pipeline (TestScopeRedactorDungRieng, TestNewScopeRedactorKhoaVaTen), observability/traces (dòng S3 / S4 của kỹ sư PRJ-A) và
+# tenants/construction (TestVetKhongLoThucTheNgoaiPhamVi quét toàn bản ghi). C11-S3: giải thích không được sửa dữ liệu dùng chung với Decision.
+export PKGS="./core/pipeline/ ./observability/traces/ ./tenants/construction/"
+SR=core/pipeline/scope_redact.go
+m $SR 'if a.RT.Policy.InScope(pr, nil) {' 'if true {' 'XV47 [C9 vòng 2] bộ che tắt với mọi người hỏi'
+m $SR 'for _, t := range []string{r.Key, r.ID, r.Name} {' 'for _, t := range []string{r.Name} {' 'XV48 [C9 vòng 2] không bao giờ che khoá / mã'
+m $SR 'for _, t := range []string{r.Key, r.ID, r.Name} {' 'for _, t := range []string{r.Key, r.ID} {' 'XV49 [C9 vòng 2] không che tên'
+m $SR 'strings.Join(append(keep, hidden...), "|")' 'strings.Join(append(hidden, keep...), "|")' 'XV50 [C9 vòng 2] chỗ che đứng đầu "?a|b" (thứ tự gợi khoá)'
+m $SR 'return red.why(w).Compact(maxWhyLines, maxWhyLineRunes)' 'return w.Compact(maxWhyLines, maxWhyLineRunes)' 'XV51 [C9 vòng 2] không che phần giải thích'
+m $ASK 'red.decision(&d)' '_ = d' 'XV52 [C9 vòng 2] không che Decision.Entities / Slots'
+m $W 'for _, e := range res.Entities {' 'for i, e := range res.Entities { res.Entities[i].ID += "!"' 'XV45 [soát C8–C11 C11-S3, M3] explainResolve sửa mã thực thể của Resolution dùng chung với Decision'
+m $W 'for _, sp := range in.Spans {' 'for i, sp := range in.Spans { in.Spans[i].Raw += "!"' 'XV46 [soát C8–C11 C11-S3, M4] explainNormalize sửa đoạn của NormalizedInput dùng chung với Decision'
+# ---- hết C8–C11 vòng 2
 
 fresh >/dev/null 2>&1; psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"

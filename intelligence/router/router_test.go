@@ -68,3 +68,36 @@ func TestRouteHoiLaiNoiDungLyDo(t *testing.T) {
 		}
 	}
 }
+
+// C10 (lệnh ca chiều 23/10): bậc "phạm vi dữ liệu" duyệt các khe thực thể theo THỨ TỰ TÊN KHE đã sắp xếp (R2-03 đổi từ thứ tự lặp của map,
+// vốn ngẫu nhiên mỗi lần chạy), nên khi nhiều khe cùng ngoài phạm vi, lý do từ chối và dòng vết luôn nêu thực thể của khe đứng đầu theo
+// tên — cùng câu, cùng người hỏi thì cùng kế hoạch. Ghim bằng nhiều lần chạy (thứ tự map của Go đổi giữa các lần lặp).
+func TestRouteDuyetKheTheoThuTuCoDinh(t *testing.T) {
+	yes := func(string) bool { return true }
+	set, err := intent.Compile([]intent.Def{{
+		Name: "q2", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Capability: "metrics.read",
+		Slots: []intent.SlotDef{
+			{Name: "z_may", From: "entity", Types: []string{"equipment"}, Required: true},
+			{Name: "a_may", From: "entity", Types: []string{"equipment"}, Required: true},
+			{Name: "m_may", From: "entity", Types: []string{"equipment"}, Required: true},
+		},
+	}}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pol := Policy{Roles: map[string]RoleDef{"eng": {Capabilities: []string{"metrics.read"}, Scope: "attribute"}}}
+	pr := contracts.Principal{Roles: []string{"eng"}, Attributes: map[string]string{"entity_scope": "PRJ-X"}}
+	lineage := func(e contracts.EntityRef) []string { return []string{e.Key, "PRJ-KHAC"} }
+	slot := func(name, key string) contracts.Slot {
+		return contracts.Slot{Name: name, Entity: &contracts.EntityRef{ID: key, Key: key, Type: "equipment"}}
+	}
+	cls := intent.Result{Intent: contracts.Intent{Name: "q2", Slots: map[string]contracts.Slot{
+		"z_may": slot("z_may", "EX-ZZ"), "a_may": slot("a_may", "EX-AA"), "m_may": slot("m_may", "EX-MM"),
+	}}}
+	for i := range 200 {
+		plan := Route(set, cls, contracts.NormalizedInput{}, pr, pol, Settings{}, lineage)
+		if plan.Route != contracts.RouteReject || plan.Reason != "thực thể EX-AA ngoài phạm vi dữ liệu của người hỏi" {
+			t.Fatalf("lần %d: route %s, lý do %q — muốn REJECT nêu EX-AA (khe a_may, đứng đầu theo tên)", i, plan.Route, plan.Reason)
+		}
+	}
+}

@@ -1,0 +1,86 @@
+BỘ CHẠY CA LỆNH (HOP-DONG §12.1) — nền bo_nho
+  sha256 ca                   122637193a8dd713a1265241f2560a8ed7c9e7d70c522f65c3fa875931bdd9ba
+  sha256 the_gioi             f46c3b467fd7149023ff2a46b02d9fd91fad606c95394b3076ee7fe69a47c27f
+THEO LỚP (ca đạt/ca): A01 7/7 A02 4/4 A02b 5/5 A03 7/7 A04 5/6 A04b 5/5 A05 7/7 A06 7/7 A07 7/7 A08 9/9 A10 7/7 A13 26/26 A14 7/7 A15 10/10 A16 7/7 A17 1/4 A18 4/4 A19 4/4 A20 4/4 A21 9/9 A22 3/3 A23 5/5 A29 3/3
+THEO CỔNG (không gộp một con số):
+  X1 gửi đôi                        ĐỎ
+      A01 7/7
+      A02 4/4
+      A02b 5/5
+      A03 7/7
+      A04 5/6
+      A04b 5/5
+      A05 7/7
+      A06 7/7
+  X2 thiếu quyền                    ĐẠT phần khai được bằng khuôn (ngoài khuôn: A09, A11, A12)
+      A07 7/7
+      A08 9/9
+      A10 7/7
+  X3 timeout sau khi ghi            ĐẠT
+      A21 9/9
+      A22 3/3
+  X4 nguyên tử và hỏng giữa chừng   ĐẠT
+      A19 4/4
+      A20 4/4
+      A23 5/5
+  X5 dữ liệu và luật                ĐỎ
+      A13 26/26
+      A14 7/7
+      A15 10/10
+      A16 7/7
+      A17 1/4
+      A18 4/4
+  X6 biên                           KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)
+  X7 không đổi đường hỏi            KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)
+  X8 đột biến                       NGOÀI BỘ CHẠY (danh mục đột biến scripts/dot-bien/)
+  X9 cửa vào và vết                 ĐẠT phần khai được bằng khuôn (ngoài khuôn: A28)
+      A29 3/3
+CA ĐỎ CON-T-728 (A04): ticket: không khớp; mục a: approx được false muốn true
+CA ĐỎ CON-T-819 (A17): ticket: không khớp; mục input: approx được false muốn true
+CA ĐỎ CON-T-820 (A17): ticket: không khớp; mục send#2: approx được false muốn true
+CA ĐỎ CON-T-821 (A17): ticket: không khớp; mục input: approx được false muốn true
+TỔNG: 157 ca, 4 đỏ
+
+    bochay_giulai_test.go:94: 
+BỘ CHẠY CA LỆNH (HOP-DONG §12.1) — nền pg
+  sha256 ca                   122637193a8dd713a1265241f2560a8ed7c9e7d70c522f65c3fa875931bdd9ba
+  sha256 the_gioi             f46c3b467fd7149023ff2a46b02d9fd91fad606c95394b3076ee7fe69a47c27f
+THEO LỚP (ca đạt/ca): A01 7/7 A02 4/4 A02b 5/5 A03 7/7 A04 5/6 A04b 5/5 A05 7/7 A06 7/7 A07 7/7 A08 9/9 A10 7/7 A13 26/26 A14 7/7 A15 10/10 A16 7/7 A17 1/4 A18 4/4 A19 4/4 A20 4/4 A21 9/9 A22 3/3 A23 5/5 A29 3/3
+THEO CỔNG (không gộp một con số):
+  X1 gửi đôi                        ĐỎ
+      A01 7/7
+      A02 4/4
+      A02b 5/5
+      A03 7/7
+      A04 5/6
+      A04b 5/5
+      A05 7/7
+      A06 7/7
+  X2 thiếu quyền                    ĐẠT phần khai được bằng khuôn (ngoài khuôn: A09, A11, A12)
+      A07 7/7
+      A08 9/9
+      A10 7/7
+  X3 timeout sau khi ghi            ĐẠT
+      A21 9/9
+      A22 3/3
+  X4 nguyên tử và hỏng giữa chừng   ĐẠT
+      A19 4/4
+      A20 4/4
+      A23 5/5
+  X5 dữ liệu và luật                ĐỎ
+      A13 26/26
+      A14 7/7
+      A15 10/10
+      A16 7/7
+      A17 1/4
+      A18 4/4
+  X6 biên                           KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)
+  X7 không đổi đường hỏi            KHÔNG CÓ CA (ngoài khuôn §12.1 hoặc vắng)
+  X8 đột biến                       NGOÀI BỘ CHẠY (danh mục đột biến scripts/dot-bien/)
+  X9 cửa vào và vết                 ĐẠT phần khai được bằng khuôn (ngoài khuôn: A28)
+      A29 3/3
+CA ĐỎ CON-T-728 (A04): ticket: không khớp; mục a: approx được false muốn true
+CA ĐỎ CON-T-819 (A17): ticket: không khớp; mục input: approx được false muốn true
+CA ĐỎ CON-T-820 (A17): ticket: không khớp; mục send#2: approx được false muốn true
+CA ĐỎ CON-T-821 (A17): ticket: không khớp; mục input: approx được false muốn true
+TỔNG: 157 ca, 4 đỏ

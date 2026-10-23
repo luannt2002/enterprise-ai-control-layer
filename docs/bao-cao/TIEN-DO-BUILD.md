@@ -9,9 +9,9 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 - **Cập nhật lúc:** 23/10/2026 13:26, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go giống `5744d65`;
   sau đó chỉ đổi tài liệu và công cụ đóng băng `scripts/cam-ket-bo-ca-0a.py`).
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra.
-  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 đã gộp (`5fd463f`); bốn lỗi P2 C8–C11: vòng 1 soát KHÔNG ĐẠT (C9 còn lộ khoá ngoài
-    phạm vi qua Decision.Entities / S3.Output / S4), vòng 2 xong trên nhánh `m1/gop-c8-c11` (cổng xanh ở `5635b31`), chờ soát vòng 2. Sau
-    khi gộp: đo lại người đọc vết trên bộ thẻ mới.
+  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 đã gộp (`5fd463f`); bốn lỗi P2 C8–C11 đã gộp (`3aaaf09`; vòng 1 soát KHÔNG ĐẠT, vòng 2
+    ĐẠT CÓ GHI CHÚ — vết của người hỏi hạn chế không còn mang khoá / mã / tên ngoài phạm vi mà họ không tự gõ). Tiếp: đo lại người đọc vết trên
+    bộ thẻ mới.
   - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 — vòng 1, 2, 3 soát KHÔNG ĐẠT ⇒ **KHOÁ** sau vòng 3 (luật §9.6), không gộp: vòng 3 có hồi quy S1
     mới S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) dù tốt hơn main ở bộ công bố và bộ mù của người soát. H6 (94 ca, `6734cff`) CHƯA chạy —
     chỉ chạy sau khi S4 gộp. Chờ chủ dự án: **D-AI-05** (khuyến nghị: một vòng ngoại lệ hẹp chỉ sửa hồi quy), D-AI-04.
@@ -22,8 +22,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     `m2/0a-ma-truoc-dong-bang`, KHÔNG gộp tới khi bộ ca 0a băm xong (Q-0A-17).
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT; S7 NGOÀI MVP (D-AI-03 = a); S9 chưa có bộ ca
     độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
-- **Đang làm** (tối đa 5 agent; đang 5): soát / sửa bộ ca 0a P1 và P2 (theo khúc), K4 (tác giả), S4 vòng 3 (tác giả), soát vòng 2 C8–C11. Chờ
-  chỗ: soát lại 5a / 5b / 5c (nhánh `m1/sua-5abc`).
+- **Đang làm** (tối đa 5 agent; đang 5): soát / sửa bộ ca 0a (P1 và P2 theo khúc, cộng hai lượt soát song song các khúc cuối của P1), soát lại
+  5a / 5b / 5c (nhánh `m1/sua-5abc`). Điều phối: sửa ghi chú soát K4 trên nhánh `m4/gop-k4`, rồi gộp K4 và chạy bộ giữ lại P1 một lần.
 - **Xong từ lần trước:** lệnh ca trưa vào `CHO` + brief §9.10c (`4238123`); công cụ đóng băng bộ ca 0a (`d581899`, `9f3c32b` — `world` là
   danh sách tên khi ca đi qua hai tenant); D-AI-04 vào `CHO` (`59ac0d7`); nhánh M4 thêm Ready theo cột, K3S-01…04, K3S-07; nhánh C8–C11 vòng 2.
 - **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: S4 vòng 3 → soát → gộp → chạy H6 một lần → ghi; (2) M2: soát / sửa bộ ca 0a → băm → mã 0a →
@@ -32,12 +32,11 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 - **Bị chặn:** M3 — **D-AI-05** (S4 khoá sau vòng 3 KHÔNG ĐẠT: gộp kèm nợ / một vòng ngoại lệ hẹp / giữ main) và D-AI-04 (danh sách cụm ở pack
   làm trần của D-AI-02 = a?). Dữ liệu /
   người nghiệp vụ thật: không có (D-RM-03). W-G7 trả tiền: chưa cấp.
-- **Test** (cổng §6 ở cây tích hợp `3892be2` = main `4bc54c4` + 36 commit M4 (cherry-pick); sau đó chỉ đổi tài liệu; lúc 23/10 13:49, database PG
-  riêng `lead_m4f`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có
-  PG: **1187** test pass, 0 fail, 0 skip — so theo tên với cổng `5744d65` (1062): 0 đổi, 0 mất, 125 mới; `python3 -I scripts/kiem-skip-test.py`
-  XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4 103/119** (hai đường giống nhau) —
-  mốc so: đầu ra cổng `5744d65`; 0 dòng khác ở cả 7 tệp. Nhánh chưa gộp, cùng lệnh, cùng mốc so: `m1/gop-c8-c11` cây `5635b31` 1071 test (0 mất,
-  0 đổi, 9 mới), winreport 0 dòng khác.)
+- **Test** (cổng §6 ở cây tích hợp `3aaaf09` = main `1dbee7f` + 12 commit C8–C11; sau đó chỉ đổi tài liệu; lúc 23/10 14:25, database PG riêng
+  `lead_c811f`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG:
+  **1198** test pass, 0 fail, 0 skip — so theo tên với cổng `3892be2` (1187): 0 đổi, 0 mất, 11 mới; `python3 -I scripts/kiem-skip-test.py` XANH;
+  winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4 103/119** (hai đường giống nhau) — mốc so:
+  đầu ra cổng `3892be2`; 0 dòng khác ở cả 7 tệp.)
 - **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN + lệnh ca chiều / trưa 23/10 (`docs/CHO-QUYET-DINH.md` mục 0); `docs/PROMPT-BUILD-EAIS.md`
   §9.10b, §9.10c; PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết:
   `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
@@ -126,3 +125,5 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 13:50 | (nợ, không mã) | **Nợ ghi khi gộp M4** (soát lại M4, M4R-09 — chú thích 0005 trỏ về tệp này): (1) CHECK `tenant_id <> ''` cho các bảng của 0001 và 0003 (soát C1–C7, C17S-06); (2) C6b — hai lối ra muộn còn lại của R5 (khoá dùng lại, không tra lại được sổ lệnh) vẫn ghi C5 "skipped" (HOP-DONG §7.5); (3) K2S-05 lỗi dữ liệu tất định ở đơn vị ghi phiếu (23514, lớp 22) hiện ra FAILED kèm gợi ý thử lại (HOP-DONG §15, dòng K2S-05); (4) K3S-05 ký tự điều khiển trong bảng vết (lỗi có từ làn 0, cả `/v1/ask`); (5) K3S-06 nhãn fault ở log lệnh lấy từ lỗi gốc, khác vết; (6) K3S-08 lượt lệnh in "USAGE MODEL (chưa có bản ghi)", bước từ chối in "LỖI · LỆCH", hạn 30 s chưa chọn, Ready chặn `eais trace` trên kho chưa áp 0005; (7) M4R-06 Ready không thấy quyền đọc reason_detail qua SET ROLE không thừa kế; (8) K3S-07 (4) hàng ADR-0011 thêm ở commit sau commit mã (lịch sử đã đẩy) | — | chưa sửa; đọc lại trước Phase sau |
 | 23/10 13:51 | commit chứa dòng này | Hồ sơ gộp M4: `m4r-soat.json` nguyên văn + README chỉ mục; STATUS (M4, cổng cuối `3892be2`); CHANGELOG 23/10; TIEN-DO "Bây giờ" | quét đường dẫn máy / email / khoá trên báo cáo chép: 0 (chỉ còn câu người soát tả lệnh grep của họ) | tài liệu |
 | 23/10 14:10 | (không gộp) nhánh `m3/s4-vong-sua-2310` @ `7868598` | M3: vòng sửa S4 **KHOÁ sau vòng 3** (vòng cuối §9.6) — soát độc lập vòng 3 KHÔNG ĐẠT (`s4c-soat.json`): S4CS-02 hồi quy S1 mới (luật miễn trừ phủ định / bỏ qua / điều kiện của S4BS-05 xét cả mệnh đề ⇒ 7 câu nền hỏi lại nay trả số không nhãn), S4CS-01 lệnh có "?" vẫn trả số không nhãn; S4CS-03 (chờ D-AI-04), S4CS-04 (nợ cũ); S3: S4CS-05 tín hiệu tiền còn danh sách đóng, S4CS-06 hỏi thừa / nhãn "chưa ghi" sai ở câu xác nhận không "?", S4CS-07 luật vị trí / phủ định chưa có test ghim | người soát đo lại ở nhánh: vet 0, gofmt 0, có PG 1094 / 0 / 0, theo tên 0 mất 0 đổi 32 mới; winreport 117 0 khối khác main, H1 96 / H3 122 / H4 109 (main 91 / 112 / 103); bộ mù 764 câu: sai nghĩa không nhãn 245 → 102, hỏi thừa 81 → 39; 0 phán quyết ngược chiều; 0 rò quyền | KHÔNG gộp, H6 KHÔNG chạy (chỉ chấm bản S4 đã gộp); câu D-AI-05 ở `CHO` mục 4; nợ S4CS-01…07 giữ ở nhánh (ADR-0010 vòng 3 của nhánh) |
+| 23/10 14:25 | 4 commit vòng 1 (C8 `2a69419`, C9 `d53815d`, C10 `9f1ef17`, C11 `c9a5bf1`) + vòng 2 (`cd1f902`, `a9512ff`, `7da7fcd`, `5635b31`) + sửa theo soát vòng 2 (`53c55be`, `d56aaed`, `2b48daa`, `ea1f248`), cherry-pick lên main ⇒ `3aaaf09` | M1: gộp bốn lỗi P2 C8–C11 của R2-03 — S5 chuyển người ghi lý do thật (C8); bộ che khoá / mã / tên ngoài phạm vi ở MỘT chỗ cho mọi bề mặt của vết (C9: `core/pipeline/scope_redact.go`, xét riêng khoá / mã / tên, đọc danh mục một lần mỗi lượt, che trước khi cắt dòng); duyệt khe theo tên ở router và luồng hỏi (C10, ADR-0002 D18 chờ chủ dự án); test có / không vết so cả Decision (C11) | cây `3aaaf09`, DB riêng `lead_c811f`: vet 0; gofmt 0; `go test -count=1 -json ./...` có PG 1198 pass / 0 fail / 0 skip, so tên với cổng `3892be2`: 0 mất, 0 đổi, 11 mới; `kiem-skip-test.py` XANH; winreport 117 / H1 / H3 / H4 hai đường so đầu ra cổng `3892be2`: 0 dòng khác ở 7 tệp. Test quét toàn bản ghi 2440 lượt: 0 lộ (tắt bộ che ⇒ 1172 lộ); người soát vòng 2 đo 38.115 lượt: 0 lộ, 0 đổi quyết định; mọi đột biến của bản sửa BỊ BẮT; 212 chuỗi gốc danh mục khớp một lần | soát: `c811-soat.json` (KHÔNG ĐẠT), `c812-soat.json` (ĐẠT CÓ GHI CHÚ); bản sửa sau vòng 2 là SELF REVIEW có đột biến; giới hạn ghi ở chú thích bộ che (thứ tự / số ứng viên ẩn, che chữ trùng khoá thuần số, không hồi tố) |
+| 23/10 14:25 | commit chứa dòng này | Hồ sơ gộp C8–C11: `c812-soat.json` nguyên văn + README; STATUS (cổng cuối `3aaaf09`); TIEN-DO "Bây giờ" | quét đường dẫn máy / email / khoá trên báo cáo chép: 0 | tài liệu |

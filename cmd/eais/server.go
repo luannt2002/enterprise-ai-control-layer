@@ -226,7 +226,9 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 	if err := s.persist(r.Context(), pr, rec, acc); err != nil {
 		fault, _ := traces.SanitizeError(err)
 		status := contracts.HTTPStatus(err)
-		if fault == contracts.FaultInput || fault == contracts.FaultPolicy { // bản ghi do CHÍNH server dựng bị từ chối: lỗi của server, không phải của client
+		// bản ghi do CHÍNH server dựng bị từ chối — vì đầu vào / chính sách, hay vì PG trả lỗi dữ liệu (lớp 22 / 23, có SQLSTATE): lỗi của server,
+		// không phải của client. Xung đột nội dung do kho tự phát hiện (cùng trace_id, khác nội dung) vẫn theo nhãn: 409.
+		if fault == contracts.FaultInput || fault == contracts.FaultPolicy || (fault == contracts.FaultData && pgstore.SQLState(err) != "") {
 			status = http.StatusInternalServerError
 		}
 		writeJSON(w, status, errBody{Error: "không lưu được vết của lượt này nên không giao câu trả lời (không có trace_id; xem log của server)", Fault: publicFault(fault)})
@@ -389,6 +391,9 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request, pr contracts.Pri
 		public := publicMessage(fault, msg)
 		if fault == contracts.FaultData { // người gọi đã là vai toàn quyền và xung đột dữ liệu là thứ họ phải xử lý: nói rõ
 			public = msg
+			if code := pgstore.SQLState(err); code != "" { // lỗi do PG trả: chỉ công bố mã; thông điệp thô (bảng, ràng buộc, giá trị) nằm ở log
+				public = "cơ sở dữ liệu từ chối dữ liệu nạp (SQLSTATE " + code + "); chi tiết ở log của server"
+			}
 		}
 		writeJSON(w, contracts.HTTPStatus(err), errBody{Error: public, Fault: publicFault(fault)})
 		return

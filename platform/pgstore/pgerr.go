@@ -49,3 +49,13 @@ func classifyPGError(err error) error {
 		return contracts.Label(contracts.FaultCode, err)
 	}
 }
+
+// SQLState trả mã SQLSTATE khi err (kể cả đã gắn nhãn) là lỗi do máy chủ PostgreSQL trả, rỗng khi không phải — để lớp HTTP công bố MÃ lỗi
+// mà không công bố thông điệp thô của PG (tên bảng, tên ràng buộc, giá trị).
+func SQLState(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code
+	}
+	return ""
+}

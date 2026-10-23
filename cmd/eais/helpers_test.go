@@ -259,6 +259,7 @@ type memStore struct {
 	// chèn lỗi
 	saveDecisionErrs []error         // trả lần lượt cho các lần SaveDecision (hết thì thật)
 	saveAttempts     []traces.Record // mọi bản ghi mà SaveDecision đã nhận, kể cả lần lỗi
+	loadErr          error           // khác nil: Load trả lỗi này (mô phỏng PG từ chối dữ liệu nạp)
 	panicEntities    bool
 	pingErr          error
 	touched          int // số lần gọi vào kho (để chứng minh một đường KHÔNG chạm kho)
@@ -340,6 +341,9 @@ func (m *memStore) Load(ctx context.Context, es []entityresolution.Entity, fs []
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.touched++
+	if m.loadErr != nil {
+		return m.loadErr
+	}
 	t, err := memTenant(ctx)
 	if err != nil {
 		return err

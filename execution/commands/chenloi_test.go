@@ -12,9 +12,10 @@ package commands
 // Bộ đếm của lớp bọc thuộc harness, tích luỹ suốt ca (kể cả qua lần dựng pipeline mới của F4) và tách theo runtime: mỗi runtime
 // một faultStore, nhưng chung MỘT faultCtl của ca.
 //
-// Ghi nợ: F8 (trace_save_fail) cần đường lưu vết thật của K3 (cmd/eais). Chưa có thì bộ chạy dùng chỗ lưu giả (memTraceSaver)
-// (traceSaver, bên dưới): lượt bị F8 mất trace_id, kết quả đã ghi không đổi, bộ đếm lỗi lưu vết tăng. Khi K3 gộp, bọc persistTrace của
-// cmd/eais bằng cùng faultTraceSaver.
+// F8 (trace_save_fail) ở bộ chạy chỉ bắn ở chỗ lưu GIẢ của chính bộ chạy (memTraceSaver qua traceSaver, bên dưới): ca A29e kiểm sổ sách của
+// bộ chạy, KHÔNG chứng minh gì về đường lưu vết thật. K3 đã gộp (3892be2) nhưng persistTrace nằm ở gói main cmd/eais, bộ chạy (gói
+// execution/commands) không gọi tới được; A29 (e) của mã thật do test của K3 đo — TestLenhHTTPMatVetKhongDoiKetQua (lỗi lưu vết không đổi kết
+// quả đã ghi, có đột biến M25a). Soát K4, K4S-01: đừng ghi F8 là "đã bắn đúng chỗ" ở bằng chứng X4 / X9.
 
 import (
 	"context"
@@ -250,8 +251,8 @@ func (s *faultStore) WriteAudit(ctx context.Context, a Audit) error {
 }
 
 // traceSaver là chỗ lưu vết của một lượt, SAU C7 (HOP-DONG §7.5, "Mất vết"): lưu hỏng thì kết quả đã ghi KHÔNG đổi, chỉ mất trace_id và tăng bộ đếm lỗi lưu vết.
-// Đường lưu vết thật (persistTrace ở cmd/eais, kho decision_records) là của K3; bộ chạy dùng memTraceSaver làm chỗ lưu giả, và faultTraceSaver bọc nó theo ĐÚNG giao
-// diện này để F8 bắn ở chỗ lưu. Khi K3 gộp, bọc persistTrace bằng cùng faultTraceSaver (ghi nợ: chưa nối).
+// Đường lưu vết thật (persistTrace ở cmd/eais, kho decision_records) là của K3 và nằm ngoài tầm của bộ chạy (gói main); bộ chạy dùng memTraceSaver làm
+// chỗ lưu giả, và faultTraceSaver bọc nó theo ĐÚNG giao diện này để F8 bắn ở chỗ lưu giả đó (xem chú thích đầu tệp: không chứng minh mã thật).
 type traceSaver interface {
 	Save(ctx context.Context, out Outcome) error
 }

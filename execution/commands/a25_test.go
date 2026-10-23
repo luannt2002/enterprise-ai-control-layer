@@ -4,7 +4,9 @@ package commands
 //
 // A25: câu lệnh viết bằng chữ tự do vào LUỒNG HỎI, với các vai có metrics.read (và vai không có), được trả lời như câu hỏi tính toán (§1.5, [ĐO] ở
 // c086fe7, 1e5457b, 7d72e33). Phase 1 chỉ bảo đảm: (1) câu trả lời không khẳng định một phiếu đã được tạo hay mở, (2) số phiếu = 0 (luồng hỏi không có
-// đường ghi nào tới kho phiếu), (3) đường hỏi không đổi so với phía gốc (so hai commit, chạy ngoài test này: cổng X7). Test KHÔNG đòi từ chối hay hỏi lại:
+// đường ghi nào tới kho phiếu), (3) đường hỏi không đổi so với phía gốc (so hai commit, chạy ngoài test này: cổng X7). Soát K4, K4S-07: phép đếm (2)
+// ở dưới đếm trên một kho mới KHÔNG nối với luồng hỏi nên luôn 0 — nó không đo gì; (2) dựa vào ranh giới import: core/pipeline hiện không import
+// execution/commands (đo bằng grep ngày 23/10; CHƯA có test canh như TestA24VaRangBuocImport). Chỉ (1) và đột biến M18 là phép đo thật; (3) chưa làm. Test KHÔNG đòi từ chối hay hỏi lại:
 // chặn động từ lệnh ở luồng hỏi là nợ của S4 hoặc Phase 6. Đột biến M18 nhắm test này.
 //
 // A24 (đếm lời gọi model ở tầng ứng dụng) chưa có test đếm: đường lệnh KHÔNG có chỗ gắn gateway model nào, nên một phép đếm bằng 0 không thể đỏ (ghi nợ);

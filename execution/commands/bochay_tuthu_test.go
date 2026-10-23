@@ -289,6 +289,9 @@ func TestBoChayTheGioiPhatTrienDungSoLieu(t *testing.T) {
 }
 
 // Bộ chạy chung KHÔNG rẽ nhánh theo mã ca (§12.1): không phép so sánh (==, !=) nào giữa trường Scenario của ca với một giá trị khác ngoài chuỗi rỗng.
+// Đây là LƯỚI THÔ (soát K4, K4S-05): chỉ bắt phép so với chuỗi hằng trong các tệp được quét; switch trên Scenario / ID, gán sang biến khác hay truyền
+// vào hàm so chuỗi đều lách được. Bảo đảm thật là soát tay execute / evaluate (soát K4 đọc tay: không thấy rẽ nhánh theo mã ca); tra bảng mã lớp
+// hợp lệ (knownScenario) là kiểm hình dạng, không phải rẽ nhánh hành vi.
 func TestBoChayKhongReNhanhTheoMaCa(t *testing.T) {
 	for _, file := range []string{"bochay_test.go", "chenloi_test.go"} {
 		fset := token.NewFileSet()

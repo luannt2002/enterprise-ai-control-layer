@@ -83,7 +83,8 @@ const Withheld = contracts.QuoteOpen + "đã che" + contracts.QuoteClose
 
 // WithholdQuoted thay MỌI đoạn chữ của người hỏi (giữa “ và ”, xem contracts.Quote) trong các dòng giải thích bằng Withheld. Dùng khi câu hỏi
 // mang bí mật mà bộ làm sạch nhận ra: mệnh đề hay mảnh chữ cắt ra khỏi câu có thể mất tên khoá (token: "abc. phần-đuôi" bị cắt ở dấu chấm) nên
-// mẫu che không còn nhận ra phần đuôi — an toàn hơn là không trích chữ nào của câu (câu đầy đủ, đã che, vẫn nằm ở Decision.Question).
+// mẫu che không còn nhận ra phần đuôi — an toàn hơn là không trích chữ nào của câu. Câu đầy đủ vẫn nằm ở Decision.Question, chỉ được che
+// theo dạng câu gốc: bí mật mà bộ làm sạch chỉ nhận ra ở dạng đã gấp ký tự thì còn nguyên ở đó (nợ V4-1 của soát R2-03 vòng 4).
 func (w Why) WithholdQuoted() Why {
 	return w.apply(func(lines []string) []string {
 		if len(lines) == 0 {

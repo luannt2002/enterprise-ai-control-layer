@@ -1,0 +1,7 @@
+# tools.yaml của ca phát triển: đúng dạng mà gói execution/commands nạp. timeout là hạn chót của cả lệnh C0 → C7.
+tools:
+  - name: open_discrepancy_ticket
+    capability: tickets.create
+    metrics: [issue_vs_measured]
+    min_abs_diff: "0"
+    timeout: 20s

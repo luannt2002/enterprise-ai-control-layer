@@ -70,6 +70,10 @@ type Options struct {
 	// DerivedOperands trả hai chỉ số gốc (vế trái, vế phải) của một chỉ số dẫn xuất ("issue_vs_measured" → kho xuất, tiêu thụ). Ý định dẫn xuất ("chênh
 	// lệch") chỉ được trả cặp mặc định ấy khi câu không nêu chỉ số nào ngoài cặp; không khai ⇒ không kiểm (xem Set.comparison).
 	DerivedOperands func(derived string) (left, right string, ok bool)
+	// ValueInRange báo một số nằm trong miền một lần đo của chỉ số. a2 chỉ đòi điều này với số KHÔNG tự viết đơn vị (số trần, hay số chỉ có đơn vị nhờ
+	// thuật ngữ đứng cạnh): "4 củ", "dầu 4,1 triệu" ngoài miền thì không phải giá trị của chỉ số; lượng viết rõ đơn vị ("80000 L" của cả tháng) không bị
+	// chặn. Không khai ⇒ không chặn.
+	ValueInRange func(metric string, v contracts.Value) bool
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -809,6 +813,11 @@ func (s *Set) isNeutral(w string) bool {
 	})
 }
 
+// inRange báo số nằm trong miền một lần đo của chỉ số (không khai ValueInRange thì không chặn).
+func (s *Set) inRange(metric string, v contracts.Value) bool {
+	return s.opt.ValueInRange == nil || s.opt.ValueInRange(metric, v)
+}
+
 // meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.
 func (s *Set) meaningOptions() []string {
 	var out []string
@@ -898,11 +907,14 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 				cover(sp.Start, sp.End)
 			}
 		case contracts.ValueQuantity: // chỉ lượng cùng chiều đo với chỉ số chung ("4 khối"); "7 tấn", "8h" là đại lượng khác
-			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) {
+			if s.opt.QuantityFits != nil && s.opt.QuantityFits(metric, sp.Value) && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {
 				cover(sp.Start, sp.End)
 			}
-		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"
-			cover(sp.Start, sp.End)
+		case contracts.ValueNumber: // số trần không đứng cạnh "dầu" nên không được gắn đơn vị: "Dầu xuất hôm nay của EX-03 là 3850 …"; ngoài miền chỉ số
+			// ("4 củ" = 4.000.000) thì không phải giá trị của chỉ số
+			if s.inRange(metric, sp.Value) {
+				cover(sp.Start, sp.End)
+			}
 		case contracts.ValueCode: // mã chứng từ ("PX-0912") là nhãn, không mang nghĩa chỉ số
 			cover(sp.Start, sp.End)
 		}

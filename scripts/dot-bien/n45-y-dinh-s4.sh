@@ -181,4 +181,12 @@ m $I '		return len(sp) > 0 && sp[0][0] == 0 && sp[0][1] == len(w)
 
 // meaningOptions' 'S98 từ trung tính ("được") không được coi là trung tính khi tìm chữ của từ khoá chỉ số'
 m tenants/construction/pack/intents.yaml '    keywords: [chào, hello]' '    keywords: [xin chào, hello]' 'S97 lời chào chỉ là cụm "xin chào"'
+# F6' (nợ S4 sau H4): số không tự viết đơn vị mà ngoài miền một lần đo của chỉ số không phải giá trị của nó.
+m $I '			if s.inRange(metric, sp.Value) {
+				cover(sp.Start, sp.End)' '			if true {
+				cover(sp.Start, sp.End)' 'S99 a2 che mọi số trần, kể cả ngoài miền chỉ số ("4 củ")'
+m $I ' && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value)) {' ' {' 'S100 lượng chỉ có đơn vị nhờ "dầu" không bị kiểm miền ("4,1 triệu dầu")'
+m $I '(!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' 's.inRange(metric, sp.Value)' 'S101 kiểm miền cả lượng viết rõ đơn vị ("80000 L" của cả tháng bị hỏi lại)'
+m core/tenant/pack.go '					return def.InRange(v.Number) == nil' '					return true' 'S102 không kiểm miền một lần đo ("4 củ", "dầu 4,1 triệu" thành lít)'
+m core/tenant/pack.go '					return def.InRange(v.Number) == nil' '					return false' 'S103 mọi số đều ngoài miền ("4k", "3850" thành chữ lạ)'
 

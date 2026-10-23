@@ -214,6 +214,21 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil
 				},
+				// số nằm trong miền một lần đo của chỉ số (số trần coi như đã ở đơn vị của chỉ số): tiền nói tắt "4 củ", "4,1 triệu" không còn bị hiểu là lít
+				ValueInRange: func(metric string, v contracts.Value) bool {
+					def, ok := rt.Metrics.Metric(metric)
+					if !ok {
+						return false
+					}
+					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {
+						c, err := rt.Normalizer.Convert(v, def.Unit)
+						if err != nil {
+							return false
+						}
+						v = c
+					}
+					return def.InRange(v.Number) == nil
+				},
 				DerivedOperands: func(id string) (string, string, bool) {
 					d, ok := rt.Metrics.Derived(id)
 					return d.Left, d.Right, ok

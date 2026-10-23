@@ -205,3 +205,27 @@ func TestC3LoiChaoLaChuChao(t *testing.T) {
 		}
 	}
 }
+
+// F6' (nợ S4 sau H4): số không tự viết đơn vị mà ngoài miền một lần đo của chỉ số không phải giá trị của nó — tiền nói tắt ("4 củ", "4tr", "4,1 triệu
+// dầu", "dầu 150k") không còn bị hiểu là lít (a2 trả số kho xuất kèm câu giả định). Lượng viết RÕ đơn vị của cả tháng / tuần ("80000 L") vẫn được trả lời.
+func TestF6TienNoiTatKhongPhaiLit(t *testing.T) {
+	a := newAsk(t)
+	director := user("director", "")
+	for _, q := range []string{
+		"Dầu xuất cho EX-03 hôm qua 4 củ đúng không?",
+		"Hôm nay EX-03 xuất dầu 4tr đúng không?",
+		"Hôm nay EX-03 xuất 4,1 triệu dầu đúng không?",
+		"Hôm nay EX-03 xuất dầu 150k đúng không?",
+	} {
+		r := ask(t, a, director, q).Response
+		if r.Route != contracts.RouteClarification || strings.Contains(r.Answer, giaDinhChung) || strings.Contains(r.Answer, "3.850") {
+			t.Errorf("%q: số ngoài miền một lần đo của dầu kho xuất — muốn hỏi lại, được [%s/%s/%s] %q", q, r.Route, r.Outcome, r.Intent, r.Answer)
+		}
+	}
+	for _, q := range []string{"Hôm nay EX-03 xuất 4k dầu đúng không?", "Hôm nay EX-03 xuất dầu 3850 đúng không?",
+		"Tháng 9 EX-03 xuất 80000 L dầu đúng không?", "Tuần này EX-03 xuất 25000 L dầu đúng không?"} {
+		if r := ask(t, a, director, q).Response; r.Intent != "fuel_generic" || !strings.Contains(r.Answer, giaDinhChung) || verdictOf(r.Answer) != "" {
+			t.Errorf("%q: muốn trả lời theo ý định chung kèm câu giả định, không phán quyết — được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+		}
+	}
+}

@@ -6,6 +6,8 @@ package commands
 // Mọi số đếm lấy bằng kết nối quản trị riêng của harness (pgEnv), không do pipeline tự báo.
 
 import (
+	"context"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -432,4 +434,98 @@ func TestPGNhieuTenantGhiSongSong(t *testing.T) {
 		}
 		ws[i].check(ws[i].tenant, want{tickets: 1, ledger: 1, executed: 1})
 	}
+}
+
+// C4 (lệnh ca chiều 23/10): bốn ca quyền A07–A10 chạy cả trên PG (cùng hình với ca bộ nhớ ở pipeline_test.go): kho thật ghi audit REFUSED,
+// lý do thật nằm ở reason_detail (đọc bằng vai quản trị), RLS / người gọi tenant khác không để lại dòng nào.
+func TestPGA07ThieuTicketsCreate(t *testing.T) {
+	w := newPGWorld(t)
+	for i, role := range []string{"site_engineer", "driver"} {
+		o := w.run(w.user("p-"+role, role, "PRJ-A"), req(20+i, "EX-03", day1))
+		wantFail(t, o, StatusFailed, ReasonPermissionDenied)
+		if o.Result.Fault != "policy" || o.Result.Retry != RetryNone {
+			t.Fatalf("PERMISSION_DENIED: fault policy, retry none: %+v", o.Result)
+		}
+		assertSteps(t, o, "C4")
+	}
+	w.check(w.tenant, want{refused: 2})
+	w.counters(0, 2)
+	if n := w.env.auditRows(w.tenant, AuditRefused, ReasonPermissionDenied, ""); n != 2 {
+		t.Fatalf("audit REFUSED PERMISSION_DENIED = %d, muốn 2", n)
+	}
+}
+
+func TestPGA08KhongTonTaiNgoaiPhamViKyTuLa(t *testing.T) {
+	w := newPGWorld(t)
+	pm := w.user("p-pm", "project_manager", "PRJ-A")
+	keys := []string{"EX-09", "EX-99", "EX-03'; DROP TABLE discrepancy_tickets; --", `EX-03"`}
+	var outs []Outcome
+	for _, k := range keys {
+		o := w.run(pm, req(30, k, day1))
+		wantFail(t, o, StatusFailed, ReasonPermissionDenied)
+		assertSteps(t, o, "C4")
+		outs = append(outs, o)
+	}
+	details := map[string]bool{}
+	for _, o := range outs {
+		details[o.Result.Detail] = true
+	}
+	if len(details) != 1 {
+		t.Fatalf("bốn lý do khác nhau phải cùng MỘT thông báo, được %d: %v", len(details), details)
+	}
+	w.check(w.tenant, want{refused: 4})
+	w.counters(0, 4)
+	// lý do thật chỉ nằm ở reason_detail của audit — đọc bằng vai quản trị (vai ứng dụng không đọc được cột này, C1)
+	real := map[string]string{}
+	rows, err := w.env.admin.Query(context.Background(), `SELECT subject_key, reason_detail FROM audit_log
+		WHERE tenant_id = $1 AND outcome = 'REFUSED' AND caller_id = 'p-pm'`, string(w.tenant))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var k, d string
+		if err := rows.Scan(&k, &d); err != nil {
+			t.Fatal(err)
+		}
+		real[k] = d
+	}
+	rows.Close()
+	if real["EX-09"] == "" || real["EX-99"] == "" || real["EX-09"] == real["EX-99"] {
+		t.Fatalf("audit trên PG phải ghi lý do thật và tách hai trường hợp: %q và %q", real["EX-09"], real["EX-99"])
+	}
+	if !reflect.DeepEqual(scrub(outs[0], "EX-09"), scrub(outs[1], "EX-99")) {
+		t.Fatalf("vết của máy ngoài phạm vi và máy không tồn tại phải y hệt:\n%+v\n%+v", scrub(outs[0], "EX-09"), scrub(outs[1], "EX-99"))
+	}
+	if n := w.env.openTickets(w.tenant); n != 0 {
+		t.Fatalf("khoá có ký tự SQL không được để lại phiếu: %d", n)
+	}
+}
+
+func TestPGA09ThieuMetricsRead(t *testing.T) {
+	w := newPGWorld(t, func(d *Deps) {
+		d.Policy.Roles["writer"] = routerRole("tickets.create")
+	})
+	o := w.run(w.user("p-w", "writer", ""), req(40, "EX-03", day1))
+	wantFail(t, o, StatusFailed, ReasonPermissionDenied)
+	assertSteps(t, o, "C4")
+	w.check(w.tenant, want{refused: 1})
+	w.counters(0, 1)
+}
+
+func TestPGA10TenantKhacVoiRuntime(t *testing.T) {
+	w := newPGWorld(t)
+	otherTenant := w.env.tenant("khac")
+	other := contracts.Principal{ID: "p-x", TenantID: otherTenant, Kind: contracts.PrincipalUser, Roles: []string{"director"}}
+	noID := contracts.Principal{TenantID: w.tenant, Kind: contracts.PrincipalUser, Roles: []string{"director"}}
+	for name, pr := range map[string]contracts.Principal{"tenant khác": other, "không có mã người gọi": noID} {
+		o := w.run(pr, req(41, "EX-03", day1))
+		wantFail(t, o, StatusFailed, ReasonPermissionDenied)
+		if o.Result.Fault != "policy" {
+			t.Fatalf("%s: fault phải là policy, được %q", name, o.Result.Fault)
+		}
+		assertSteps(t, o, "C1")
+	}
+	w.check(w.tenant, want{})
+	w.check(otherTenant, want{})
+	w.counters(0, 0)
 }

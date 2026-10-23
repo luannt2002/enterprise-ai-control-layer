@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
@@ -51,10 +52,37 @@ func TestReadyBaBangPhieu(t *testing.T) {
 		}
 	}
 
-	// audit_log theo cột (0005, C1; soát C1–C7 C17S-03): thu SELECT một cột cần đọc ⇒ chưa sẵn sàng, trả lại ⇒ sẵn sàng; cấp quyền đọc
-	// reason_detail (theo cột hay mức bảng) ⇒ chưa sẵn sàng (cột chỉ được ghi), thu lại ⇒ sẵn sàng
+	// audit_log theo cột (0005, C1; soát C1–C7 C17S-03): thu SELECT TỪNG cột cần đọc ⇒ chưa sẵn sàng và nêu đúng cột, trả lại ⇒ sẵn sàng. Danh
+	// sách cột lấy từ CATALOG (mọi cột của bảng trừ reason_detail), không chép từ readyNeeds: danh sách cột của Ready lệch khỏi lược đồ thật thì
+	// test đỏ (soát lại M4, M4R-05: bỏ trace_id, tenant_id hay caller_roles khỏi readyNeeds từng không làm test nào đỏ).
+	rows, err := conn.Query(ctx, `SELECT column_name FROM information_schema.columns
+		WHERE table_schema = current_schema() AND table_name = 'audit_log' AND column_name <> 'reason_detail' ORDER BY ordinal_position`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cols, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cols) < 18 {
+		t.Fatalf("audit_log chỉ có %d cột ngoài reason_detail: %v", len(cols), cols)
+	}
+	for _, col := range cols {
+		if _, err := conn.Exec(ctx, "REVOKE SELECT ("+col+") ON audit_log FROM eais_app"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Ready(ctx); err == nil || !strings.Contains(err.Error(), "thiếu quyền SELECT trên audit_log."+col) {
+			t.Errorf("thu SELECT (%s) trên audit_log: muốn lỗi nêu cột đó, được %v", col, err)
+		}
+		if _, err := conn.Exec(ctx, "GRANT SELECT ("+col+") ON audit_log TO eais_app"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Ready(ctx); err != nil {
+			t.Errorf("trả SELECT (%s) rồi mà vẫn chưa sẵn sàng: %v", col, err)
+		}
+	}
+	// cấp quyền đọc reason_detail (theo cột hay mức bảng) ⇒ chưa sẵn sàng (cột chỉ được ghi), thu lại ⇒ sẵn sàng
 	for _, c := range []struct{ do, undo, want string }{
-		{"REVOKE SELECT (outcome) ON audit_log FROM eais_app", "GRANT SELECT (outcome) ON audit_log TO eais_app", "thiếu quyền SELECT trên audit_log.outcome"},
 		{"GRANT SELECT (reason_detail) ON audit_log TO eais_app", "REVOKE SELECT (reason_detail) ON audit_log FROM eais_app", "ĐỌC ĐƯỢC audit_log.reason_detail"},
 		{"GRANT SELECT ON audit_log TO eais_app", "REVOKE SELECT ON audit_log FROM eais_app; GRANT SELECT (tenant_id, id, at, outcome, reason_code, caller_id, caller_roles, entity_scope, command_id, action, subject_key, metric, day, ticket_id, fingerprint, pack_version, code_version, trace_id) ON audit_log TO eais_app", "ĐỌC ĐƯỢC audit_log.reason_detail"},
 	} {

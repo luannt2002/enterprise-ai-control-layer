@@ -525,26 +525,35 @@ Mỗi món là một cổng năng lực riêng. Mở bằng một lỗi đo đư
 
 ## 10. EAIS đang ở đâu, và việc đầu tiên sau MVP
 
-### 10.1 Hiện trạng theo nấc [CODE ở `2b80a38`]
+### 10.1 Hiện trạng theo nấc [CODE ở nhánh `rag/0-viec`, 23/10/2026; số đo có lệnh ở `docs/viec/2-tra-quy-trinh/`]
 
-| Nấc | Đã có | Thiếu |
+| Nấc | Đã có (đo được) | Còn thiếu |
 |---|---|---|
-| RAG-0 | việc dầu; các ca phiên bản trong `cases.yaml` | ca chưa chạy qua pipeline; thiếu tài liệu SOP-NL-ĐM-01 trong kho; chưa có người nghiệp vụ |
-| RAG-1 | nạp markdown (`rag.LoadMarkdown`); tenant + ACL theo vai | phiên bản, hiệu lực, trạng thái; độ phủ; xoá |
-| RAG-2 | mỗi dòng một đoạn | cắt theo cấu trúc; bảng |
-| RAG-3 | hợp đồng `KnowledgeRetriever` (`core/pipeline/ask.go:43`); từ khoá IDF, bỏ dấu; ACL lọc trong SQL trước khi chấm (`platform/pgstore/pgstore.go`); canary `SOP-B` | lọc theo phạm vi; lọc theo phiên bản / hiệu lực |
-| RAG-4 | model giả trích nguyên văn; S9 chặn lượng nhiên liệu lấy từ tài liệu; ca `SOP-INJ` | các trạng thái ở §6.2; HYBRID giữ phần số khi truy hồi lỗi; vết RAG (§6.7) |
-| RAG-5…8 | — | sau |
+| RAG-0 | việc "tra quy trình đang hiệu lực"; `CONG-QUANIT.md`, `HOP-DONG.md`; ca CON-T-004/005/032/061/071 chạy thật; bộ S7 phát triển (41 câu) + bộ độc lập (106 câu, băm trước, chạy một lần); 2 baseline (nạp thẳng, RAG thường) | **người nghiệp vụ duyệt** (D-RM-03); CON-T-081 |
+| RAG-1 | phiên bản / trạng thái / hiệu lực / phạm vi; cổng chất lượng đọc (CON-T-032); ID tất định `mã@vN#vị-trí`; nạp lại không nhân đôi; trên PG (migration riêng của nhánh) | **chỉ Markdown** — PDF / DOCX / scan cần tài liệu thật (U5); độ phủ chữ; chủ sở hữu / nguồn / băm nội dung (§6.1) |
+| RAG-2 | bước đánh số = một đoạn; bảng lặp header mỗi hàng | đường dẫn mục (§6.3 điểm 4, U3b); cắt recursive theo token cho bước dài; cổng SC; lý do cắt vào vết |
+| RAG-3 | lọc tenant / vai / phạm vi (cùng một vai) / bản hiệu lực **tại ngày hỏi** trước khi chấm; 0 rò trên mọi ca âm; IDF chỉ trên đoạn người hỏi thấy; chỉ mục giữ sẵn: 22 ms/câu ở ~1.000 tài liệu | CON-T-004 (chờ quyết định (b)); ngưỡng Recall do người nghiệp vụ chốt |
+| RAG-4 | §6.2 đủ (thông báo phiên bản, "không có" = "ngoài quyền", lỗi ≠ "không có", HYBRID giữ phần số); "biết im" khi chủ đề ngoài kho; S9 chặn lượng nhiên liệu từ tài liệu | **chưa thử model thật**; §6.5: bằng chứng gửi model chưa bọc / escape (một dòng tài liệu giả được đoạn khác; đoạn bảng 2 dòng mất mã ở dòng 2); app gắn cứng model giả |
+| RAG-5 | dòng S7 trên bộ độc lập: top-3 87/92, 0 ngoài quyền, 0 không căn cứ ⇒ ĐẠT; so baseline: RAG thường lọt 20 + 37, nạp thẳng 100 + 222 | **người nghiệp vụ nghiệm thu**; đo với model thật |
+| RAG-6 | bằng chứng mở cổng đang có: 6/36 câu phát triển trượt vì đồng nghĩa | xác nhận trên bộ độc lập MỚI trước khi mở embedding; rerank: chưa có bằng chứng |
+| RAG-7 | quy mô đo được (`evals/rag/quy_mo_test.go`); RLS, xác thực của M1 | timeout / dự phòng nhà cung cấp, chi phí mỗi lượt, thử tải |
+| RAG-8 | — | chỉ khi việc đòi |
 
-### 10.2 Thứ tự đề xuất [ĐỀ XUẤT]
+Vết RAG (§6.7): đã có đoạn truy xuất / được dẫn / bị loại và lý do khi trả thông báo (R2-03 + nhánh RAG); **thiếu** số tài liệu bị loại theo từng lý do, điểm và hạng, lý do "im".
 
-1. **Trước khi MVP ra:** không mở mã RAG. Làn giấy, nếu còn chỗ, được làm giấy RAG-0 (§9 bước 1–4). Không lấy người hay máy của M1–M5.
-2. **Ngay sau MVP:** 4 mảnh nhỏ, đều tận dụng ca đã có:
-   1. nạp SOP-NL-ĐM-01 v2 / v3 vào kho, cho các ca RAG có sẵn chạy thật qua pipeline;
-   2. thêm phiên bản, trạng thái, hiệu lực, phạm vi vào `Document`; lọc theo chúng (RAG-1 / RAG-3 tối thiểu);
-   3. các trạng thái ở §6.2 + sửa HYBRID (RAG-4 tối thiểu);
-   4. vết RAG (§6.7) trên hạ tầng vết của làn 0.
-3. Sau đó: RAG-1 → RAG-5 đủ; RAG-6 trở đi chỉ khi có lỗi đo được.
+### 10.2 Việc tiếp theo [ĐỀ XUẤT, 23/10]
+
+**Làm ngay, không cần bên thứ ba, không cần chủ dự án quyết:**
+1. §6.5 — đóng gói bằng chứng cho model an toàn: bọc từng đoạn bằng thẻ có mã, escape thẻ đóng, giữ mã cho đoạn nhiều dòng; câu hỏi cũng bọc. Ca âm: một dòng tài liệu giả một đoạn khác. (Chạm `intelligence/models` — đổi prompt làm đổi điều kiện benchmark G7: báo team.)
+2. §6.7 — vết RAG đủ: số bị loại theo lý do (vai / phạm vi / phiên bản / trạng thái), điểm + hạng, lý do im.
+3. Nối cấu hình model vào app (mặc định vẫn model giả) + chạy khô với máy chủ model giả trên máy.
+
+**Cần chủ dự án quyết (xem `docs/viec/2-tra-quy-trinh/BEN-THU-BA.md`):**
+4. LLM để thử RAG-4 thật: nhà cung cấp / server nội bộ, số lượt, chính sách gửi tài liệu ra ngoài.
+5. Tài liệu thật (D-RM-03): mở U5 (PDF / DOCX / scan), U3b (đường dẫn mục), ngưỡng Recall, nghiệm thu RAG-5.
+
+**Không làm khi chưa có bằng chứng:** LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition chunking,
+kho vector riêng (Qdrant) — nếu mở vector thì `pgvector` cùng DB; rerank; LLM chấm làm bằng chứng duy nhất.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)
 

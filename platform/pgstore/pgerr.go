@@ -9,6 +9,11 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
+// transientCodes là các mã tạm thời nằm NGOÀI các lớp hạ tầng: 55P03 không lấy được khoá; 25006 ghi vào máy chủ chỉ đọc (gặp lúc chuyển
+// sang máy chủ chính mới); 25P03 phiên rỗi trong giao dịch quá hạn và 25P04 giao dịch quá hạn (PG 17) — cùng bản chất với 57014 huỷ do
+// hết giờ. Các mã khác của lớp 25 (giao dịch đã hỏng, lồng giao dịch…) là lỗi của mã.
+var transientCodes = map[string]bool{"55P03": true, "25006": true, "25P03": true, "25P04": true}
+
 // classifyPGError gắn nhãn "lỗi do ai" cho lỗi của một giao dịch PostgreSQL, để bên gọi biết thử lại có ích không
 // (contracts.Retryable, contracts.HTTPStatus):
 //   - tạm thời ⇒ nhãn hạ tầng (thử lại, 503): lỗi không đến từ máy chủ PG (mất kết nối, I/O, ngữ cảnh hết hạn) và các lớp SQLSTATE
@@ -22,11 +27,6 @@ import (
 // Lỗi đã có nhãn (fn trong giao dịch tự gắn) giữ nguyên vì contracts.Label giữ nhãn gần nhất; lỗi nil trả nil. Giới hạn đã biết: lỗi
 // khác không đến từ máy chủ (lỗi mạng, ngữ cảnh hết hạn, nhưng cũng cả errors.New do fn tự dựng) không phân biệt được tạm thời hay tất
 // định nên mang nhãn hạ tầng — fn muốn khác thì tự gắn nhãn.
-// transientCodes là các mã tạm thời nằm NGOÀI các lớp hạ tầng: 55P03 không lấy được khoá; 25006 ghi vào máy chủ chỉ đọc (gặp lúc chuyển
-// sang máy chủ chính mới); 25P03 phiên rỗi trong giao dịch quá hạn và 25P04 giao dịch quá hạn (PG 17) — cùng bản chất với 57014 huỷ do
-// hết giờ. Các mã khác của lớp 25 (giao dịch đã hỏng, lồng giao dịch…) là lỗi của mã.
-var transientCodes = map[string]bool{"55P03": true, "25006": true, "25P03": true, "25P04": true}
-
 func classifyPGError(err error) error {
 	var scanErr pgx.ScanArgError
 	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, pgx.ErrTxCommitRollback) || errors.As(err, &scanErr) {

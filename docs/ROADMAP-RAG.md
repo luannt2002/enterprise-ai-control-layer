@@ -533,27 +533,43 @@ Mỗi món là một cổng năng lực riêng. Mở bằng một lỗi đo đư
 | RAG-1 | phiên bản / trạng thái / hiệu lực / phạm vi; cổng chất lượng đọc (CON-T-032); ID tất định `mã@vN#vị-trí`; nạp lại không nhân đôi; trên PG (migration riêng của nhánh) | **chỉ Markdown** — PDF / DOCX / scan cần tài liệu thật (U5); độ phủ chữ; chủ sở hữu / nguồn / băm nội dung (§6.1) |
 | RAG-2 | bước đánh số = một đoạn; bảng lặp header mỗi hàng | đường dẫn mục (§6.3 điểm 4, U3b); cắt recursive theo token cho bước dài; cổng SC; lý do cắt vào vết |
 | RAG-3 | lọc tenant / vai / phạm vi (cùng một vai) / bản hiệu lực **tại ngày hỏi** trước khi chấm; 0 rò trên mọi ca âm; IDF chỉ trên đoạn người hỏi thấy; chỉ mục giữ sẵn: 22 ms/câu ở ~1.000 tài liệu | CON-T-004 (chờ quyết định (b)); ngưỡng Recall do người nghiệp vụ chốt |
-| RAG-4 | §6.2 đủ (thông báo phiên bản, "không có" = "ngoài quyền", lỗi ≠ "không có", HYBRID giữ phần số); "biết im" khi chủ đề ngoài kho; S9 chặn lượng nhiên liệu từ tài liệu | **chưa thử model thật**; §6.5: bằng chứng gửi model chưa bọc / escape (một dòng tài liệu giả được đoạn khác; đoạn bảng 2 dòng mất mã ở dòng 2); app gắn cứng model giả |
-| RAG-5 | dòng S7 trên bộ độc lập: top-3 87/92, 0 ngoài quyền, 0 không căn cứ ⇒ ĐẠT; so baseline: RAG thường lọt 20 + 37, nạp thẳng 100 + 222 | **người nghiệp vụ nghiệm thu**; đo với model thật |
-| RAG-6 | bằng chứng mở cổng đang có: 6/36 câu phát triển trượt vì đồng nghĩa | xác nhận trên bộ độc lập MỚI trước khi mở embedding; rerank: chưa có bằng chứng |
-| RAG-7 | quy mô đo được (`evals/rag/quy_mo_test.go`); RLS, xác thực của M1 | timeout / dự phòng nhà cung cấp, chi phí mỗi lượt, thử tải |
+| RAG-4 | §6.2 đủ (thông báo phiên bản, "không có" = "ngoài quyền", lỗi ≠ "không có", HYBRID giữ phần số); "biết im" khi chủ đề ngoài kho; S9 chặn lượng nhiên liệu từ tài liệu; **gateway chat completions (23/10 tối)**: §6.5 bọc bằng chứng trong thẻ mang mã + vô hiệu thẻ trong nội dung (đột biến bắt được); model từ chối đúng khuôn (`Draft.Refused`) = INSUFFICIENT_EVIDENCE, sai khuôn vẫn qua S9; đo thật qua `evals/rag/dong_co_that_test.go` | app (`cmd/eais`) vẫn gắn model giả — mở là quyết định §9.3 của chủ dự án; luồng trọn chỉ 7/92 câu S7 độc lập tới được S8 (xem 10.2 mục 1) |
+| RAG-5 | dòng S7 trên bộ độc lập: top-3 87/92, 0 ngoài quyền, 0 không căn cứ ⇒ ĐẠT; so baseline: RAG thường lọt 20 + 37, nạp thẳng 100 + 222. Đường lai với động cơ thật (23/10 tối, qua PG): 83/92, 0 ngoài quyền, **0/14 câu không có đáp án nhận đoạn** (từ khoá: 7/14) ⇒ ĐẠT | **người nghiệp vụ nghiệm thu**; bộ đã công bố — lần đo cổng sau cần bộ MỚI |
+| RAG-6 | **đường lai (23/10 tối)**: lọc quyền / phiên bản TRƯỚC → RRF (từ khoá đạt ngưỡng + cosine) → rerank nhóm đầu → "biết im" theo điểm rerank (chưa đặt ngưỡng thì dùng luật chủ đề); vector ở bảng `document_vectors` (0007, RLS) theo (tenant, model / số chiều / kiểu nhiệm vụ, băm chữ), thiếu vector = lỗi dữ liệu nêu "nhúng lại"; bằng chứng mở: từ khoá trượt 6/36 vì đồng nghĩa, lọt 7/14 câu bẫy | 9/92 câu độc lập bị ngưỡng chặn nhầm — 7 câu gõ không dấu, 2 câu viết tắt (KL, PXK); ngưỡng chọn với nhóm ứng viên khác — chọn lại trên bộ phát triển rồi kiểm trên bộ MỚI |
+| RAG-7 | quy mô đo được (`evals/rag/quy_mo_test.go`); RLS, xác thực của M1; thử lại theo Retry-After / retryDelay, nhãn lỗi `third_party:<giao thức>`; đổi nhà cung cấp chỉ đổi `.env` (đã làm 1 lần: embedding thứ nhất bị chặn hạn mức → thứ hai, 0 dòng code) | dự phòng tự động giữa hai nhà cung cấp, chi phí mỗi lượt, thử tải; lượt nhúng chờ hạn mức không báo tiến độ |
 | RAG-8 | — | chỉ khi việc đòi |
 
 Vết RAG (§6.7): đã có đoạn truy xuất / được dẫn / bị loại và lý do khi trả thông báo (R2-03 + nhánh RAG); **thiếu** số tài liệu bị loại theo từng lý do, điểm và hạng, lý do "im".
 
 ### 10.2 Việc tiếp theo [ĐỀ XUẤT, 23/10]
 
-**Làm ngay, không cần bên thứ ba, không cần chủ dự án quyết:**
-1. §6.5 — đóng gói bằng chứng cho model an toàn: bọc từng đoạn bằng thẻ có mã, escape thẻ đóng, giữ mã cho đoạn nhiều dòng; câu hỏi cũng bọc. Ca âm: một dòng tài liệu giả một đoạn khác. (Chạm `intelligence/models` — đổi prompt làm đổi điều kiện benchmark G7: báo team.)
-2. §6.7 — vết RAG đủ: số bị loại theo lý do (vai / phạm vi / phiên bản / trạng thái), điểm + hạng, lý do im.
-3. Nối cấu hình model vào app (mặc định vẫn model giả) + chạy khô với máy chủ model giả trên máy.
+**Đã làm 23/10 tối:** §6.5 (bọc bằng chứng), gateway chat completions, embedding / rerank theo giao thức, đường lai + bảng vector,
+lệnh đo động cơ thật. Bỏ: "nối cấu hình model vào app" — vướng luật chi tiền §9.3, để chủ dự án quyết.
 
-**Cần chủ dự án quyết (xem `docs/viec/2-tra-quy-trinh/BEN-THU-BA.md`):**
-4. LLM để thử RAG-4 thật: nhà cung cấp / server nội bộ, số lượt, chính sách gửi tài liệu ra ngoài.
-5. Tài liệu thật (D-RM-03): mở U5 (PDF / DOCX / scan), U3b (đường dẫn mục), ngưỡng Recall, nghiệm thu RAG-5.
+**Tầng sai đầu tiên của luồng trọn là ROUTER (S4/S5), không phải truy hồi hay model** — đo qua `evals/rag/dong_co_that_test.go`:
 
-**Không làm khi chưa có bằng chứng:** LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition chunking,
-kho vector riêng (Qdrant) — nếu mở vector thì `pgvector` cùng DB; rerank; LLM chấm làm bằng chứng duy nhất.
+| Bộ | Truy hồi top-3 (đường lai) | Tới được S8 | Bị chặn trước RAG |
+|---|---|---|---|
+| S7 phát triển | 34/36 | 3/36 | OUT_OF_SCOPE / CLARIFICATION / PERMISSION_DENIED: 32 |
+| S7 độc lập | 83/92 | 7/92 | OUT_OF_SCOPE 39 · CLARIFICATION_REQUIRED 26 · PERMISSION_DENIED 19 |
+| Văn bản pháp quy | 14/19 | 6/19 | 13 |
+
+Route tri thức của pack chỉ bắt từ khoá (`intents.yaml`: quy trình, quy định, thủ tục, làm gì, bao lâu…); câu hỏi quy trình nói kiểu
+khác ("chạy bao nhiêu giờ thì phải thay nhớt máy?") rơi vào OUT_OF_SCOPE trước khi RAG được hỏi.
+
+**Cần chủ dự án quyết:**
+1. Cách đưa câu hỏi tri thức tới route RAG (S4 — phần của team, đổi ranh giới pipeline, CLAUDE.md §34): (a) thêm từ khoá vào pack —
+   rẻ, giòn, chỉnh trên bộ đã công bố là tự chấm bài; (b) **khi S4 không khớp ý định nào, hỏi chỉ mục tri thức với ngưỡng "biết im" rồi
+   mới kết luận OUT_OF_SCOPE** — tất định, có số đo của ngưỡng (0/14 câu bẫy nhận đoạn); (c) model phân loại ý định — vướng §9.3.
+   Đề xuất (b). Còn phải soát riêng 19 ca PERMISSION_DENIED và 26 ca CLARIFICATION_REQUIRED (chưa đọc vết).
+2. Mở động cơ thật trong app (§9.3, ghi `CHO`).
+3. Tài liệu thật (D-RM-03): U5 (PDF / DOCX / scan), U3b (đường dẫn mục), ngưỡng Recall, nghiệm thu RAG-5.
+
+**Làm tiếp được, không cần quyết:** §6.7 vết RAG đủ (số bị loại theo lý do, điểm + hạng, lý do im); câu gõ không dấu bị ngưỡng chặn
+nhầm (7/9 ca trượt).
+
+**Không làm khi chưa có bằng chứng:** LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition
+chunking, kho vector riêng (vector đang ở cùng PG, cosine trong Go trên đoạn người hỏi được đọc), LLM chấm làm bằng chứng duy nhất.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)
 

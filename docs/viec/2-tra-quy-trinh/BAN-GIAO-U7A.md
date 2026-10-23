@@ -44,3 +44,22 @@
 2. ~~`cmd/eais` đặt `MemoryIndex.Now` / `InScope`~~ — không cần nữa: pipeline truyền ngày hỏi và luật phạm vi của lượt cho
    mọi chỉ mục (bộ nhớ, PG), kể cả khi phát lại.
 3. `tenants/construction/pack/policy.yaml`: các ca RAG dùng vai `site_supervisor`, `equipment_manager` chưa có trong policy.
+
+## Đợt động cơ thật (23/10 tối) — tệp chung bị chạm
+
+> Viết cho: team build. Chỉ để biết — không cần gộp hay so lúc này. Mặc định mọi thứ dưới đây TẮT: `cmd/eais` không đổi, vẫn model giả.
+
+| Tệp | Đổi gì | Ảnh hưởng tới phần của team |
+|---|---|---|
+| `core/contracts/contracts.go` | `Draft.Refused` (`omitempty`): model trả đúng khuôn và nói bằng chứng không trả lời được | không: gateway có sẵn không đặt cờ này; JSON cũ không đổi |
+| `core/pipeline/ask.go` (`answerKnowledge`) | `Draft.Refused` ⇒ INSUFFICIENT_EVIDENCE thay vì S9 chặn; bản nháp rỗng KHÔNG cờ vẫn qua S9 như cũ | không với model giả (không bao giờ đặt cờ) |
+| `intelligence/models` | mới: `caller.go`, `chat.go` (`EAIS_MODEL_PROVIDER=chat_completions`), `embed.go`; `messages.go` chỉ thêm một nhánh trong `New` | `Messages` (G7) không đổi một dòng hành vi |
+| `platform/pgstore` | `Store.Semantic` (nil = như cũ), `vector.go`, `knowledgeIndex` tách `readDocuments` | đường từ khoá giữ nguyên; danh sách migration trong `migrate_test.go` / `vet_test.go` thêm 0007 |
+| `db/migrations/0007_vector_tai_lieu.sql` | bảng `document_vectors` + RLS | số 0007: lấy số kế tiếp sau 0006 của nhánh; ai gộp main trước giữ số |
+
+Cổng của cây này (so với main sạch `086fff9` qua bản gộp `521867f`): `go test -json ./...` có PG 2034 pass + 1 skip (lệnh đo động cơ
+thật, cần bật tay), so theo tên 0 mất / 0 đổi; winreport 117 / H1 / H3 / H4 × bộ nhớ / PG 0 dòng ca khác main; smoke 21/21.
+
+**Phát hiện cho phần S4 của team:** đo luồng trọn với động cơ thật, route tri thức chỉ nhận 7/92 câu S7 độc lập (OUT_OF_SCOPE 39,
+CLARIFICATION_REQUIRED 26, PERMISSION_DENIED 19) dù truy hồi trúng 83/92 — chi tiết `docs/ROADMAP-RAG.md` §10.2. Chưa sửa: đổi ranh
+giới S4 cần chủ dự án quyết.

@@ -262,3 +262,49 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Mã ở
   ghi, đánh giá); bỏ qua cụm thì câu bị trả theo chỉ số còn lại. Cần cơ chế "nghĩa chưa hỗ trợ ⇒ hỏi lại / từ chối" và quyết định của chủ dự
   án về nghĩa của câu "ghi nhận + giá trị" (câu mở **D-OP-18**). Nợ còn mở: S4R-03 cho các cụm đã rút, F6' ở khung "bao nhiêu" (nhánh từ khoá
   yếu, D-OP-16) và ký hiệu "$", khoảng trắng kép làm cụm hở, chiều tiền ("thanh toán" là từ khoá của dầu theo hoá đơn).
+
+## Vòng sửa S4 (23/10) — D-AI-02 = a, D-OP-18 = c, D-OP-11 = b (nhánh `m3/s4-vong-sua-2310`, CHƯA gộp main)
+
+Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt. Chủ dự án trả lời 23/10: **D-AI-02 = a** (sửa tiếp bằng luật, không model), **D-OP-18 = c**
+(câu "ghi nhận / nhận xét + giá trị cụ thể" là lệnh ghi / đánh giá ⇒ hỏi lại; không giá trị ⇒ câu hỏi), **D-OP-11 = b** (có bí danh mơ hồ thì chỉ
+liệt kê ứng viên của bí danh). Mỗi cụm một commit, mỗi commit có test đỏ trước và dòng đột biến riêng ở `scripts/dot-bien/n45-y-dinh-s4.sh`; câu thử là
+câu viết mới theo cặp tối thiểu, không chép từ H3 / H4. H4 là bộ HỒI QUY ở vòng này (đã chạy một lần): số H4 dưới đây không phải bằng chứng cho bản sửa.
+
+| Cụm | Luật (bất biến, không danh sách theo câu) | Chỗ trong mã |
+|---|---|---|
+| D-OP-11 = b | Tập ứng viên hỏi lại = ứng viên của bí danh mơ hồ; thực thể đã giải chỉ góp vào việc đếm chủ thể; hai thực thể đều đã giải giữ cách cũ | `clashing` |
+| N1 | Hoà ý định / thiếu thuật ngữ mà câu còn bí danh mơ hồ thì mang ứng viên của bí danh; mẫu `clarify_intent` kể ứng viên | `Classify`, `templates.yaml` |
+| C5 | Mệnh đề hỏi (cụm xác nhận hoặc cụm hỏi lượng) có chỉ số riêng thì mệnh đề ĐỨNG TRƯỚC nêu một con số là ngữ cảnh: chữ chỉ nguồn của con số ("phiếu kho ghi 3.850") không quyết định ý định | `premiseRanges` |
+| C4 | Hai chỉ số khác nhau + dấu hiệu so sánh ("chênh", cụm so sánh) ⇒ so ĐÚNG cặp người hỏi nêu, thứ tự nhắc; "chênh lệch" chỉ trả cặp mặc định khi mọi chỉ số nêu nằm trong cặp ấy, còn lại hỏi lại | `comparison`, `Options.DerivedOperands` |
+| C3 | Tín hiệu phạm vi = thực thể + (thuật ngữ, hoặc — khi thuật ngữ mặc định áp được — lượng cùng chiều đo + chữ của từ khoá chỉ số); chữ của cụm xác nhận và mã chứng từ trung tính với a2; lời chào là chữ "chào" | `scopeSignal`, `generic`, `intents.yaml` |
+| F6' | Số không tự viết đơn vị mà ngoài miền một lần đo của chỉ số không phải giá trị của nó (tiền nói tắt) — phần ĐÚNG lấy lại của nhánh nợ cũ | `Options.ValueInRange` |
+| A2 | Cơ chế chung "nghĩa chưa hỗ trợ ⇒ hỏi lại": pack khai `unsupported_meanings` (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá); cụm chiếm chỗ trong luật khớp dài nhất; nghĩa `needs_value` chỉ tính khi câu nêu một con số và không phải câu hỏi | `unsupportedIn`, router, `ask.go`, pack |
+
+**Khác chữ ADR (có lý do, đã đo):**
+- Dấu "?" một mình KHÔNG đánh dấu mệnh đề hỏi ở (b): bản thử đầu làm WIN-I-086 ("…được cấp 4k dầu, anh cứ xác nhận là đúng giúp em để em báo cáo gấp nhé?",
+  bộ 117 đỏ 116 / 117) hoà ý định vì mệnh đề cuối chỉ nhờ xác nhận. Chỉ cụm xác nhận và cụm hỏi lượng của pack đánh dấu.
+- (b) chỉ che mệnh đề trước khi mệnh đề hỏi tự nêu chỉ số (từ khoá riêng, hoặc con số riêng cùng một chữ của từ khoá): mệnh đề hỏi chỉ là cái đuôi
+  ("…, tại bể 7 đúng không?") thì mệnh đề trước chính là câu hỏi — bản đầu làm 5 test cổng phán quyết đỏ.
+- Nhánh nợ cũ `lead/no-s4-sau-h4`: lấy lại F6' (`ValueInRange` + test). KHÔNG lấy phần `ignore_phrases` ("ghi nhận", "nhận xét", "cấp bách") — thay bằng A2;
+  "cấp bách" không được thay (S4R-03 phần chữ ghép không mang nghĩa chưa hỗ trợ còn nợ).
+
+**Đo** (bộ nhớ và PG, đường nào cũng giống hệt từng ca; so với `a9ce6ed` = origin/main; 0 ca xanh → đỏ):
+- bộ 117: 117 / 117 (0 dòng khác); H1: 92 → 94 / 104; H3: 113 → 121 / 134; H4: 104 → 110 / 119.
+- 10 ca S4 của H4: 716, 740, 758, 810, 854, 862 từ đỏ thành xanh; 806, 841 từ hỏi lại / từ chối thành trả số kho xuất kèm câu giả định (còn đỏ chỉ vì a2 không
+  phán quyết "Không."); 847, 848 từ trả theo hoá đơn không nhãn / từ chối thành hỏi lại nghĩa số liệu. Không ca nào còn sai nghĩa không nhãn ở S4.
+- Bộ phát triển (296 câu sinh theo bất biến: nghĩa chưa hỗ trợ 96, lệnh ghi / đánh giá 48, ngữ cảnh + hỏi 32, cặp so sánh 72, động từ chỉ số khác 48; do
+  điều phối soạn, KHÔNG độc lập): câu trả lời sai nghĩa không nhãn 102 → 0 (64 + 18 + 0 + 20 + 0 trước; 0 ở mọi nhóm sau).
+- Test: PG 651 pass / 0 fail / 0 skip (mốc 639); không PG 609 pass / 28 skip (mốc 597); so theo tên 0 mất, 0 đổi kết quả, 12 test mới. Test ghim đổi có chủ ý theo
+  D-OP-11 = b: 4 hàng cùng một hợp đồng (2 ở `intelligence/intent`, 2 ở `tenants/construction`).
+- Đột biến (chạy trên bản sao riêng, mỗi dòng "BỊ BẮT"): n43 187 / 187, n44 16 / 16, n45 90 / 90. Mười dòng n45 cũ gãy neo vì mã đổi (S1, S2, S12, S18, S26, S27, S29, S30,
+  S76, S98) được viết lại neo, không xoá; S19 thành đột biến tương đương trên pack cầu đường (che theo từng chữ của cụm xác nhận) nên giữ dạng chú thích kèm lý do như S7.
+
+**Giới hạn đã biết / ghi nợ (không làm ở vòng này):**
+- Câu trong phạm vi không có chữ "dầu" và không một chữ nào của từ khoá chỉ số ("EX-03 xài 3782 L đúng không?") vẫn bị từ chối; "EX-03 nhận 20 tấn đúng không?"
+  (từ khoá khớp, thuật ngữ mặc định bỏ qua lượng khác chiều đo) trả số kho xuất — có từ trước.
+- a2 không phán quyết nên 806, 841 không thể xanh nếu H4 đòi "Không."; mở rộng phán quyết là việc của cổng (`claim.go` đã KHOÁ).
+- 847, 848: chữ lạ ("cũng", "Con số đó") khiến a2 hỏi lại — phía an toàn; không thêm từ vào danh sách trung tính theo từng câu.
+- Kiểm nạp pack của `unsupported_meanings` (thiếu mẫu câu, thiếu cụm) chưa có test riêng. Cụm báo nghĩa là danh sách theo nghĩa do pack khai: nghĩa / cụm mới
+  (ví dụ "báo cáo giá") cần thêm vào pack; "đồng" không là cụm tiền vì trùng "đồng hồ".
+- C4: sửa chỉ số "chênh" cho câu hai chỉ số; ba chỉ số trở lên và so sánh hai MÁY (D13 chỉ so hai chỉ số của một thực thể) vẫn hỏi lại / chưa có capability.
+- Bộ giữ lại MỚI để chấm vòng này (D-AI-02 = a, "H6") chưa được soạn / chạy: vòng này chưa có phép chấm độc lập.

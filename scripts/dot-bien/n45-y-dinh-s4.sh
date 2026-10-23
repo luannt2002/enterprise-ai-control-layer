@@ -253,3 +253,15 @@ m $I '			if !slices.ContainsFunc(out, func(o contracts.EntityRef) bool { return 
 m core/pipeline/ask.go '	cls.Ambiguous = slices.DeleteFunc(slices.Clone(cls.Ambiguous), unseen)' '	_ = unseen' 'S144 hỏi lại vì hoà ý định kể cả ý định người hỏi không có quyền (lộ nhãn)'
 m core/pipeline/ask.go '	cls.NeedTerm = slices.DeleteFunc(slices.Clone(cls.NeedTerm), unseen)' '	_ = unseen' 'S145 hỏi lại vì thiếu thuật ngữ kể cả ý định người hỏi không có quyền (lộ nhãn)'
 m core/pipeline/ask.go '	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, unseen)' '	_ = unseen' 'S146 hỏi lại nghĩa số liệu kể cả ý định người hỏi không có quyền (lộ nhãn)'
+
+# ---- S4BS-01 (vòng 3): đoạn mục đích không góp từ khoá chỉ số / không kích hoạt cụm báo nghĩa; nhờ xác nhận không phải "nhận"
+m $I '		if at >= 0 && !s.asking(ct[at:]) {' '		if at >= 0 {' 'S147 đoạn mục đích mang cụm hỏi ("để biết đội báo bao nhiêu dầu") vẫn bị che — chữ của câu hỏi bị mất'
+m $I '	if len(s.opt.PurposeMarkers) == 0 {
+		return nil
+	}' '	if true {
+		return nil
+	}' 'S148 không nhận đoạn mục đích: "để em báo cáo" lại ngang hàng "được cấp"'
+m $I '		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {' '		if false {' 'S149 đoạn mục đích che cả từ khoá quy trình ("dùng để làm gì theo quy trình" mất route RAG)'
+m tenants/construction/pack/intents.yaml 'ignore_phrases: [người dùng, người sử dụng, xác nhận]' 'ignore_phrases: [người dùng, người sử dụng]' 'S150 "xác nhận" lại là chữ "nhận" của kho xuất (nhờ xác nhận làm hoà với đội báo)'
+m tenants/construction/pack/intents.yaml 'purpose_markers: [để, nhằm]' 'purpose_markers: [để]' 'S151 từ nối "nhằm" không mở đoạn mục đích'
+m $I '				ct := rawBG[c[0]:c[1]]' '				ct := in.Raw[c[0]:c[1]]' 'S152 cụm báo nghĩa trong đoạn mục đích ("để tính chi phí") vẫn kích hoạt'

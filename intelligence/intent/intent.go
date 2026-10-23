@@ -64,6 +64,9 @@ type Unsupported struct {
 type Options struct {
 	// Unsupported: các nghĩa hệ chưa hỗ trợ (xem Unsupported).
 	Unsupported []Unsupported
+	// PurposeMarkers: từ nối mở một đoạn MỤC ĐÍCH ("để", "nhằm"). Đoạn từ từ nối tới hết mệnh đề nói VÌ SAO người hỏi cần câu trả lời, không nói câu trả lời là chỉ số nào nên chữ trong
+	// đó không góp từ khoá chỉ số và không kích hoạt cụm báo nghĩa — trừ khi chính đoạn đó mang cụm hỏi (nó LÀ câu hỏi: "…, để biết đội báo bao nhiêu dầu?"). S4BS-01 (WIN-I-086).
+	PurposeMarkers []string
 	// DismissMarkers: cụm cho biết mệnh đề BỊ BỎ QUA ("không quan tâm", "để sau", "khỏi cần"): cụm báo nghĩa chưa hỗ trợ nằm trong mệnh đề đó không làm câu thành câu hỏi lại.
 	DismissMarkers []string
 	// IgnorePhrases: cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" ≠ "dùng", "đúng không"
@@ -348,13 +351,19 @@ func aliasCandidates(res contracts.Resolution, w *Why) []contracts.EntityRef {
 func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time, w *Why) Result {
 	// ADR-0010 bất biến (b): từ khoá lấy ở mệnh đề HỎI; mệnh đề ngữ cảnh (nêu một con số, đứng trước câu hỏi) bị che khỏi phép đếm
 	prem := s.premiseRanges(in, res)
-	text := maskRanges(in.Raw, prem)
+	bg := s.backgroundRanges(in.Raw)
+	rawBG := maskRanges(in.Raw, bg) // câu đã che đoạn mục đích; mệnh đề ngữ cảnh còn nguyên (unsupportedIn xét cả chúng)
+	text := maskRanges(rawBG, prem)
+	textKeepBG := maskRanges(in.Raw, prem) // chưa che đoạn mục đích: ý định không phải số liệu (quy trình) vẫn đếm trên đó
+	for _, r := range bg {
+		w.reason("đoạn mục đích %s nói vì sao người hỏi cần câu trả lời — chữ của nó không góp từ khoá chỉ số và không kích hoạt cụm báo nghĩa (S4BS-01)", contracts.Quote(in.Raw[r[0]:r[1]]))
+	}
 	for _, r := range prem {
 		w.reason("mệnh đề ngữ cảnh %s nêu một con số và đứng trước mệnh đề hỏi — chữ của nó chỉ nguồn của con số, không quyết định ý định (bất biến (b))", contracts.Quote(in.Raw[r[0]:r[1]]))
 	}
 	ignore := s.ignored()
-	counts, _, phrases := keywordHits(s.defs, text, ignore)
-	if un := s.unsupportedIn(in, res, prem, counts, w); len(un) > 0 {
+	counts, _, phrases := s.hitsBG(text, textKeepBG, ignore)
+	if un := s.unsupportedIn(in, rawBG, res, prem, counts, w); len(un) > 0 {
 		names := make([]string, len(un))
 		for i, u := range un {
 			names[i] = u.Name
@@ -780,6 +789,27 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 	return Result{Intent: it, Candidates: candidates, Unclear: unclear}
 }
 
+// backgroundRanges trả các khoảng byte của đoạn MỤC ĐÍCH (S4BS-01): từ từ nối mục đích của pack ("để", "nhằm") tới hết mệnh đề chứa nó. Đoạn nói vì sao người hỏi cần câu trả lời nên không góp từ
+// khoá chỉ số ("… để em báo cáo gấp" không biến câu về kho xuất thành câu về đội báo). Đoạn mang cụm hỏi (cụm xác nhận / hỏi lượng) thì chính nó là câu hỏi: không phải nền.
+func (s *Set) backgroundRanges(raw string) (out [][2]int) {
+	if len(s.opt.PurposeMarkers) == 0 {
+		return nil
+	}
+	for _, c := range clauseSpans(raw) {
+		ct := raw[c[0]:c[1]]
+		at := -1
+		for _, m := range s.opt.PurposeMarkers {
+			if sp := normalization.PhraseSpans(ct, m); len(sp) > 0 && (at < 0 || sp[0][0] < at) {
+				at = sp[0][0]
+			}
+		}
+		if at >= 0 && !s.asking(ct[at:]) {
+			out = append(out, [2]int{c[0] + at, c[1]})
+		}
+	}
+	return out
+}
+
 // clauseSpans trả khoảng byte [đầu, cuối) của từng mệnh đề (ranh giới như clausesOf, không gồm dấu ngắt).
 func clauseSpans(text string) (spans [][2]int) {
 	start := 0
@@ -823,7 +853,7 @@ func (s *Set) premiseRanges(in contracts.NormalizedInput, res contracts.Resoluti
 	}
 	// Chỉ che khi mệnh đề hỏi CÓ chỉ số riêng. Mệnh đề hỏi chỉ là cái đuôi ("…, tại bể 7 đúng không?", "…, hay 4000 L đúng không?") thì con số và
 	// chữ chỉ số nằm ở mệnh đề đứng trước chính là câu hỏi, không phải ngữ cảnh.
-	if len(out) == 0 || !s.ownMetric(raw[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {
+	if len(out) == 0 || !s.ownMetric(maskRanges(raw, s.backgroundRanges(raw))[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {
 		return nil
 	}
 	return out
@@ -1036,7 +1066,7 @@ func (s *Set) cuePhrases() []string {
 // đó nêu một con số và không phải câu hỏi (cụm xác nhận / cụm hỏi lượng); ở mệnh đề ngữ cảnh, cụm phải đứng ĐẦU mệnh đề ("Ghi nhận …, vậy …"): "phiếu kho ghi nhận 3850 L, vậy …"
 // là nguồn + động từ của con số, không phải lệnh. Tín hiệu cấu trúc (Signals) chỉ xét ở phần quyết định (từ mệnh đề hỏi trở đi). Câu có từ khoá tri thức ("quy trình cảnh báo …")
 // là câu hỏi quy trình, tài liệu trả lời được: không tính.
-func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resolution, prem [][2]int, counts []int, w *Why) []Unsupported {
+func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res contracts.Resolution, prem [][2]int, counts []int, w *Why) []Unsupported {
 	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) == 0 {
 		return nil
 	}
@@ -1058,7 +1088,7 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 	for _, u := range s.opt.Unsupported {
 		why := ""
 		for ci, c := range clauses {
-			ct := in.Raw[c[0]:c[1]]
+			ct := rawBG[c[0]:c[1]]
 			at := -1 // vị trí của cụm báo nghĩa đầu tiên trong mệnh đề
 			for _, cue := range u.Cues {
 				if sp := normalization.PhraseSpans(ct, cue); len(sp) > 0 && (at < 0 || sp[0][0] < at) {
@@ -1068,7 +1098,7 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 			if at < 0 {
 				continue
 			}
-			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(ct, m) }) {
+			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) { // câu gốc: "để sau" vừa là cụm bỏ qua vừa mở một đoạn "mục đích"
 				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau", u.Name, contracts.Quote(ct))
 				continue
 			}
@@ -1076,7 +1106,7 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				next := ""
 				if ci+1 < len(clauses) {
-					next = in.Raw[clauses[ci+1][0]:clauses[ci+1][1]]
+					next = rawBG[clauses[ci+1][0]:clauses[ci+1][1]]
 				}
 				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)
 				if !hasFigure(in, res, c[0], c[1]) || asked {
@@ -1313,6 +1343,22 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 		return gen[0], false, "câu không nêu nghĩa số liệu nào (không có mảnh từ khoá của ý định riêng)"
 	}
 	return gen[0], true, "mọi chữ còn lại được giải thích (tên, mốc, lượng, thuật ngữ, cụm xác nhận, mảnh từ khoá của ý định riêng)"
+}
+
+// hitsBG đếm từ khoá như keywordHits, nhưng đoạn mục đích chỉ được che với ý định SỐ LIỆU (route SQL_QUERY / CALCULATION): đoạn đó không nói chỉ số nào ("… để em báo cáo gấp" không biến câu về
+// kho xuất thành câu về đội báo), còn ý định khác (quy trình, chào hỏi) đếm trên câu chưa che — "để làm gì theo quy trình" chính là câu hỏi quy trình (masked: câu đã che đoạn mục đích; keep: chưa che).
+func (s *Set) hitsBG(masked, keep string, ignore []string) (counts, first []int, phrases [][]string) {
+	counts, first, phrases = keywordHits(s.defs, masked, ignore)
+	if masked == keep {
+		return counts, first, phrases
+	}
+	kc, kf, kp := keywordHits(s.defs, keep, ignore)
+	for i, d := range s.defs {
+		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {
+			counts[i], first[i], phrases[i] = kc[i], kf[i], kp[i]
+		}
+	}
+	return counts, first, phrases
 }
 
 // keywordHits báo ý định nào có từ khoá khớp, theo luật KHỚP DÀI NHẤT trên từ khoá của MỌI ý

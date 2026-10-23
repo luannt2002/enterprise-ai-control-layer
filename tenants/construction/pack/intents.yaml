@@ -15,7 +15,8 @@ confirm_markers: [đúng không, phải không, có đúng, đúng chưa, đúng
 claim_neutral_words: [cho hỏi, cho tôi hỏi, cho em hỏi, cho mình hỏi, xin hỏi, ơi, ạ, à, nhé, nhỉ, nha, vậy, thế, đã, có, là, được, dc, đc, của, cho, ghi, đo]
 
 # Cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" không phải "dùng" = tiêu thụ).
-ignore_phrases: [người dùng, người sử dụng]
+# "xác nhận" (nhờ xác nhận) không phải "nhận" của ý định kho xuất: chữ con của từ ghép (S4R-03, S4BS-01).
+ignore_phrases: [người dùng, người sử dụng, xác nhận]
 
 # Trợ lý nhiên liệu: câu nhắc máy/dự án mà không nói vật tư, và không có đại lượng nào khác
 # ("giá", "nhân công"…), thì hiểu là DẦU. Chính sách của tenant, viết ra rõ ràng (ADR-0001 D7).
@@ -40,6 +41,10 @@ comparison_markers: [hơn, kém, so với]
 # Cụm cho biết một MỆNH ĐỀ bị bỏ qua ("chi phí không quan tâm, …", "tiền dầu thì để sau, …"): cụm báo nghĩa chưa hỗ trợ nằm trong mệnh đề ấy không làm câu thành hỏi lại (cụm vẫn
 # chiếm chỗ trong luật khớp dài nhất). Dấu hiệu phải ở CÙNG mệnh đề với cụm.
 dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua]
+
+# Từ nối mở đoạn MỤC ĐÍCH (S4BS-01): đoạn từ từ nối tới hết mệnh đề nói vì sao người hỏi cần câu trả lời ("… để em báo cáo gấp", "… nhằm lập báo cáo tuần"), không nói chỉ số nào: chữ trong đó không góp từ khoá
+# chỉ số, không kích hoạt cụm báo nghĩa chưa hỗ trợ. Đoạn mang cụm hỏi ("để biết đội báo bao nhiêu dầu?") là chính câu hỏi nên vẫn tính. Đây là từ nối ngữ pháp (lớp đóng), không phải danh sách nghĩa.
+purpose_markers: [để, nhằm]
 
 unsupported_meanings:
   - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency"]}

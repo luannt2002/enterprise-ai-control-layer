@@ -81,8 +81,7 @@ WIN-I-081
 WIN-I-082
 WIN-I-083
 WIN-I-085
-# WIN-I-086 BỎ khỏi ratchet 23/10 (vòng 2 S4, C4): từng đạt vì "xác nhận" khớp chữ con "nhận" của ý định kho xuất (S4R-03, khớp chữ con) nên kho xuất 2 cụm thắng đội báo 1 cụm;
-# bỏ luật số cụm thì "được cấp" và "báo cáo" hoà ⇒ hỏi lại. Tệp ca KHÔNG sửa.
+WIN-I-086
 WIN-I-087
 WIN-I-088
 WIN-I-089

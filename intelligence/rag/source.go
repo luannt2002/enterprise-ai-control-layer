@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -41,6 +42,50 @@ type SourceSpec struct {
 	EffectiveFrom string   `yaml:"effective_from"`
 	EffectiveTo   string   `yaml:"effective_to"`
 	Scope         []string `yaml:"scope"`
+	// TieuDe: dòng nào của thân là TIÊU ĐỀ mục cấp mấy (vd văn bản pháp quy: "^Chương" cấp 1, "^Mục" cấp 2, "^Điều" cấp 3). Lúc nạp,
+	// dòng khớp được viết thành tiêu đề markdown; chỉ mục dùng chúng làm đường dẫn mục của mỗi đoạn. Không áp cho bảng tính.
+	TieuDe []HeadingRule `yaml:"tieu_de"`
+}
+
+// HeadingRule: dòng (đã bỏ khoảng trắng hai đầu) khớp Mau là tiêu đề cấp Cap (1..5).
+type HeadingRule struct {
+	Mau string `yaml:"mau"`
+	Cap int    `yaml:"cap"`
+}
+
+// headingRules biên dịch luật tiêu đề của cấu hình; mẫu hỏng, cấp ngoài 1..5 là lỗi.
+func headingRules(rules []HeadingRule) ([]*regexp.Regexp, error) {
+	out := make([]*regexp.Regexp, len(rules))
+	for i, r := range rules {
+		re, err := regexp.Compile(r.Mau)
+		if err != nil || r.Mau == "" {
+			return nil, fmt.Errorf("tieu_de #%d: mẫu %q không dùng được (%v)", i+1, r.Mau, err)
+		}
+		if r.Cap < 1 || r.Cap > 5 {
+			return nil, fmt.Errorf("tieu_de #%d: cấp %d phải trong 1..5", i+1, r.Cap)
+		}
+		out[i] = re
+	}
+	return out, nil
+}
+
+// markHeadings viết các dòng khớp luật thành tiêu đề markdown cấp tương ứng (cấp 1 → "##": "#" của dòng đầu là tiêu đề tài liệu).
+// Số dòng không đổi, nên vị trí đoạn (mã "…#vị-trí") không đổi.
+func markHeadings(body string, rules []HeadingRule, res []*regexp.Regexp) string {
+	if len(rules) == 0 {
+		return body
+	}
+	lines := strings.Split(body, "\n")
+	for i, l := range lines {
+		t := strings.TrimSpace(l)
+		for k, re := range res {
+			if t != "" && !strings.HasPrefix(t, "#") && !strings.HasPrefix(t, "|") && re.MatchString(t) { // không chạm tiêu đề / hàng bảng
+				lines[i] = strings.Repeat("#", rules[k].Cap+1) + " " + t
+				break
+			}
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // SourceFactory dựng chiến lược của một kind từ cấu hình; baseDir là thư mục của tệp cấu hình.
@@ -161,8 +206,18 @@ func markdownSource(spec SourceSpec, baseDir string) (Source, error) {
 		return nil, fmt.Errorf("kind markdown lấy quyền / phiên bản từ acl.json và phần đầu tệp — bỏ các trường khác path")
 	}
 	dir := resolve(baseDir, spec.Path)
+	res, err := headingRules(spec.TieuDe)
+	if err != nil {
+		return nil, err
+	}
 	// loadMarkdown (không cổng): Collect chạy cổng chất lượng MỘT lần trên cả kho.
-	return SourceFunc(func(_ context.Context, tenant string) ([]Document, error) { return loadMarkdown(dir, tenant) }), nil
+	return SourceFunc(func(_ context.Context, tenant string) ([]Document, error) {
+		docs, err := loadMarkdown(dir, tenant)
+		for i := range docs {
+			docs[i].Body = markHeadings(docs[i].Body, spec.TieuDe, res)
+		}
+		return docs, err
+	}), nil
 }
 
 // filesSource: tệp import ngoài theo mẫu glob, mỗi tệp một tài liệu (mã = tên tệp). CHỈ tệp .md được khai phần đầu (mã / bản / trạng
@@ -180,6 +235,10 @@ func filesSource(pdfText func(string) (string, error)) SourceFactory {
 	return func(spec SourceSpec, baseDir string) (Source, error) {
 		if spec.Path == "" || len(spec.ACL) == 0 {
 			return nil, fmt.Errorf("kind files cần path (mẫu glob) và acl (vai được đọc)")
+		}
+		res, err := headingRules(spec.TieuDe)
+		if err != nil {
+			return nil, err
 		}
 		pattern := spec.Path
 		if !filepath.IsAbs(pattern) { // thư mục cấu hình là chữ, không phải mẫu: "[", "*" trong tên thư mục không được khớp thư mục khác
@@ -210,6 +269,9 @@ func filesSource(pdfText func(string) (string, error)) SourceFactory {
 				}
 				if !fm {
 					d.Version, d.Status, d.EffectiveFrom, d.EffectiveTo, d.Scope = spec.Version, spec.Status, spec.EffectiveFrom, spec.EffectiveTo, spec.Scope
+				}
+				if !strings.EqualFold(filepath.Ext(p), ".csv") {
+					d.Body = markHeadings(d.Body, spec.TieuDe, res)
 				}
 				d.ACL = spec.ACL
 				out = append(out, d)

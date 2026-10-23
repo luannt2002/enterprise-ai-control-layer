@@ -11,12 +11,14 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
@@ -150,13 +152,41 @@ func queryTerms(s string) map[string]bool {
 	return out
 }
 
-// item là một dòng có chữ của thân tài liệu: dòng thường, hoặc một hàng bảng kèm header của bảng đó (text rỗng =
-// bảng chỉ có header). seq = vị trí dòng trong thân.
+// item là một đoạn của thân tài liệu: dòng thường, NHÓM "câu dẫn + các mục con" (câu kết thúc bằng ":" và các dòng a), b)… ngay
+// sau), hoặc một hàng bảng kèm header của bảng đó (text rỗng = bảng chỉ có header). seq = vị trí dòng (đầu) trong thân; path = đường
+// dẫn mục từ các dòng tiêu đề markdown ("Chương II › Mục 3 › Điều 18. …"), rỗng khi thân không có tiêu đề.
 type item struct {
-	seq, hseq    int // hseq: vị trí dòng header của bảng chứa hàng (chỉ có nghĩa khi table)
-	text, header string
-	table        bool
+	seq, hseq          int // hseq: vị trí dòng header của bảng chứa hàng (chỉ có nghĩa khi table)
+	text, header, path string
+	table              bool
 }
+
+// headingRe: dòng tiêu đề markdown trong THÂN tài liệu (dòng đầu của tệp là tiêu đề tài liệu, đã tách ở parseDocText).
+var headingRe = regexp.MustCompile(`^(#{1,6})\s+(\S.*)$`)
+
+// Loại dấu đầu dòng của mục con, theo thứ tự lồng: số "1." < chữ "a)" < la mã "(i)" < gạch "-" < cộng "+". Văn bản tiếng Việt
+// đánh điểm a), b), … đ), e), … i), k) — nên "i)" là chữ; la mã chỉ nhận dạng có ngoặc hai bên ("(xii)").
+var markerRes = []*regexp.Regexp{
+	regexp.MustCompile(`^\d{1,3}[.)]\s`),
+	regexp.MustCompile(`^[a-zđ]\)\s`),
+	regexp.MustCompile(`^\([ivx]+\)\s`),
+	regexp.MustCompile(`^[-*•–]\s`),
+	regexp.MustCompile(`^\+\s`),
+}
+
+// markerRank: 1..5 theo markerRes, 0 = dòng không có dấu đầu dòng.
+func markerRank(line string) int {
+	for i, re := range markerRes {
+		if re.MatchString(line) {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// maxGroup là trần độ dài (ký tự) của một nhóm câu dẫn + mục con; dài hơn thì tách thành nhiều đoạn, đoạn nào cũng mở bằng câu dẫn.
+// shortcut: đếm ký tự, không đếm token; đo bằng tokenizer thật khi có ngân sách ngữ cảnh (ROADMAP-RAG §6.5).
+const maxGroup = 1200
 
 // parseBody là luật DUY NHẤT nhận bảng (chỉ mục và cổng chất lượng cùng dùng): chỉ là bảng khi dòng "|" có dòng
 // phân cách ngay sau; dòng phân cách không bao giờ là một dòng có chữ; hàng có dòng phân cách ngay sau là header của
@@ -174,13 +204,43 @@ func parseBody(body string) []item {
 		return isTableSeparator(l) && len(cells(l)) == len(cells(h))
 	}
 	var out []item
+	var stack []string // tiêu đề đang mở theo cấp
+	path := ""
+	join := func(s []string) string {
+		return strings.Join(slices.DeleteFunc(slices.Clone(s), func(x string) bool { return x == "" }), " › ")
+	}
+	// Tiêu đề gần nhất chưa có đoạn nào bên dưới: tới tiêu đề cùng cấp / cao hơn hoặc hết thân mà vẫn trống thì chính nó thành đoạn
+	// (đường dẫn = các tiêu đề cha) — "Điều 10. (Đã bãi bỏ)" không được biến mất khỏi chỉ mục. Có tiêu đề con thì nó nằm trong
+	// đường dẫn của con, không cần đoạn riêng.
+	pend, pendOut, pendLevel, pendText, pendPath := -1, 0, 0, "", ""
+	// Bên dưới chỉ có hàng bảng cũng tính là trống: hàng bảng không chấm đường dẫn, nên tiêu đề phải là đoạn riêng để tìm được.
+	flush := func(level int) {
+		if pend >= 0 && level <= pendLevel && !slices.ContainsFunc(out[pendOut:], func(it item) bool { return !it.table }) {
+			out = slices.Insert(out, pendOut, item{seq: pend, text: pendText, path: pendPath})
+		}
+	}
 	for n := 0; n < len(lines); n++ {
 		line := strings.TrimSpace(lines[n])
+		if m := headingRe.FindStringSubmatch(line); m != nil { // tiêu đề: cập nhật đường dẫn mục, không là đoạn riêng
+			level := len(m[1])
+			flush(level)
+			for len(stack) < level-1 {
+				stack = append(stack, "")
+			}
+			stack = append(stack[:level-1], strings.TrimSpace(m[2]))
+			path = join(stack)
+			pend, pendOut, pendLevel, pendText, pendPath = n, len(out), level, stack[level-1], join(stack[:level-1])
+			continue
+		}
 		switch {
 		case line == "" || (isTableSeparator(line) && !delimAfter(n+1, line)): // dòng phân cách lẻ không là đoạn
 			continue
 		case !strings.HasPrefix(line, "|") || !delimAfter(n+1, line):
-			out = append(out, item{seq: n, text: line})
+			if g, last := groupList(lines, n, line, path); g != nil {
+				out, n = append(out, g...), last
+				continue
+			}
+			out = append(out, item{seq: n, text: line, path: path})
 			continue
 		}
 		header, hseq, rows := line, n, 0
@@ -193,20 +253,77 @@ func parseBody(body string) []item {
 			// luật GFM; GFM không có bảng viết liền).
 			if delimAfter(n+1, row) && longDelim(lines[n+1]) {
 				if rows == 0 {
-					out = append(out, item{seq: hseq, hseq: hseq, header: header, table: true})
+					out = append(out, item{seq: hseq, hseq: hseq, header: header, path: path, table: true})
 				}
 				header, hseq, rows = row, n, 0
 				n++
 				continue
 			}
-			out = append(out, item{seq: n, hseq: hseq, text: row, header: header, table: true})
+			out = append(out, item{seq: n, hseq: hseq, text: row, header: header, path: path, table: true})
 			rows++
 		}
 		if rows == 0 {
-			out = append(out, item{seq: hseq, hseq: hseq, header: header, table: true})
+			out = append(out, item{seq: hseq, hseq: hseq, header: header, path: path, table: true})
 		}
 	}
+	flush(0)
 	return out
+}
+
+// groupList gom câu dẫn (dòng kết thúc bằng ":") với các mục con ngay sau nó — mục cấp đầu (loại dấu đầu dòng sâu hơn của câu dẫn)
+// kèm mọi mục lồng sâu hơn bên dưới — thành đoạn: "…các tiêu chí sau:" tách khỏi điểm a)–đ) thì không đoạn nào trả lời được câu hỏi
+// liệt kê. Quá trần thì chỉ tách giữa hai mục cấp đầu (nhóm con không bị cắt đôi). Trả nil khi dòng n không phải câu dẫn có mục con;
+// last = dòng cuối đã gom.
+// shortcut: một mục cấp đầu cùng nhóm con dài hơn trần vẫn để nguyên một đoạn; cắt theo token khi có ngân sách ngữ cảnh (§6.3 điểm 2).
+func groupList(lines []string, n int, lead, path string) ([]item, int) {
+	if !strings.HasSuffix(lead, ":") && !strings.HasSuffix(lead, "：") {
+		return nil, n
+	}
+	leadRank, rank := markerRank(lead), 0
+	var kids []int
+	for j := n + 1; j < len(lines); j++ {
+		l := strings.TrimSpace(lines[j])
+		if l == "" {
+			continue
+		}
+		r := markerRank(l)
+		if rank == 0 {
+			if r <= leadRank {
+				break
+			}
+			rank = r
+		}
+		if r < rank { // dòng thường (0) hoặc nông hơn mục cấp đầu: hết danh sách
+			break
+		}
+		kids = append(kids, j)
+	}
+	if len(kids) == 0 {
+		return nil, n
+	}
+	type block struct {
+		seq  int
+		text string
+	}
+	var blocks []block // mỗi mục cấp đầu kèm các mục lồng của nó
+	for _, j := range kids {
+		l := strings.TrimSpace(lines[j])
+		if markerRank(l) == rank {
+			blocks = append(blocks, block{j, l})
+		} else {
+			blocks[len(blocks)-1].text += "\n" + l
+		}
+	}
+	var out []item
+	seq, text := n, lead
+	for _, b := range blocks {
+		if text != lead && utf8.RuneCountInString(text)+1+utf8.RuneCountInString(b.text) > maxGroup {
+			out = append(out, item{seq: seq, text: text, path: path})
+			seq, text = b.seq, lead
+		}
+		text += "\n" + b.text
+	}
+	return append(out, item{seq: seq, text: text, path: path}), kids[len(kids)-1]
 }
 
 // longDelim: mọi ô của dòng phân cách có ít nhất 3 gạch ("---", ":---:").
@@ -371,15 +488,21 @@ func NewMemoryIndex(tenant string, docs []Document) *MemoryIndex {
 			ix.chunks = append(ix.chunks, chunk{doc: d, seq: seq, text: text, terms: indexTerms(d.Title + " " + scored), key: EmbedKey(d.Title + ": " + text)})
 		}
 		for _, it := range parseBody(d.Body) {
+			// Đường dẫn mục đứng đầu đoạn và được chấm điểm cùng chữ của đoạn: hỏi "Điều 18 quy định gì" thì khoản của Điều 18 không
+			// có chữ "Điều 18" nhưng đường dẫn có (U3b). Riêng hàng bảng không chấm đường dẫn — như header, nó chung cho mọi hàng.
+			pre := ""
+			if it.path != "" {
+				pre = it.path + "\n"
+			}
 			switch {
 			case !it.table:
-				add(it.seq, it.text, it.text)
+				add(it.seq, pre+it.text, it.path+" "+it.text)
 			case it.text == "": // bảng chỉ có header
-				add(it.seq, it.header, it.header)
+				add(it.seq, pre+it.header, it.path+" "+it.header)
 			default:
 				// Hàng bảng: đoạn mang header (hàng đứng một mình là số không đơn vị — CON-T-005) nhưng chỉ chữ của hàng
 				// được chấm điểm: header chung cho mọi hàng, cộng điểm thì câu chạm từ của header kéo mọi hàng vượt ngưỡng.
-				add(it.seq, it.header+"\n"+it.text, it.text)
+				add(it.seq, pre+it.header+"\n"+it.text, it.text)
 			}
 		}
 	}

@@ -30,6 +30,9 @@ func KnowledgeSQL(spec rag.SourceSpec, _ string) (rag.Source, error) {
 	if spec.DSNEnv == "" || strings.TrimSpace(spec.Query) == "" {
 		return nil, fmt.Errorf("kind postgres cần dsn_env (tên biến môi trường) và query")
 	}
+	if len(spec.TieuDe) > 0 {
+		return nil, fmt.Errorf("kind postgres chưa hỗ trợ tieu_de")
+	}
 	return rag.SourceFunc(func(ctx context.Context, tenant string) ([]rag.Document, error) {
 		dsn := os.Getenv(spec.DSNEnv)
 		if dsn == "" {

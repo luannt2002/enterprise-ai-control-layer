@@ -67,7 +67,8 @@ func TestNguonTriThucPostgres(t *testing.T) {
 		"truy vấn ghi (READ ONLY)": {func(s *rag.SourceSpec) {
 			s.Query = "WITH x AS (DELETE FROM " + tbl + " RETURNING id, title, body) SELECT * FROM x"
 		}, "read-only"},
-		"cột lạ": {func(s *rag.SourceSpec) { s.Query = "SELECT id, title, body, 1 AS mat_khau FROM " + tbl }, "lạ"},
+		"cột lạ":              {func(s *rag.SourceSpec) { s.Query = "SELECT id, title, body, 1 AS mat_khau FROM " + tbl }, "lạ"},
+		"tieu_de chưa hỗ trợ": {func(s *rag.SourceSpec) { s.TieuDe = []rag.HeadingRule{{Mau: `^Điều \d+\.`, Cap: 3}} }, "tieu_de"},
 		"cột lạ, không hàng nào": {func(s *rag.SourceSpec) {
 			s.Query = "SELECT id, title, body, 1 AS mat_khau FROM " + tbl + " WHERE false"
 		}, "lạ"},

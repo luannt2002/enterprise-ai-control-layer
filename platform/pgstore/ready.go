@@ -9,7 +9,8 @@ import (
 )
 
 // readyNeeds là các bảng mà ứng dụng (cmd/eais) đụng tới và quyền vai ứng dụng cần có trên mỗi bảng. Bốn bảng dữ liệu nghiệp vụ
-// cần thêm DELETE vì Load xoá rồi ghi lại; ba bảng vết chỉ SELECT + INSERT (vết là bằng chứng, không sửa, không xoá — 0003).
+// cần thêm DELETE vì Load xoá rồi ghi lại; ba bảng vết chỉ SELECT + INSERT (vết là bằng chứng, không sửa, không xoá — 0003); ba bảng của phiếu (0004:
+// phiếu, sổ lệnh, audit) cũng chỉ SELECT + INSERT (tính chỉ-thêm do quyền bảo đảm, HOP-DONG I8) — thiếu chúng thì lượt lệnh đầu tiên mới hỏng.
 var readyNeeds = []struct {
 	table string
 	privs []string
@@ -21,6 +22,9 @@ var readyNeeds = []struct {
 	{"decision_records", []string{"SELECT", "INSERT"}},
 	{"quarantine_records", []string{"SELECT", "INSERT"}},
 	{"usage_records", []string{"SELECT", "INSERT"}},
+	{"discrepancy_tickets", []string{"SELECT", "INSERT"}},
+	{"commands", []string{"SELECT", "INSERT"}},
+	{"audit_log", []string{"SELECT", "INSERT"}},
 }
 
 // Ping kiểm kết nối còn sống — rẻ, dành cho healthz gọi thường xuyên; Ready kiểm cả schema và quyền (đắt hơn, gọi lúc khởi động).

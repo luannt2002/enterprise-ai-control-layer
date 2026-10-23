@@ -210,7 +210,7 @@ func TestS4BS05CumBaoNghiaChiKichHoatOMenhDeHoi(t *testing.T) {
 	// từ phủ định đứng CUỐI câu là đuôi hỏi, không phải phủ định: câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền
 	askBack(t, "Chi phí dầu EX-03 hôm nay có cao không?", notMoney)
 	// "không" của cụm xác nhận ("đúng không") không phải từ phủ định dù sau nó còn chữ ("ạ")
-	askBack(t, "Chi phí dầu EX-03 hôm nay 4tr đồng đúng không anh?", notMoney)
+	askBack(t, "Chi phí dầu EX-03 hôm nay thấp đúng không anh?", notMoney)
 }
 
 // Lệnh lịch sự có "?" mà động từ nằm trong danh sách cụm của pack: luật cấu trúc (D-OP-18 = c) coi "?" là dấu hiệu hỏi nên chỉ còn cụm báo nghĩa bắt được những câu này — test ghim danh sách cụm của nghĩa ghi

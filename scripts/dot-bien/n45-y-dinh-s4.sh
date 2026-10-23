@@ -207,7 +207,7 @@ m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.Quanti
 # ---- S4AS-02: nghĩa tiền theo cấu trúc và họ nghĩa
 # S115 (vòng 2) được thay bởi S165–S167: "bao nhiêu đồng" nay kiểm chữ liền sau bằng moneyPhraseEnds, không còn onlyMarkers ở cuối mệnh đề.
 # m (đã bỏ) "S115"
-m $I '(kind != "span" || !measured)' '(kind != "span" || true)' 'S116 tín hiệu span:money không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
+m $I '(kind != "span" || !measured)' '(kind != "span" || measured || true)' 'S116 tín hiệu span:money không nhường câu có lượng cùng chiều đo ("3850 L … 25.000 đồng" bị hỏi lại tiền)'
 m $I '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) && string(sp.Kind) == arg })' '		return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool { return inRange(sp) })' 'S117 tín hiệu span không xét kiểu span (mọi span là tiền)'
 m $I '	case "asked_unit":
 		return s.askedUnit(in.Raw[start:end], arg)' '	case "asked_unit":
@@ -233,7 +233,7 @@ m $I '			at := firstSpan(ct, u.Cues)' '			if c[1] <= qStart {
 				continue
 			}
 			at := firstSpan(ct, u.Cues)' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
-m $I '					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '					return false' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
+m $I '					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '					return false && strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
 
 # ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'

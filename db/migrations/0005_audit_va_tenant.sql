@@ -1,4 +1,7 @@
--- 0005: bổ sung bảo vệ cho ba bảng của 0004 theo lệnh ca chiều 23/10 của chủ dự án.
+-- 0005: bổ sung bảo vệ cho ba bảng của 0004 theo lệnh ca chiều 23/10 của chủ dự án. Chạy lại được (REVOKE / GRANT; ràng buộc bỏ rồi thêm);
+-- chạy lại 0004 bằng tay thì phải chạy lại tệp này ngay sau (0004 cấp lại SELECT mức bảng). Tên tệp được ghim ở ba test: execution/commands/
+-- pgticket_test.go (TestPGTicketMigration0004ChayLai), platform/pgstore/migrate_test.go, platform/pgstore/vet_test.go — đổi số migration
+-- (luật 23/10: bên gộp main trước lấy số) thì sửa cả ba.
 --
 -- C1. audit_log.reason_detail giữ lý do THẬT của một lần từ chối (vd phân biệt "máy không tồn tại" với "máy ngoài phạm vi", HOP-DONG
 -- Phase 1 §4.4): vai ứng dụng chỉ được GHI cột này, không được ĐỌC (đo trước bản này: has_column_privilege('eais_app', 'audit_log',

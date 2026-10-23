@@ -276,7 +276,7 @@ export PKGS=./cmd/eais/
 
 # --- xác thực, thân, tenant (server.go) ---
 m $S 'if pr, found := s.principals[tok]; found {' 'if pr, found := s.principals[tok]; found || true {' 'AV1 token lạ vẫn qua'
-m $S 'dec.DisallowUnknownFields()' '_ = 0' 'AV2 thân mang tenant / trường lạ được nhận'
+m $S $'maxAskBody))\n\tdec.DisallowUnknownFields()' $'maxAskBody))\n\t_ = 0' 'AV2 thân mang tenant / trường lạ được nhận'
 m $S 'if _, err := dec.Token(); !errors.Is(err, io.EOF) {' 'if _, err := dec.Token(); false && !errors.Is(err, io.EOF) {' 'AV3 nội dung thừa sau JSON được nhận'
 m $S 's.cnt.Unauthenticated.Add(1)' '_ = 0' 'AV4 lượt chưa xác thực không được đếm'
 m $S 'if !loopbackHost(r.Host) {' 'if false {' 'AV5 Host lạ qua (DNS rebinding)'
@@ -303,9 +303,9 @@ m $S 'if s.persist(r.Context(), pr, rec, acc) == nil {' 'if true {' 'VT1 lượt
 m $A 'return pgstore.UsageRecord{TraceID: traceID, Model: model, Calls: a.calls, Tokens: a.tokens}' 'return pgstore.UsageRecord{TraceID: traceID, Model: model, Calls: 0, Tokens: a.tokens}' 'VT2 usage ghi 0 lời gọi dù có gọi model'
 m $S 'for attempt := 1; attempt <= 3; attempt++ {' 'for attempt := 1; attempt <= 1; attempt++ {' 'VT3 không thử lại khi lỗi hạ tầng tạm thời'
 m $S 'if err = fn(); err == nil || !contracts.Retryable(err) {' 'if err = fn(); err == nil {' 'VT4 thử lại cả lỗi không tạm thời'
-m $S 'sctx, cancel := context.WithTimeout(context.WithoutCancel(contracts.WithTenant(ctx, pr.TenantID)), saveTimeout)' 'sctx, cancel := context.WithTimeout(contracts.WithTenant(ctx, pr.TenantID), saveTimeout)' 'VT5 client ngắt kết nối làm mất vết'
+m $S $'acc *usageAcc) error {\n\tsctx, cancel := context.WithTimeout(context.WithoutCancel(contracts.WithTenant(ctx, pr.TenantID)), saveTimeout)' $'acc *usageAcc) error {\n\tsctx, cancel := context.WithTimeout(contracts.WithTenant(ctx, pr.TenantID), saveTimeout)' 'VT5 client ngắt kết nối làm mất vết'
 m $S 'if p := recover(); p != nil {' 'if p := any(nil); p != nil {' 'VT6 panic trong luồng hỏi không có vết'
-m $S 's.cnt.TraceSaveFailed.Add(1)' '_ = 0' 'VT7 lỗi lưu vết không được đếm'
+m $S $'return err }); err != nil {\n\t\ts.cnt.TraceSaveFailed.Add(1)' $'return err }); err != nil {\n\t\t_ = 0' 'VT7 lỗi lưu vết không được đếm'
 m $S 'return "lỗi hệ thống (chi tiết nội bộ không công bố qua API)"' 'return msg' 'VT8 lỗi nội bộ lộ ra qua API'
 m $S '			body.Error += "; tra cứu vết bằng trace_id"' '			body.Error += ""' 'VT10 lượt lỗi có vết mà không chỉ cách tra cứu bằng trace_id'
 m $S '	} else if !isCallerFault(rec.Fault) {
@@ -313,7 +313,7 @@ m $S '	} else if !isCallerFault(rec.Fault) {
 	}' '	}' 'VT11 lượt lỗi không lưu được vết mà không nói là không có trace_id'
 m $S 'class, _, _ := strings.Cut(fault, ":")' 'class := fault' 'VT12 tên thành phần nội bộ (infra:postgres) lộ ra client'
 m $S '	writeJSON(w, http.StatusOK, out.Response)' '	out.Response.Answer += " "; writeJSON(w, http.StatusOK, out.Response)' 'AN1 HTTP đổi câu trả lời (thêm một dấu cách)'
-m $S 'if fault == contracts.FaultInput || fault == contracts.FaultPolicy { // bản ghi do CHÍNH server dựng bị từ chối: lỗi của server, không phải của client' 'if false { // bản ghi do CHÍNH server dựng bị từ chối: lỗi của server, không phải của client' 'VT9 lỗi lưu vết của server đổ cho client (400 / 403)'
+m $S 'if fault == contracts.FaultInput || fault == contracts.FaultPolicy || (fault == contracts.FaultData && pgstore.SQLState(err) != "") {' 'if false {' 'VT9 lỗi lưu vết của server đổ cho client (400 / 403)'
 # --- dev, không gọi model, CLI ---
 m $U 'if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {' 'if ip := net.ParseIP(host); ip != nil {' 'DV1 địa chỉ nghe không phải loopback được nhận'
 m $M 'if !*dev {' 'if !*dev && false {' 'DV2 serve chạy không cần -dev'
@@ -377,8 +377,10 @@ m scripts/chay-thu.sh 'if [ -n "$(docker ps -q --filter "name=^/${CONTAINER}\$" 
 m scripts/chay-thu.sh 'elif (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then' 'elif false; then' 'RP2 script không thăm dò cổng'
 m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif true; then' 'RP3 không cần EAIS_REUSE_PG vẫn dùng lại PG đang chạy'
 m scripts/chay-thu.sh 'elif [ "${EAIS_REUSE_PG:-}" = 1 ]; then' 'elif false; then' 'RP4 đặt EAIS_REUSE_PG=1 mà vẫn bị từ chối'
-m scripts/chay-thu.sh 'EOF
-		exit 2' 'EOF
+m scripts/chay-thu.sh 'EAIS_REUSE_PG=1 scripts/chay-thu.sh
+EOF
+		exit 2' 'EAIS_REUSE_PG=1 scripts/chay-thu.sh
+EOF
 		exit 0' 'RP5 từ chối mà thoát 0'
 m scripts/chay-thu.sh 'dùng lại, sẽ không gỡ nó"' 'dùng lại, sẽ không gỡ nó"; started_pg=1' 'RP6 PG dùng lại bị gỡ khi đặt EAIS_PG_DOWN=1'
 # R3-01: chỉ đổi cổng sang cổng trống (cùng dự án, cùng tên) thì bộ lọc tên container là hàng rào DUY NHẤT; docker giả của test chỉ thấy container khi lọc đúng name=^/<tên>$.
@@ -445,7 +447,7 @@ m scripts/chay-thu.sh '*[!0-9A-Za-z.+_-]*)' '*[!0-9A-Za-z.+_\ -]*)' 'CV12 script
 m .github/workflows/ci.yml 'EAIS_CODE_VERSION: ${{ github.sha }}' 'EAIS_CODE_VERSION: ""' 'CI18 bước smoke không truyền commit đang kiểm'
 
 # --- smoke E2E bằng curl: cổng này cũng phải đỏ được ---
-ms $S 'dec.DisallowUnknownFields()' '_ = 0' 'SM1 smoke: thân mang tenant được nhận'
+ms $S $'maxAskBody))\n\tdec.DisallowUnknownFields()' $'maxAskBody))\n\t_ = 0' 'SM1 smoke: thân mang tenant được nhận'
 ms $S 'if pr, found := s.principals[tok]; found {' 'if pr, found := s.principals[tok]; found || true {' 'SM2 smoke: token lạ vẫn qua'
 ms $S 'if !s.fullAccess(pr) {' 'if false {' 'SM3 smoke: vai không toàn quyền nạp lại được'
 ms $S 'if s.persist(r.Context(), pr, rec, acc) == nil {' 'if true {' 'SM4 smoke: lượt lỗi không có vết'

@@ -25,7 +25,9 @@ fi
 # nen in XANH, DO hoặc CHUA_CO cho lệnh test hiện tại trên cây hiện tại (chưa đột biến).
 nen_dir=${MUTATE_NEN_DIR:-${TMPDIR:-/tmp}/eais-mutate-nen}
 # Khoá: thư mục + HEAD + mọi thay đổi so với HEAD (cả đã stage) + nội dung tệp chưa track (test mới chưa `git add`) + lệnh test.
-# Ngoài git thì khoá chỉ gồm thư mục và lệnh test (không theo dõi nội dung).
+# Ngoài git thì khoá chỉ gồm thư mục và lệnh test (không theo dõi nội dung). Giới hạn đã biết (soát độc lập 5c-2): tệp bị .gitignore
+# KHÔNG nằm trong khoá — test đọc tệp bị bỏ qua mà tệp đó đổi sau lượt nền thì nền cũ vẫn được dùng; khi đó chạy với MUTATE_NEN_PHUT=0.
+# Cố ý không băm tệp bị bỏ qua: chúng gồm cả cây lớn (worktree, dữ liệu thật) mà mỗi đột biến sẽ phải băm lại.
 nen_file=$nen_dir/$({ pwd; git rev-parse HEAD; git diff HEAD; git ls-files -z --others --exclude-standard | xargs -0 -r sha256sum
 	echo "${PKGS:-./...}|${EAIS_PG_ADMIN_DSN:-}|${EAIS_PG_DSN:-}"; } 2>/dev/null | sha256sum | cut -c1-32)
 nen() {

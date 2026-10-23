@@ -1,0 +1,9 @@
+thẻ có nhãn: 76 / thẻ trong bản đồ: 76 | thiếu: [] | thừa: []
+ĐỎ: chỉ đúng tầng sai đầu tiên 30/38 = 78.9%  (chỉ tiêu ≥ 90%)
+theo tầng: {'S2': '5/5', 'S3': '5/5', 'S4': '5/5', 'S5': '5/5', 'S6': '5/5', 'S8': '0/3', 'S9': '5/5', 'S10': '0/5'}
+nhầm (tầng gieo → người đọc nói): {('S10', 'S8'): 5, ('S8', 'S6'): 3}
+thẻ đỏ sai: [('the-002', 'S10', 'S8', 'thấp'), ('the-007', 'S10', 'S8', 'thấp'), ('the-011', 'S8', 'S6', 'thấp'), ('the-033', 'S10', 'S8', 'thấp'), ('the-045', 'S10', 'S8', 'thấp'), ('the-047', 'S8', 'S6', 'thấp'), ('the-055', 'S8', 'S6', 'thấp'), ('the-076', 'S10', 'S8', 'thấp')]
+XANH: nói KHONG_SAI 38/38; báo nhầm: []
+tin_cay của các nhãn: Counter({'cao': 48, 'vừa': 19, 'thấp': 9})
+vết đủ / thiếu: Counter({'đủ': 48, 'thiếu': 28})
+ghi chú người đọc: 10

@@ -1,0 +1,69 @@
+{
+ "soat": {
+  "ket_luan": "ĐẠT CÓ GHI CHÚ. Không có S1, không có S2; 1 S3 và 5 S4, không cái nào chặn gộp. [CODE] Bản sửa đúng lỗi và tối thiểu: ở data/normalization/engine.go:205-215, token ký hiệu chỉ là dấu ước lượng khi là \"~\" (như trước) hoặc khi pack khai đúng ký hiệu đó; các nhánh khác không đổi. [ĐO] vet 0, gofmt 0; test không PG 1472 pass / 96 skip / 0 fail; có PG (DB xxs_pg) 1944 pass / 0 skip / 0 fail; kiem-skip-test.py XANH; so theo tên với lead-k4f/test.json: 0 mất, 0 đổi, 2 mới. [ĐO] winreport 117 / H1 / H3 / H4 (bộ nhớ): bản dựng từ d614395 tái lập từng byte tệp cơ sở; bản nhánh chỉ khác G1 2736 → 2737, mất dòng ✗ của PDF, và 19 / 4 / 14 / 10 câu trả lời mỗi câu chèn đúng MỘT ghi chú ước lượng; cả 47 câu đều là dầu đội báo EX-03 ngày 19/10/2026 mà nguồn thắng là site_report_form hạng 1 = PDF \"≈ 4 m³\", nên ghi chú đúng nghĩa. [ĐO] Đột biến: bỏ phần \"pack khai\" bị bắt bởi 3 test; chuỗi con và tiền tố SỐNG SÓT (S3, vô hại với pack thật). [ĐO] G1 trên thế giới P1 đã công bố (chỉ bộ nạp, không chạy tệp ca): 2690/2695 → 2693/2695, ba bản ghi \"≈\" (PDF#1, xlsx R-P013 của EX-17, xlsx R-P025 của EX-22) hết lệch, còn R-001/R-002 (\"2k\") như đã ghim. [SUY] Bốn ca P1 sẽ xanh lại nhờ chuỗi lan truyền cờ (Derive: left hoặc right), chưa chạy bộ ca theo luật một lần. [ĐO] origin/main đã tiến tới 086fff9 (5b + 5c), không giao tệp với 5 tệp của bản sửa; cherry-pick sạch, vet 0, test không PG 1485 pass / 97 skip / 0 fail. Bằng chứng còn lại ở $S/ (xxs-mut-results.txt, xxs-pg.json, xxs-nopg.json, xxs-out-*.txt, xxs-ask-*.jsonl, xxs-ing-*.txt, xxs-g1p1-*.txt, xxs-red-truoc.txt).",
+  "phat_hien": [
+   {
+    "ma": "XXS-01",
+    "muc": "S3",
+    "mo_ta": "Nghĩa \"pack khai ĐÚNG ký hiệu đó\" (so khớp chính xác) không có test nào ghim, và chú thích \"mọi ký hiệu pack khai\" (engine.go:207) rộng hơn mã: chỉ marker MỘT rune khớp, vì tokenize cắt ký hiệu từng rune một. Marker ký hiệu nhiều rune (\"≈≈\"), có dấu cách thừa (\"≈ \") hay khai toàn chiều rộng bị bỏ qua IM LẶNG, Compile không báo lỗi. Với pack thật (chỉ \"≈\" và \"~\") chưa có hậu quả quan sát được.",
+    "bang_chung": "[ĐO] scripts/mutate.sh (toàn module, không PG): thay slices.Contains(e.approx, t.text) bằng chuỗi con (M3b) hoặc tiền tố (M4) thì SỐNG SÓT, không test nào đỏ; bỏ NFC lúc biên dịch marker (lexicon.go:173, M7) cũng SỐNG SÓT. [ĐO] test tạm (đã xoá) trên testLexicon: khai [\"≈≈\"] với \"≈≈ 2,6 m3\" cho approx=false; khai [\"≈ \"] cho false; khai [\"＋\"] với \"+ 2,6 m3\" cho false; cả ba Compile không lỗi; khai [\"≈\"], [\"∼\"], [\"≃\"], [\"±\"], [\"c.\"] cho true. [CODE] data/normalization/text.go:179-181 nhánh default sinh một token ký hiệu mỗi rune; engine.go:209 so token một rune với marker.",
+    "de_xuat": "Không chặn gộp. Thêm test ngắn: lexicon khai \"≈≈\", văn bản \"≈ 2,6 m3\" thì KHÔNG ước lượng (giết đột biến chuỗi con và tiền tố). Và hoặc cho Compile từ chối marker ký hiệu-thuần nhiều rune / có khoảng trắng đầu cuối, hoặc sửa chú thích thành \"ký hiệu MỘT rune\"."
+   },
+   {
+    "ma": "XXS-02",
+    "muc": "S4",
+    "mo_ta": "Trả lời câu (a) về \"~ không khai vẫn nhận\": giữ nguyên là ĐÚNG cho commit này (như trước, một lỗi một commit), nhưng còn hai nguồn sự thật: pack thật cũng khai \"~\", và pack không tắt được \"~\". Hệ quả có từ trước: \"3800 ~ 3900 L\" (cách viết dải) gắn approx cho 3900 L.",
+    "bang_chung": "[ĐO] M2 (bỏ \"~\" cứng) bị bắt bởi NRM-V-046 (engine_test.go:129; lexicon mẫu engine_test.go:26 không khai \"~\"); M9 (bỏ \"~\" khỏi tenants/construction/pack/lexicon.yaml:26) SỐNG SÓT. [REPO] tenants/construction/pipeline_xac_nhan_an_toan_test.go:20 dùng \"3800 ~ 3900 L\". [CODE] engine.go:209.",
+    "de_xuat": "Ghi một quyết định riêng về \"~\" chỉ-khi-pack-khai (khi đó lexicon mẫu của NRM-V-046 phải khai \"~\"); không gộp vào bản sửa này."
+   },
+   {
+    "ma": "XXS-03",
+    "muc": "S4",
+    "mo_ta": "Cờ Approx của truy vấn nguồn sự thật là OR trên MỌI nguồn ứng viên, kể cả nguồn thua thẩm quyền, tính TRƯỚC khi chọn nguồn thắng. Bản sửa làm nhiều nguồn mang cờ hơn, nên về sau một \"≈\" ở nguồn thua có thể thêm ghi chú ước lượng cho con số dùng (chính xác). Với dữ liệu hiện có KHÔNG xảy ra: 47 câu đổi đều có nguồn thắng là PDF \"≈ 4 m³\". Có từ trước, không thuộc bản sửa.",
+    "bang_chung": "[CODE] data/sourceoftruth/query.go:120 (if approx { res.Approx = true } trong vòng lặp nguồn, trước sort và best); tenants/construction/pack/metrics.yaml:17-18 (site_report_form hạng 1, chat_message hạng 2). [ĐO] diff winreport: 47/47 dòng đổi chỉ chèn đúng một ghi chú, đều nhắc EX-03, 19/10/2026, đội báo; 0 câu nhắc đội báo 4.000 mà thiếu ghi chú.",
+    "de_xuat": "Ghi vào nợ. Nếu muốn ghi chú chỉ theo số đã dùng thì tính approx theo best.ids và đo lại bộ A17 / phiếu."
+   },
+   {
+    "ma": "XXS-04",
+    "muc": "S4",
+    "mo_ta": "Chưa có test thường trực đầu-cuối cho \"≈\" ở ô csv/xlsx: ingest_test.go chỉ ghim GIÁ TRỊ của dòng R-027 \"≈ 3 850\" (comment \"giữ nguyên cách đọc\"). Bằng chứng thường trực hiện có = mức bộ chuẩn hoá (Cell: true, test mới) + lan truyền cờ (đột biến làm rơi Approx ở đường ô bị CON-T-030 bắt), còn bằng chứng đầu-cuối cho xlsx \"≈\" chỉ có ở bộ P1 chạy một lần.",
+    "bang_chung": "[CODE] data/ingestion/ingest_test.go:59 và :147 (kỳ vọng không có trường approx). [ĐO] M11 (value.Approx = false ở đường ô, ingest.go) bị bắt bởi TestCaPhatTrienBoNho/A17_CON-T-030; M12 (rơi Approx trong quantity) bị bắt bởi 4 test. [ĐO] test nạp tạm (đã xoá), trước rồi sau sửa: csv \"≈ 2,6|m3\", \"≈2600|L\", \"≈ 12 600|L\"; xlsx \"≈ 2,6|m3\", \"≈ 1,1|m3\"; tin nhắn \"đổ ≈ 2,6 m3\", \"đổ ≈2k\"; PDF \"≈ 4 m³\" đều approx false → true.",
+    "de_xuat": "Thêm trường approx vào bảng kỳ vọng của R-027 (csv) và một dòng xlsx \"≈ 2,6 | m3\" trong ingest_test.go (rẻ, chạy trong bộ thường trực)."
+   },
+   {
+    "ma": "XXS-05",
+    "muc": "S4",
+    "mo_ta": "Biến thể Unicode không thuộc khai báo pack vẫn không được nhận: \"∼\" (U+223C), \"≃\" (U+2243) (và \"〜\" U+301C, [SUY]) — y hệt trước sửa. \"～\" (U+FF5E) vẫn nhận vì foldLookalikes gấp về \"~\". NFKC không áp dụng và không cần. Nếu PDF thật trích ra \"∼\" thì vẫn mất cờ (chưa kiểm PDF thật).",
+    "bang_chung": "[ĐO] ingest tạm: csv \"∼ 2,6|m3\" và \"≃ 2,6|m3\" approx=false trước và sau; \"～ 2,6|m3\" approx=true cả hai. [ĐO] test tạm: pack khai [\"∼\"] hoặc [\"≃\"] thì nhận (một rune), khai \"≃\" mà văn bản \"≈\" thì không. [CODE] engine.go foldLookalikes gấp U+FF01-U+FF5E về ASCII (dòng khoảng 568-579).",
+    "de_xuat": "Không sửa ở commit này. Nếu thấy PDF thật xuất \"∼\" thì thêm vào approx_markers của pack (chỉ một dòng yaml, không đổi mã)."
+   },
+   {
+    "ma": "XXS-06",
+    "muc": "S4",
+    "mo_ta": "Bản ghi quyết định của câu hỏi chứa \"≈\" sinh trước commit này sẽ phát lại lệch ở chặng normalize (valueText thêm \"~\" sau lượng đứng sau \"≈\"); engine không có dấu phiên bản. Mọi sửa bộ chuẩn hoá đều vậy; G6 trong winreport không lệch vì cùng một build. Luồng hỏi không đổi ý định, câu xác nhận, phán quyết.",
+    "bang_chung": "[ĐO] 25 câu hỏi (≈ trước, sau, dính, giữa hai lượng, trước số máy, \"≈≈\", \"≈ khoảng\", biến thể ∼ ≃ ～) qua luồng hỏi thật trên bản gốc và bản nhánh: route, outcome, verdict, plan KHÔNG đổi; chỉ khác (i) decision.normalized thêm \"~\", (ii) câu có \"dầu đội báo 4.000 L\" thêm \"(ước lượng)\" hoặc \" Trong tổng có số liệu ước lượng.\" do dữ liệu, không do dấu trong câu hỏi. Câu xác nhận có \"≈\" vẫn \"Chưa kết luận\" như \"~\" và \"khoảng\" vì core/pipeline/claim.go:192 coi ký hiệu thừa là residual. [CODE] core/pipeline/ask.go:335-339.",
+    "de_xuat": "Chỉ ghi nhận."
+   }
+  ],
+  "da_dong": [
+   "(c) [ĐO] go vet ./... exit 0, không dòng; gofmt -l trên tệp git theo dõi: 0 dòng. Test không PG: 1472 pass / 96 skip / 0 fail. Có PG (DB riêng xxs_pg trên eais-pg): 1944 pass / 0 skip / 0 fail; python3 -I scripts/kiem-skip-test.py XANH; so THEO TÊN với lead-k4f/test.json (1942 pass): 0 mất, 0 đổi, 2 mới (TestDauKyHieuChiKhiPackKhai, TestDauUocLuongKyHieuCuaPack) — đúng lời khai.",
+   "(c) [ĐO] winreport 117 / H1 / H3 / H4 đường bộ nhớ, dữ liệu du-lieu-42: bản dựng từ d614395 tái lập từng byte lead-k4f/{117,h1-mem,h3-mem,h4-mem}.txt (bỏ hai dòng đầu). Bản nhánh khác đúng 41 / 11 / 31 / 23 dòng diff = G1 2736 → 2737 + mất dòng ✗ PDF + 19 / 4 / 14 / 10 câu mà mỗi câu chỉ chèn đúng một ghi chú (\" Trong tổng có số liệu ước lượng.\" hoặc \" (ước lượng)\"), xác minh từng dòng bằng chữ: bỏ ghi chú ra thì bằng bản gốc. 0 thay đổi khác, 0 ca đổi đạt / trượt. Mọi câu đổi đều là dầu đội báo EX-03 19/10/2026; nguồn thắng là site_report_form hạng 1 = PDF \"≈ 4 m³\" nên ghi chú ước lượng ĐÚNG nghĩa (và phiếu chênh lệch 150 L mang cờ left||right đúng).",
+   "(c) [ĐO] Hai test mới ĐỎ trên mã d614395: 8 phát biểu của TestDauUocLuongKyHieuCuaPack + 2 của TestDauKyHieuChiKhiPackKhai (commit khai 8, thiếu 2, vô hại); XANH sau sửa.",
+   "(d) [ĐO] Đột biến (scripts/mutate.sh bản chưa 5c, toàn module không PG): M1 bỏ \"pack khai\" BẮT bởi TestDauKyHieuChiKhiPackKhai + TestDauUocLuongKyHieuCuaPack + TestWinRatchet; M2 bỏ \"~\" cứng BẮT bởi NRM-V-046; M5b nhận mọi ký hiệu khi pack có marker BẮT (NRM-V-006, NRM-V-048, TestDauKyHieuChiKhiPackKhai); M6 cứng \"≈\" thay vì theo pack BẮT bởi TestDauKyHieuChiKhiPackKhai; M8 pack bỏ \"≈\" BẮT; M10 thêm lại dòng PDF vào g1-approx-known.txt BẮT bởi TestWinRatchet + TestLoadKnownApproxSaiDang; M11 và M12 (đường nạp làm rơi Approx) BẮT. SỐNG SÓT: M3b chuỗi con, M4 tiền tố, M7 bỏ NFC lúc biên dịch, M9 pack bỏ \"~\" (xem XXS-01, XXS-02). Kết quả M1-M10: .../scratchpad/xxs-mut-results.txt.",
+   "(a) Đường nạp [ĐO]: csv, xlsx, tin nhắn, PDF đều đổi approx false → true cho \"≈\" đứng trước lượng (có hay không có dấu cách, cả \"≈ khoảng\" và \"≈ ≈\"). Không đổi so với trước: \"≈\" sau lượng (\"2k ≈\", \"2,6 ≈ m3\"), cách xa lượng ngoài cửa sổ 3 token, dính chữ/số phía trước (isBoundaryBefore chặn: không vào mã thiết bị / số phiếu), hai lượng trong một ô (cách ly như trước). Số máy sau \"≈\" (\"máy ≈ 03\") chỉ gắn cờ lên số hiệu, vô hại như \"khoảng\".",
+   "(a) Pack khác [REPO]: tenants/sports chỉ có evals/cases.yaml, không pack, không lexicon; approx_markers chỉ khai ở tenants/construction/pack/lexicon.yaml:26 (có \"≈\" và \"~\"); Lexicon dựng trong mã chỉ ở engine_test.go. Bản sửa không ảnh hưởng pack nào khác.",
+   "(b) Lý do đổi hai test ĐÚNG: g1RatchetErrors (winrun_test.go) đòi khoá đã hết lệch phải xoá khỏi g1-approx-known.txt cùng commit (header tệp dòng 7-9), nên xoá dòng PDF là bắt buộc; TestLoadKnownApproxSaiDang phản chiếu tệp thật (hai dòng \"2k\" giữ, PDF vắng), phát biểu \"vắng\" trùng với ratchet nhưng còn chặn ghim lại im lặng. Bản sửa KHÔNG phải trường hợp \"đừng sửa bộ chuẩn hoá chỉ để làm tệp rỗng\": tệp không rỗng (còn R-001/R-002, phần cần phân xử, giữ nguyên); động cơ là bộ P1 đỏ độc lập (4/157) cộng pack đã khai \"≈\"; manifest và pack cùng nói approx=true nên không phân xử bên nào. Đo thêm: trên thế giới P1, G1 của bản gốc có ba bản ghi \"≈\" lệch (PDF#1, R-P013, R-P025), sau sửa hết cả ba.",
+   "(e) Một lỗi một commit (5 tệp, một nguyên nhân). Không đường dẫn máy, không bí mật trong diff lẫn thông điệp (\"lead_xx\" là tên DB, không phải đường dẫn). Tác giả và trailer đúng quy ước repo.",
+   "Gộp thử [ĐO]: origin/main đã tiến tới 086fff9 (5b + 5c), không giao tệp với 5 tệp của bản sửa; cherry-pick sạch, vet 0, go test không PG 1485 pass / 97 skip / 0 fail. Tài liệu có mốc đọc mã riêng (HOP-DONG.md ghi \"Làn 1 còn sửa ≈ (HT-1)\") nên không coi là lệch.",
+   "Dọn [ĐO]: gỡ ba cây tạm (xxs-wt, xxs-base, xxs-mrg), DROP DATABASE xxs_pg (0 database xxs% còn lại), xoá binary tạm; repo chính sạch, không sửa nhánh, không push."
+  ],
+  "khong_kiem_duoc": [
+   "PDF thật (không dựng bằng fpdf + DejaVu): pdftotext trên PDF thực có thể xuất \"≈\" thành mã khác (\"∼\", \"≃\") hoặc làm rớt; chứng minh \"≈ ở PDF\" mới có trên PDF giả lập.",
+   "Không chạy bộ ca P1 (luật một lần, không đọc p1.yaml): bốn ca P1 xanh lại chỉ là [SUY] từ G1 trên thế giới P1 (chỉ bộ nạp) và chuỗi lan truyền cờ đã P1 phân tích; chưa có phép đo mới nào cho bốn ca đó.",
+   "winreport đường PostgreSQL (đề chỉ yêu cầu đường bộ nhớ); test PG chạy trên cây nhánh, chưa chạy trên cây đã gộp lên 086fff9.",
+   "Không có dữ liệu sản xuất: mọi số đo là dữ liệu giả lập, chưa người nghiệp vụ duyệt (D-RM-03); không có bản ghi quyết định thật để kiểm phát lại (XXS-06).",
+   "Không fuzz vi sai tự động giữa hai bản trên văn bản ngẫu nhiên; chỉ ca chọn tay (25 câu hỏi, khoảng 25 dòng nạp) và dữ liệu của các bộ ca.",
+   "Không đọc docs/sources/, docs/g7/holdout-0a/, H5 (theo luật) nên không đối chiếu với các tài liệu đó; không chạy go test -race."
+  ]
+ }
+}

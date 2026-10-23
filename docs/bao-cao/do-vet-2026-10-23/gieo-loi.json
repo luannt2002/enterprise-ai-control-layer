@@ -1,0 +1,44 @@
+{
+ "gieo_loi": {
+  "so_the": 76,
+  "so_do": 38,
+  "so_xanh": 38,
+  "theo_tang": "S2:5, S3:5, S4:5, S5:5, S6:5, S8:3, S9:5, S10:5 (S0, S1, S7 không gieo). S8 thiếu 2 thẻ, không bù bằng tầng khác. [ĐO]",
+  "dot_bien": [
+   "S2 | data/normalization/decimal.go:81 | chấm đứng riêng sau đúng 3 chữ số bị đọc là thập phân kiểu Anh (thêm `&& sep == \",\"`): \"3.850 lít\" thành 3,85 | giữ 28/423 ca ĐẠT đã hỏi (đỏ tổng 199), chọn 5 thẻ [ĐO]",
+   "S3 | data/entityresolution/resolver.go:96 | bí danh khớp nhiều thực thể thì chọn ứng viên đầu thay vì báo mơ hồ (`len(cands) == 1` thành `>= 1`) | giữ 32/423 (đỏ tổng 32), chọn 5 thẻ [ĐO]",
+   "S4 | intelligence/intent/intent.go:479 | đảo thứ tự ưu tiên ý định (`Priority >` thành `<`), ý định ưu tiên thấp fuel_generic thắng | giữ 70/423 (đỏ tổng 70), chọn 5 thẻ [ĐO]; binary tên eais-s4f vì đã thử 6 biến thể S4",
+   "S5 | intelligence/router/router.go:173 | Policy.InScope chỉ xét khoá của chính thực thể, không xét tổ tiên (`range lineage[:min(1, len(lineage))]`): kỹ sư dự án bị từ chối máy của dự án mình | giữ 10/423 (đỏ tổng 43), chọn 5 thẻ [ĐO]",
+   "S6 | core/decimal/decimal.go:100 (gọi từ data/sourceoftruth/query.go:138) | biên dung sai: Within trả `c < 0` thay vì `c <= 0`, chênh đúng bằng dung sai bị coi là xung đột | giữ 25/423 (đỏ tổng 25), chọn 5 thẻ [ĐO]",
+   "S8 | core/pipeline/ask.go:569-570 | nhánh thoát sớm của RAG (câu đòi lượng nghiệp vụ mà chỉ có tài liệu) trả outcome OUT_OF_SCOPE thay vì INSUFFICIENT_EVIDENCE | giữ 3/423 (đỏ tổng 3), chọn 3 thẻ (thiếu 2) [ĐO]",
+   "S9 | reliability/validation/binding.go:73 | ngày cuối của kỳ bị từ chối (`(ok && d == to)` thành `(!ok && d == to)`): câu nêu cả hai đầu kỳ bị DATE_UNBOUND | giữ 14/423 (đỏ tổng 15), chọn 5 thẻ [ĐO]",
+   "S10 | core/pipeline/ask.go:241 (chèn trước `d := a.decision(...)`) | cắt câu trả lời ở 120 ký tự rune rồi thêm \"…\" | giữ 10/423 (đỏ tổng 10), chọn 5 thẻ [ĐO]",
+   "Chung [ĐO]: binary gốc 423 ĐẠT / 51 ĐỎ trên 474 ca, khớp 100% danh sách ĐẠT/ĐỎ của cổng §6 (117: 117/117; h1: 91+13; h3: 112+22; h4: 103+16); hai lần chạy server gốc cho 0 bước khác, 0 câu khác. Mọi binary dựng với -buildvcs=false và cùng -ldflags -X main.buildVersion=086fff99025cfde4f9aed06b911180bb35235566 để cột \"mã\" trong bảng vết giống hệt ở mọi thẻ [CODE: cmd/eais/version.go]. Mô tả đầy đủ kèm biến thể S4 đã bỏ (đảo tie-break: 2 đỏ; thuật ngữ cuối: 0; mệnh đề trước: 4; bỏ chặn nhiều kỳ: 0; bỏ chặn hai thực thể: 0) ở vet7g-dot-bien.md"
+  ],
+  "loai_bo": [
+   "S2: 199 ca đỏ, giữ 28; 169 ca có bước lệch đầu ở S9 (câu hỏi không có số chấm nghìn nên S2 y hệt; câu trả lời \"3.850 L\" bị chính bộ chuẩn hoá lỗi đọc lại thành 3,85 nên kiểm số numeric_fidelity trượt) và 2 ca ở S7. Loại hết 171. [ĐO]",
+   "S5: 43 ca đỏ, giữ 10; 33 ca có bước lệch đầu ở S3 (bộ che phạm vi của vết dùng cùng InScope nên đầu ra S3 đã đổi thành ‹ngoài phạm vi› trước khi tới S5; thấy ở S3). Loại 33. [ĐO]",
+   "S9: 15 ca đỏ, giữ 14; 1 ca (h3 WIN-I-659, lớp routing) có bước lệch đầu ở S7 (mất trích dẫn SOP). Loại 1. [ĐO]",
+   "S3 (32/32), S4 (70/70), S6 (25/25), S8 (3/3), S10 (10/10): mọi ca đỏ đều lệch đầu đúng tầng gieo, không ca nào bị loại. [ĐO]"
+  ],
+  "lenh": [
+   "git -C <repo> worktree add --detach <scratchpad>/vet7g-wt origin/main (086fff9); go build -buildvcs=false -ldflags \"-X main.buildVersion=086fff99025cfde4f9aed06b911180bb35235566\" -o <scratchpad>/vet7g-bin/eais-goc ./cmd/eais (taskset -c 0,2,3,5-8,10,11,13-15)",
+   "docker exec eais-pg psql -U postgres -c 'CREATE DATABASE vet7g_db'; EAIS_PG_ADMIN_DSN=postgres://postgres@127.0.0.1:25432/vet7g_db eais migrate; EAIS_PG_DSN=postgres://eais_app@127.0.0.1:25432/vet7g_db eais ingest -pack tenants/construction/pack -data <scratchpad>/du-lieu-42 (2702 quan sát, 37 cách ly)",
+   "python3 <scratchpad>/vet7g-tool/lib.py run <binary> <nhãn> <cổng>: eais serve -dev -addr 127.0.0.1:<18950..18964> -pack tenants/construction/pack -world tenants/construction/win/world.yaml -data <scratchpad>/du-lieu-42 -now world; 474 lần POST /v1/ask + GET /v1/trace/{id}; chấm bằng bản Python của evals.RunWin; dừng server theo PID (Popen.terminate)",
+   "python3 <scratchpad>/vet7g-tool/lib.py trial <tầng> spec-<tầng>.json <cổng> cho s2 s3 s4 s4b s4c s4d s4e s4f s5 s6 s8 s9 s10 (13 binary lỗi, tối đa 4 go build song song; giữ 8: s2 s3 s4f s5 s6 s8 s9 s10)",
+   "python3 <scratchpad>/vet7g-tool/cards.py (chọn thẻ, eais trace -tenant abc-infra <trace_id> cho từng thẻ, ghi vet7g-the/the-001..076.md, vet7g-map.tsv, vet7g-chon.json)",
+   "eais trace diff -tenant abc-infra <id gốc> <id lỗi> cho 38 cặp đỏ (đối chiếu chéo với so từng bước)",
+   "Dọn: docker exec eais-pg psql -U postgres -c 'DROP DATABASE vet7g_db WITH (FORCE)'; git -C <repo> worktree remove --force <scratchpad>/vet7g-wt; rm -rf các thư mục vet7g-mut-<tầng> và vet7g-bin (tên cụ thể, không glob); xoá nhật ký, kết quả, pid tạm. Còn lại: vet7g-the/ (76 thẻ), vet7g-map.tsv, vet7g-dot-bien.md, thêm vet7g-tool/ (script + spec lỗi) và vet7g-chon.json. Cây chính: git status sạch, không checkout/commit/stash/reset/push. [ĐO]"
+  ],
+  "khong_kiem_duoc": [
+   "S8 chỉ 3 thẻ (thiếu 2 so với mục tiêu 5). [CODE][ĐO] Bảng vết ở S8 chỉ ghi \"model diễn đạt\" / \"mẫu câu của tenant <mẫu của router>\" / \"model chưa được gọi\" kèm outcome; bản nháp, mẫu câu thực dùng và chữ câu trả lời không hiện ở S8 (chữ chỉ hiện ở S10), nên lỗi dựng câu lộ đầu tiên ở S9 hoặc S10. Chỗ duy nhất S8 là bước lệch đầu là nhánh thoát sớm của RAG; trong 423 ca ĐẠT chỉ 3 ca đi nhánh đó (lớp unsupported_answer: 117, h1, h3). Không bù bằng tầng khác.",
+   "`eais trace diff` (traces.FirstDifferentStep) cho tầng khác tầng gieo ở 13/38 thẻ đỏ (S10 báo S8 ×5, S6 báo S8 ×5, S8 báo S6 ×3), vì nó chỉ so Decision theo quy ước verdict→S9, outcome→S6, bằng chứng→S7, câu→S8; 25/38 trùng. [ĐO][CODE] Nhãn của phép đo dựa trên so từng bước của vết JSON đúng như lệnh, không dựa trên trace diff.",
+   "Chấm ĐỎ bằng bản Python cài lại evals.RunWin (model_calls lấy từ usage trong vết), chưa chạy RunWin của Go trực tiếp trên câu trả lời HTTP. Bù lại, trên binary gốc nó khớp 423/423 ca ĐẠT và 51/51 ca ĐỎ với danh sách của cổng §6. [ĐO]",
+   "Chưa chạy lại từng binary lỗi lần hai để kiểm tất định riêng của chúng; chỉ binary gốc được kiểm (2 lần, 0 bước khác, 0 câu khác). Với binary lỗi là [SUY]: cùng mã, cùng dữ liệu nên tất định.",
+   "Chưa đo người đọc thật nên chưa biết thẻ có đủ khó hay có rò. Đã kiểm: cột \"mã\" giống hệt (ép bằng ldflags), tổng ms trung vị 1,0 ở cả hai nhóm, không đường dẫn máy / id ca / tên bộ / ĐỎ / ĐẠT trong thẻ. Chưa loại trừ được tín hiệu tinh khác. Tiên nghiệm yếu còn lại: đỏ lệch về bộ h3 (20/38) và lớp representation (10/38), xanh đều hơn (h3 12, representation 7). [ĐO][SUY]",
+   "Chỉ hỏi 423 ca ĐẠT của gốc qua mỗi binary lỗi; chưa xét ca ĐỎ của gốc (51) và các bộ khác (h6, p1, H5 bị cấm). Ứng viên của lỗi dồn ở h3 và 117 nên chưa cân bộ ở phía đỏ.",
+   "Vượt \"một lần chạy server cho mỗi binary\" với binary gốc: lần đầu bị 400 (thiếu conversation_id / message_id, sửa rồi chạy lại), sau đó hai lần song song (goc, goc2) để kiểm tất định; các lượt 400 và lượt thừa ghi vết trong vet7g_db (đã DROP, không ghi vào database nào khác). [ĐO]",
+   "Giữ thêm vet7g-tool/ và vet7g-chon.json (chứa nhãn đỏ / tầng) ngoài ba mục bắt buộc; chúng nằm ngoài thư mục thẻ nhưng cùng scratchpad. Cây chính có HEAD cục bộ a52eb67 lúc kết thúc (không phải do tôi, git status sạch); mốc dựng là origin/main 086fff9 và chưa kiểm lại origin/main lúc kết thúc. [ĐO]"
+  ]
+ }
+}

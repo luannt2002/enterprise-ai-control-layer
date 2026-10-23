@@ -227,3 +227,30 @@ func TestCompileChanLexiconHong(t *testing.T) {
 		t.Fatalf("lexicon hợp lệ bị chặn oan: %v", err)
 	}
 }
+
+// Dấu ước lượng dạng ký hiệu chỉ được nhận khi PACK khai nó ở approx_markers (ngoài "~", nhận như trước): lexicon mẫu không có "≈" thì
+// "≈ 2,6 m3" không phải ước lượng; thêm "≈" vào lexicon thì là ước lượng, ở cả ô lẫn chữ tự do.
+func TestDauKyHieuChiKhiPackKhai(t *testing.T) {
+	lex := testLexicon
+	with := lex
+	with.ApproxMarkers = append(append([]string{}, lex.ApproxMarkers...), "≈")
+	// khai một ký hiệu KHÁC có chứa "≈" (soát xx, XXS-01): so khớp phải là bằng đúng, không phải chuỗi con hay tiền tố
+	other := lex
+	other.ApproxMarkers = append(append([]string{}, lex.ApproxMarkers...), "≈≈")
+	for _, c := range []struct {
+		name string
+		lex  Lexicon
+		want bool
+	}{{"không khai", lex, false}, {"có khai", with, true}, {"khai ký hiệu khác", other, false}} {
+		e, err := Compile(c.lex)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, cell := range []bool{true, false} {
+			in := e.Normalize("≈ 2,6 m3", Options{Now: now, Cell: cell})
+			if len(in.Spans) != 1 || in.Spans[0].Value.Approx != c.want {
+				t.Errorf("%s (ô=%v): spans %+v, muốn đúng một lượng có approx = %v", c.name, cell, in.Spans, c.want)
+			}
+		}
+	}
+}

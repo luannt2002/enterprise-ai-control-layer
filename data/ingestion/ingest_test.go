@@ -83,7 +83,7 @@ func dataset(t *testing.T) string {
 
 	x := excelize.NewFile()
 	x.SetSheetName("Sheet1", "PhieuXuat")
-	for i, row := range [][]any{{"record_id", "slip_no", "equipment_code", "issue_date", "quantity", "unit"}, {"R-040", "PX-0901", "EX-03", "2026-10-18", "2000", "L"}} {
+	for i, row := range [][]any{{"record_id", "slip_no", "equipment_code", "issue_date", "quantity", "unit"}, {"R-040", "PX-0901", "EX-03", "2026-10-18", "2000", "L"}, {"R-045", "PX-0902", "EX-03", "2026-10-18", "≈ 2,6", "m3"}} {
 		cell, _ := excelize.CoordinatesToCellName(1, i+1)
 		if err := x.SetSheetRow("PhieuXuat", cell, &row); err != nil {
 			t.Fatal(err)
@@ -134,6 +134,7 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		"warehouse.csv#R-004":      {"EX-03", "issued_fuel", "warehouse_slip", "2026-10-19", "3850"},
 		"warehouse.csv#R-016":      {"RL-02", "issued_fuel", "warehouse_slip", "2026-10-19", "1200"}, // 1,2 m3
 		"warehouse.xlsx#R-040":     {"EX-03", "issued_fuel", "warehouse_slip", "2026-10-18", "2000"},
+		"warehouse.xlsx#R-045":     {"EX-03", "issued_fuel", "warehouse_slip", "2026-10-18", "2600"},       // "≈ 2,6" m3
 		"erp.json#R-005":           {"EX-03", "issued_fuel", "erp", "2026-10-19", "3900"},                  // asset-8392
 		"sensor.csv#R-006":         {"EX-03", "measured_consumption", "fuel_sensor", "2026-10-19", "3782"}, // EX003
 		"messages.jsonl#R-001":     {"EX-03", "reported_fuel", "chat_message", "2026-10-19", "2000"},       // "2k"
@@ -219,6 +220,17 @@ func TestIngestFiveFormatsToObservationsOrQuarantine(t *testing.T) {
 		}
 		if o.Key == "messages.jsonl#R-017" && !o.Value.Approx {
 			t.Errorf("R-017 'khoảng 1k2' phải là số ước lượng")
+		}
+		// dấu "≈" mà pack khai, ở ô csv / xlsx lẫn dòng PDF: số ước lượng (soát xx, XXS-04 — trước bản sửa "≈" cả ba mất cờ ở đường nạp)
+		switch o.Key {
+		case "warehouse.csv#R-027", "warehouse.xlsx#R-045", "reports/2026-10-19.pdf#1":
+			if !o.Value.Approx {
+				t.Errorf("%s có dấu ≈ phải là số ước lượng", o.Key)
+			}
+		case "warehouse.csv#R-004", "warehouse.xlsx#R-040":
+			if o.Value.Approx {
+				t.Errorf("%s không có dấu ước lượng mà approx = true", o.Key)
+			}
 		}
 	}
 }

@@ -6,38 +6,43 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 13:26, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go giống `5744d65`;
-  sau đó chỉ đổi tài liệu và công cụ đóng băng `scripts/cam-ket-bo-ca-0a.py`).
+- **Cập nhật lúc:** 23/10/2026 15:56, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go = cây `d43a1bf`
+  của cổng dưới).
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra.
-  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 đã gộp (`5fd463f`); bốn lỗi P2 C8–C11 đã gộp (`3aaaf09`; vòng 1 soát KHÔNG ĐẠT, vòng 2
-    ĐẠT CÓ GHI CHÚ — vết của người hỏi hạn chế không còn mang khoá / mã / tên ngoài phạm vi mà họ không tự gõ). Tiếp: đo lại người đọc vết trên
-    bộ thẻ mới.
+  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 (`5fd463f`) và C8–C11 (`3aaaf09`) đã gộp; 5b + 5c đã gộp (`32f4930`). 5a (che bí
+    mật trong vết): vòng 3 soát KHÔNG ĐẠT (`s5a3-soat.json`: gộp vùng một lần mở đường lọt MỚI ở dòng Cookie có cặp bí mật trong nháy qua xuống
+    dòng) ⇒ vòng 4 theo ngoại lệ an ninh §9.6: sửa + test đỏ trước, fuzz 4 × 400.000 chuỗi 0 lọt mà main che; cây tích hợp `m1/gop-5a-v4`
+    (`1ca7288`, cổng §6 xanh) đang soát vòng 4. **Đo lại người đọc vết bằng thẻ mới (lần 2): 30 / 38 = 78,9% thẻ đỏ — KHÔNG ĐẠT**
+    (38 / 38 thẻ xanh đúng; S2–S6, S9 đúng trọn; S10 0 / 5, S8 0 / 3 — vết không xuất bản nháp S8 và lý do nhánh RAG thoát sớm;
+    `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`). Đang sửa vết (nhánh `m1/vet-s8-s10`) rồi đo lại bằng thẻ mới.
   - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 — vòng 1, 2, 3 soát KHÔNG ĐẠT ⇒ **KHOÁ** sau vòng 3 (luật §9.6), không gộp: vòng 3 có hồi quy S1
     mới S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) dù tốt hơn main ở bộ công bố và bộ mù của người soát. H6 (94 ca, `6734cff`) CHƯA chạy —
     chỉ chạy sau khi S4 gộp. Chờ chủ dự án: **D-AI-05** (khuyến nghị: một vòng ngoại lệ hẹp chỉ sửa hồi quy), D-AI-04.
-  - M4 **CHƯA RA**: K1, K2, K3 + C1–C7 (`3892be2`), K4 (bộ chạy ca, điểm chèn lỗi, đột biến, demo; `b22e1e6`) đã gộp. **Bộ giữ lại P1 đã chạy
-    MỘT lần** (14:29, `18fb206`): 153 / 157 đạt; 4 đỏ (A04 1, A17 3) cùng một lỗi tầng chuẩn hoá — `"≈"` không được nhận là dấu ước lượng nên
-    phiếu mất cờ `approx` (`docs/g7/holdout-p1/ket-qua-p1/phan-tich.md`); X1, X5 ĐỎ. Đang sửa lỗi chuẩn hoá; đo lại độc lập chờ Q-P1-15.
-  - M2: bộ ca độc lập 0a — hai người soạn xong (P1 150 ca, P2 120 ca, người soạn không đọc mã); soát / sửa đang chạy theo khúc (lượt soát
-    đầu kẹt vòng suy nghĩ, đã dựng lại thành khúc nhỏ tuần tự); xong thì đóng băng bằng cam kết băm. Mã Phase 0a giữ ở nhánh
-    `m2/0a-ma-truoc-dong-bang`, KHÔNG gộp tới khi bộ ca 0a băm xong (Q-0A-17).
+  - M4 **CHƯA RA**: K1, K2, K3 + C1–C7, K4 đã gộp. **Bộ giữ lại P1 đã chạy MỘT lần** (14:29, `18fb206`): 153 / 157 đạt; 4 đỏ (A04 1, A17 3)
+    cùng một lỗi tầng chuẩn hoá (`"≈"` không là dấu ước lượng ⇒ phiếu mất cờ `approx`) — **lỗi này đã sửa và gộp** (`d43a1bf`, soát ĐẠT CÓ
+    GHI CHÚ); bộ P1 KHÔNG chạy lại. X8: danh mục đột biến M1–M26 trên mã `32f4930` — 32 đúng chỗ, 0 sống sót, 0 khác. Còn thiếu để RA: đo lại
+    X1 / X5 độc lập (Q-P1-15, bộ giữ lại mới) và ngoại lệ M5 của §11.2 (Q-P1-14).
+  - M2: **bộ ca độc lập 0a ĐÓNG BĂNG** (15:30, `docs/g7/holdout-0a/holdout-manifest.json`): 249 ca (P1 137, P2 112; 80 tự nhiên, 6
+    chờ câu chưa chốt), 83 / 84 lớp có ca (LC10: 0); hai người soạn không đọc mã; kiểm nhiễm 42 nhật ký 0 vi phạm. Điều kiện 5 và 6 của
+    HOP-DONG 0a §14.1 đã đạt (bộ ca băm; "≈" sửa ở main `d43a1bf`). Mã Phase 0a tiếp tục trên nhánh `m2/0a-ma-truoc-dong-bang` (Q-0A-17):
+    bước 3b + kho PG → soát độc lập → gộp → chạy bộ 0a MỘT lần.
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT; S7 NGOÀI MVP (D-AI-03 = a); S9 chưa có bộ ca
-    độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
-- **Đang làm** (tối đa 5 agent; đang 5): soát / sửa bộ ca 0a (P1 và P2 theo khúc, cộng hai lượt soát song song các khúc cuối của P1), soát lại
-  5a / 5b / 5c (nhánh `m1/sua-5abc`). Điều phối: sửa lỗi chuẩn hoá `"≈"` tìm ra ở bộ P1.
-- **Xong từ lần trước:** lệnh ca trưa vào `CHO` + brief §9.10c (`4238123`); công cụ đóng băng bộ ca 0a (`d581899`, `9f3c32b` — `world` là
-  danh sách tên khi ca đi qua hai tenant); D-AI-04 vào `CHO` (`59ac0d7`); nhánh M4 thêm Ready theo cột, K3S-01…04, K3S-07; nhánh C8–C11 vòng 2.
-- **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: S4 vòng 3 → soát → gộp → chạy H6 một lần → ghi; (2) M2: soát / sửa bộ ca 0a → băm → mã 0a →
-  chạy bộ 0a một lần; (3) M4: soát lại → gộp K3 + C1–C7; K4 → chạy bộ P1 một lần; (4) M1: soát vòng 2 C8–C11 → gộp; 5a / 5b / 5c → gộp;
-  bộ thẻ mới cho người đọc vết; (5) S9.
+    độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT. Lỗi `"≈"` của L1 / S2 đã sửa (`d43a1bf`); cổng L1 chưa đo lại.
+- **Đang làm** (tối đa 5 agent; đang 5): soát 5a vòng 4; đo lại người đọc vết (M1); mã Phase 0a bước 3b + kho PG rồi soát (M2); 5e —
+  phiên bản dữ liệu của vết đọc từ PG (nhánh `m1/5e-data-version`); soạn bộ ca độc lập S9 (bảng kịch bản gốc rồi bốn lô).
+- **Xong từ lần trước:** 5b + 5c gộp (`32f4930`, hồ sơ `aabf70d`); sửa năm neo đột biến gãy từ lúc gộp C8–C11 (`98e0168`); X8 32 / 32; bản
+  sửa `"≈"` gộp (`d43a1bf`) cùng XXS-01 (so marker bằng đúng) và XXS-04 (test nạp csv / xlsx / PDF).
+- **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: chờ D-AI-05; (2) M2: xong soát / sửa → băm bộ ca 0a → mã 0a (bước 3b) → chạy bộ 0a một lần;
+  (3) M4: chờ Q-P1-15 / Q-P1-14; (4) M1: soát 5a vòng 3 → gộp; kết quả đo người đọc vết; (5) 5e, S9.
 - **Bị chặn:** M3 — **D-AI-05** (S4 khoá sau vòng 3 KHÔNG ĐẠT: gộp kèm nợ / một vòng ngoại lệ hẹp / giữ main) và D-AI-04 (danh sách cụm ở pack
-  làm trần của D-AI-02 = a?). Dữ liệu /
-  người nghiệp vụ thật: không có (D-RM-03). W-G7 trả tiền: chưa cấp.
-- **Test** (cổng §6 ở cây tích hợp `32f4930` = main `d614395` + 15 commit 5b / 5c; sau đó chỉ đổi tài liệu; lúc 23/10 14:49, database PG riêng
-  `lead_5bcf`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG:
-  **1956** test pass, 0 fail, 0 skip — so theo tên với cổng `b22e1e6` (1942): 0 đổi, 0 mất, 14 mới; `python3 -I scripts/kiem-skip-test.py` XANH;
-  winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4 103/119** (hai đường giống nhau) — mốc so:
-  đầu ra cổng `b22e1e6`; 0 dòng khác ở cả 7 tệp.)
+  làm trần của D-AI-02 = a?); M4 — Q-P1-15 (bộ giữ lại mới để đo lại độc lập), Q-P1-14 (M5 so với §11.2). Dữ liệu / người nghiệp vụ thật:
+  không có (D-RM-03). W-G7 trả tiền: chưa cấp.
+- **Test** (cổng §6 ở cây tích hợp `d43a1bf` = main `086fff9` + 3 commit `"≈"`; lúc 23/10 15:09, database PG riêng `g_xxg_db`, 5 agent chạy
+  song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG: **1958** test pass, 0 fail,
+  0 skip — so theo tên với cổng `32f4930` (1956): 0 đổi, 0 mất, 2 mới; `python3 -I scripts/kiem-skip-test.py` XANH; winreport (`-data
+  <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4 103/119** (hai đường giống nhau) — mốc so: đầu ra cổng
+  `32f4930`; khác 41 / 11 / 31 / 23 dòng (117 / H1 / H3 / H4, mỗi đường): chỉ dòng G1 2736 → 2737, dòng ✗ của PDF và ghi chú ước lượng ở 19 / 4
+  / 14 / 10 câu — giống từng dòng đầu ra cổng của bản đã soát (`b1eb150` trên `d614395`).
 - **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN + lệnh ca chiều / trưa 23/10 (`docs/CHO-QUYET-DINH.md` mục 0); `docs/PROMPT-BUILD-EAIS.md`
   §9.10b, §9.10c; PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết:
   `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
@@ -133,3 +138,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 14:49 | 11 commit 5b / 5c (cherry-pick từ m1/sua-5bc) + `f61eedd`, `a3fe571`, `31423c7`, `32f4930` (sửa theo soát lại) ⇒ `32f4930` | 5b + 5c gộp: phân loại lỗi PG theo "lỗi do ai" (tạm thời ⇒ hạ tầng; lớp 22 / 23 ⇒ dữ liệu; còn lại ⇒ mã), lượt hỏi / nạp lại không lộ thông điệp PG thô; nền xanh của `scripts/mutate.sh`, `MUTATE_TEST_MUON`; sửa theo soát lại: lỗi đọc tất định của pipeline lệnh là INTERNAL_ERROR (5b-R1, test đỏ 3 / 4 trước sửa), chú thích classifyPGError (5b-R2), thông báo NỀN ĐỎ (5c-R2), ghi danh mục có mã thoát đáng tin (5c-R1) | cây `32f4930`, DB riêng `lead_5bcf`: vet 0; gofmt 0; `go test -count=1 -json ./...` có PG 1956 pass / 0 fail / 0 skip, so tên với cổng `b22e1e6`: 0 mất, 0 đổi, 14 mới; `kiem-skip-test.py` XANH; winreport 117 / H1 / H3 / H4 hai đường so đầu ra cổng `b22e1e6`: 0 dòng khác ở 7 tệp; đột biến 5b-R1 BỊ BẮT đúng ba ca con | soát: `s5abc-soat.json` (vòng 1), `s5r-soat.json` (vòng 2: 5b, 5c ĐẠT CÓ GHI CHÚ); bản sửa sau soát lại là SELF REVIEW có đột biến. Nợ: 5b-R3 (chuỗi PG thật → classifyPGError → HTTP chưa có test một mạch), 5c-R1 (rút hàm đếm ra tệp dùng chung cho mọi danh mục đột biến). 5a KHÔNG ĐẠT (5a-R1 S1) ⇒ sửa tiếp, không gộp |
 | 23/10 14:50 | commit chứa dòng này | Hồ sơ gộp 5b + 5c: `s5r-soat.json` nguyên văn + README; STATUS (cổng cuối `32f4930`); CHANGELOG; TIEN-DO | quét đường dẫn máy / email / khoá trên báo cáo chép: 0 | tài liệu |
 | 23/10 14:55 | `98e0168` + commit chứa dòng này | Danh mục đột biến `scripts/dot-bien-vet.sh`: năm dòng gãy neo trên main từ lúc gộp C8–C11 (AV7, AV10, XV48, XV49, XV51 — mã bộ che vòng 2 đổi mà danh mục không đổi theo; lỗi của điều phối) viết lại theo mã hiện tại | `scripts/mutate.sh` từng dòng với PKGS của khối, nền xanh: 5 / 5 BỊ BẮT; kiểm neo toàn danh mục trên main (bash đánh giá từng dòng m / mm): **212 / 212** khớp đúng một lần, 0 lệch | **Đính chính:** thông điệp commit `98e0168` ghi "219 / 219" — sai: 219 là số dòng của cây gộp 5a (thêm TV33–TV39), chưa phải main; số đo đúng trên main là 212 / 212 |
+| 23/10 14:59 | — (chạy trên mã `32f4930`) | M4 / X8: danh mục đột biến M1–M26 của §11.2 (`scripts/dot-bien/m4-phieu-chenh-lech.sh`, gồm M9h, M25a, M25b ở `./cmd/eais/`) | `EAIS_PG_ADMIN_DSN=… EAIS_PG_DSN=… taskset -c … bash scripts/dot-bien/m4-phieu-chenh-lech.sh` (PG riêng, 14:50 → 14:59) → `TỔNG: đúng chỗ 32 · sống sót 0 · khác 0 · chờ K3 0`, mã thoát 0 | X8 của bộ P1 đo bằng danh mục (ngoài bộ chạy ca); ngoại lệ M5 của §11.2 chờ Q-P1-14 |
+| 23/10 15:11 | `a8085fb` (cherry-pick `b1eb150`), `19a3090`, `d43a1bf` + commit chứa dòng này | L1 / S2: dấu ước lượng ký hiệu mà pack khai (`"≈"`) được nhận — tầng sai của 4 ca đỏ P1; sửa theo soát: XXS-01 (so marker bằng đúng, chú thích "ký hiệu một rune"), XXS-04 (test nạp csv / xlsx / PDF) | cây `d43a1bf`, DB riêng `g_xxg_db`: vet 0; gofmt 0; `go test -count=1 -json ./...` có PG 1958 pass / 0 fail / 0 skip, so tên với cổng `32f4930`: 0 mất, 0 đổi, 2 mới; `kiem-skip-test.py` XANH; winreport hai đường so đầu ra cổng `32f4930`: 41 / 11 / 31 / 23 dòng khác (G1 2736 → 2737, ghi chú ước lượng), giống từng dòng đầu ra cổng của bản đã soát; đột biến chuỗi con / tiền tố của XXS-01 BỊ BẮT; test XXS-04 đỏ 3 dòng trên `engine.go` của main | soát: `xx-soat.json` ĐẠT CÓ GHI CHÚ; XXS-01 / 04 sau soát là SELF REVIEW có đột biến / đỏ trước. Nợ: XXS-02 (`"~"` luôn nhận dù pack không khai; `"3800 ~ 3900 L"` gắn approx cho 3900 L), XXS-03 (cờ Approx OR trên mọi nguồn kể cả nguồn thua thẩm quyền), XXS-05 (`"∼"`, `"≃"` không khai thì không nhận — thêm vào pack nếu PDF thật xuất), XXS-06 (bản ghi cũ có `"≈"` phát lại lệch ở chặng normalize). Bộ P1 KHÔNG chạy lại |
+| 23/10 15:30 | commit chứa dòng này | **M2: bộ ca giữ lại độc lập Phase 0a ĐÓNG BĂNG** bằng cam kết băm (ADR-0006 §10): 249 ca (P1 137, P2 112; 80 tự nhiên, 6 có `blocked_by`), 83 / 84 lớp của §10 có ca — LC10 không còn ca (ca duy nhất bị người sửa bỏ); người soạn P1, P2 là hai agent không đọc mã, soát / sửa theo khúc bởi người khác (P1: 39 cờ — 26 sửa, 13 bỏ; P2: 36 cờ — 26 sửa, 8 bỏ, 1 giữ); 6 ca mới người sửa tự thêm ở khúc J của P2 (sau một cờ phủ lớp LC71) KHÔNG nhận vì chưa qua soát độc lập (LC71 có 34 ca ở P1) | `python3 -I scripts/cam-ket-bo-ca-0a.py <tệp ca> docs/g7/holdout-0a --bo-do-nghe <bộ đồ nghề> --the-gioi <4 tệp thế giới>` → 249 ca, băm bộ đồ nghề `ec00fba2…` (4 tệp), mã lúc băm `248e8ac`; `python3 -I scripts/kiem-nhiem-soan.py` trên 42 nhật ký công cụ của người soạn / soát / sửa: 0 vi phạm, 0 cảnh báo; sao lưu ngoài repo, 5 / 5 tệp khớp băm | nội dung ở máy tới lúc chạy; mã 0a tiếp tục trên `m2/0a-ma-truoc-dong-bang` theo Q-0A-17, chạy bộ 0a MỘT lần ở mã đóng băng |
+| 23/10 16:09 | `4f829ab` + commit chứa dòng này | **M1: đo lại người chỉ đọc vết bằng bộ thẻ MỚI** (lệnh chủ dự án 23/10 chiều mục 4): người gieo lỗi riêng, một lỗi mỗi tầng S2–S6, S8–S10 trên mã `086fff9`, 38 thẻ đỏ (S8 chỉ 3) + 38 thẻ xanh, tên ẩn danh; người đọc mù riêng | chấm theo bảng ánh xạ kín: **30 / 38 = 78,9% thẻ đỏ ⇒ KHÔNG ĐẠT** (ngưỡng ≥ 90%); 38 / 38 thẻ xanh đúng; S2, S3, S4, S5, S6, S9 5 / 5; S10 0 / 5 (đọc thành S8), S8 0 / 3 (đọc thành S6); tám nhãn sai đều độ tin "thấp" | thẻ, câu trả lời người đọc, đáp án, báo cáo người gieo nguyên văn ở `docs/bao-cao/do-vet-2026-10-23/` (`4f829ab`); phân tích `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`. Nguyên nhân: S8 không xuất bản nháp; nhánh RAG thoát sớm không ghi lý do ⇒ việc kế `m1/vet-s8-s10` |
+| 23/10 16:53 | `48491f7` + commit chứa dòng này | Danh mục đột biến ứng dụng `scripts/dot-bien-ung-dung.sh`: sáu neo gãy có sẵn trên main (AV2, VT5, VT7 khớp 2 lần vì route lệnh K3 chép câu của route hỏi; VT9 khớp 0 lần sau 5b; SM1, RP5 khớp 2 lần) viết lại theo mã hiện tại — bốn dòng do soát 5e nêu (D5ES-07), hai dòng điều phối đếm thêm | cây `48491f7`, DB riêng `g_d07g_db`, mốc đầu ra cổng `d43a1bf`: vet 0; gofmt 0; 1958 pass / 0 fail / 0 skip, so tên 0 mất / 0 đổi; kiem-skip XANH; winreport 0 dòng khác ở 7 tệp; đột biến (PG riêng, PKGS=./cmd/eais/, nền xanh) AV2, VT5, VT7, VT9, RP5 BỊ BẮT (SM1 là dòng smoke chạy scripts/chay-thu.sh — chỉ kiểm neo); toàn danh mục 131 / 131 neo khớp đúng một lần | SELF REVIEW có đột biến. Lỗi cả lớp (lần 2 hôm nay sau 98e0168) ⇒ cổng §6 của điều phối thêm bước đếm neo cho `dot-bien-vet.sh` và `dot-bien-ung-dung.sh`; nợ: đưa phép đếm neo của mọi danh mục vào CI của repo |

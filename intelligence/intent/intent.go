@@ -1006,9 +1006,10 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 	return out
 }
 
-// asking báo phần câu là một CÂU HỎI: có cụm xác nhận / cụm hỏi lượng của pack hoặc dấu '?'.
+// asking báo phần câu là một CÂU HỎI: có cụm xác nhận hoặc cụm hỏi lượng của pack. Dấu '?' một mình KHÔNG làm câu thành câu hỏi (S4AS-01): "Ghi nhận
+// EX-03 … 3782 L dầu nhé?" kết thúc bằng '?' nhưng là một LỆNH ghi lịch sự — câu hỏi là câu đòi xác nhận ("đúng không") hay đòi một lượng ("bao nhiêu").
 func (s *Set) asking(text string) bool {
-	return strings.Contains(text, "?") || slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }
 
 // meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.

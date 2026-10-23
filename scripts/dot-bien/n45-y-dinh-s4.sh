@@ -204,3 +204,11 @@ m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ 
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
 m $I '	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' '	for _, c := range s.cuePhrases()[:0] { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' 'S112 a2 đòi giải thích cả cụm "ghi nhận" trong câu hỏi'
 
+
+# ---- vòng 2 (23/10, soát vòng 1): S4AS-01 — lệnh ghi lịch sự có "?" vẫn là lệnh
+m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}' '	return strings.Contains(text, "?") || slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}' 'S113 dấu "?" một mình làm câu thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
+m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}' '	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}' 'S114 cụm hỏi lượng không đánh dấu câu hỏi ("ghi nhận … bao nhiêu" bị coi là lệnh)'

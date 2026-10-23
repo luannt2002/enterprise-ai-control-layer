@@ -349,7 +349,7 @@ func TestU1RanhGioiCommit(t *testing.T) {
 		lab.use(t)
 		st, tn := lab.newPG("k2_u1_b", nil), lab.tenant("b")
 		done := make(chan error, 1)
-		go func() { done <- st.WriteTicket(ctxOf(tn), lab.unit(4, "EX-03", "k2:commit-sleep:4")) }()
+		go func() { done <- st.WriteTicket(ctxOf(tn), lab.unit(4, "EX-03", "k2:commit-sleep:10")) }()
 		pid := lab.waitBackend("k2_u1_b", "state = 'active' AND query = 'commit'")
 		lab.kill(pid)
 		var err error
@@ -359,7 +359,7 @@ func TestU1RanhGioiCommit(t *testing.T) {
 			t.Fatal("b: WriteTicket không trả sau khi backend bị kết thúc")
 		}
 		wantClass(t, "b", err, ErrCommitUnknown)
-		lab.record("b", "trigger hoãn pg_sleep(4) trong COMMIT; admin pg_terminate_backend giữa lúc ngủ", err, err, truthOf(lab.settle(tn, 300*time.Millisecond)))
+		lab.record("b", "trigger hoãn pg_sleep(10) trong COMMIT; admin pg_terminate_backend giữa lúc ngủ", err, err, truthOf(lab.settle(tn, 300*time.Millisecond)))
 		if lab.ticketsOf(tn) != 0 {
 			t.Errorf("b: backend chết trong COMMIT trước khi xong mà còn phiếu")
 		}
@@ -421,7 +421,7 @@ func TestU1RanhGioiCommit(t *testing.T) {
 		mode    proxyMode
 		timeout time.Duration
 	}{
-		{"c3", "cầu TCP giữ phản hồi COMMIT; ngữ cảnh 800ms hết hạn khi chờ", proxyHold, 800 * time.Millisecond},
+		{"c3", "cầu TCP giữ phản hồi COMMIT; ngữ cảnh 2 s hết hạn khi chờ", proxyHold, 2 * time.Second},
 		{"c4", "cầu TCP cắt kết nối ngay khi phản hồi COMMIT về tới nó", proxyCut, 5 * time.Second},
 	} {
 		t.Run(c.id+" "+c.how, func(t *testing.T) {

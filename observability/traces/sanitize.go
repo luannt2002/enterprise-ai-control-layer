@@ -41,7 +41,13 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // (fuzz 23/10: 105 / 300.000 chuỗi ghép). Giá trị MỞ bằng nháy thoát (password=\"…\": logfmt / slog lồng, chữ đã qua %q) chỉ che được
 // dấu \ đứng đầu, bí mật sau \" lọt (soát lại 5abc, 5a-R3; có từ trước 5a) — đường chạm tới: tên trường lạ trong thân POST
 // /v1/commands/<công cụ> ghi vào bước C0 dạng "invalid_fields=…", lấy từ lỗi `json: unknown field %q` (bí mật do chính bên gọi gõ).
-// Bộ mẫu chỉ là danh sách — dạng nào ngoài danh sách thì chưa có bảo đảm.
+// Che THỪA (mất chữ không phải bí mật; đo 23/10, soát 5a vòng 3, 5a3-4): (i) có từ vòng 3, main giữ được — "Cookie:" nằm trong một giá trị
+// trong nháy hay làm giá trị trần của khoá bí mật thì vùng Cookie trần (tính trên chữ gốc) chạy qua nháy đóng và nuốt nốt phần còn lại của
+// DÒNG: `token="abc Cookie: sid=… def" tail X` → `token="[REDACTED]"`, `password:Cookie: X` → `password:[REDACTED] [REDACTED]`; (ii) có từ
+// vòng 1–2, main giữ được — cặp không bí mật nằm giữa hai cặp bí mật mà hai cách đọc nháy bất đồng bị nuốt cùng tên cặp kế tiếp
+// (`password="a\" user=X note=Y secret="b\" end` → `password="[REDACTED]" end`), và giá trị kết thúc bằng \ rồi nháy mà sau đó không còn nháy
+// nào thì cách đọc theo nháy thoát coi là chưa đóng, che tới HẾT CHUỖI (mọi dòng sau mất). Cả hai đổi nghĩa vết nếu rơi vào câu hỏi hay
+// thông điệp lỗi. Bộ mẫu chỉ là danh sách — dạng nào ngoài danh sách thì chưa có bảo đảm.
 var secretMasks = []struct {
 	re    *regexp.Regexp
 	repl  string
@@ -159,8 +165,9 @@ func Sanitize(s string) string {
 		}
 		// Mọi mẫu "tên + giá trị" đứng liền nhau tính vùng trên CÙNG một chữ rồi gộp MỘT lần (soát lại 5abc, 5a-R1): che lần lượt thì mẫu
 		// trước (đọc theo nháy thoát) có thể nuốt tiền tố "Cookie:" của chữ, mẫu Cookie chạy sau không còn khớp và giá trị Cookie lọt.
-		// Hệ quả (che thừa, chấp nhận): vùng gộp nuốt cả tên của cặp kế tiếp — `password="C:\x\"` xuống dòng `Cookie: sid="…"` thành
-		// `password="[REDACTED]"`, `password="a\" secret="…\" token="…"` thành `password="[REDACTED]" token="[REDACTED]"`.
+		// Hệ quả (che thừa, chấp nhận — hướng an toàn; danh sách đủ ở "Giới hạn đã biết" trên secretMasks): vùng gộp nuốt cả tên của cặp kế
+		// tiếp — `password="C:\x\"` xuống dòng `Cookie: sid="…"` thành `password="[REDACTED]"`, `password="a\" secret="…\" token="…"` thành
+		// `password="[REDACTED]" token="[REDACTED]"`.
 		var ms []*valueMask
 		for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {
 			ms = append(ms, secretMasks[i].value)

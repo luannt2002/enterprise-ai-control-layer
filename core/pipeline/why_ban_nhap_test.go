@@ -171,8 +171,8 @@ func TestDraftLedgerLoaiDungBan(t *testing.T) {
 	a.noteTemplateDraft(ctx, &why, "số liệu: ", "metric_total", "A")
 	a.noteModelDraft(ctx, &why, "tri thức: ", "m", "B")
 	a.noteModelDraft(ctx, &why, "tri thức: ", "m", "B")
-	a.noteRejected(ctx, "tri thức: ", "B")
-	a.noteRejected(ctx, "số liệu: ", "khác")
+	a.noteRejected(ctx, &why, "tri thức: ", "B")
+	a.noteRejected(ctx, &why, "số liệu: ", "khác")
 	got := []bool{l.drafts[0].rejected, l.drafts[1].rejected, l.drafts[2].rejected}
 	if want := []bool{false, false, true}; !slices.Equal(got, want) {
 		t.Errorf("loại bản nháp gần nhất cùng tiền tố và chữ: %v, muốn %v", got, want)
@@ -180,7 +180,7 @@ func TestDraftLedgerLoaiDungBan(t *testing.T) {
 	var none *draftLedger
 	none.add("", "x")
 	none.reject("", "x") // không panic
-	(&Ask{noWhy: true}).noteRejected(ctx, "tri thức: ", "B")
+	(&Ask{noWhy: true}).noteRejected(ctx, &why, "tri thức: ", "B")
 	if !l.drafts[1].rejected == false && l.drafts[1].rejected {
 		t.Errorf("noWhy không được loại bản nháp trong sổ")
 	}

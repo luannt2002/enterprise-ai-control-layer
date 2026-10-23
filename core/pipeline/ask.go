@@ -550,7 +550,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		return append(v, validation.BindClaims(draft.Text, ignore[:2], draft.Claims, pkg.Evidence)...), nil
 	})
 	if len(violations) > 0 {
-		a.noteRejected(ctx, prefix, draft.Text)
+		a.noteRejected(ctx, why, prefix, draft.Text)
 		resp.Answer = a.render("fallback_unverified", vars)
 		resp.Verdict = contracts.Verdict{Pass: false, Violations: violations, Action: contracts.ActionFallback}
 		resp.Outcome = contracts.OutcomeSystemFailure // câu không kiểm được thì không giao như thành công
@@ -630,7 +630,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	})
 	if len(violations) > 0 {
 		why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn nào được trích dẫn", prefix)
-		a.noteRejected(ctx, prefix, draft.Text)
+		a.noteRejected(ctx, why, prefix, draft.Text)
 		fail("fallback_unverified", contracts.OutcomeSystemFailure, violations)
 		return nil
 	}

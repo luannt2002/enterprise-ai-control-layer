@@ -556,11 +556,15 @@ func (l *draftLedger) reject(prefix, text string) {
 	}
 }
 
-// noteRejected ghi nhận S9 đã loại bản nháp text: S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó.
-func (a *Ask) noteRejected(ctx context.Context, prefix, text string) {
+// noteRejected ghi S9 khi loại bản nháp text: số ký tự và băm của bản bị loại (KHÔNG in chữ — chữ bị loại không rời Handle ngoài đoạn đầu đã nằm ở S8), nằm cạnh
+// lý do loại (các vi phạm ở lý do của S9). Đồng thời đánh dấu trong sổ để S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó.
+func (a *Ask) noteRejected(ctx context.Context, why *traces.Why, prefix, text string) {
 	if a.noWhy {
 		return
 	}
+	n := &why.Validate
+	runes, hash := textDigest(text)
+	n.Reject("%s%s: %d ký tự · băm %s (bản nháp ở S8; lý do loại: các vi phạm nêu ở lý do)", prefix, traces.RejectedDraft, runes, hash)
 	ledgerOf(ctx).reject(prefix, text)
 }
 

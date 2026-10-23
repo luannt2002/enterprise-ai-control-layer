@@ -50,7 +50,11 @@ const (
 // NotRecorded là giá trị của trường "lý do" / "phương án bị loại" mà luồng hỏi chưa xuất ra ngoài Handle. Ghi thẳng điều này thay
 // vì suy đoán: một lý do bịa trong vết còn tệ hơn một chỗ trống ghi rõ là trống. Nội dung sau dấu hai chấm nói chỗ cần móc.
 // Các chặng S2, S3, S4, S5, S7 và cổng phán quyết ở S9 đã được móc (Decision.Why, R2-03) nên lượt chạy thật không còn chỗ trống ở đó;
-// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột, bản nháp bị loại ở S9.
+// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột.
+// RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
+// chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
+const RejectedDraft = "bản nháp bị loại"
+
 const NotRecorded = "chưa ghi — cần móc trong core/pipeline (làn 1)"
 
 func notRecorded(what string) string { return NotRecorded + ": " + what }
@@ -386,11 +390,13 @@ func BuildSteps(t Turn) []Step {
 			s.Reason = strings.Join(vs, "; ")
 		}
 		// cổng phán quyết của câu xác nhận (verdictGap) chạy trước khi dựng câu: phán quyết hay không và vì sao
-		if n := d.Why.Validate; n.Recorded() {
+		n := d.Why.Validate
+		if n.Recorded() {
 			s.Reason += "; " + joinReasons(n)
-			s.Rejected = slices.Clone(n.Rejected)
 		}
-		if !resp.Verdict.Pass {
+		s.Rejected = slices.Clone(n.Rejected) // kể cả khi chặng không có ý nào ở Reasons: route tri thức chỉ ghi dòng bản nháp bị loại
+		// kiểm trượt mà luồng hỏi không xuất bản nháp bị loại (lượt cũ, bản dựng tay): chỗ trống ghi rõ
+		if !resp.Verdict.Pass && !slices.ContainsFunc(s.Rejected, func(x string) bool { return strings.Contains(x, RejectedDraft) }) {
 			s.Rejected = append(s.Rejected, notRecorded("bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"))
 		}
 		if !resp.Verdict.Pass || resp.Verdict.Action == contracts.ActionFallback || resp.Verdict.Action == contracts.ActionEscalate {

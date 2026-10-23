@@ -174,3 +174,41 @@ func TestS4BS04TinHieuTienMoRong(t *testing.T) {
 		answered(t, q)
 	}
 }
+
+// S4BS-05 (S3, hỏi thừa): cụm báo nghĩa chưa hỗ trợ chỉ kích hoạt khi nằm ở mệnh đề HỎI — không ở đoạn mục đích (S4BS-01), mệnh đề điều kiện ("Nếu …,"), mệnh đề phủ định ("Không tính tiền,",
+// "Chưa tính chi phí,") hay hoãn ("… em lo sau,", "… xong,"); cụm quá chung ("sẽ", "dự kiến", "dự tính", "ước tính" — weak_cues của pack) chỉ kích hoạt khi chính mệnh đề hỏi mang chúng VÀ câu hỏi về một chỉ số.
+// Ca âm cùng chữ: cụm ở mệnh đề hỏi, và yêu cầu ở mệnh đề ngữ cảnh ("Dự báo giúp em, …", "Nhắc tôi nhé, …") vẫn được nói ra.
+func TestS4BS05CumBaoNghiaChiKichHoatOMenhDeHoi(t *testing.T) {
+	for q, want := range map[string][2]string{
+		"Anh sẽ duyệt, EX-03 hôm nay hoá đơn bao nhiêu lít dầu?":        {"fuel_billed", "4.100"},
+		"Chiều nay sẽ họp, EX-03 hôm nay tiêu thụ bao nhiêu dầu?":       {"fuel_consumed", "3.782"},
+		"Dự kiến chiều họp, EX-03 hôm nay được cấp bao nhiêu dầu?":      {"fuel_issued", "3.850"},
+		"Không tính tiền, EX-03 hôm nay dùng bao nhiêu dầu?":            {"fuel_consumed", "3.782"},
+		"Chưa tính chi phí, EX-03 hôm nay được cấp bao nhiêu dầu?":      {"fuel_issued", "3.850"},
+		"Chi phí em lo sau, EX-03 hôm nay dùng bao nhiêu dầu?":          {"fuel_consumed", "3.782"},
+		"Tiền em tính sau, EX-03 hôm nay tiêu thụ bao nhiêu dầu?":       {"fuel_consumed", "3.782"},
+		"Quyết toán kỳ trước xong, EX-03 hôm nay dùng bao nhiêu dầu?":   {"fuel_consumed", "3.782"},
+		"Trị giá hợp đồng không đổi, EX-03 hôm nay dùng bao nhiêu dầu?": {"fuel_consumed", "3.782"},
+		"Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?":             {"fuel_consumed", "3.782"},
+		"Giả sử có cảnh báo, EX-03 hôm nay được cấp bao nhiêu dầu?":     {"fuel_issued", "3.850"},
+	} {
+		answersIntent(t, q, want[0], want[1])
+	}
+	// "sẽ" mà câu không hỏi chỉ số nào là chuyện khác: ngoài phạm vi (không phải câu dự báo, không hỏi lại về dầu)
+	for _, q := range []string{"EX-03 sẽ về công trường lúc mấy giờ?", "Dự kiến lúc mấy giờ EX-03 về công trường?"} {
+		if r := ask(t, newAsk(t), user("director", ""), q).Response; r.Route != contracts.RouteReject {
+			t.Errorf("%q: muốn từ chối ngoài phạm vi, được [%s] %q", q, r.Route, r.Answer)
+		}
+	}
+	// ca âm: cụm ở chính mệnh đề hỏi (có chỉ số), hay yêu cầu ở mệnh đề ngữ cảnh
+	askBack(t, "EX-03 sẽ dùng bao nhiêu dầu hôm nay?", notForecast)
+	askBack(t, "EX-03 dự kiến dùng bao nhiêu dầu ngày mai?", notForecast)
+	askBack(t, "Dự báo giúp em, EX-03 ngày mai dùng bao nhiêu dầu?", notForecast)
+	askBack(t, "Nhắc tôi nhé, EX-03 hôm nay được cấp bao nhiêu dầu?", notWarning)
+	askBack(t, "Quyết toán dầu EX-03 hôm nay bao nhiêu?", notMoney)
+	askBack(t, "Chi phí dầu EX-03 hôm nay bao nhiêu?", notMoney)
+	// từ phủ định đứng CUỐI câu là đuôi hỏi, không phải phủ định: câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền
+	askBack(t, "Chi phí dầu EX-03 hôm nay có cao không?", notMoney)
+	// "không" của cụm xác nhận ("đúng không") không phải từ phủ định dù sau nó còn chữ ("ạ")
+	askBack(t, "Chi phí dầu EX-03 hôm nay 4tr đồng đúng không ạ?", notMoney)
+}

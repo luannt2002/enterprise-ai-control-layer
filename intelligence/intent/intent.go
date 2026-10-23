@@ -52,6 +52,9 @@ type Unsupported struct {
 	Name     string   `yaml:"name"`
 	Template string   `yaml:"template"` // mẫu câu nói nghĩa đó chưa được hỗ trợ (templates.yaml)
 	Cues     []string `yaml:"cues"`     // cụm từ báo nghĩa đó; chiếm chỗ trong luật khớp dài nhất nên chữ con của chúng ("báo" của "dự báo") không thành từ khoá
+	// WeakCues: cụm QUÁ CHUNG của nghĩa này ("sẽ", "dự kiến", "ước tính"): chữ thường gặp ở câu không hỏi dự báo ("Anh sẽ duyệt, …"). Chúng chỉ kích hoạt khi chính MỆNH ĐỀ HỎI mang chúng và câu hỏi về một chỉ
+	// số (có từ khoá chỉ số hay thuật ngữ vật tư); vẫn chiếm chỗ trong luật khớp dài nhất như Cues (S4BS-05).
+	WeakCues []string `yaml:"weak_cues"`
 	// NeedsValue: chỉ tính khi câu nêu một CON SỐ và không phải câu hỏi (lệnh ghi "Ghi nhận EX-03 tiêu thụ 3782 L"). Không có giá trị, hay là câu hỏi, thì cụm vẫn
 	// chiếm chỗ nhưng câu là câu hỏi số liệu như thường (D-OP-18 = c).
 	NeedsValue bool `yaml:"needs_value"`
@@ -67,6 +70,8 @@ type Options struct {
 	// SourceNames trả tên các nguồn cấp số liệu của một chỉ số (nhãn và bí danh ở metrics.yaml: "cảm biến", "phiếu kho", "ERP"); metric rỗng = mọi chỉ số. Cụm báo nghĩa ở mệnh đề có tên nguồn
 	// là động từ của NGUỒN ("theo ghi nhận của cảm biến"), không phải yêu cầu của người hỏi (S4BS-03).
 	SourceNames func(metric string) []string
+	// ConditionMarkers: từ nối mở một mệnh đề ĐIỀU KIỆN ("nếu", "giả sử"): mệnh đề bắt đầu bằng chúng nêu giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong đó không kích hoạt (S4BS-05).
+	ConditionMarkers []string
 	// NegationMarkers: từ phủ định ("không", "chưa", "chẳng"). Đứng CUỐI câu chúng là đuôi hỏi có / không ("… dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm hỏi và dấu "?" (xem Set.questioned).
 	NegationMarkers []string
 	// PurposeMarkers: từ nối mở một đoạn MỤC ĐÍCH ("để", "nhằm"). Đoạn từ từ nối tới hết mệnh đề nói VÌ SAO người hỏi cần câu trả lời, không nói câu trả lời là chỉ số nào nên chữ trong
@@ -1062,6 +1067,7 @@ func (s *Set) cuePhrases() []string {
 	var out []string
 	for _, u := range s.opt.Unsupported {
 		out = append(out, u.Cues...)
+		out = append(out, u.WeakCues...)
 	}
 	return out
 }
@@ -1090,21 +1096,28 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 	clauses := clauseSpans(in.Raw)
 	var out []Unsupported
 	markers := slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)
+	// câu hỏi về một chỉ số: có từ khoá của ý định số liệu (không tính quy trình / chào hỏi) hay thuật ngữ vật tư mà một ý định đòi
+	metricAsk := slices.ContainsFunc(in.SpansOf(contracts.ValueTerm), func(sp contracts.Span) bool {
+		return slices.ContainsFunc(s.defs, func(d Def) bool { return slices.Contains(d.Terms, sp.Value.Text) })
+	})
+	for i, d := range s.defs {
+		if r := contracts.RouteKind(d.Route); counts[i] > 0 && (r == contracts.RouteSQLQuery || r == contracts.RouteCalculation) {
+			metricAsk = true
+		}
+	}
 	for _, u := range s.opt.Unsupported {
 		why := ""
 		for ci, c := range clauses {
 			ct := rawBG[c[0]:c[1]]
-			at := -1 // vị trí của cụm báo nghĩa đầu tiên trong mệnh đề
-			for _, cue := range u.Cues {
-				if sp := normalization.PhraseSpans(ct, cue); len(sp) > 0 && (at < 0 || sp[0][0] < at) {
-					at = sp[0][0]
-				}
+			at := firstSpan(ct, u.Cues) // vị trí của cụm báo nghĩa đầu tiên trong mệnh đề
+			if at < 0 && metricAsk && s.asking(ct) {
+				at = firstSpan(ct, u.WeakCues) // cụm quá chung chỉ kích hoạt ở chính mệnh đề hỏi một chỉ số
 			}
 			if at < 0 {
 				continue
 			}
-			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) { // câu gốc: "để sau" vừa là cụm bỏ qua vừa mở một đoạn "mục đích"
-				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau", u.Name, contracts.Quote(ct))
+			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) || s.negated(ct) || s.conditional(ct) { // câu gốc: "để sau" vừa là cụm bỏ qua vừa mở một đoạn "mục đích"
+				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau, phủ định hay nêu điều kiện (S4BS-05)", u.Name, contracts.Quote(ct))
 				continue
 			}
 			if u.NeedsValue {
@@ -1219,6 +1232,34 @@ func (s *Set) attachedRequest(clauses [][2]int, ci int, rawBG string) bool {
 
 // SignalStatedValue là tín hiệu cấu trúc "câu NÊU một giá trị": có thực thể và một con số CÓ ĐƠN VỊ mà không có dấu hiệu hỏi / xác nhận nào (D-OP-18 = c đúng chữ) — bất kể động từ.
 const SignalStatedValue = "stated_value"
+
+// firstSpan trả vị trí byte đầu tiên mà một trong các cụm khớp trong text, -1 nếu không có.
+func firstSpan(text string, phrases []string) int {
+	at := -1
+	for _, sp := range spansOf(text, phrases) {
+		if at < 0 || sp[0] < at {
+			at = sp[0]
+		}
+	}
+	return at
+}
+
+// negated báo mệnh đề có từ phủ định KHÔNG đứng cuối ("Không tính tiền", "Chưa tính chi phí", "Trị giá hợp đồng không đổi"): cụm báo nghĩa trong đó đang bị phủ nhận, không phải điều được hỏi. Từ phủ định cuối
+// mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định nằm trong cụm hỏi của pack ("đúng không") không tính — câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền (S4BS-05).
+func (s *Set) negated(clause string) bool {
+	if len(s.opt.NegationMarkers) == 0 {
+		return false
+	}
+	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))
+	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))
+	return slices.ContainsFunc(spansOf(masked, s.opt.NegationMarkers), func(sp [2]int) bool { return sp[1] < end })
+}
+
+// conditional báo mệnh đề BẮT ĐẦU bằng từ nối điều kiện của pack ("Nếu dự báo mưa, …").
+func (s *Set) conditional(clause string) bool {
+	trimmed := len(clause) - len(strings.TrimLeft(clause, " "))
+	return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers), func(sp [2]int) bool { return sp[0] == trimmed })
+}
 
 // ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "stated_value" (câu nêu giá trị, không dấu hiệu hỏi), "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều
 // đo>" ("bao nhiêu" + đơn vị của chiều đo ở cuối mệnh đề: "bao nhiêu đồng"). dimensionKnown báo chiều đo có trong lexicon.

@@ -293,3 +293,14 @@ m tenants/construction/pack/lexicon.yaml 'aliases: [usd, đô, đô la]}' 'alias
 m tenants/construction/pack/intents.yaml 'signals: ["span:money", "asked_unit:currency", "asked_unit:currency_usd"]}' 'signals: ["span:money", "asked_unit:currency"]}' 'S172 pack không khai tín hiệu asked_unit cho ngoại tệ'
 m core/tenant/pack.go '						out = append(out, rt.Normalizer.MultiplierAliases("1000000")...)' '						_ = rt.Normalizer.MultiplierAliases' 'S173 hậu tố nhân cỡ triệu ("củ", "tr") không là đơn vị tiền khi hỏi "bao nhiêu củ"'
 
+# ---- S4BS-05 (vòng 3): cụm báo nghĩa chỉ kích hoạt ở mệnh đề hỏi; cụm quá chung cần chính mệnh đề hỏi một chỉ số
+m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && metricAsk {' 'S174 cụm quá chung ("sẽ") kích hoạt ở mệnh đề không phải câu hỏi ("Anh sẽ duyệt, …" thành câu dự báo)'
+m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && s.asking(ct) {' 'S175 cụm quá chung kích hoạt khi câu không hỏi chỉ số nào ("EX-03 sẽ về công trường lúc mấy giờ?" thành câu dự báo)'
+m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.conditional(ct) {' 'S176 mệnh đề phủ định ("Không tính tiền, …") vẫn kích hoạt cụm tiền'
+m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.negated(ct) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
+m $I 'func(sp [2]int) bool { return sp[1] < end })' 'func(sp [2]int) bool { return sp[1] <= end })' 'S178 từ phủ định cuối mệnh đề (đuôi hỏi "… có cao không?") bị coi là phủ định'
+m $I '	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))' '	masked := clause' 'S179 "không" của cụm xác nhận ("đúng không ạ") bị coi là phủ định'
+m tenants/construction/pack/intents.yaml 'cues: [dự báo, dự đoán, dự phóng, dự trù], weak_cues: [dự kiến, dự tính, ước tính, sẽ]}' 'cues: [dự báo, dự đoán, dự phóng, dự trù, dự kiến, dự tính, ước tính, sẽ]}' 'S180 pack để "sẽ", "dự kiến" … làm cụm thường (mọi câu có "sẽ" thành câu dự báo)'
+m tenants/construction/pack/intents.yaml 'bỏ qua, lo sau, tính sau, làm sau, xong]' 'bỏ qua]' 'S181 pack không có cụm hoãn / đã xong ("em lo sau", "em tính sau", "xong")'
+m tenants/construction/pack/intents.yaml 'condition_markers: [nếu, giả sử, hễ]' 'condition_markers: []' 'S182 pack không khai từ nối điều kiện'
+

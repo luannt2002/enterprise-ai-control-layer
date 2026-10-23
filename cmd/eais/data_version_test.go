@@ -228,6 +228,26 @@ func TestDataVersionCommandTrace(t *testing.T) {
 	}
 }
 
+// Route LỆNH cũng đọc sổ nạp theo TENANT CỦA LƯỢT (của principal), không theo tenant mà app đang phục vụ: tenant A đã nạp, principal của tenant B gọi POST /v1/commands/<tool>
+// (bị chính sách chặn, 403) thì vết của lượt đó — lưu ở tenant B — khai "(chưa ghi nhận lần nạp)" của chính B, KHÁC phiên bản của A. Lượt hỏi đã có ca này
+// (TestDataVersionErrorTurns); route lệnh có điểm gọi loadedVersion riêng nên cần ca riêng: soát độc lập vòng 1 (D5ES-01) đổi tenant ở điểm gọi đó sang tenant của app mà
+// không test nào đỏ, và vết của principal tenant khác lộ băm phiên bản dữ liệu của tenant này (SN35).
+func TestDataVersionCommandForeignTenant(t *testing.T) {
+	st, _ := openPG(t)
+	e := newEnv(t, st)
+	if !hex64.MatchString(e.load.DataVersion) {
+		t.Fatalf("đối chứng: tenant A đã nạp phải có phiên bản 64 hex, được %q", e.load.DataVersion)
+	}
+	foreign := wantResult(t, e.cmd(tokDirectorB, cmdReq(1, "EX-03", dayAgo)), 403, commands.StatusFailed, commands.ReasonPermissionDenied, "policy", commands.RetryNone)
+	got := e.getTrace(tokDirectorB, foreign.TraceID).Record.Decision.DataVersion
+	if got == e.load.DataVersion {
+		t.Errorf("vết lệnh của principal tenant B mang phiên bản dữ liệu của tenant A (%q): rò phiên bản chéo tenant", got)
+	}
+	if got != noLoadMarker {
+		t.Errorf("vết lệnh của principal tenant B khai %q, muốn %q (tenant B chưa nạp gì)", got, noLoadMarker)
+	}
+}
+
 // ledgerFailStore là kho PG mà sổ nạp đọc hỏng theo ý test.
 type ledgerFailStore struct {
 	*pgstore.Store

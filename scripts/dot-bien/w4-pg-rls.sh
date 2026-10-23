@@ -6,6 +6,7 @@
 # sửa chuỗi theo mã mới rồi chạy lại — đừng xoá dòng cho xanh.
 # Khối SN (cuối tệp, 23/10/2026, việc 5e): sổ nạp load_records — migration 0006, pgstore/load.go, Ready và cách cmd/eais đọc phiên bản dữ liệu. Mỗi dòng khẳng định
 # test NHẮM TỚI (MUTATE_TEST_MUON); đỏ ở test khác là "đỏ sai chỗ" (rc=6, tính vào "khác"). Chạy riêng khối đó: DOT_BIEN_LOC='^SN' (regex trên nhãn).
+# SN35 thêm ở vòng 2 của việc 5e (soát độc lập D5ES-01: đột biến của người soát, đổi tenant ở điểm gọi loadedVersion của route lệnh, SỐNG SÓT khi chỉ có SN1–SN34).
 cd "$(dirname "$0")/../.." || exit 1
 # DSN lấy từ môi trường nếu đã đặt (ví dụ người soát chạy trên database riêng); mặc định là PG dev của deploy/docker-compose.yml.
 export EAIS_PG_ADMIN_DSN="${EAIS_PG_ADMIN_DSN:-postgres://postgres@127.0.0.1:25432/eais?sslmode=disable}"
@@ -138,6 +139,7 @@ muon 'TestDataVersionUnreadable' m $S $'\tif verr != nil {\n\t\ts.log.Error("kh�
 muon 'TestDataVersion' m $A 'if l := ledgerOf(a.st); l != nil {' 'if l := ledgerOf(a.st); false && l != nil {' 'SN32 app.ingest không ghi phiên bản vào sổ nạp'
 muon 'TestDataVersionDirChangedAfterIngest' m $A 'if ledgerOf(st) != nil {' 'if false && ledgerOf(st) != nil {' 'SN33 newApp lấy phiên bản nền từ băm thư mục (kho có sổ)'
 muon 'TestDataVersionStartupLedgerError' m $A 'return nil, fmt.Errorf("không đọc được phiên bản dữ liệu từ sổ nạp của kho: %w", err)' 'dv = ""' 'SN34 khởi động nuốt lỗi đọc sổ nạp'
+muon 'TestDataVersionCommandForeignTenant' m $S 'dv, verr := s.app.loadedVersion(vctx, pr.TenantID)' 'dv, verr := s.app.loadedVersion(vctx, contracts.TenantID(s.app.tenantID()))' 'SN35 lượt lệnh đọc sổ nạp theo tenant của app thay vì tenant của lượt (vết principal tenant khác mang phiên bản của tenant này)'
 
 psql -q -X "$EAIS_PG_ADMIN_DSN" -c "DROP DATABASE IF EXISTS $DB_DOT_BIEN WITH (FORCE)"
 echo "TỔNG: bị bắt $bat · sống sót $song · khác $khac"

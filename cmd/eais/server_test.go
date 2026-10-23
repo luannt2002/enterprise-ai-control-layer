@@ -750,6 +750,27 @@ func TestLoiDuLieuPGKhongDoChoClient(t *testing.T) {
 	}
 }
 
+// Nhãn mà pgstore gắn cho lỗi PG đi tới đúng hành vi ở lớp HTTP (soát độc lập 5b-4): lỗi tất định (42501 thiếu quyền / RLS chặn ghi, nhãn mã)
+// trả 500 sau ĐÚNG một lần ghi; lỗi tạm thời (55P03 không lấy được khoá, nhãn hạ tầng) được thử lại đủ 3 lần rồi 503.
+func TestLoiPGQuaHTTPThuLaiDungLoai(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		err      error
+		status   int
+		attempts int
+	}{
+		{"42501 tất định", contracts.Label(contracts.FaultCode, &pgconn.PgError{Code: "42501"}), http.StatusInternalServerError, 1},
+		{"55P03 tạm thời", contracts.Label(contracts.Infra("postgres"), &pgconn.PgError{Code: "55P03"}), http.StatusServiceUnavailable, 3},
+	} {
+		e, ms := memEnv(t)
+		ms.saveDecisionErrs = []error{c.err, c.err, c.err}
+		r := e.ask(tokDirector, qSQL)
+		if r.status != c.status || len(ms.saveAttempts) != c.attempts {
+			t.Errorf("%s: %d sau %d lần ghi, muốn %d sau %d lần", c.name, r.status, len(ms.saveAttempts), c.status, c.attempts)
+		}
+	}
+}
+
 // Client ngắt kết nối giữa chừng không được làm mất vết: persist dùng ngữ cảnh không huỷ theo client.
 func TestVetKhongMatKhiClientNgat(t *testing.T) {
 	e, _ := memEnv(t)

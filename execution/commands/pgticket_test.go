@@ -1019,6 +1019,9 @@ func TestPGTicketPhanLoaiLoi(t *testing.T) {
 		{"mức nghiêm trọng lạ", pgErr("XX000", "WEIRD"), ErrBeforeCommit, ErrCommitUnknown},
 		{"WARNING", pgErr("01000", "WARNING"), ErrBeforeCommit, ErrCommitUnknown},
 		{"chỉ có mức đã dịch", &pgconn.PgError{Code: "40001", Severity: "LỖI", Message: "lỗi giả"}, ErrBeforeCommit, ErrCommitUnknown},
+		// C17S-10: bản không dịch thắng bản đã dịch (máy chủ khác ngôn ngữ), và khi thiếu bản không dịch thì lùi về bản đã dịch "ERROR"
+		{"bản dịch FEHLER, bản gốc ERROR", &pgconn.PgError{Code: "40001", Severity: "FEHLER", SeverityUnlocalized: "ERROR", Message: "lỗi giả"}, ErrBeforeCommit, ErrBeforeCommit},
+		{"chỉ có Severity ERROR (không bản gốc)", &pgconn.PgError{Code: "40001", Severity: "ERROR", Message: "lỗi giả"}, ErrBeforeCommit, ErrBeforeCommit},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := classifyStatement(c.err)

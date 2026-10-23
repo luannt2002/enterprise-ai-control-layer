@@ -51,16 +51,16 @@ const (
 // vì suy đoán: một lý do bịa trong vết còn tệ hơn một chỗ trống ghi rõ là trống. Nội dung sau dấu hai chấm nói chỗ cần móc.
 // Các chặng S2, S3, S4, S5, S7 và cổng phán quyết ở S9 đã được móc (Decision.Why, R2-03) nên lượt chạy thật không còn chỗ trống ở đó;
 // NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột.
-// RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
-// chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
-const RejectedDraft = "bản nháp bị loại"
-
 const NotRecorded = "chưa ghi — cần móc trong core/pipeline (làn 1)"
 
 func notRecorded(what string) string { return NotRecorded + ": " + what }
 
 // IsNotRecorded báo một giá trị có phải chỗ trống ghi rõ của NotRecorded không.
 func IsNotRecorded(s string) bool { return strings.HasPrefix(s, NotRecorded) }
+
+// RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
+// chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
+const RejectedDraft = "bản nháp bị loại"
 
 // ValidStage báo mã bước có hợp lệ không: S0…S10 (luồng hỏi), C0…C7 và C4b (luồng lệnh, HOP-DONG §7.5), S? hoặc L1.<tên>.
 func ValidStage(s string) bool {
@@ -288,6 +288,10 @@ func BuildSteps(t Turn) []Step {
 			s.Reason = notRecorded("kết quả truy vấn (sourceoftruth.Result) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("nguồn / bằng chứng bị loại lúc truy vấn chưa xuất khỏi Handle")}
 		} else {
+			// Giới hạn đã biết (V8a, đo 23/10 trên bộ 117 + H1 + H3 + H4, hai người hỏi, 948 lượt): xung đột đã giải HỢP LỆ bằng thẩm quyền (outcome RESOLVED) vẫn bị đánh dấu
+			// LỆCH, nên "BƯỚC LỆCH ĐẦU TIÊN: S6" hiện trên lượt không có gì sai — 30 / 104 lượt RESOLVED chỉ lệch ở S6 (vd "Dự án A tháng 10 xuất tổng cộng bao nhiêu dầu?").
+			// Chưa đổi: người đọc không bị lừa (chỉ nhiễu), và LỆCH ở đây là chủ ý của P5 (không giấu xung đột nguồn); đổi nghĩa dấu này là quyết định của chủ dự án, kèm
+			// TestBuocTuLuotThat (đòi S6 lệch khi có xung đột).
 			s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
 			var reasons []string
 			for _, c := range resp.Conflicts {

@@ -14,6 +14,7 @@ dừng chờ khi tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đ
 | Câu | Hỏi gì | Khuyến nghị | Trong lúc chờ |
 |---|---|---|---|
 | D-AI-04 (M3, 23/10 12:36) | Bốn họ nghĩa trợ lý chưa hỗ trợ (đánh giá, cảnh báo, dự báo, báo giá) chỉ nhận được bằng danh sách cụm ở pack — chấp nhận làm trần của D-AI-02 = a (H6 đo độ phủ, nợ có nhãn), hay mở model, hay giữ cấm? Số đo: đồng nghĩa ngoài danh sách 154 câu sai 122 → 118 | (a) chấp nhận danh sách ở pack + H6 đo | vòng 3 làm phần cấu trúc (tiền, lệnh ghi theo D-OP-18 = c đúng chữ, WIN-I-086, hồi quy); gộp S4 khi người soát cho qua — nếu chỉ còn vướng câu này thì chờ |
+| D-AI-05 (M3, 23/10 14:09) | Vòng sửa S4 khoá sau vòng 3, soát KHÔNG ĐẠT (hồi quy S1 mới S4CS-02: 7 câu nền hỏi lại nay trả số không nhãn; S4CS-01 lệnh có "?"). Chọn: (a) gộp kèm nợ rồi chạy H6 · (b) một vòng ngoại lệ hẹp CHỈ sửa hồi quy S4CS-02 + test ghim, soát, ĐẠT thì gộp và chạy H6 · (c) giữ main, H6 chờ | (b) — H6 chỉ có giá trị khi chấm bản S4 đã gộp; (a) đưa hồi quy đã biết vào main | S4 khoá ở `m3/s4-vong-sua-2310` @ `7868598`; H6 không chạy; BUILD làm M2 / M4 / M1 / 5abc |
 
 ## 2. Không chặn — đang chạy theo mặc định
 

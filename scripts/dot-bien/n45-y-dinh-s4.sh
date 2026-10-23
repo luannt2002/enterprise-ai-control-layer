@@ -273,3 +273,12 @@ m $I '	text = s.withoutCues(text)' '	_ = s.withoutCues(text)' 'S155 "định m�
 m $I '	if s.hasSourceName(ct) {' '	if false {' 'S156 yêu cầu kèm thêm tính cả nguồn + động từ ("…, theo ghi nhận của cảm biến?")'
 m $I '	for j := 0; j < ci; j++ {' '	for j := 0; j < len(clauses); j++ {' 'S157 yêu cầu kèm thêm tính cả cụm đứng TRƯỚC câu hỏi ("Ghi nhận cho EX-03, hôm nay dùng bao nhiêu dầu?")'
 
+# ---- D-OP-18 = c đúng chữ (vòng 3): câu nêu giá trị không dấu hiệu hỏi là lệnh ghi bất kể động từ
+m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if len(out) == 0 && false {' 'S158 bỏ luật lệnh ghi theo cấu trúc: động từ ngoài danh sách ("Nhập", "Chốt số", "Note lại") lại trả số tiêu thụ'
+m $I '	if s.asking(raw) || strings.Contains(raw, "?") {' '	if s.asking(raw) {' 'S159 dấu "?" không là dấu hiệu hỏi của câu nêu giá trị ("Nhập … nhé?" bị coi là lệnh)'
+m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return false' 'S160 đuôi "… không" cuối câu không là dấu hiệu hỏi ("EX-03 hôm nay có đốt 3782 L dầu không" bị coi là lệnh ghi)'
+m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })' '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) })' 'S161 mọi lượng có đơn vị là giá trị ("7h30", "20 tấn" biến yêu cầu tra cứu thành lệnh ghi)'
+m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })' '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return s.fitsAnyMetric(sp.Value) })' 'S162 "03" của "máy 03" (bị gắn đơn vị lít) là giá trị'
+m tenants/construction/pack/intents.yaml 'needs_value: true, signals: ["stated_value"]}' 'needs_value: true}' 'S163 pack không khai tín hiệu stated_value cho nghĩa lệnh ghi'
+m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if s.statedValue(in, res) {' 'S164 nhãn "chưa ghi số liệu" thêm vào cả câu đã mang nghĩa khác ("nhắc tôi khi … 4000 L" mang hai nhãn)'
+

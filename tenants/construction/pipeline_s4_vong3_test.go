@@ -92,3 +92,46 @@ func TestS4BS03CumBaoNghiaKhongBiBoLang(t *testing.T) {
 	// ca âm (iii): yêu cầu kèm thêm là nguồn + động từ ("theo ghi nhận của cảm biến") thì vẫn trả số
 	answersIntent(t, "EX-03 hôm nay tiêu thụ bao nhiêu dầu, theo ghi nhận của cảm biến?", "fuel_consumed", "3.782")
 }
+
+// D-OP-18 = c ĐÚNG CHỮ (soát vòng 2, điều kiện (c)): thực thể + con số CÓ ĐƠN VỊ + KHÔNG có dấu hiệu hỏi / xác nhận ⇒ hỏi lại kèm "Trợ lý chưa ghi số liệu", BẤT KỂ động từ — không danh sách
+// động từ. Dấu hiệu hỏi là cụm hỏi của pack, dấu "?", hay từ phủ định cuối câu ("… không"); câu nêu giá trị có dấu hiệu ấy là câu xác nhận, đi đường câu xác nhận sẵn có. 24 động từ NGOÀI danh
+// sách cụm "ghi nhận / cập nhật / ghi sổ …" của pack, cộng các câu nêu giá trị không động từ nào.
+func TestDOP18CTheoDungChuLenhGhiBatKeDongTu(t *testing.T) {
+	for _, v := range []string{"Nhập", "Lưu", "Chốt số", "Tạo bản ghi", "Thêm số liệu", "Bổ sung", "Đăng ký", "Ghi hộ", "Ghi giùm em", "Note lại", "Gửi số liệu", "Điền số",
+		"Nạp số liệu", "Đổi thành", "Sửa thành", "Vào sổ", "Ghi vô sổ", "Khai thêm", "Update", "Bù thêm", "Báo cáo giúp em", "Lập bản ghi", "Chép lại", "Đưa vào hệ thống"} {
+		askBack(t, v+" EX-03 hôm nay dùng 3782 L dầu.", notWrite)
+	}
+	for _, q := range []string{
+		"EX-03 hôm nay đổ 3850 L dầu.",
+		"Hôm nay EX-03 tiêu thụ 3782 L dầu.",
+		"Đội báo EX-03 hôm nay 4000 L dầu.",
+		"Phiếu kho xuất EX-03 hôm nay 3850 L dầu.",
+		"Hôm qua EX-03 được cấp 4k dầu.",
+	} {
+		askBack(t, q, notWrite)
+	}
+	// dấu hiệu hỏi / xác nhận ⇒ không phải lệnh ghi: câu xác nhận đi đường sẵn có (cụm xác nhận, "?", "… không" cuối câu), câu hỏi lượng trả số như thường
+	for _, q := range []string{
+		"Hôm nay EX-03 được cấp 3850 L dầu đúng không?",
+		"EX-03 hôm nay đốt 3782 L dầu, đúng không?",
+		"EX-03 hôm nay dùng bao nhiêu L dầu?",
+		"Nhập EX-03 hôm nay dùng 3782 L dầu nhé?", // "?" là dấu hiệu hỏi (bất biến (b) của ADR-0010): động từ ngoài danh sách + "?" đi đường câu xác nhận
+		"EX-03 hôm nay có đốt 3782 L dầu không",   // "không" cuối câu là đuôi hỏi có / không
+		"Cho tôi hỏi EX-03 hôm nay có dùng quá 4000 L dầu không?",
+		"Phiếu kho ghi 3850 L, vậy EX-03 hôm nay dùng bao nhiêu dầu",
+		"EX-03 hôm nay dùng 3782 L dầu hay 3900 L dầu?",
+		// con số có đơn vị của đại lượng KHÁC (giờ họp, tải trọng) không phải giá trị của chỉ số để ghi: câu là yêu cầu tra cứu không dấu hỏi, trả số như thường
+		"Họp lúc 8h15, anh cho em số lít dầu EX-03 được cấp hôm nay với.",
+		"Họp lúc 8h15, anh cho em số lít dầu cho máy 03 được cấp hôm qua với.", // "03" của "máy 03" đứng cạnh "dầu" bị gắn đơn vị lít: nằm trong tên thực thể nên không phải giá trị
+		"EX-03 nặng 20 tấn, cho em số lít dầu EX-03 được cấp hôm nay.",
+	} {
+		answered(t, q)
+	}
+	// lệnh ghi chỉ nói MỘT nghĩa: câu đã bị cụm báo nghĩa khác kéo ("nhắc tôi" = cảnh báo) thì không thêm nhãn "chưa ghi số liệu" (nó chỉ là phương án cuối khi chưa nghĩa nào được báo)
+	if r := ask(t, newAsk(t), user("director", ""), "Nhắc tôi khi EX-03 dùng quá 4000 L dầu").Response; !strings.Contains(r.Answer, notWarning) || strings.Contains(r.Answer, notWrite) {
+		t.Errorf("cảnh báo phải chỉ mang nhãn cảnh báo: %q", r.Answer)
+	}
+	// không có con số có đơn vị thì không phải giá trị để ghi; động từ trong danh sách + giá trị vẫn hỏi lại như vòng 2
+	answered(t, "Cho EX-03 hôm nay xuất bao nhiêu dầu?")
+	askBack(t, "Ghi sổ EX-03 hôm nay xuất 3850 L dầu.", notWrite)
+}

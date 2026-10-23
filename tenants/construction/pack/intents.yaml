@@ -46,12 +46,17 @@ dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, đ�
 # chỉ số, không kích hoạt cụm báo nghĩa chưa hỗ trợ. Đoạn mang cụm hỏi ("để biết đội báo bao nhiêu dầu?") là chính câu hỏi nên vẫn tính. Đây là từ nối ngữ pháp (lớp đóng), không phải danh sách nghĩa.
 purpose_markers: [để, nhằm]
 
+# Từ phủ định (lớp đóng của ngữ pháp). Đứng CUỐI câu chúng là đuôi hỏi có / không ("EX-03 hôm nay có dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm xác nhận và dấu "?".
+negation_markers: [không, chưa, hông, ko]
+
 unsupported_meanings:
   - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency"]}
   - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến, dự tính, dự phóng, dự trù, ước tính, sẽ]}
   - {name: quote, template: unsupported_quote, cues: [báo giá, hỏi giá, xin giá, chào giá, giá chào]}
   - {name: warning, template: unsupported_warning, cues: [cảnh báo, báo động, nhắc tôi, nhắc em, nhắc mình, nhắc nhở, báo khi, thông báo khi]}
-  - {name: write, template: unsupported_write, cues: [ghi nhận, ghi lại, ghi sổ, ghi vào, ghi chép, cập nhật, lưu lại, nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu], needs_value: true}
+  # signals "stated_value" (D-OP-18 = c ĐÚNG CHỮ): câu nêu thực thể + con số có đơn vị mà KHÔNG có dấu hiệu hỏi / xác nhận (cụm hỏi, "?", đuôi "… không") là lệnh ghi BẤT KỂ động từ — danh sách cues chỉ còn là
+  # phần phụ cho câu có "?" (lệnh lịch sự "Ghi nhận … nhé?") và cho yêu cầu kèm thêm; chỉ dùng khi chưa nghĩa nào khác được báo.
+  - {name: write, template: unsupported_write, cues: [ghi nhận, ghi lại, ghi sổ, ghi vào, ghi chép, cập nhật, lưu lại, nhập số liệu, nhập vào, khai báo, sửa số, chỉnh số, điều chỉnh số, hiệu chỉnh, thay số, lập phiếu], needs_value: true, signals: ["stated_value"]}
   - {name: evaluation, template: unsupported_evaluation, cues: [nhận xét, đánh giá, nhận định, bình luận, phân tích, chấm điểm, cho ý kiến, ý kiến về, kết luận, hợp lý, bất thường, bình thường, quá nhiều, tiết kiệm, cao hay thấp], needs_value: true}
 
 intents:

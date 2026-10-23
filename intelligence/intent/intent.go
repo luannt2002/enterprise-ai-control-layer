@@ -67,6 +67,8 @@ type Options struct {
 	// SourceNames trả tên các nguồn cấp số liệu của một chỉ số (nhãn và bí danh ở metrics.yaml: "cảm biến", "phiếu kho", "ERP"); metric rỗng = mọi chỉ số. Cụm báo nghĩa ở mệnh đề có tên nguồn
 	// là động từ của NGUỒN ("theo ghi nhận của cảm biến"), không phải yêu cầu của người hỏi (S4BS-03).
 	SourceNames func(metric string) []string
+	// NegationMarkers: từ phủ định ("không", "chưa", "chẳng"). Đứng CUỐI câu chúng là đuôi hỏi có / không ("… dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm hỏi và dấu "?" (xem Set.questioned).
+	NegationMarkers []string
 	// PurposeMarkers: từ nối mở một đoạn MỤC ĐÍCH ("để", "nhằm"). Đoạn từ từ nối tới hết mệnh đề nói VÌ SAO người hỏi cần câu trả lời, không nói câu trả lời là chỉ số nào nên chữ trong
 	// đó không góp từ khoá chỉ số và không kích hoạt cụm báo nghĩa — trừ khi chính đoạn đó mang cụm hỏi (nó LÀ câu hỏi: "…, để biết đội báo bao nhiêu dầu?"). S4BS-01 (WIN-I-086).
 	PurposeMarkers []string
@@ -1136,7 +1138,7 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			why = fmt.Sprintf("cụm báo nghĩa ở mệnh đề %s", contracts.Quote(ct))
 			break
 		}
-		if why == "" && !measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return s.signalHit(sig, in, qStart, len(in.Raw)) }) {
+		if why == "" && !measured && slices.ContainsFunc(u.Signals, func(sig string) bool { return sig != SignalStatedValue && s.signalHit(sig, in, qStart, len(in.Raw)) }) {
 			why = "tín hiệu cấu trúc ở phần quyết định của câu"
 		}
 		if why != "" {
@@ -1144,7 +1146,55 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			out = append(out, u)
 		}
 	}
+	// D-OP-18 = c đúng chữ: chưa nghĩa nào được báo mà câu NÊU một giá trị (thực thể + con số có đơn vị) và không có dấu hiệu hỏi / xác nhận thì là lệnh ghi, bất kể động từ — không dựa danh sách động từ.
+	if len(out) == 0 && s.statedValue(in, res) {
+		for _, u := range s.opt.Unsupported {
+			if slices.Contains(u.Signals, SignalStatedValue) {
+				w.reason("nghĩa chưa hỗ trợ %s: câu nêu một giá trị (thực thể + con số có đơn vị) mà không có dấu hiệu hỏi hay xác nhận (cụm hỏi, \"?\", đuôi \"… không\") — là lệnh ghi bất kể động từ (D-OP-18 = c)", u.Name)
+				out = append(out, u)
+				break
+			}
+		}
+	}
 	return out
+}
+
+// statedValue báo câu NÊU một giá trị: có một lượng kèm đơn vị cùng chiều đo với một chỉ số của pack (lít, khối — "giá trị cụ thể" của chỉ số; không phải số trần, không phải con số của đại lượng
+// khác như giờ họp "7h30", "20 tấn", và không nằm trong tên thực thể: "03" của "máy 03" đứng cạnh "dầu" bị bộ chuẩn hoá gắn đơn vị lít) và không có dấu hiệu hỏi nào (xem questioned). Thực thể do
+// bên gọi kiểm. Số tiền do tín hiệu tiền xét trước.
+func (s *Set) statedValue(in contracts.NormalizedInput, res contracts.Resolution) bool {
+	inName := func(sp contracts.Span) bool {
+		return slices.ContainsFunc(res.Entities, func(e contracts.EntityRef) bool { return e.Start <= sp.Start && sp.End <= e.End }) ||
+			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
+	}
+	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })
+	return figure && !s.questioned(in.Raw)
+}
+
+// fitsAnyMetric báo một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo).
+func (s *Set) fitsAnyMetric(v contracts.Value) bool {
+	return s.opt.QuantityFits != nil && slices.ContainsFunc(s.defs, func(d Def) bool {
+		for _, m := range d.MetricByTerm {
+			if s.opt.QuantityFits(m, v) {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+// questioned báo câu có DẤU HIỆU HỎI: cụm hỏi của pack (cụm xác nhận, cụm hỏi lượng), dấu "?" (bất biến (b) của ADR-0010), hay từ phủ định đứng cuối câu ("… dùng quá 4000 L dầu không": đuôi hỏi có / không).
+// Khác asking: asking không coi "?" một mình là câu hỏi (lệnh ghi lịch sự "Ghi nhận … nhé?" vẫn là lệnh khi động từ nằm trong danh sách cụm); questioned dùng cho câu nêu giá trị KHÔNG động từ nào của danh sách,
+// nơi chỉ còn cấu trúc để phân biệt lệnh với câu xác nhận.
+func (s *Set) questioned(raw string) bool {
+	if s.asking(raw) || strings.Contains(raw, "?") {
+		return true
+	}
+	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))
+	return slices.ContainsFunc(s.opt.NegationMarkers, func(m string) bool {
+		sp := normalization.PhraseSpans(raw, m)
+		return len(sp) > 0 && sp[len(sp)-1][1] == end
+	})
 }
 
 // attachedRequest báo mệnh đề ci là yêu cầu KÈM THÊM sau câu hỏi ("EX-03 hôm nay đội báo bao nhiêu dầu, kèm nhận xét luôn?"): đứng sau một mệnh đề là câu hỏi, không là câu hỏi, và không nêu tên nguồn
@@ -1163,11 +1213,16 @@ func (s *Set) attachedRequest(clauses [][2]int, ci int, rawBG string) bool {
 	return false
 }
 
-// ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều
+// SignalStatedValue là tín hiệu cấu trúc "câu NÊU một giá trị": có thực thể và một con số CÓ ĐƠN VỊ mà không có dấu hiệu hỏi / xác nhận nào (D-OP-18 = c đúng chữ) — bất kể động từ.
+const SignalStatedValue = "stated_value"
+
+// ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "stated_value" (câu nêu giá trị, không dấu hiệu hỏi), "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều
 // đo>" ("bao nhiêu" + đơn vị của chiều đo ở cuối mệnh đề: "bao nhiêu đồng"). dimensionKnown báo chiều đo có trong lexicon.
 func ValidSignal(sig string, dimensionKnown func(string) bool) error {
 	kind, arg, _ := strings.Cut(sig, ":")
 	switch {
+	case sig == SignalStatedValue:
+		return nil
 	case kind == "span" && (arg == string(contracts.ValueMoney) || arg == string(contracts.ValueQuantity) || arg == string(contracts.ValueNumber)):
 		return nil
 	case kind == "asked_unit" && arg != "" && dimensionKnown(arg):

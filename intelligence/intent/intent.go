@@ -39,6 +39,8 @@ type Def struct {
 	// Weak: chỉ có từ khoá chung chung ("bao nhiêu", "tổng") — một mình không đủ để coi câu là
 	// thuộc phạm vi, nên không gây hỏi lại khi thiếu thuật ngữ ("VN-Index bao nhiêu?").
 	Weak bool `yaml:"weak"`
+	// Alone: ý định chỉ khớp khi câu không còn nội dung nào khác (không thực thể, không con số, không thuật ngữ) — lời chào: "chào cờ", "chào mừng khởi công dự án A" không phải lời chào.
+	Alone bool `yaml:"alone"`
 	// Assumption: câu giả định nối vào MỌI câu trả lời theo ý định này (ý định chung: "Hiểu là dầu kho xuất; …", D-OP-15 điều kiện (i)).
 	Assumption string `yaml:"assumption"`
 }
@@ -62,6 +64,8 @@ type Unsupported struct {
 type Options struct {
 	// Unsupported: các nghĩa hệ chưa hỗ trợ (xem Unsupported).
 	Unsupported []Unsupported
+	// DismissMarkers: cụm cho biết mệnh đề BỊ BỎ QUA ("không quan tâm", "để sau", "khỏi cần"): cụm báo nghĩa chưa hỗ trợ nằm trong mệnh đề đó không làm câu thành câu hỏi lại.
+	DismissMarkers []string
 	// IgnorePhrases: cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" ≠ "dùng", "đúng không"
 	// gõ không dấu ≠ "dùng"). Chúng chiếm chỗ trong luật khớp dài nhất.
 	IgnorePhrases []string
@@ -357,6 +361,14 @@ func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, n
 		}
 		w.reason("câu mang nghĩa hệ chưa hỗ trợ (%s) — hỏi lại và nói rõ nghĩa nào chưa hỗ trợ, kể các nghĩa số liệu có thể hỏi thay (D-OP-18 = c)", strings.Join(names, ", "))
 		return Result{Unsupported: un, NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res, w)}
+	}
+	if content := len(res.Entities)+len(res.Ambiguous) > 0 || len(in.Spans) > 0; content {
+		for i, d := range s.defs {
+			if d.Alone && counts[i] > 0 {
+				counts[i] = 0
+				w.reject("%s: từ khoá khớp nhưng câu còn nội dung khác (thực thể, con số hay thuật ngữ) nên không phải ý định thuần \"%s\"", d.Name, d.Label)
+			}
+		}
 	}
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
@@ -1054,6 +1066,10 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resoluti
 				}
 			}
 			if at < 0 {
+				continue
+			}
+			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(ct, m) }) {
+				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau", u.Name, contracts.Quote(ct))
 				continue
 			}
 			if u.NeedsValue {

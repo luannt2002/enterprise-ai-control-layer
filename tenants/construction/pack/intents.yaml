@@ -37,6 +37,10 @@ comparison_markers: [hơn, kém, so với]
 # không đơn vị ("1tr dầu", "4 củ") KHÔNG phải tín hiệu: ca WIN-I-010 ghim câu trả lời theo nguồn có thẩm quyền. Không dùng thuật ngữ "giá" của lexicon làm tín hiệu: nó khớp
 # cả "giá trị" ("báo cáo giá trị" không phải hỏi tiền) — "đơn giá", "giá dầu" là cụm. needs_value: chỉ tính khi câu nêu một con số và không phải câu hỏi (cụm xác nhận / cụm hỏi lượng) — dấu "?" một mình không làm câu thành
 # câu hỏi ("Ghi nhận EX-03 tiêu thụ 3782 L dầu nhé?" là lệnh ghi; "EX-03 ghi nhận tiêu bao nhiêu dầu?" là câu hỏi).
+# Cụm cho biết một MỆNH ĐỀ bị bỏ qua ("chi phí không quan tâm, …", "tiền dầu thì để sau, …"): cụm báo nghĩa chưa hỗ trợ nằm trong mệnh đề ấy không làm câu thành hỏi lại (cụm vẫn
+# chiếm chỗ trong luật khớp dài nhất). Dấu hiệu phải ở CÙNG mệnh đề với cụm.
+dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua]
+
 unsupported_meanings:
   - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, chi phí, thành tiền, kinh phí, ngân sách, giá thành, trị giá, đơn giá, giá dầu, giá nhiên liệu, quyết toán], signals: ["span:money", "asked_unit:currency"]}
   - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến, dự tính, dự phóng, dự trù, ước tính, sẽ]}
@@ -146,7 +150,9 @@ intents:
   - name: greeting
     label: chào hỏi
     route: CLARIFICATION
-    # lời chào là chữ "chào" ("chào buổi sáng", "chào các bạn", "xin chào"), không phải danh sách cụm: độ ưu tiên thấp nhất nên câu chào mà còn hỏi số liệu vẫn được trả số liệu
+    # lời chào là chữ "chào" ("chào buổi sáng", "chào các bạn", "xin chào"), không phải danh sách cụm: độ ưu tiên thấp nhất nên câu chào mà còn hỏi số liệu vẫn được trả số liệu.
+    # alone: chỉ là lời chào khi câu không còn nội dung nào khác (thực thể, con số, thuật ngữ) — "chào cờ ở dự án A", "chào mừng khởi công dự án A", "chào hàng dầu …" thì không.
     keywords: [chào, hello]
+    alone: true
     priority: 1
     template: greeting

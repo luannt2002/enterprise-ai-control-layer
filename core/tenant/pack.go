@@ -50,8 +50,10 @@ type intentsFile struct {
 	QuantityMarkers []string `yaml:"quantity_markers"`
 	// ComparisonMarkers: cụm so sánh hai nghĩa số liệu (xem intent.Options). Có khai thì phải có
 	// mẫu compare_total.
-	ComparisonMarkers []string     `yaml:"comparison_markers"`
-	Intents           []intent.Def `yaml:"intents"`
+	ComparisonMarkers []string `yaml:"comparison_markers"`
+	// DismissMarkers: cụm cho biết mệnh đề bị bỏ qua (xem intent.Options.DismissMarkers).
+	DismissMarkers []string     `yaml:"dismiss_markers"`
+	Intents        []intent.Def `yaml:"intents"`
 	// UnsupportedMeanings: các nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá): câu mang nghĩa đó được hỏi lại, nói rõ nghĩa nào
 	// chưa hỗ trợ, thay vì trả theo chỉ số còn lại. Có khai thì phải có mẫu unsupported_meaning và mẫu riêng của từng nghĩa.
 	UnsupportedMeanings []intent.Unsupported `yaml:"unsupported_meanings"`
@@ -215,6 +217,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				FocusMarkers:      inf.ConfirmMarkers,
 				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
+				DismissMarkers:    inf.DismissMarkers,
 				NeutralWords:      inf.ClaimNeutralWords,
 				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định)
 				QuantityFits: func(metric string, v contracts.Value) bool {

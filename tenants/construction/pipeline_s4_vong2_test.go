@@ -271,3 +271,25 @@ func TestS4AS04CumNghiaOMenhDeNguCanhVanDuocNoiRa(t *testing.T) {
 	wantMetric(t, "Phiếu kho ghi nhận 3850 L, vậy EX-03 hôm nay đo được bao nhiêu dầu?", "fuel_consumed", "3.782")
 	wantMetric(t, "Đội báo ghi nhận 4000 L, vậy EX-03 hôm nay được cấp bao nhiêu dầu?", "fuel_issued", "3.850")
 }
+
+// S4AS-05 (S3): (a) "chào" chỉ là lời chào khi câu không còn nội dung nào khác (không thực thể, không con số, không thuật ngữ): "chào cờ", "chào mừng khởi công dự án A", "chào hàng dầu …" không phải
+// lời chào; (b) cụm báo nghĩa trong mệnh đề BỊ BỎ QUA ("không quan tâm", "để sau") không làm câu thành hỏi lại — cặp tối thiểu: cùng cụm, mệnh đề không bỏ qua thì vẫn hỏi lại.
+func TestS4AS05LoiChaoVaMenhDeBiBoQua(t *testing.T) {
+	for _, q := range []string{"Tôi chào cờ ở dự án Cầu A", "Chào mừng khởi công dự án Cầu A hôm nay", "Chào hàng dầu EX-03 hôm nay", "Hôm nay EX-03 chào cờ lúc mấy giờ?", "Họ chào cờ ở công trường EX-03 hôm nay"} {
+		if r := ask(t, newAsk(t), user("director", ""), q).Response; r.Intent == "greeting" || strings.Contains(r.Answer, "Chào bạn") {
+			t.Errorf("%q: không phải lời chào, được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+		}
+	}
+	for _, q := range []string{"Chào buổi sáng", "Xin chào", "Chào các bạn", "Hello", "Chào bạn nhé"} {
+		if r := ask(t, newAsk(t), user("director", ""), q).Response; r.Intent != "greeting" {
+			t.Errorf("%q: muốn lời chào, được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+		}
+	}
+	wantMetric(t, "Chi phí không quan tâm, EX-03 hôm nay tiêu thụ bao nhiêu dầu?", "fuel_consumed", "3.782")
+	wantMetric(t, "Tiền dầu thì để sau, EX-03 hôm nay được cấp bao nhiêu lít?", "fuel_issued", "3.850")
+	wantMetric(t, "Báo giá chưa cần, EX-03 hôm nay đội báo bao nhiêu dầu?", "fuel_reported", "4.000")
+	wantMetric(t, "Dự báo khỏi cần, EX-03 hôm nay đo được bao nhiêu dầu?", "fuel_consumed", "3.782")
+	// đối chứng: cùng cụm, không bị bỏ qua ⇒ hỏi lại; từ bỏ qua ở mệnh đề KHÁC không bỏ qua cụm này
+	askBack(t, "Chi phí dầu EX-03 hôm nay là bao nhiêu?", notMoney)
+	askBack(t, "Không quan tâm hôm qua, tiền dầu EX-03 hôm nay là bao nhiêu?", notMoney)
+}

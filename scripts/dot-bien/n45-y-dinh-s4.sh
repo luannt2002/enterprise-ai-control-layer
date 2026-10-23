@@ -235,3 +235,8 @@ m $I '			ct := in.Raw[c[0]:c[1]]
 			}
 			at := -1' 'S134 cụm nghĩa ở mệnh đề ngữ cảnh bị bỏ lặng (chỉ xét phần quyết định)'
 m $I '				asked := s.asking(ct) || strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)' '				asked := s.asking(ct)' 'S135 cụm đuôi hỏi ("…, đúng không?") không áp cho mệnh đề liền trước ("ERP ghi nhận 3900 L, đúng không?" thành lệnh ghi)'
+
+# ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
+m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'
+m $I '			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(ct, m) }) {' '			if false {' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
+m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'

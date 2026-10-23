@@ -229,3 +229,63 @@ func TestF6TienNoiTatKhongPhaiLit(t *testing.T) {
 		}
 	}
 }
+
+// A2 (D-OP-18 = c, gộp nợ S4 sau H4): cơ chế "nghĩa chưa hỗ trợ ⇒ hỏi lại" CHUNG cho tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá — không phải
+// danh sách cụm ghép bỏ qua (bỏ qua "dự báo" thì "báo" khớp ý định đội báo và câu bị trả theo chỉ số còn lại, sai nghĩa). Câu "ghi nhận / nhận xét …"
+// CÓ giá trị cụ thể và không phải câu hỏi là lệnh ghi / đánh giá; KHÔNG có giá trị, hoặc là câu hỏi, thì là câu hỏi số liệu như thường.
+func TestA2NghiaChuaHoTro(t *testing.T) {
+	a := newAsk(t)
+	director := user("director", "")
+	for _, c := range []struct{ q, note string }{
+		{"Tháng này thanh toán cho nhà cung cấp dầu của EX-03 hết mấy triệu?", "số tiền"}, // tiền + "nhà cung cấp" từng ra số lít theo hoá đơn
+		{"Hôm nay EX-03 hết bao nhiêu tiền dầu?", "số tiền"},
+		{"Dự báo tiêu thụ dầu EX-03 tuần sau thế nào?", "dự báo"},
+		{"Dự báo dầu của EX-03 hôm nay", "dự báo"}, // "báo" của "dự báo" từng khớp ý định đội báo
+		{"Báo giá dầu cho EX-03 hôm nay", "báo giá"},
+		{"EX-03 hôm nay có cảnh báo gì về dầu không?", "cảnh báo"},
+		{"Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay", "Trợ lý chưa ghi số liệu"}, // lệnh ghi: có giá trị cụ thể, không phải câu hỏi
+		{"Cập nhật EX-03 xuất 3850 L dầu hôm nay", "Trợ lý chưa ghi số liệu"},
+		{"Nhận xét EX-03 tiêu thụ 3782 L dầu hôm nay", "nhận xét"},
+	} {
+		r := ask(t, a, director, c.q).Response
+		hoiLai(t, r, c.q)
+		if !strings.Contains(r.Answer, "Trợ lý chưa") || !strings.Contains(r.Answer, c.note) || !strings.Contains(r.Answer, "Bạn muốn hỏi") {
+			t.Errorf("%q: muốn nói rõ nghĩa chưa hỗ trợ (%q) rồi hỏi lại, được [%s/%s] %q", c.q, c.note, r.Route, r.Intent, r.Answer)
+		}
+		for _, n := range []string{"3.850", "3.782", "4.000", "4.100"} {
+			if strings.Contains(r.Answer, n) {
+				t.Errorf("%q: nghĩa chưa hỗ trợ mà vẫn trả số của chỉ số còn lại: %q", c.q, r.Answer)
+			}
+		}
+	}
+	// "ghi nhận / nhận xét" KHÔNG có giá trị, hay là câu hỏi: không phải lệnh ghi; cụm giữ chỗ của nó nên "nhận" không khớp ý định kho xuất
+	r := ask(t, a, director, "Hôm nay EX-03 ghi nhận tiêu bao nhiêu dầu?").Response
+	if r.Intent != "fuel_generic" || !strings.Contains(r.Answer, giaDinhChung) || strings.Contains(r.Answer, "Trợ lý chưa") {
+		t.Errorf("câu hỏi có chữ \"ghi nhận\", không giá trị: muốn trả lời theo ý định chung kèm câu giả định, được [%s/%s] %q", r.Route, r.Intent, r.Answer)
+	}
+	// cụm "ghi nhận" trong câu hỏi không phải chữ lạ: "ghi nhận xuất 3850 L dầu … đúng không?" vẫn là câu hỏi kho xuất (a2)
+	q := "Hôm nay EX-03 ghi nhận xuất 3850 L dầu đúng không?"
+	if r := ask(t, a, director, q).Response; r.Intent != "fuel_generic" || !strings.Contains(r.Answer, "3.850") || !strings.Contains(r.Answer, giaDinhChung) {
+		t.Errorf("%q: muốn trả lời theo ý định chung kèm câu giả định, được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+	}
+	for _, q := range []string{"Hôm nay EX-03 ghi nhận 3850 L dầu đúng không?", "Nhận xét về dầu của EX-03 hôm nay thế nào?"} {
+		r := ask(t, a, director, q).Response
+		hoiLai(t, r, q)
+		if strings.Contains(r.Answer, "Trợ lý chưa") || strings.Contains(r.Answer, "3.850") {
+			t.Errorf("%q: câu hỏi (cụm xác nhận / không giá trị) không phải lệnh ghi, cũng không trả số kho xuất: %q", q, r.Answer)
+		}
+	}
+	// không thực thể: ngoài phạm vi như cũ; không có quyền: từ chối như câu ngoài phạm vi, không lộ nhãn; thực thể ngoài phạm vi dữ liệu: từ chối vì quyền
+	for _, q := range []string{"Dự báo thời tiết tuần sau?", "Báo giá xi măng hôm nay", "Cảnh báo bão tuần này"} {
+		if r := ask(t, a, director, q).Response; r.Route != contracts.RouteReject || r.Outcome != contracts.OutcomeOutOfScope {
+			t.Errorf("%q: ngoài phạm vi, muốn từ chối, được [%s/%s] %q", q, r.Route, r.Outcome, r.Answer)
+		}
+	}
+	w := "Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay"
+	if r := ask(t, a, user("driver", "EX-03"), w).Response; r.Route != contracts.RouteReject || r.Outcome != contracts.OutcomeOutOfScope || strings.Contains(r.Answer, "Trợ lý chưa") {
+		t.Errorf("tài xế không có capability: muốn từ chối như cũ, không lộ nhãn, được [%s/%s] %q", r.Route, r.Outcome, r.Answer)
+	}
+	if r := ask(t, a, user("site_engineer", "PRJ-B"), w).Response; r.Route != contracts.RouteReject || r.Outcome != contracts.OutcomePermissionDenied {
+		t.Errorf("kỹ sư dự án B hỏi EX-03 (dự án A): muốn từ chối vì phạm vi, được [%s/%s] %q", r.Route, r.Outcome, r.Answer)
+	}
+}

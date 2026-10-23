@@ -168,6 +168,11 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
+		var unsupported []string // câu mang nghĩa hệ chưa hỗ trợ: mỗi nghĩa một câu do pack viết (D-OP-18 = c)
+		for _, u := range cls.Unsupported {
+			unsupported = append(unsupported, a.render(u.Template, nil))
+		}
+		vars["unsupported_note"] = strings.Join(unsupported, " ")
 		resp.Answer = a.render(plan.Template, vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}
 		resp.Clarification.Question = resp.Answer

@@ -479,3 +479,60 @@ func TestSoSanhDungCapNguoiHoiNeu(t *testing.T) {
 		}
 	}
 }
+
+// Nghĩa hệ chưa hỗ trợ (D-OP-18 = c): cụm báo nghĩa ("cảnh báo", "ghi nhận") làm câu có thực thể thành câu hỏi lại, không trả theo chỉ số còn lại. Nghĩa
+// NeedsValue (lệnh ghi) còn đòi một con số và không phải câu hỏi. Câu hỏi quy trình, câu không thực thể, và cụm nằm ở mệnh đề ngữ cảnh không bị tính.
+func TestNghiaChuaHoTro(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	s, err := Compile([]Def{
+		{Name: "q", Route: "SQL_QUERY", Keywords: []string{"nhận"}, Terms: []string{"fuel"}, MetricByTerm: map[string]string{"fuel": "m"}, Capability: "metrics.read", Slots: slots, Priority: 2},
+		{Name: "sop", Route: "RAG", Keywords: []string{"quy trình"}, Capability: "documents.read"},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}, QuantityMarkers: []string{"bao nhiêu"}, Unsupported: []Unsupported{
+		{Name: "warning", Template: "t1", Cues: []string{"cảnh báo"}},
+		{Name: "write", Template: "t2", Cues: []string{"ghi nhận"}, NeedsValue: true},
+	}})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw string
+		noEntity  bool
+		want      []string // tên các nghĩa chưa hỗ trợ; rỗng = không có
+		intent    string   // ý định khi KHÔNG có nghĩa chưa hỗ trợ
+	}{
+		{"cụm cảnh báo", "cảnh báo nhận dầu", false, []string{"warning"}, ""},
+		{"lệnh ghi: có con số, không phải câu hỏi", "ghi nhận 3850 dầu", false, []string{"write"}, ""},
+		{"ghi nhận không có con số: câu hỏi như thường, 'nhận' của 'ghi nhận' không phải từ khoá", "ghi nhận dầu", false, nil, ""},
+		{"ghi nhận có con số nhưng là câu xác nhận", "ghi nhận 3850 dầu đúng không", false, nil, ""},
+		{"ghi nhận có con số nhưng hỏi lượng", "ghi nhận 3850 bao nhiêu dầu", false, nil, ""},
+		{"câu hỏi quy trình về cảnh báo: tri thức trả lời được", "quy trình cảnh báo nhận dầu", false, nil, "q"},
+		{"không thực thể: không phải nghĩa chưa hỗ trợ, phân loại như cũ (router từ chối vì thiếu chủ thể / ngoài phạm vi)", "cảnh báo nhận dầu", true, nil, "q"},
+		{"cụm ở mệnh đề ngữ cảnh nêu con số: không tính", "cảnh báo ghi 3850, vậy nhận bao nhiêu dầu", false, nil, "q"},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		if i := strings.Index(c.raw, "3850"); i >= 0 {
+			in.Spans = append(in.Spans, contracts.Span{Kind: contracts.ValueNumber, Raw: "3850", Start: i, End: i + 4, Value: contracts.Value{Kind: contracts.ValueNumber, Number: "3850"}})
+		}
+		res := contracts.Resolution{Entities: []contracts.EntityRef{ex}}
+		if c.noEntity {
+			res = contracts.Resolution{}
+		}
+		r := s.Classify(in, res, testNow)
+		var got []string
+		for _, u := range r.Unsupported {
+			got = append(got, u.Name)
+		}
+		if !slices.Equal(got, c.want) {
+			t.Errorf("%s: nghĩa chưa hỗ trợ = %v, muốn %v", c.name, got, c.want)
+		}
+		if len(c.want) > 0 && (r.Intent.Name != "" || len(r.NeedMeaning) == 0) {
+			t.Errorf("%s: muốn hỏi lại (không ý định, có các nghĩa số liệu để hỏi), được ý định %q, NeedMeaning %v", c.name, r.Intent.Name, r.NeedMeaning)
+		}
+		if len(c.want) == 0 && r.Intent.Name != c.intent {
+			t.Errorf("%s: ý định = %q, muốn %q", c.name, r.Intent.Name, c.intent)
+		}
+	}
+}

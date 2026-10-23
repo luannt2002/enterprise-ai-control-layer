@@ -192,11 +192,19 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 				}
 			}
 		}
-		return contracts.RoutePlan{
+		plan := contracts.RoutePlan{
 			Route: contracts.RouteClarification, Template: "clarify_intent",
 			Reason:  "có thực thể và thuật ngữ nhưng không từ khoá ý định nào khớp: " + strings.Join(cls.NeedMeaning, ", "),
 			Outcome: contracts.OutcomeClarificationRequired,
 		}
+		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ: nói rõ nghĩa nào rồi hỏi lại các nghĩa số liệu có thể (D-OP-18 = c)
+			names := make([]string, len(cls.Unsupported))
+			for i, u := range cls.Unsupported {
+				names[i] = u.Name
+			}
+			plan.Template, plan.Reason = "unsupported_meaning", "nghĩa chưa hỗ trợ: "+strings.Join(names, ", ")
+		}
+		return plan
 	case cls.Intent.Name == "":
 		r := contracts.RouteKind(st.UnmatchedRoute)
 		return contracts.RoutePlan{

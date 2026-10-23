@@ -189,4 +189,16 @@ m $I ' && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.
 m $I '(!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' 's.inRange(metric, sp.Value)' 'S101 kiểm miền cả lượng viết rõ đơn vị ("80000 L" của cả tháng bị hỏi lại)'
 m core/tenant/pack.go '					return def.InRange(v.Number) == nil' '					return true' 'S102 không kiểm miền một lần đo ("4 củ", "dầu 4,1 triệu" thành lít)'
 m core/tenant/pack.go '					return def.InRange(v.Number) == nil' '					return false' 'S103 mọi số đều ngoài miền ("4k", "3850" thành chữ lạ)'
+# A2 (D-OP-18 = c): nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá) ⇒ hỏi lại và nói rõ nghĩa nào, không trả theo chỉ số còn lại.
+m $I '	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) == 0 {' '	if len(s.opt.Unsupported) == 0 {' 'S104 nghĩa chưa hỗ trợ không cần thực thể (câu "dự báo thời tiết" bị hỏi lại)'
+m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
+			return nil' '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG && false {
+			return nil' 'S105 câu hỏi quy trình về cảnh báo cũng bị hỏi lại'
+m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || qStart >= 0 && !s.asking(text)) {' 'S106 lệnh ghi không cần con số ("EX-03 ghi nhận tiêu bao nhiêu dầu" bị hỏi lại)'
+m $I '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {' '		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw))) {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi'
+m $I '	ignore := append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	ignore := slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
+m $I '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 })' '		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(in.Raw, c)) > 0 })' 'S109 cụm ở mệnh đề ngữ cảnh cũng báo nghĩa chưa hỗ trợ'
+m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
+m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
+m $I '	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' '	for _, c := range s.cuePhrases()[:0] { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi' 'S112 a2 đòi giải thích cả cụm "ghi nhận" trong câu hỏi'
 

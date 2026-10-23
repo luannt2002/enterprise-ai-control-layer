@@ -52,6 +52,9 @@ type intentsFile struct {
 	// mẫu compare_total.
 	ComparisonMarkers []string     `yaml:"comparison_markers"`
 	Intents           []intent.Def `yaml:"intents"`
+	// UnsupportedMeanings: các nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá): câu mang nghĩa đó được hỏi lại, nói rõ nghĩa nào
+	// chưa hỗ trợ, thay vì trả theo chỉ số còn lại. Có khai thì phải có mẫu unsupported_meaning và mẫu riêng của từng nghĩa.
+	UnsupportedMeanings []intent.Unsupported `yaml:"unsupported_meanings"`
 }
 
 // confirmTemplates là các mẫu câu cần có khi pack khai confirm_markers.
@@ -76,7 +79,7 @@ var requiredTemplates = []string{
 var AllowedPlaceholders = map[string]bool{
 	"metric_label": true, "entity_name": true, "entity_key": true, "period": true,
 	"value": true, "unit": true, "approx_note": true, "conflict_note": true, "assumption_note": true,
-	"missing": true, "candidates": true, "options": true, "reason": true,
+	"missing": true, "candidates": true, "options": true, "reason": true, "unsupported_note": true,
 	"claimed": true, "others": true, "others_note": true,
 	"conflicts": true, "conflict_more": true, "count": true,
 	"title": true, "procedure": true,
@@ -194,7 +197,13 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					problems = append(problems, fmt.Sprintf("intents.yaml: default_terms %q chưa khai báo trong lexicon", t))
 				}
 			}
+			for _, u := range inf.UnsupportedMeanings {
+				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {
+					problems = append(problems, fmt.Sprintf("intents.yaml: unsupported_meanings %q cần name, template và ít nhất một cụm (cues)", u.Name))
+				}
+			}
 			set.SetOptions(intent.Options{
+				Unsupported: inf.UnsupportedMeanings,
 				// dấu xác nhận cũng là cụm bỏ qua: "đúng ko" gõ không dấu không phải "dùng"
 				IgnorePhrases:     append(append([]string(nil), inf.IgnorePhrases...), inf.ConfirmMarkers...),
 				DefaultTerms:      inf.DefaultTerms,
@@ -280,6 +289,12 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 	}
 	if len(inf.ComparisonMarkers) > 0 {
 		needed = append(needed, "compare_total")
+	}
+	if len(inf.UnsupportedMeanings) > 0 {
+		needed = append(needed, "unsupported_meaning")
+		for _, u := range inf.UnsupportedMeanings {
+			needed = append(needed, u.Template)
+		}
 	}
 	for _, name := range needed {
 		if _, ok := tf.Templates[name]; !ok {

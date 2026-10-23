@@ -29,6 +29,17 @@ quantity_markers: [bao nhiêu, định mức]
 # hiệu theo thứ tự nhắc (vế trước − vế sau), không phải câu mơ hồ. Không có cụm so sánh thì vẫn hỏi lại.
 comparison_markers: [nhiều hơn, ít hơn, so với]
 
+# Nghĩa hệ CHƯA hỗ trợ (D-OP-18 = c): câu mang nghĩa này không được trả lời theo chỉ số còn lại ("dự báo" không phải "đội báo", "nhà cung cấp" không phải
+# "cấp", "ghi nhận" không phải "nhận"); hệ hỏi lại và nói rõ nghĩa nào chưa có. Cụm báo nghĩa chiếm chỗ trong luật khớp dài nhất. needs_value: chỉ tính khi câu
+# nêu một con số và không phải câu hỏi ("Ghi nhận EX-03 tiêu thụ 3782 L dầu hôm nay" là lệnh ghi; "EX-03 ghi nhận tiêu bao nhiêu dầu?" là câu hỏi).
+unsupported_meanings:
+  - {name: money, template: unsupported_money, cues: [tiền, nhà cung cấp, triệu, chi phí, thành tiền]}
+  - {name: forecast, template: unsupported_forecast, cues: [dự báo, dự đoán, dự kiến]}
+  - {name: quote, template: unsupported_quote, cues: [báo giá]}
+  - {name: warning, template: unsupported_warning, cues: [cảnh báo]}
+  - {name: write, template: unsupported_write, cues: [ghi nhận, ghi lại, cập nhật, lưu lại], needs_value: true}
+  - {name: evaluation, template: unsupported_evaluation, cues: [nhận xét, đánh giá], needs_value: true}
+
 intents:
   - name: fuel_variance
     label: chênh lệch dầu giữa kho xuất và tiêu thụ đo được

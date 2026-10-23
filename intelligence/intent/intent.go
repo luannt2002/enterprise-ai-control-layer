@@ -43,8 +43,22 @@ type Def struct {
 	Assumption string `yaml:"assumption"`
 }
 
+// Unsupported là một NGHĨA hệ CHƯA hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá — pack khai). Câu mang nghĩa này không được trả lời theo chỉ số
+// còn lại của câu (bỏ qua cụm "dự báo" thì "báo" khớp ý định đội báo và câu bị trả số đội báo, sai nghĩa): router hỏi lại và nói rõ nghĩa nào chưa hỗ trợ
+// (ADR-0010 nợ S4 sau H4, D-OP-18 = c).
+type Unsupported struct {
+	Name     string   `yaml:"name"`
+	Template string   `yaml:"template"` // mẫu câu nói nghĩa đó chưa được hỗ trợ (templates.yaml)
+	Cues     []string `yaml:"cues"`     // cụm từ báo nghĩa đó; chiếm chỗ trong luật khớp dài nhất nên chữ con của chúng ("báo" của "dự báo") không thành từ khoá
+	// NeedsValue: chỉ tính khi câu nêu một CON SỐ và không phải câu hỏi (lệnh ghi "Ghi nhận EX-03 tiêu thụ 3782 L"). Không có giá trị, hay là câu hỏi, thì cụm vẫn
+	// chiếm chỗ nhưng câu là câu hỏi số liệu như thường (D-OP-18 = c).
+	NeedsValue bool `yaml:"needs_value"`
+}
+
 // Options là chính sách phân loại do pack khai.
 type Options struct {
+	// Unsupported: các nghĩa hệ chưa hỗ trợ (xem Unsupported).
+	Unsupported []Unsupported
 	// IgnorePhrases: cụm KHÔNG phải từ khoá dù chứa từ khoá ("người dùng" ≠ "dùng", "đúng không"
 	// gõ không dấu ≠ "dùng"). Chúng chiếm chỗ trong luật khớp dài nhất.
 	IgnorePhrases []string
@@ -223,6 +237,8 @@ type Result struct {
 	// NeedMeaning: câu có thực thể + thuật ngữ vật tư mà không từ khoá ý định nào khớp, và không trả lời được theo ý định chung —
 	// router hỏi lại nghĩa số liệu, liệt kê các ý định này; không coi là ngoài phạm vi (ADR-0010 bất biến (a)).
 	NeedMeaning []string
+	// Unsupported: câu mang nghĩa hệ chưa hỗ trợ — router hỏi lại và nói rõ nghĩa nào (NeedMeaning kể các ý định số liệu có thể hỏi thay).
+	Unsupported []Unsupported
 	// Mentioned: thực thể đã giải của câu hỏi lại nghĩa số liệu — router kiểm phạm vi dữ liệu của người hỏi TRƯỚC khi hỏi lại.
 	Mentioned []contracts.EntityRef
 	// Knowledge: ý định tri thức (RAG) khớp cùng ý định dữ liệu — router ghép thành HYBRID.
@@ -277,11 +293,17 @@ func aliasCandidates(res contracts.Resolution) []contracts.EntityRef {
 
 func (s *Set) classify(in contracts.NormalizedInput, res contracts.Resolution, now time.Time) Result {
 	// ADR-0010 bất biến (b): từ khoá lấy ở mệnh đề HỎI; mệnh đề ngữ cảnh (nêu một con số, đứng trước câu hỏi) bị che khỏi phép đếm
-	counts, firsts := keywordHits(s.defs, maskRanges(in.Raw, s.premiseRanges(in, res)), s.opt.IgnorePhrases)
+	prem := s.premiseRanges(in, res)
+	text := maskRanges(in.Raw, prem)
+	ignore := append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...) // cụm báo nghĩa chưa hỗ trợ chiếm chỗ: "báo" của "dự báo" không phải từ khoá
+	counts, firsts := keywordHits(s.defs, text, ignore)
+	if un := s.unsupportedIn(in, res, text, prem, counts); len(un) > 0 {
+		return Result{Unsupported: un, NeedMeaning: s.meaningOptions(), Mentioned: res.Entities, Candidates: aliasCandidates(res)}
+	}
 	if fs, fe, ok := FocusClause(in.Raw, s.opt.FocusMarkers); ok {
 		// "đội báo 4k, báo cáo ghi 4 m3, vậy máy 03 được cấp 4k dầu đúng không?" hỏi về CẤP, không
 		// về BÁO: mệnh đề chứa cụm xác nhận quyết định ý định khi nó có từ khoá.
-		if focus, f := keywordHits(s.defs, in.Raw[fs:fe], s.opt.IgnorePhrases); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
+		if focus, f := keywordHits(s.defs, in.Raw[fs:fe], ignore); slices.ContainsFunc(focus, func(n int) bool { return n > 0 }) {
 			counts, firsts = focus, f
 		}
 	}
@@ -818,6 +840,46 @@ func (s *Set) inRange(metric string, v contracts.Value) bool {
 	return s.opt.ValueInRange == nil || s.opt.ValueInRange(metric, v)
 }
 
+// cuePhrases trả mọi cụm báo nghĩa chưa hỗ trợ của pack.
+func (s *Set) cuePhrases() []string {
+	var out []string
+	for _, u := range s.opt.Unsupported {
+		out = append(out, u.Cues...)
+	}
+	return out
+}
+
+// unsupportedIn trả các nghĩa chưa hỗ trợ mà câu mang (D-OP-18 = c): câu có thực thể, và trong phần quyết định (mệnh đề hỏi trở đi) có cụm báo nghĩa đó
+// (cụm nằm ngoài các mệnh đề ngữ cảnh). Nghĩa NeedsValue (lệnh ghi, đánh giá) còn đòi câu nêu một con số và không phải câu hỏi. Câu có từ khoá
+// tri thức ("quy trình cảnh báo …") là câu hỏi quy trình, tài liệu trả lời được: không tính.
+func (s *Set) unsupportedIn(in contracts.NormalizedInput, res contracts.Resolution, text string, prem [][2]int, counts []int) []Unsupported {
+	if len(s.opt.Unsupported) == 0 || len(res.Entities)+len(res.Ambiguous) == 0 {
+		return nil
+	}
+	for i, d := range s.defs {
+		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
+			return nil
+		}
+	}
+	qStart := 0
+	if len(prem) > 0 {
+		qStart = prem[len(prem)-1][1]
+	}
+	var out []Unsupported
+	for _, u := range s.opt.Unsupported {
+		hit := slices.ContainsFunc(u.Cues, func(c string) bool { return len(normalization.PhraseSpans(text, c)) > 0 })
+		if hit && (!u.NeedsValue || hasFigure(in, res, qStart, len(in.Raw)) && !s.asking(text)) {
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
+// asking báo phần câu là một CÂU HỎI: có cụm xác nhận / cụm hỏi lượng của pack hoặc dấu '?'.
+func (s *Set) asking(text string) bool {
+	return strings.Contains(text, "?") || slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
+}
+
 // meaningOptions là các ý định số liệu đòi thuật ngữ (không yếu, không tri thức): những nghĩa có thể của câu khi hỏi lại.
 func (s *Set) meaningOptions() []string {
 	var out []string
@@ -921,6 +983,11 @@ func (s *Set) generic(in contracts.NormalizedInput, res contracts.Resolution, im
 	}
 	for _, p := range s.opt.FocusMarkers {
 		for _, sp := range normalization.PhraseSpans(raw, p) {
+			cover(sp[0], sp[1])
+		}
+	}
+	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ không phải lệnh khi câu là câu hỏi ("ghi nhận" = đã ghi): không mang nghĩa chỉ số
+		for _, sp := range normalization.PhraseSpans(raw, c) {
 			cover(sp[0], sp[1])
 		}
 	}

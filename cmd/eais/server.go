@@ -216,17 +216,26 @@ func (s *server) healthz(w http.ResponseWriter, r *http.Request) {
 // được thì không phải câu trả lời của một hệ P8.
 func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Principal) {
 	deadline(w, 2*s.askTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), s.askTimeout)
+	defer cancel()
+	// Phiên bản dữ liệu của lượt: đọc từ kho MỘT lần ở đầu lượt (app.loadedVersion) và mọi vết của lượt, kể cả lượt lỗi, mang đúng nó. Không đọc được thì
+	// lượt lỗi (đóng mặc định, như lượt không lưu được vết): câu trả lời không nói được nó dựa trên dữ liệu nào thì không phải câu trả lời của một hệ P8.
+	dv, verr := s.app.loadedVersion(ctx, pr.TenantID)
 	req, status, err := decodeAsk(w, r)
 	if err != nil {
-		s.failTurn(w, r, pr, "", err, status, true, nil)
+		s.failTurn(w, r, pr, "", err, status, true, nil, dv)
+		return
+	}
+	if verr != nil {
+		s.log.Error("không đọc được phiên bản dữ liệu của lượt", "tenant", pr.TenantID, "lỗi", traces.Sanitize(verr.Error()))
+		s.failTurn(w, r, pr, req.Text, verr, 0, false, nil, "")
 		return
 	}
 	acc := &usageAcc{}
-	ctx, cancel := context.WithTimeout(context.WithValue(r.Context(), usageKey{}, acc), s.askTimeout)
-	defer cancel()
-	out, err := s.handle(ctx, pr, contracts.AskRequest{ConversationID: req.ConversationID, MessageID: req.MessageID, Text: req.Text})
+	ctx = context.WithValue(ctx, usageKey{}, acc)
+	out, err := s.handle(ctx, pr, contracts.AskRequest{ConversationID: req.ConversationID, MessageID: req.MessageID, Text: req.Text}, dv)
 	if err != nil {
-		s.failTurn(w, r, pr, req.Text, err, 0, false, acc)
+		s.failTurn(w, r, pr, req.Text, err, 0, false, acc, dv)
 		return
 	}
 	// Luồng hỏi tự ghi phiên bản mã riêng của nó vào Decision, và là "(devel)" khi binary không mang thông tin VCS. Ứng dụng là nơi biết binary
@@ -250,22 +259,22 @@ func (s *server) ask(w http.ResponseWriter, r *http.Request, pr contracts.Princi
 	writeJSON(w, http.StatusOK, out.Response)
 }
 
-// handle gọi Handle, biến panic thành lỗi của mã để lượt vẫn có vết (net/http chỉ đóng kết nối và không ai biết lượt đó đã hỏng).
-func (s *server) handle(ctx context.Context, pr contracts.Principal, req contracts.AskRequest) (out pipeline.Outcome, err error) {
+// handle gọi Handle với phiên bản dữ liệu dv của lượt, biến panic thành lỗi của mã để lượt vẫn có vết (net/http chỉ đóng kết nối và không ai biết lượt đó đã hỏng).
+func (s *server) handle(ctx context.Context, pr contracts.Principal, req contracts.AskRequest, dv string) (out pipeline.Outcome, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			s.log.Error("panic trong luồng hỏi", "panic", traces.Sanitize(fmt.Sprint(p)), "stack", string(debug.Stack()))
 			out, err = pipeline.Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("panic trong luồng hỏi: %v", p))
 		}
 	}()
-	return s.app.ask.Load().Handle(ctx, pr, req)
+	return s.app.askFor(dv).Handle(ctx, pr, req)
 }
 
 // failTurn ghi vết của một lượt lỗi rồi trả lỗi cho client. status = 0 thì suy từ nhãn lỗi (contracts.HTTPStatus). atAccept: lỗi xảy
-// ra ở S0 của lớp HTTP (thân sai) — biết chắc bước nào nên ghi đúng S0 thay vì "chưa biết" (S?).
-func (s *server) failTurn(w http.ResponseWriter, r *http.Request, pr contracts.Principal, question string, err error, status int, atAccept bool, acc *usageAcc) {
+// ra ở S0 của lớp HTTP (thân sai) — biết chắc bước nào nên ghi đúng S0 thay vì "chưa biết" (S?). dv là phiên bản dữ liệu của lượt (rỗng khi không đọc được).
+func (s *server) failTurn(w http.ResponseWriter, r *http.Request, pr contracts.Principal, question string, err error, status int, atAccept bool, acc *usageAcc, dv string) {
 	traceID := uuid.NewString()
-	rec := traces.NewErrorRecord(traceID, pr, question, s.app.now(), s.app.versions(), err)
+	rec := traces.NewErrorRecord(traceID, pr, question, s.app.now(), s.app.versions(dv), err)
 	if atAccept {
 		st := &rec.Steps[0]
 		st.Stage, st.Name = traces.StageAccept, "accept"
@@ -378,6 +387,14 @@ func (s *server) command(p *commands.Pipeline) func(http.ResponseWriter, *http.R
 	return func(w http.ResponseWriter, r *http.Request, pr contracts.Principal) {
 		deadline(w, 2*s.askTimeout)
 		start := time.Now()
+		// Phiên bản dữ liệu của lượt lệnh: như lượt hỏi, đọc từ kho ở đầu lượt. KHÁC lượt hỏi: không đọc được thì lệnh vẫn chạy (kết quả lệnh không đổi vì
+		// mất vết, §7.5) và vết khai "không biết" (rỗng), có log.
+		vctx, vcancel := context.WithTimeout(r.Context(), s.askTimeout)
+		dv, verr := s.app.loadedVersion(vctx, pr.TenantID)
+		vcancel()
+		if verr != nil {
+			s.log.Error("không đọc được phiên bản dữ liệu của lượt lệnh (vết khai không biết)", "tenant", pr.TenantID, "principal", pr.ID, "lỗi", traces.Sanitize(verr.Error()))
+		}
 		req, status, bad, err := decodeCommand(w, r)
 		var out commands.Outcome
 		if err != nil {
@@ -393,7 +410,7 @@ func (s *server) command(p *commands.Pipeline) func(http.ResponseWriter, *http.R
 			fault, msg := traces.SanitizeError(out.Cause)
 			s.log.Error("lệnh gặp lỗi hạ tầng hoặc mã", "trace_id", out.Result.TraceID, "tenant", pr.TenantID, "principal", pr.ID, "fault", fault, "lỗi", msg)
 		}
-		rec := commands.NewRecord(req, out, pr, s.app.now(), s.app.versions(), time.Since(start).Milliseconds())
+		rec := commands.NewRecord(req, out, pr, s.app.now(), s.app.versions(dv), time.Since(start).Milliseconds())
 		res := out.Result
 		if s.persistTrace(r.Context(), pr, rec) == nil {
 			w.Header().Set("X-Trace-Id", res.TraceID)

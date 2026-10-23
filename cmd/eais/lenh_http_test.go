@@ -653,7 +653,7 @@ func TestLenhPersistTraceKhiClientHuy(t *testing.T) {
 	e, cs := newCmdEnv(t)
 	pr := e.principal(tokDirector)
 	out := e.app.cmds["open_discrepancy_ticket"].Malformed()
-	rec := commands.NewRecord(commands.Request{}, out, pr, e.app.now(), e.app.versions(), 0)
+	rec := commands.NewRecord(commands.Request{}, out, pr, e.app.now(), e.app.versions(e.app.dataVersionNow()), 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := e.srv.persistTrace(ctx, pr, rec); err != nil {

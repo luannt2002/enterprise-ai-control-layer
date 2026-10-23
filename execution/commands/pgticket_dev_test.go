@@ -327,7 +327,8 @@ func TestPGA23DocLaiHong(t *testing.T) {
 		})
 	}
 	// C2 trên PG: dòng EXECUTED đọc lại từ DB thật phải khớp mọi cột đọc được (ca DONE ở trên chứng minh không lệch giả).
-	for _, mode := range []string{"audit-fp", "audit-trace", "audit-roles", "audit-reason"} {
+	for _, mode := range []string{"audit-fp", "audit-trace", "audit-roles", "audit-reason", "audit-scope", "audit-pack", "audit-code", "audit-cmd",
+		"audit-subject", "audit-metric"} {
 		t.Run("F6 audit EXECUTED lệch: "+mode, func(t *testing.T) {
 			w := newPGWorld(t)
 			w.probe.f6stale, w.probe.staleMode = 1, mode

@@ -627,7 +627,8 @@ func TestA23DocLaiHong(t *testing.T) {
 		})
 	}
 	// C2 (lệnh ca chiều 23/10): dòng audit EXECUTED đọc lại phải khớp MỌI cột đọc được với bản chụp ý định, không chỉ kết cục + mã phiếu.
-	for _, mode := range []string{"audit-fp", "audit-trace", "audit-caller", "audit-roles", "audit-day", "audit-action", "audit-reason"} {
+	for _, mode := range []string{"audit-fp", "audit-trace", "audit-caller", "audit-roles", "audit-day", "audit-action", "audit-reason",
+		"audit-scope", "audit-pack", "audit-code", "audit-cmd", "audit-subject", "audit-metric"} { // đủ 15 cột so được (C17S-02)
 		t.Run("F6 audit EXECUTED lệch: "+mode, func(t *testing.T) {
 			w := newWorld(t)
 			w.probe.f6stale, w.probe.staleMode = 1, mode
@@ -638,7 +639,7 @@ func TestA23DocLaiHong(t *testing.T) {
 		})
 	}
 	// phát lại: không có bản chụp ý định của lượt gốc, nên so với dòng sổ lệnh và chính yêu cầu — các cột suy ra được từ đó
-	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason"} {
+	for _, mode := range []string{"audit-fp", "audit-caller", "audit-day", "audit-action", "audit-reason", "audit-cmd", "audit-subject", "audit-metric"} {
 		t.Run("phát lại, audit EXECUTED lệch: "+mode, func(t *testing.T) {
 			w := newWorld(t)
 			r := req(80, "EX-03", day1)

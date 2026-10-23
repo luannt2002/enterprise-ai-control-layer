@@ -1,0 +1,550 @@
+{
+ "doc_mu": {
+  "nhan": [
+   {
+    "the": "the-001",
+    "buoc": "S5",
+    "ly_do": "S5 route ghi 'thực thể EX-03 ngoài phạm vi dữ liệu của người hỏi' rồi REJECT/PERMISSION_DENIED, trong khi S1 cấp entity_scope=PRJ-A, S3 không che thực thể (khác ca 030/050 nơi S3 che ‹ngoài phạm vi›) và kỳ vọng đòi SQL_QUERY 3850 L.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: tập thực thể/dự án chủ quản mà S5 dùng để kiểm phạm vi (chỉ ghi 'ngoài phạm vi')"
+   },
+   {
+    "the": "the-002",
+    "buoc": "S8",
+    "ly_do": "Đáp RAG chỉ còn 'Trích văn bản quy trình (…): 1. Khi lượng xuất kho và lượng tiêu thụ đo được của một…' (cụt đúng 120 ký tự + …) nên thiếu 'trưởng kho' dù S7 đã dẫn SOP-FUEL-01#1 và S9 không báo lỗi; chỗ cắt nằm ở bản nháp S8 (hoặc S10).",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp S8 (contracts.Draft) chưa xuất khỏi Handle nên không phân biệt cắt ở S8 hay S10"
+   },
+   {
+    "the": "the-003",
+    "buoc": "S3",
+    "ly_do": "S3 ghi '1 thực thể rõ, 0 cụm mơ hồ' (chỉ EX-07) cho 'máy 07' trong khi kỳ vọng ứng viên EX-07 và RL-07 (ca 043/058 cùng khoá 'may 7' thì S3 liệt kê 2 thực thể); S4–S10 chỉ chạy theo nên trả 1.500 L thay vì hỏi lại.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: danh sách ứng viên của khoá 'may 7' trước lọc (S3 chỉ ghi một kết quả)"
+   },
+   {
+    "the": "the-004",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 'Không. … 3.850 L, không phải 4.000 L; ERP 3.900 L' khớp route SQL_QUERY, RESOLVED, conflict true, contains 3.850, không có chuỗi cấm, model_calls 0; dấu LỆCH ở S6 là xung đột dữ liệu đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-005",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Hỏi lại nghĩa số liệu (route CLARIFICATION, CLARIFICATION_REQUIRED, 0 lời gọi model) đúng kỳ vọng; S4/S5 LỆCH là đường đi thiết kế.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-006",
+    "buoc": "S4",
+    "ly_do": "S4 ghi fuel_consumed (20; 'đo được','Cảm biến') bị loại vì 'thấp hơn fuel_generic (10)' – so sánh ngược – rồi chọn fuel_generic → metric issued_fuel, đáp 1.500 L thay vì 1490 L đo cảm biến.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-007",
+    "buoc": "S8",
+    "ly_do": "Đáp RAG cụt '…máy và x…' (120 ký tự + …) nên thiếu '2 ngày' dù S7 dẫn đúng SOP-FUEL-01#3 và S9 không báo lỗi (ca 017 trích đủ '…trong 2 ngày làm việc'); chỗ cắt ở bản nháp S8 hoặc S10.",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp S8 chưa xuất khỏi Handle nên không phân biệt cắt ở S8 hay S10"
+   },
+   {
+    "the": "the-008",
+    "buoc": "S6",
+    "ly_do": "S6 ghi 'reported_fuel|EX-03: site_report_form=4000 L, chat_message=4000 L, lệch quá dung sai 0' – hai số bằng nhau vẫn bị coi là xung đột nên đáp kèm 'Nguồn khác lệch số', trái kỳ vọng conflict: false (ca 021 cùng dữ liệu, không hỏi xác nhận, S6 không gắn xung đột).",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-009",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 8.550 L cho Cầu A tháng 10 qua SQL_QUERY/RESOLVED, dẫn warehouse_slip, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-010",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 1.500 L kèm ERP 1.518 L: route SQL_QUERY, RESOLVED, conflict true, dẫn warehouse_slip đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-011",
+    "buoc": "S6",
+    "ly_do": "S5 lập đúng kế hoạch RAG (retrieve:knowledge + generate:answer, RoutePlan.Outcome rỗng) nhưng S6/S7/S8 'skipped' không có span retrieve rồi thoát sớm OUT_OF_SCOPE thay vì truy xuất và trả INSUFFICIENT_EVIDENCE (ca SQL 028/032 cho thấy đường đúng: S6 chạy rồi ghi 'không đủ dữ liệu'); quyết định lệch phát sinh ở chặng thực thi.",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: lý do thoát sớm và tên mẫu chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-012",
+    "buoc": "S9",
+    "ly_do": "S9 ghi 'claim_binding/DATE_UNBOUND: ngày 2026-10-31 trong câu không là kỳ của claim nào' dù S2/S4 đã gán period=2026-10-01/2026-10-31 và S7 có đủ bằng chứng cho 8.550 L (ca 009 cùng slot qua S9 được) nên bác oan thành SYSTEM_FAILURE; S6 LỆCH chỉ là xung đột EX-03 hợp lệ.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle (không thấy câu nháp và kỳ của claim)"
+   },
+   {
+    "the": "the-013",
+    "buoc": "S2",
+    "ly_do": "S2 đọc 'quantity:3.900 lít=3.9L' (number:digits+unit, không phải vi_thousands như ca 005/052/056) là chỗ sai đầu tiên; S9 sau đó báo 3.850 L/3.900 L 'không bằng chứng nào chứa' dù S7 có 3850/3900, còn S6 LỆCH là xung đột dữ liệu đúng kỳ vọng conflict: true.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle nên chuỗi S2→S9 chỉ suy ra"
+   },
+   {
+    "the": "the-014",
+    "buoc": "S5",
+    "ly_do": "S5 ghi 'thực thể EX-07 ngoài phạm vi' → REJECT cho u-eng-a (PRJ-A) trong khi S3 không che EX-07 và kỳ vọng đòi SQL_QUERY 1490 L (ca 017 cùng người hỏi gọi 'máy xúc 07' vẫn qua S5).",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: tập thực thể/dự án chủ quản mà S5 dùng để kiểm phạm vi"
+   },
+   {
+    "the": "the-015",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/OUT_OF_SCOPE cho câu ngoài miền, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-016",
+    "buoc": "S5",
+    "ly_do": "S5 ghi 'RL-07 ngoài phạm vi' → REJECT cho u-eng-b (PRJ-B) dù S3 không che RL-07 và ca 043/020 cho thấy RL-07 thuộc dự án B; kỳ vọng đòi SQL_QUERY rồi INSUFFICIENT_EVIDENCE.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: dự án chủ quản của RL-07 và tập thực thể S5 dùng để kiểm phạm vi"
+   },
+   {
+    "the": "the-017",
+    "buoc": "KHONG_SAI",
+    "ly_do": "HYBRID_RETRIEVAL, RESOLVED, 10 L, dẫn SOP-FUEL-01#3 và trích đủ câu '…trong 2 ngày làm việc', 1 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-018",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 3.782 L (đo cảm biến), không kèm xung đột, 0 lời gọi model đúng kỳ vọng; S4 chọn fuel_consumed theo luật số cụm từ khoá.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-019",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 3.850 L kèm ERP 3.900 L, không chuỗi cấm, verdict được giữ vì câu không dấu – đủ route/value/contains/conflict true.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-020",
+    "buoc": "S3",
+    "ly_do": "S3 trả 'EX-07' và 'PRJ-B' tách rời mà không gỡ 'Máy 07' bằng dự án 'đường B' (ca 043 làm được với 'cầu A'), nên S4 lấy subject=EX-07 và đáp 1.500 L thay vì RL-07 900 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: ứng viên của cụm 'Máy 07' trước lọc dự án"
+   },
+   {
+    "the": "the-021",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 4.000 L (đội báo) đúng route SQL_QUERY/RESOLVED và value kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-022",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 'Không. … 3.850 L, không phải 4.000 L; ERP 3.900 L' đủ contains 'Không.', value 3850, conflict true, dẫn warehouse_slip.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-023",
+    "buoc": "S6",
+    "ly_do": "S6 ghi 'reported_fuel|EX-03: site_report_form=4000 L, chat_message=4000 L, lệch quá dung sai 0' nên gắn xung đột giả và đáp kèm 'Nguồn khác lệch số', trái conflict: false (ca 021 cùng dữ liệu không bị).",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-024",
+    "buoc": "S2",
+    "ly_do": "S2 đọc 'quantity:4.000 lít=4L' (digits+unit) làm hỏng số người hỏi (S7 ghi con số người hỏi '4L'); S9 sau đó báo 4.100/3.850/3.782 L 'không bằng chứng' dù S7 có đủ → SYSTEM_FAILURE thay vì 'Không.' 4100 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle nên chuỗi S2→S9 chỉ suy ra"
+   },
+   {
+    "the": "the-025",
+    "buoc": "S4",
+    "ly_do": "S4 chọn fuel_generic 'ưu tiên cao nhất (10)' trong khi fuel_issued và fuel_reported (20, hoà nhau, kèm 'nhiều hơn') khớp đủ, nên mất nhánh so sánh (ca 068 làm đúng → CALCULATION); đáp 3.850 L thay vì 150 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-026",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Thiếu thực thể → CLARIFICATION_REQUIRED 'Bạn cho biết thêm máy hoặc dự án', 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-027",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 1.443 L kèm ERP 1.454 L: SQL_QUERY/RESOLVED, conflict true đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-028",
+    "buoc": "KHONG_SAI",
+    "ly_do": "SQL_QUERY/INSUFFICIENT_EVIDENCE 'Chưa có dữ liệu … DZ-05 …', không số cấm, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-029",
+    "buoc": "S9",
+    "ly_do": "S9 ghi 'DATE_UNBOUND: ngày 2026-10-31 trong câu không là kỳ của claim nào' dù S2/S4 gán period=2026-10-01/2026-10-31 và S7 có R-004+R-008 (=5850 L); ca 038 cùng thực thể/kỳ qua S9 được nên bác oan thành SYSTEM_FAILURE.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-030",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/PERMISSION_DENIED, không lộ 3.850/3.900, 0 lời gọi model đúng kỳ vọng (S3 che ‹ngoài phạm vi›).",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-031",
+    "buoc": "S6",
+    "ly_do": "S6 ghi 'issued_fuel|EX-07: warehouse_slip=1500, erp=1510, lệch quá dung sai 10' – chênh bằng đúng dung sai vẫn bị coi là xung đột (ca 003/006 cùng dữ liệu không bị) nên đáp 'Nguồn khác lệch số: ERP 1.510 L', trái conflict: false.",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-032",
+    "buoc": "KHONG_SAI",
+    "ly_do": "SQL_QUERY/INSUFFICIENT_EVIDENCE cho FX-017 ngày 19/10, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-033",
+    "buoc": "S8",
+    "ly_do": "Đáp RAG cụt '…máy và x…' (120 ký tự + …) nên không chứa '2 ngày' của value kỳ vọng dù S7 dẫn đúng SOP-FUEL-01#3; chỗ cắt ở bản nháp S8 hoặc S10 (S9 không báo lỗi).",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp S8 chưa xuất khỏi Handle nên không phân biệt cắt ở S8 hay S10"
+   },
+   {
+    "the": "the-034",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 1.490 L (tiêu thụ đo được của EX-07) đúng route/value, không số cấm.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-035",
+    "buoc": "S5",
+    "ly_do": "S5 ghi 'thực thể EX-07 ngoài phạm vi' → REJECT cho u-eng-a (PRJ-A) trong khi S3 không che thực thể và kỳ vọng đòi SQL_QUERY 1500 L không 'Không.'.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: tập thực thể/dự án chủ quản mà S5 dùng để kiểm phạm vi"
+   },
+   {
+    "the": "the-036",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Hỏi lại thiếu thực thể → CLARIFICATION_REQUIRED, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-037",
+    "buoc": "KHONG_SAI",
+    "ly_do": "CALCULATION/RESOLVED 35 L cho FX-018, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-038",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 5.850 L (EX-03 tháng 10) kèm ERP 3.900 L; contains 5.850, không chuỗi cấm, route/outcome đúng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-039",
+    "buoc": "S4",
+    "ly_do": "S4 ghi 'chọn greeting: ưu tiên cao nhất (1)' trong khi fuel_issued (20) và fuel_generic (10) khớp đủ ('20 thấp hơn greeting (1)') nên route thành CLARIFICATION chào hỏi, bỏ câu hỏi RL-02 1200 L.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-040",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/PERMISSION_DENIED vì kế toán thiếu documents.read, không lộ '24 giờ' đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-041",
+    "buoc": "KHONG_SAI",
+    "ly_do": "SQL_QUERY/INSUFFICIENT_EVIDENCE cho FX-017 ngày 22/9, không chuỗi cấm.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-042",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 2.000 L (EX-03 hôm nay) không gắn xung đột (một nguồn), verdict được giữ do chỉ số chung – đủ route/value/conflict false.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-043",
+    "buoc": "KHONG_SAI",
+    "ly_do": "S3 liệt kê 2 ứng viên rồi gỡ bằng dự án 'cầu A' → EX-07; đáp 1.500 L dẫn warehouse_slip, không xung đột đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-044",
+    "buoc": "S2",
+    "ly_do": "S2 đọc 'quantity:3.850L=3.85L' (digits+unit) làm sai số người hỏi; S9 sau đó báo 3.850 L/3.900 L 'không bằng chứng nào chứa' dù S7 có 3850/3900 → SYSTEM_FAILURE, còn S6 LỆCH chỉ là xung đột dữ liệu hợp lệ.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle nên chuỗi S2→S9 chỉ suy ra"
+   },
+   {
+    "the": "the-045",
+    "buoc": "S8",
+    "ly_do": "Đáp RAG cụt '…của một…' nên thiếu '24 giờ' của value kỳ vọng dù S7 dẫn SOP-FUEL-01#1 (ca 069 cho thấy câu đủ có '24 giờ'); chỗ cắt ở bản nháp S8 hoặc S10.",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp S8 chưa xuất khỏi Handle nên không phân biệt cắt ở S8 hay S10"
+   },
+   {
+    "the": "the-046",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/PERMISSION_DENIED vì thiếu documents.read cho phần tri thức, không lộ 3.850/3.782/24 giờ.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-047",
+    "buoc": "S6",
+    "ly_do": "S5 lập đúng kế hoạch RAG nhưng S6/S7/S8 'skipped' không có span retrieve rồi thoát sớm OUT_OF_SCOPE thay vì truy xuất và trả INSUFFICIENT_EVIDENCE; quyết định lệch phát sinh ở chặng thực thi (RoutePlan.Outcome rỗng nên không phải S5).",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: lý do thoát sớm và tên mẫu chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-048",
+    "buoc": "S4",
+    "ly_do": "S4 chọn fuel_generic 'ưu tiên cao nhất (10)' trong khi fuel_issued và fuel_consumed (20, hoà nhau, kèm 'nhiều hơn') khớp đủ nên mất nhánh so sánh → trả 3.850 L thay vì CALCULATION 68 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-049",
+    "buoc": "KHONG_SAI",
+    "ly_do": "RAG/RESOLVED trích trọn câu 4 của SOP-FUEL-01, 1 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-050",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/PERMISSION_DENIED (S3 che ‹ngoài phạm vi›), không lộ số dự án A đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-051",
+    "buoc": "S3",
+    "ly_do": "S3 ghi '1 thực thể rõ, 0 cụm mơ hồ' (chỉ EX-07) cho 'máy 07' nên S4–S10 chạy tiếp ra CALCULATION 10 L, trong khi kỳ vọng CLARIFICATION với ứng viên EX-07 và RL-07.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: danh sách ứng viên của khoá 'may 7' trước lọc"
+   },
+   {
+    "the": "the-052",
+    "buoc": "S6",
+    "ly_do": "S6 ghi 'issued_fuel|EX-07: warehouse_slip=1500, erp=1510, lệch quá dung sai 10' – chênh bằng dung sai vẫn là xung đột nên đáp kèm 'Nguồn khác lệch số', trái conflict: false.",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-053",
+    "buoc": "S9",
+    "ly_do": "S9 ghi 'DATE_UNBOUND: ngày 2026-09-30 trong câu không là kỳ của claim nào' dù S2/S4 gán period=2026-09-01/2026-09-30 và S7 có R-018+R-019+R-020 (=5400 L) nên bác oan thành SYSTEM_FAILURE.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-054",
+    "buoc": "S4",
+    "ly_do": "S4 chọn fuel_generic 'ưu tiên cao nhất (10)' trong khi fuel_reported (20, 'Báo cáo') khớp đủ ('20 thấp hơn fuel_generic (10)') → metric issued_fuel, đáp 3.850 L thay vì 4000 L (site_report_form).",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-055",
+    "buoc": "S6",
+    "ly_do": "S5 lập đúng kế hoạch RAG nhưng S6/S7/S8 'skipped' không có span retrieve rồi thoát sớm OUT_OF_SCOPE thay vì truy xuất và trả INSUFFICIENT_EVIDENCE; quyết định lệch phát sinh ở chặng thực thi.",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: lý do thoát sớm và tên mẫu chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-056",
+    "buoc": "KHONG_SAI",
+    "ly_do": "SQL_QUERY/INSUFFICIENT_EVIDENCE cho EX-03 ngày 18/10, không có 'Không.', 0 lời gọi model.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-057",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 3.850 L kèm ERP 3.900 L: SQL_QUERY/RESOLVED, conflict true đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-058",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Hỏi lại với ứng viên EX-07/RL-07, không 'Không.', 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-059",
+    "buoc": "KHONG_SAI",
+    "ly_do": "REJECT/OUT_OF_SCOPE cho yêu cầu làm thơ, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-060",
+    "buoc": "KHONG_SAI",
+    "ly_do": "HUMAN_ESCALATION/HUMAN_REVIEW_REQUIRED vì erp=3000 L và excel_summary=3200 L ngang thẩm quyền, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-061",
+    "buoc": "S5",
+    "ly_do": "S5 ghi 'thực thể DZ-05 ngoài phạm vi' → REJECT cho u-eng-b (PRJ-B), trái ca 060 cùng người hỏi/cùng thực thể (S5: 'trong phạm vi', ra HUMAN_ESCALATION) và S3 không che DZ-05.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: tập thực thể/dự án chủ quản mà S5 dùng để kiểm phạm vi"
+   },
+   {
+    "the": "the-062",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 2.000 L (EX-03 hôm nay), SQL_QUERY/RESOLVED, không xung đột đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-063",
+    "buoc": "S2",
+    "ly_do": "S2 đọc 'quantity:3.782 lít=3.782L' (digits+unit) trong khi cùng chuỗi ở ca 005 ra 3782L (vi_thousands); S9 sau đó báo '3.782 L không bằng chứng nào chứa' dù S7 có sensor 3782 → SYSTEM_FAILURE.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle nên chuỗi S2→S9 chỉ suy ra"
+   },
+   {
+    "the": "the-064",
+    "buoc": "KHONG_SAI",
+    "ly_do": "SQL_QUERY/INSUFFICIENT_EVIDENCE cho hoá đơn EX-07 ngày 19/10, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-065",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 3.850 L kèm ERP 3.900 L, không chiều theo yêu cầu 'xác nhận là đúng'; đủ contains/conflict/không chuỗi cấm.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-066",
+    "buoc": "S3",
+    "ly_do": "S3 ghi '1 thực thể rõ, 0 cụm mơ hồ' (chỉ EX-07) cho 'máy 07' nên trả 1.490 L, trong khi kỳ vọng CLARIFICATION với ứng viên EX-07 và RL-07.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: danh sách ứng viên của khoá 'may 7' trước lọc"
+   },
+   {
+    "the": "the-067",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 'Không. … 3.782 L, không phải 4.000 L' đủ contains 3.782, không chuỗi cấm, không xung đột, 0 lời gọi model.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-068",
+    "buoc": "KHONG_SAI",
+    "ly_do": "CALCULATION/RESOLVED 250 L (hoá đơn − kho xuất): S4 nhận câu so sánh hai nghĩa đúng, 0 lời gọi model.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-069",
+    "buoc": "S3",
+    "ly_do": "S3 ghi '1 thực thể rõ, 0 cụm mơ hồ' (chỉ EX-07) cho 'Máy 07' nên S5 ghép HYBRID_RETRIEVAL và trả 10 L kèm trích SOP, trong khi kỳ vọng CLARIFICATION với EX-07/RL-07.",
+    "tin_cay": "cao",
+    "vet_du": "vết thiếu: danh sách ứng viên của khoá 'may 7' trước lọc"
+   },
+   {
+    "the": "the-070",
+    "buoc": "S9",
+    "ly_do": "S9 ghi 'DATE_UNBOUND: ngày 2026-09-30 trong câu không là kỳ của claim nào' và bác oan câu trả lời 800 L (cùng triệu chứng 012/029/053); S2 tách 'Hôm 22 tháng 9' thành number 22 + period tháng 9 là lệch tiềm ẩn nhưng không làm sai giá trị kỳ vọng.",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle; không rõ chuẩn là nguyên nhân sớm nhất (S2) hay chỗ làm hỏng kết quả (S9)"
+   },
+   {
+    "the": "the-071",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 'Đúng.' 3.850 L kèm ERP 3.900 L, không có 'Không.', conflict true đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-072",
+    "buoc": "S2",
+    "ly_do": "S2 đọc 'quantity:3.600 lít=3.6L' (digits+unit) nên số người hỏi thành 3,6 L; S9 sau đó báo '3.500 L không bằng chứng nào chứa' dù S7 có R-018 → SYSTEM_FAILURE thay vì 'Không.' 3500 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại ở S9 chưa xuất khỏi Handle nên chuỗi S2→S9 chỉ suy ra"
+   },
+   {
+    "the": "the-073",
+    "buoc": "S6",
+    "ly_do": "S6 ghi 'issued_fuel|EX-07: warehouse_slip=1500, erp=1510, lệch quá dung sai 10' nên gắn xung đột giả, đáp kèm 'Nguồn khác lệch số: ERP 1.510 L', trái conflict: false (ca 043 cùng dữ liệu không bị).",
+    "tin_cay": "vừa",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-074",
+    "buoc": "KHONG_SAI",
+    "ly_do": "Đáp 1.545 L (FX-002), không xung đột, 0 lời gọi model đúng kỳ vọng.",
+    "tin_cay": "cao",
+    "vet_du": "vết đủ"
+   },
+   {
+    "the": "the-075",
+    "buoc": "S9",
+    "ly_do": "S9 ghi 'DATE_UNBOUND: ngày 2026-09-30 trong câu không là kỳ của claim nào' dù S2/S4 gán period=2026-09-01/2026-09-30 và S7 có đủ R-018..R-020 nên bác oan, SYSTEM_FAILURE thay vì RESOLVED 5400 L.",
+    "tin_cay": "vừa",
+    "vet_du": "vết thiếu: bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"
+   },
+   {
+    "the": "the-076",
+    "buoc": "S8",
+    "ly_do": "Đáp RAG cụt '…của một…' nên thiếu '24 giờ' của contains kỳ vọng dù S7 dẫn SOP-FUEL-01#1; chỗ cắt ở bản nháp S8 hoặc S10 (S9 không báo lỗi).",
+    "tin_cay": "thấp",
+    "vet_du": "vết thiếu: bản nháp S8 chưa xuất khỏi Handle nên không phân biệt cắt ở S8 hay S10"
+   }
+  ],
+  "ghi_chu": [
+   "Đã đọc đủ 76 thẻ trong thư mục vet7g-the, không đọc tệp nào khác; chỉ đếm độ dài vài chuỗi sao chép từ thẻ để kiểm tra chỗ cắt 120 ký tự.",
+   "Kết quả: 38 KHONG_SAI, 38 sai. Phân bố bước sai: S2=5 (013,024,044,063,072), S3=5 (003,020,051,066,069), S4=5 (006,025,039,048,054), S5=5 (001,014,016,035,061), S6=8 (xung đột giả 008,023,031,052,073 + RAG thoát sớm 011,047,055), S8=5 (002,007,033,045,076), S9=5 (012,029,053,070,075).",
+   "Mốc 'BƯỚC LỆCH ĐẦU TIÊN' của vết hay lạc: ở 013, 044, 012, 029 mốc là S6 nhưng S6 chỉ ghi xung đột dữ liệu hợp lệ (kỳ vọng conflict: true hoặc không đụng khoá nào); lỗi thật nằm ở S2 hoặc S9. Ở nhóm RAG thoát sớm mốc S10 chỉ là hệ quả.",
+   "Nhóm S2: cùng kiểu chuỗi 'x.yyy lít' lúc bị đọc thập phân (013,024,044,063,072) lúc đọc vi_thousands (005,052,056,058); mọi ca đọc thập phân đều kéo S9 báo number_without_evidence dù S7 có đủ số, nên gán S2 và coi S9 là chạy theo.",
+   "Nhóm S5: kỹ sư gọi thực thể bằng mã (EX-03, EX-07, RL007, DZ-05) bị chặn dù S3 không che thực thể; cùng người/cùng thực thể ở ca 060, 017, 073 lại qua; S3 chỉ che khi thật ngoài phạm vi (ca 030, 050), nên mâu thuẫn nằm ở S5.",
+   "Nhóm S4: so sánh ngược kiểu 'ưu tiên 20 thấp hơn (10)' chỉ xuất hiện ở 006, 025, 039, 048, 054; ca 068 cho thấy nhánh so sánh hai nghĩa chạy đúng khi S4 không đảo thứ tự.",
+   "Điểm bất định 1: nhóm RAG cụt (002,007,033,045,076): câu đáp luôn cụt đúng 120 ký tự + '…' (câu đầy đủ chỉ thấy ở ca HYBRID 017/069, ca 049 đoạn ngắn không bị cắt); bản nháp S8 chưa ghi nên S8 và S10 không phân biệt được, chọn S8.",
+   "Điểm bất định 2: nhóm RAG thoát sớm OUT_OF_SCOPE (011,047,055): S6/S7/S8 đều skipped, RoutePlan.Outcome rỗng nên không phải S5; chọn S6 nhưng thiếu lý do thoát sớm, có thể là S10 nếu chuẩn tính theo chỗ gán nhãn outcome.",
+   "Điểm bất định 3: thẻ 070: S2 tách 'Hôm 22 tháng 9' thành number 22 + period tháng 9 (lệch tiềm ẩn, giá trị 800 L trùng nhau) nhưng thứ làm hỏng kết quả là S9 DATE_UNBOUND giống 012/029/053; chọn S9, nếu chuẩn là nguyên nhân sớm nhất thì đáp án là S2.",
+   "Vết 'chưa ghi' lặp lại ở S6 (kết quả truy vấn), S8 (bản nháp) và S9 (bản nháp bị loại): các thẻ sai ở S8/S9 và nhóm thoát sớm luôn ở trạng thái vết thiếu, độ tin cậy bị kéo xuống."
+  ]
+ }
+}

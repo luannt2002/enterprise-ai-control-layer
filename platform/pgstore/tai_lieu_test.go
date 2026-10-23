@@ -93,3 +93,47 @@ func TestMigration0005NangCapVaReady(t *testing.T) {
 		t.Errorf("chạy lại trần 0005: %v", err)
 	}
 }
+
+// Chỉ mục tri thức giữ sẵn theo tenant không được phục vụ dữ liệu cũ: nạp lại trong cùng tiến trình, và nạp từ tiến trình KHÁC
+// (một Store riêng — như `eais ingest` khi server đang chạy), lượt sau phải thấy nội dung mới, kể cả khi số tài liệu không đổi.
+func TestChiMucGiuSanKhongCu(t *testing.T) {
+	s1, _, app := open(t)
+	s2, err := pgstore.Open(context.Background(), app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s2.Close)
+	tenant := uniq("chi-muc")
+	ctx := contracts.WithTenant(context.Background(), tenant)
+	t.Cleanup(func() { _ = s1.Load(ctx, nil, nil, nil) })
+	pr := contracts.Principal{ID: "u", TenantID: tenant, Roles: []string{"director"}}
+	sop := func(han string) []rag.Document {
+		return []rag.Document{{ID: "SOP", Title: "Quy trình đối soát nhiên liệu", ACL: []string{"director"},
+			Body: "1. Lập biên bản đối soát trong vòng " + han + "."}}
+	}
+	hoi := func(s *pgstore.Store) string {
+		ev, err := s.Retrieve(ctx, pr, "biên bản đối soát nhiên liệu lập trong bao lâu", 3)
+		if err != nil || len(ev) == 0 {
+			t.Fatalf("truy xuất: %v / %v", ev, err)
+		}
+		return ev[0].Text
+	}
+	if err := s1.Load(ctx, nil, nil, sop("24 giờ")); err != nil {
+		t.Fatal(err)
+	}
+	if got := hoi(s1); !strings.Contains(got, "24 giờ") {
+		t.Fatalf("lượt đầu: %q", got)
+	}
+	if err := s1.Load(ctx, nil, nil, sop("36 giờ")); err != nil { // cùng tiến trình, cùng số tài liệu
+		t.Fatal(err)
+	}
+	if got := hoi(s1); !strings.Contains(got, "36 giờ") {
+		t.Errorf("nạp lại cùng tiến trình mà vẫn trả nội dung cũ: %q", got)
+	}
+	if err := s2.Load(ctx, nil, nil, sop("48 giờ")); err != nil { // tiến trình khác nạp
+		t.Fatal(err)
+	}
+	if got := hoi(s1); !strings.Contains(got, "48 giờ") {
+		t.Errorf("tiến trình khác nạp mà chỉ mục giữ sẵn vẫn trả nội dung cũ: %q", got)
+	}
+}

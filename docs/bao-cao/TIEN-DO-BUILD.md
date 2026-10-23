@@ -6,38 +6,40 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 11:20, ca 23/10 (09:00 → 21:30) sau lời chủ dự án 23/10 · **HEAD:** commit chứa dòng này (mã giống `d919ebf`;
-  sau đó chỉ đổi tài liệu).
-- **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Từ 23/10, `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của
-  cổng ra (chủ dự án 23/10).
-  - M1 **CHƯA RA** — phần chạy đạt (smoke, CI có PG, vết bền); vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 (vết xuất lý do và phương án đã xét)
-    đã gộp (`5fd463f`); tiếp: đo lại trên bộ thẻ mới — ca đỏ gieo lỗi chia đều 8 tầng, ca xanh đối chứng, người đọc mới.
-  - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 bằng luật (gộp D-OP-18 = c, D-OP-11 = b) — vòng 1 soát KHÔNG ĐẠT, vòng 2 đang chạy. H6 (94 ca)
-    ĐÃ ĐÓNG BĂNG bằng cam kết băm lúc 11:20 ở `baaf834`, TRƯỚC bản sửa S4; chạy đúng MỘT lần sau khi S4 gộp.
-  - M4: bộ ca P1 đóng băng, ADR-0011 CHỐT; K1 (lõi lệnh `execution/commands`) đã gộp (`e1ce950`), K2 (kho PG của phiếu, migration 0004,
-    `BeginTenantTx`, thí nghiệm U1) đã gộp (`d919ebf`); tiếp K3 (route `cmd/eais`) ∥ K4 (vết, bộ chạy ca, đột biến, demo), rồi chạy bộ P1.
-  - M2: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10); R6-01, R6-02 thành test đỏ trong mã Phase 0a; mã Phase 0a và bộ ca độc lập 0a chạy song song
-    (bộ ca băm trước khi mã lên main).
-  - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm; S7 NGOÀI MVP
-    ("MVP không gồm câu hỏi quy trình (RAG)"); S9 chưa có bộ ca độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
-- **Đang làm** (tối đa 5 agent): vòng sửa S4 vòng 2, D-OP-9 (a') (tác giả), mã Phase 0a bước 2–3, người soạn bộ ca 0a phần P1, K3 (route
-  lệnh `cmd/eais`); điều phối sửa các ghi chú của soát 5a / 5b / 5c (5b, 5c ĐẠT CÓ GHI CHÚ; 5a KHÔNG ĐẠT — hồi quy khi giá trị kết thúc bằng `\`). Đã gộp hôm nay: `flock` (`c97a989`), R2-03 (`5fd463f`), K1 (`e1ce950`), K2 (`d919ebf`). Nhánh
-  máy push lên origin từ 23/10 (nhánh riêng, không main; chậm nhất 2 giờ một lần).
-- **Xong từ lần trước:** câu trả lời 23/10 ghi vào `CHO`; luật làm việc mới vào brief §9.10; nhãn khớp số (STATUS, CONG-TRUOC-AI, đính chính
-  báo cáo ca 22/10); giấy M2 vòng 7 dừng (nhánh `m2/phase0a-vong7-bo`, không gộp); 7 nhánh máy đã push.
-- **Tiếp theo (lệnh 23/10 mục F):** (1) M3: vòng sửa S4 ∥ người soạn H6, D-OP-9 (a') làm lại có soát; (2) M2: mã Phase 0a; (3) M4: K1 → K2 →
-  K3 ∥ K4 → chạy bộ P1 một lần; (4) M1: R2-03 → gộp → đo lại người đọc vết; (5) lỗi của soát độc lập 23/10: 5a che bí mật lọt hai dạng (làm
-  ngay), 5b phân loại lỗi PG, 5c lượt nền xanh của script đột biến, 5d so số bằng chuỗi con, 5e `data_version` từ PG (sau M2 / M3);
-  (6) S9: người soạn + bộ chạy.
-- **Bị chặn:** không còn câu chặn MVP. Dữ liệu / người nghiệp vụ thật: không có (D-RM-03). W-G7 trả tiền: chưa cấp.
-- **Test** (cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit D-OP-9 (a'); sau đó chỉ đổi tài liệu), lúc 23/10 12:03, database PG
-  riêng `lead_s2g`, 5 agent chạy song song: `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...`
-  có PG: **1062** test pass, 0 fail, 0 skip — so theo tên với cổng K2 (`d919ebf`, 1054): 0 đổi, 0 mất, 8 mới; `python3 -I
-  scripts/kiem-skip-test.py` XANH; winreport (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4
-  103/119** (hai đường giống nhau) — mốc so: đầu ra cổng K2 (`d919ebf`); khác đúng 3 ca, đều có chủ ý theo D-OP-9 (a'): WIN-I-264, 509, 717
-  (nhóm nghìn không đứng đầu câu ⇒ hỏi lại). CI GitHub: chờ lượt của commit gộp.)
-- **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN + lời chủ dự án 23/10 (`docs/CHO-QUYET-DINH.md` mục 0); `docs/PROMPT-BUILD-EAIS.md` §9;
-  PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết: `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
+- **Cập nhật lúc:** 23/10/2026 13:26, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go giống `5744d65`;
+  sau đó chỉ đổi tài liệu và công cụ đóng băng `scripts/cam-ket-bo-ca-0a.py`).
+- **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra.
+  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 đã gộp (`5fd463f`); bốn lỗi P2 C8–C11: vòng 1 soát KHÔNG ĐẠT (C9 còn lộ khoá ngoài
+    phạm vi qua Decision.Entities / S3.Output / S4), vòng 2 xong trên nhánh `m1/gop-c8-c11` (cổng xanh ở `5635b31`), chờ soát vòng 2. Sau
+    khi gộp: đo lại người đọc vết trên bộ thẻ mới.
+  - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 — vòng 1, vòng 2 soát KHÔNG ĐẠT; vòng 3 (vòng cuối §9.6) đang chạy theo D-OP-18 = c. H6 (94 ca)
+    đóng băng (`6734cff`), chạy đúng MỘT lần sau khi S4 gộp. D-AI-04 chờ chủ dự án.
+  - M4: K1 (`e1ce950`), K2 (`d919ebf`) đã gộp; K3 (route `cmd/eais`) + bảy lỗi P2 C1–C7 + sửa theo soát K3 ở nhánh gộp `m4/gop-k3-c17` (cổng
+    xanh ở `bc97dc9`), soát lại độc lập đang chạy; K4 (bộ chạy ca, điểm chèn lỗi, đột biến, demo) đang viết; rồi chạy bộ P1 một lần.
+  - M2: bộ ca độc lập 0a — hai người soạn xong (P1 150 ca, P2 120 ca, người soạn không đọc mã); soát / sửa đang chạy theo khúc (lượt soát
+    đầu kẹt vòng suy nghĩ, đã dựng lại thành khúc nhỏ tuần tự); xong thì đóng băng bằng cam kết băm. Mã Phase 0a giữ ở nhánh
+    `m2/0a-ma-truoc-dong-bang`, KHÔNG gộp tới khi bộ ca 0a băm xong (Q-0A-17).
+  - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT; S7 NGOÀI MVP (D-AI-03 = a); S9 chưa có bộ ca
+    độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT.
+- **Đang làm** (tối đa 5 agent; đang 5): soát / sửa bộ ca 0a P1 và P2 (theo khúc), K4 (tác giả), S4 vòng 3 (tác giả), soát lại M4. Chờ chỗ:
+  soát vòng 2 C8–C11, soát lại 5a / 5b / 5c (nhánh `m1/sua-5abc`).
+- **Xong từ lần trước:** lệnh ca trưa vào `CHO` + brief §9.10c (`4238123`); công cụ đóng băng bộ ca 0a (`d581899`, `9f3c32b` — `world` là
+  danh sách tên khi ca đi qua hai tenant); D-AI-04 vào `CHO` (`59ac0d7`); nhánh M4 thêm Ready theo cột, K3S-01…04, K3S-07; nhánh C8–C11 vòng 2.
+- **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: S4 vòng 3 → soát → gộp → chạy H6 một lần → ghi; (2) M2: soát / sửa bộ ca 0a → băm → mã 0a →
+  chạy bộ 0a một lần; (3) M4: soát lại → gộp K3 + C1–C7; K4 → chạy bộ P1 một lần; (4) M1: soát vòng 2 C8–C11 → gộp; 5a / 5b / 5c → gộp;
+  bộ thẻ mới cho người đọc vết; (5) S9.
+- **Bị chặn:** D-AI-04 (danh sách cụm ở pack làm trần của D-AI-02 = a?) — S4 vòng 3 làm theo mặc định D-OP-18 = c, không chờ. Dữ liệu /
+  người nghiệp vụ thật: không có (D-RM-03). W-G7 trả tiền: chưa cấp.
+- **Test** (cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit D-OP-9 (a')), lúc 23/10 12:03, database PG riêng `lead_s2g`, 5 agent
+  chạy song song: `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp; `go test -count=1 -json ./...` có PG: **1062** test pass,
+  0 fail, 0 skip — so theo tên với cổng K2 (`d919ebf`, 1054): 0 đổi, 0 mất, 8 mới; `python3 -I scripts/kiem-skip-test.py` XANH; winreport
+  (`-data <du-lieu-42> -v`, bộ nhớ và `-pg`): bộ 117 117/117, **H1 91/104, H3 112/134, H4 103/119** (hai đường giống nhau) — mốc so: đầu ra
+  cổng K2 (`d919ebf`); khác đúng 3 ca có chủ ý theo D-OP-9 (a'): WIN-I-264, 509, 717. Nhánh chưa gộp, cùng lệnh, mốc so cổng `5744d65`:
+  `m4/gop-k3-c17` cây `bc97dc9` 1184 test (0 mất, 0 đổi, 122 mới), `m1/gop-c8-c11` cây `5635b31` 1071 test (0 mất, 0 đổi, 9 mới), cả hai
+  winreport 0 dòng khác ở 7 tệp.)
+- **Handoff / prompt đang mở:** lệnh ca MVP ALL-IN + lệnh ca chiều / trưa 23/10 (`docs/CHO-QUYET-DINH.md` mục 0); `docs/PROMPT-BUILD-EAIS.md`
+  §9.10b, §9.10c; PROMPT-DOI-TEN Việc 3 còn mục 3–7; PROMPT-AUDIT-ROADMAP còn Q2–Q7, Q9–Q13, Phụ lục C. Câu chờ quyết:
+  `docs/bao-cao/CAU-HOI-CHO-CHU-DU-AN.md`.
 
 ## Nhật ký (thêm dòng, không xoá)
 
@@ -114,3 +116,8 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 11:20 | commit chứa dòng này | M3: đóng băng H6 (bộ giữ lại MỚI chấm vòng sửa S4, D-AI-02 = a) bằng cam kết băm — TRƯỚC bản sửa S4 lên main | `python3 -I scripts/cam-ket-giu-lai.py docs/sources/holdout-h6/h6.yaml docs/g7/holdout-h6 --bo-do-nghe docs/sources/holdout-h6/kit` → sha256 `05f2faa1…`, 94 ca (ambiguity 10, entity 11, permission 12, representation 11, routing 11, semantic 11, source_conflict 16, unsupported_answer 12), 56 có kỳ vọng số liệu, kiemca 0 lỗi; bộ đồ nghề 110 tệp, cây `6ed59222…`; `scripts/kiem-nhiem-soan.py` trên 6 nhật ký agent → chỉ `/dev/stdin` (lệnh kiemca theo lời giao) + 3 cảnh báo `cd /`, 0 đường dẫn thật ngoài bộ đồ nghề | Người soạn / soát / sửa: agent Plan (sonnet), không đọc mã hay nhánh S4; A1 50 → 8 cờ → 47, A2 48 → 4 cờ → 48; gộp bỏ WIN-I-997 (trùng WIN-I-926 mọi khoá trừ id, note — so bằng máy) ⇒ 94. Chạy H6 đúng MỘT lần sau khi S4 gộp |
 | 23/10 11:50 | commit chứa dòng này | Luật 23/10 chiều "commit nguyên văn báo cáo soát": 7 báo cáo soát độc lập của ngày 23/10 vào `docs/bao-cao/soat/2026-10-23/` (flock v2, K1 v1, K1 v2, K2, R2-03 v4, S4 vòng 1, 5a/5b/5c) + README chỉ mục | chép từ đầu ra có cấu trúc của người soát; thay đường dẫn máy bằng `$S`, `<repo>`, `<tmp>`, `~` (repo công khai); kiểm `grep -rln "/home/luannt\|claude-1000" docs/bao-cao/soat/` → 0 tệp | báo cáo soát bộ ca giữ lại không đưa vào (chứa nội dung ca) |
 | 23/10 12:05 | `5392833` … `5744d65` (7 commit D-OP-9), `a83724b`, `9343815`, `9126270`, `90b4560` + commit chứa dòng này | S2 / M2: D-OP-9 = làm lại (a') kèm 3 điều đã đo — nhóm nghìn luôn gộp; không đứng đầu văn bản ⇒ cờ chưa phân định (nạp: cách ly; hỏi: hỏi lại); chồng tên thiết bị ⇒ cách ly / hỏi lại; ký tự định dạng vô hình (Cf) bỏ khi xét đầu văn bản; ô có cấu trúc luôn chắc chắn; bỏ identifierBefore. Hồ sơ theo soát: nợ S2AS-01, S2AS-02 (CỔNG TRƯỚC AI dòng S2), S2AS-06 (CHO D-OP-8, STATUS, CHANGELOG), S2AS-05 (giá thật vào CAU-HOI) | cổng §6 ở cây tích hợp `5744d65` (main `404aa11` + 7 commit), database riêng `lead_s2g`, 5 agent song song: vet 0; gofmt 0; `go test -count=1 -json ./...` có PG 1054 → 1062 (theo tên 0 đổi / 0 mất / 8 mới); kiem-skip XANH; winreport so với đầu ra cổng K2 (`d919ebf`): bộ 117 0 dòng; H1 / H3 / H4 hai đường mỗi bộ 8 dòng = đúng 1 ca ĐẠT → ĐỎ có chủ ý (264, 509, 717) | soát độc lập ĐẠT CÓ GHI CHÚ (`docs/bao-cao/soat/2026-10-23/s2a-soat.json`). Nợ: S2AS-01, 02 (S1 có từ trước), S2AS-03 (chữ dính chữ số / cụm kỳ trước nhóm còn nạp 850 L), S2AS-04 (ô CSV / ERP có chữ nhãn nay nạp im lặng), S2AS-07 (U+2800 cờ thừa), S2AS-08 (câu vết mới chưa có test), S2AS-09 (số kỳ / nhãn nối vào nhóm, có cờ), S2AS-10 (tốc độ đứng đầu tin; "≈" chưa là dấu ước lượng — L1) |
+| 23/10 12:26 | `4238123` | Lệnh ca trưa 23/10 vào `CHO` mục 0 (hai dòng) + Q-0A-17 đã trả lời + brief §9.10c; nhánh RAG chỉ để biết | quét riêng tư trước push: 0 mẫu | lời chủ dự án |
+| 23/10 12:28 | `d581899` | `scripts/cam-ket-bo-ca-0a.py` — cam kết băm cho bộ ca giữ lại độc lập Phase 0a (HOP-DONG 0a §12) | 10 đầu vào giả: hợp lệ rc 0, 9 từ chối rc 2 đúng lý do, không đầu ra nào chứa nội dung ca | chuẩn bị đóng băng 0a |
+| 23/10 12:36 | `59ac0d7` | D-AI-04 vào `CHO` (soát S4 vòng 2, S4BS-02): bốn họ nghĩa chưa hỗ trợ chỉ nhận được bằng danh sách cụm ở pack | — | chờ chủ dự án; S4 vòng 3 làm theo mặc định |
+| 23/10 13:03 | `9f3c32b` | `cam-ket-bo-ca-0a.py`: `world` của một ca được là danh sách tên (bộ ca 0a có ca đi qua hai tenant) | 10 đầu vào cũ đúng mã như trước + 4 đầu vào mới (danh sách hợp lệ 0; tên chưa khai, tên trùng, rỗng: 2) | không đổi mã Go |
+| 23/10 13:26 | commit chứa dòng này | TIEN-DO "Bây giờ" theo trạng thái chiều | — | tài liệu |

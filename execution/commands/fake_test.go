@@ -514,6 +514,18 @@ func (p *probe) ReadBack(ctx context.Context, caller, commandID, ticketID string
 				a.Action = "lenh_khac"
 			case "audit-reason":
 				a.ReasonCode = ReasonPermissionDenied
+			case "audit-scope":
+				a.Caller.EntityScope = "PRJ-KHAC"
+			case "audit-pack":
+				a.PackVersion = "pack-khac"
+			case "audit-code":
+				a.CodeVersion = "code-khac"
+			case "audit-cmd":
+				a.CommandID = "00000000-0000-4000-8000-0000000000ff"
+			case "audit-subject":
+				a.SubjectKey = "EX-99"
+			case "audit-metric":
+				a.Metric = "chi_so_khac"
 			}
 		}
 	}

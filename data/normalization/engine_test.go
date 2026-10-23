@@ -234,11 +234,14 @@ func TestDauKyHieuChiKhiPackKhai(t *testing.T) {
 	lex := testLexicon
 	with := lex
 	with.ApproxMarkers = append(append([]string{}, lex.ApproxMarkers...), "≈")
+	// khai một ký hiệu KHÁC có chứa "≈" (soát xx, XXS-01): so khớp phải là bằng đúng, không phải chuỗi con hay tiền tố
+	other := lex
+	other.ApproxMarkers = append(append([]string{}, lex.ApproxMarkers...), "≈≈")
 	for _, c := range []struct {
 		name string
 		lex  Lexicon
 		want bool
-	}{{"không khai", lex, false}, {"có khai", with, true}} {
+	}{{"không khai", lex, false}, {"có khai", with, true}, {"khai ký hiệu khác", other, false}} {
 		e, err := Compile(c.lex)
 		if err != nil {
 			t.Fatal(err)

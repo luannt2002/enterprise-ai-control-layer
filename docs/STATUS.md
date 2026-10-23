@@ -28,7 +28,9 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   lỗi P2 C1–C7 (migration 0005: vai ứng dụng không đọc được `audit_log.reason_detail`, CHECK tenant không rỗng) đã gộp (`3892be2`; soát lại
   độc lập ĐẠT CÓ GHI CHÚ, ghi chú M4R-01…08 sửa trước khi gộp); K4 (bộ chạy ca, điểm chèn lỗi, đột biến, demo) đã gộp (`b22e1e6`). **Bộ giữ
   lại P1 chạy MỘT lần** (23/10 14:29): 153 / 157 đạt, 4 đỏ cùng một lỗi chuẩn hoá (`"≈"` không nhận là dấu ước lượng ⇒ phiếu mất cờ `approx`);
-  X1, X5 ĐỎ ⇒ M4 CHƯA RA; phân tích `docs/g7/holdout-p1/ket-qua-p1/phan-tich.md`, câu Q-P1-15.
+  X1, X5 ĐỎ ⇒ M4 CHƯA RA; phân tích `docs/g7/holdout-p1/ket-qua-p1/phan-tich.md`, câu Q-P1-15. Lỗi `"≈"` đã sửa và gộp (`d43a1bf`; soát
+  độc lập ĐẠT CÓ GHI CHÚ); bộ P1 KHÔNG chạy lại — đo lại M4 độc lập chờ Q-P1-15. X8 (danh mục đột biến M1–M26, mã `32f4930`): 32 đúng chỗ,
+  0 sống sót, 0 khác; ngoại lệ M5 của §11.2 chờ Q-P1-14.
 - **M2**: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10: giấy tối đa 3 vòng soát); R6-01, R6-02 thành nợ có mã, chặn bằng test đỏ trong mã Phase 0a.
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
@@ -92,7 +94,7 @@ Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, Phase 0–10). Phase đ
 
 | Cổng | Kết quả | Bằng chứng |
 |---|---|---|
-| G1 DATA | **KHÔNG ĐẠT** — 2.736/2.739, 3 lệch cờ ≈ đã ghim (nhãn sửa theo lời chủ dự án 23/10) | - **Từ 22/10 (làn 2, K1) G1 so cả cờ ước lượng: 2.736/2.739** — 3 lệch đã biết, ghim ở `tenants/construction/win/g1-approx-known.txt` (ratchet chỉ đi xuống): R-001, R-002 "2k" (nghĩa nghiệp vụ, câu mở D-OP-17), R-003 "≈" (bộ chuẩn hoá chưa nhận "≈" — làn 1 sửa). Trước 22/10: G1: 2.739/2.739 (functional), 359.945/359.945 (smoke).<br>- Metamorphic: R-004 × 4 biểu diễn, R-001 × 4 cách viết, 0 lệch.<br>- Bộ kiểm có test âm.<br>- `representation` 16/16. |
+| G1 DATA | **KHÔNG ĐẠT** — 2.737/2.739 (từ `d43a1bf`, 23/10), 2 lệch cờ ước lượng "2k" đã ghim (nhãn sửa theo lời chủ dự án 23/10) | - **Từ 22/10 (làn 2, K1) G1 so cả cờ ước lượng: 2.736/2.739** — 3 lệch đã biết, ghim ở `tenants/construction/win/g1-approx-known.txt` (ratchet chỉ đi xuống): R-001, R-002 "2k" (nghĩa nghiệp vụ, câu mở D-OP-17), R-003 "≈" — đã sửa (`d43a1bf`, 23/10: dấu ký hiệu pack khai được nhận), dòng ghim đã xoá, G1 2.736 → 2.737. Trước 22/10: G1: 2.739/2.739 (functional), 359.945/359.945 (smoke).<br>- Metamorphic: R-004 × 4 biểu diễn, R-001 × 4 cách viết, 0 lệch.<br>- Bộ kiểm có test âm.<br>- `representation` 16/16. |
 | G2 IDENTITY | ĐẠT **có điều kiện** (107, 108 là kỳ vọng trọng tài) | - `entity` 13/13.<br>- `ambiguity` 13/13, ứng viên đúng tập. |
 | G3 TRUTH | ĐẠT | - `semantic` 14/14, `source_conflict` 12/12.<br>- Ca biên dung sai sinh từ pack cho MỌI cặp nguồn: 4 cặp × "= dung sai" / "dung sai + 1", gồm cặp ngang hạng. |
 | G4 DECISION | ĐẠT | - `routing` 17/17.<br>- Runner chấm `model_calls` bằng gateway giả đếm lời gọi.<br>- Đột biến bắt buộc "SQL gọi gateway" (BA) và "RAG bỏ gateway" (BB) đều bị bắt. |

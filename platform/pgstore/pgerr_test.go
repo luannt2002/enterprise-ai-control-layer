@@ -30,6 +30,10 @@ func TestPhanLoaiLoiPG(t *testing.T) {
 		{"55P03 không lấy được khoá", &pgconn.PgError{Code: "55P03"}, true, http.StatusServiceUnavailable},
 		{"57014 huỷ do hết giờ", &pgconn.PgError{Code: "57014"}, true, http.StatusServiceUnavailable},
 		{"57P01 máy chủ đang tắt", &pgconn.PgError{Code: "57P01"}, true, http.StatusServiceUnavailable},
+		// lớp 25 chỉ ba mã tạm thời (soát độc lập 5b-2): ghi vào máy chủ chỉ đọc lúc chuyển máy chủ chính, phiên / giao dịch bị cắt do hết giờ
+		{"25006 giao dịch chỉ đọc (lúc chuyển máy chủ chính)", &pgconn.PgError{Code: "25006"}, true, http.StatusServiceUnavailable},
+		{"25P03 phiên rỗi trong giao dịch quá hạn", &pgconn.PgError{Code: "25P03"}, true, http.StatusServiceUnavailable},
+		{"25P04 giao dịch quá hạn (PG 17)", &pgconn.PgError{Code: "25P04"}, true, http.StatusServiceUnavailable},
 		{"23505 trùng khoá duy nhất", &pgconn.PgError{Code: "23505"}, false, http.StatusConflict},
 		{"23503 khoá ngoại", &pgconn.PgError{Code: "23503"}, false, http.StatusConflict},
 		{"22P02 dữ liệu sai dạng", &pgconn.PgError{Code: "22P02"}, false, http.StatusConflict},

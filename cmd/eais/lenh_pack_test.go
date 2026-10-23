@@ -127,6 +127,51 @@ func TestNewAppCauHinhLenhHongKhongKhoiDong(t *testing.T) {
 	})
 }
 
+// K3S-02 (soát K3): pack không có tool lệnh nào (xoá tools.yaml, đổi tên, hay "tools: []") vẫn khởi động được, nhưng route lệnh im lặng thành 404 —
+// nên newApp phải để lại MỘT dòng cảnh báo nêu thư mục pack; pack có tool thì có dòng liệt kê route lệnh đã dựng.
+func TestNewAppKhongCoToolLenhThiCanhBao(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		edit func(t *testing.T, packDir string)
+	}{
+		{"xoá tools.yaml", func(t *testing.T, d string) {
+			if err := os.Remove(filepath.Join(d, "tools.yaml")); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"đổi tên thành tools.yml", func(t *testing.T, d string) {
+			if err := os.Rename(filepath.Join(d, "tools.yaml"), filepath.Join(d, "tools.yml")); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"tools rỗng", func(t *testing.T, d string) {
+			if err := os.WriteFile(filepath.Join(d, "tools.yaml"), []byte("tools: []\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			packDir, dataRoot := tenantFixtures(t, uniqTenant("lenh-trong"))
+			c.edit(t, packDir)
+			var buf syncBuffer
+			if _, err := newApp(config{Pack: packDir, Data: dataRoot, Now: clockForTest}, newMemStore(), slog.New(slog.NewTextHandler(&buf, nil))); err != nil {
+				t.Fatalf("pack không có tool lệnh vẫn phải dựng được: %v", err)
+			}
+			if log := buf.String(); !strings.Contains(log, "level=WARN") || !strings.Contains(log, "không có tool lệnh") {
+				t.Errorf("thiếu cảnh báo khi pack không có tool lệnh: %q", log)
+			}
+		})
+	}
+	packDir, dataRoot := tenantFixtures(t, uniqTenant("lenh-co"))
+	var buf syncBuffer
+	if _, err := newApp(config{Pack: packDir, Data: dataRoot, Now: clockForTest}, newMemStore(), slog.New(slog.NewTextHandler(&buf, nil))); err != nil {
+		t.Fatal(err)
+	}
+	if log := buf.String(); strings.Contains(log, "không có tool lệnh") || !strings.Contains(log, "open_discrepancy_ticket") {
+		t.Errorf("pack có tool: không cảnh báo và phải liệt kê tool đã nạp, được %q", log)
+	}
+}
+
 // Ở mức tiến trình: serve với tools.yaml hỏng thoát mã 1 và nói lý do, không nghe cổng nào (cần PG vì serve mở kho trước khi dựng app).
 func TestServeDevCauHinhLenhHongKhongChay(t *testing.T) {
 	openPG(t)

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,6 +115,11 @@ func (a *app) loadCommands(packDir string) error {
 		return err
 	}
 	a.tools = tools
+	if len(tools.Names()) == 0 { // route lệnh sẽ im lặng thành 404: nói ra lúc khởi động (soát K3, K3S-02; chú thích của LoadTools đòi vậy)
+		a.log.Warn("pack không có tool lệnh nào (tools.yaml vắng, đổi tên hay rỗng): không có route /v1/commands/<tool>", "pack", packDir)
+	} else {
+		a.log.Info("đã nạp tool lệnh của pack", "pack", packDir, "tools", strings.Join(tools.Names(), ","))
+	}
 	ts := commandStoreOf(a.st)
 	if ts == nil {
 		return nil

@@ -264,6 +264,19 @@ type chayCase struct {
 	Errs                 []string // lỗi hình dạng: ca ĐỎ, không chạy
 }
 
+// knownScenario là các mã lớp ca hợp lệ của khoá scenario (§12.1: "mã lớp ca ở §10"): mọi lớp của bảng cổng chayGates, cộng A29e — chỉ ở bộ
+// ca phát triển (F8 ở chỗ lưu vết giả của bộ chạy), không thuộc cổng nào. Mã lạ hay gõ nhầm ("A02B") là lỗi hình dạng: không thì ca rơi khỏi
+// bảng cổng mà báo cáo vẫn không đổi (soát K4, K4S-09 (iv)). Đây là kiểm hình dạng, không phải rẽ nhánh hành vi theo mã ca.
+var knownScenario = func() map[string]bool {
+	m := map[string]bool{"A29e": true}
+	for _, g := range chayGates {
+		for _, c := range g.Classes {
+			m[c] = true
+		}
+	}
+	return m
+}()
+
 type caseSet struct {
 	Path     string
 	SHA      string
@@ -366,6 +379,8 @@ func parseChayCase(c evals.Case) chayCase {
 	}
 	if pc.Scenario == "" {
 		bad("thiếu scenario (mã lớp ca ở §10, ví dụ A01)")
+	} else if !knownScenario[pc.Scenario] {
+		bad("scenario %q không phải mã lớp ca ở §10 (bảng cổng §11.1)", pc.Scenario)
 	}
 	pc.Errs = append(pc.Errs, parseInput(&pc, normAny(c["input"]), normAny(c["permissions"]))...)
 	if fi := normAny(c["failure_injection"]); fi != nil {

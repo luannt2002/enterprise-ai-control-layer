@@ -113,7 +113,9 @@ func TestBoChayCaSaiHinhDangLaDo(t *testing.T) {
 		"results là biểu thức": func(c evals.Case) {
 			c["expected_output_properties"] = map[string]any{"results": map[string]any{"DONE": "N-1"}}
 		},
-		"entry_type không phải COMMAND": func(c evals.Case) { c["entry_type"] = "QUERY" },
+		"entry_type không phải COMMAND":    func(c evals.Case) { c["entry_type"] = "QUERY" },
+		"mã lớp gõ nhầm (soát K4, K4S-09)": func(c evals.Case) { c["scenario"] = "A02B" },
+		"mã lớp không có ở §10":            func(c evals.Case) { c["scenario"] = "A99" },
 		"người gọi cùng id khác vai": func(c evals.Case) {
 			c["permissions"] = nil
 			a := item("a", nil)

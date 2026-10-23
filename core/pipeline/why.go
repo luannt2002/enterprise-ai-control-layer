@@ -514,7 +514,7 @@ func (a *Ask) noteDraft(ctx context.Context, why *traces.Why, prefix, how, text 
 // noteTemplateDraft ghi S8 cho câu dựng bằng mẫu câu của tenant (route số liệu, hỏi lại, từ chối, chuyển người): tmpl là mẫu THẬT đã dùng, có thể khác
 // RoutePlan.Template (câu xác nhận dùng confirm_yes / confirm_no, truy vấn không ra dữ liệu dùng no_data).
 func (a *Ask) noteTemplateDraft(ctx context.Context, why *traces.Why, prefix, tmpl, text string) {
-	a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)
+	a.noteDraft(ctx, why, prefix, traces.TemplateDraftOpen+tmpl+traces.TemplateDraftClose, text)
 }
 
 // noteModelDraft ghi S8 cho bản nháp do model diễn đạt (model là tên do gateway khai trong contracts.Draft.Model).

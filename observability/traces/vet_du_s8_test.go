@@ -145,7 +145,7 @@ func TestVetS8BiMatVatQuaChoCatKhongLot(t *testing.T) {
 }
 
 // Câu xác nhận: S8 nói mẫu THẬT đã dùng (confirm_yes / confirm_no, hoặc mẫu của route cộng mẩu confirm_withheld khi cổng giữ phán quyết) — không phải
-// RoutePlan.Template mà ô "quyết định" của S8 vẫn in. Người đọc đối chiếu được với dòng cổng phán quyết ở S9 ("→ Đúng." / "→ Không.").
+// RoutePlan.Template. Người đọc đối chiếu được với dòng cổng phán quyết ở S9 ("→ Đúng." / "→ Không."). Ô "quyết định" của S8 cũng nói mẫu thật (V8AS-05, vet_du_s8_o_quyet_dinh_test.go).
 func TestVetS8MauThatCuaCauXacNhan(t *testing.T) {
 	a := realAsk(t)
 	for _, c := range []struct{ q, tmpl string }{

@@ -342,7 +342,7 @@ m $W 'func draftHead(s string) string {
 m $W 'return string(r[:draftHeadRunes]) + "…"' 'return string(r[:draftHeadRunes])' 'VS8-7 [V8a] đoạn đầu bị cắt mà không có dấu "…"'
 m $W 'if r := []rune(clean); len(r) > draftHeadRunes {' 'if r := []rune(clean); len(r) >= draftHeadRunes {' 'VS8-8 [V8a] đoạn đầu đúng 80 ký tự vẫn bị cắt'
 m $W 'ledgerOf(ctx).addDraft(prefix, how, text, line)' 'if false { ledgerOf(ctx).addDraft(prefix, how, text, line) }' 'VS8-9 [V8a] bản nháp không vào sổ (S10 mất đối chiếu)'
-m $W 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)' 'a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+" (không gọi model)", text)' 'VS8-10 [V8a] S8 không nói tên mẫu câu'
+m $W 'a.noteDraft(ctx, why, prefix, traces.TemplateDraftOpen+tmpl+traces.TemplateDraftClose, text)' 'a.noteDraft(ctx, why, prefix, traces.TemplateDraftOpen+traces.TemplateDraftClose, text)' 'VS8-10 [V8a] S8 không nói tên mẫu câu'
 m $W 'model = "(không khai tên)"' 'model = "model"' 'VS8-11 [V8a] model không khai tên bị bịa tên'
 m $W 'given := strings.TrimSpace(answer)' 'given := answer' 'VS8-12 [V8a] S10 so cả khoảng trắng đầu / cuối'
 m $W 'case given == draft:' 'case false:' 'VS8-13 [V8a] S10 không bao giờ nói câu giao trùng bản nháp'
@@ -407,6 +407,9 @@ m $W 'if d.rejected {
 			why.Generate.Reasons[d.line] = rejectedDraftLine' 'VS8-55 [V8b V8AS-06] bản nháp S9 đã loại vẫn có đoạn đầu ở S8 (chữ bị loại lọt vào vết)'
 m $W 'const draftWithheld = "chữ không in: S9 đã loại bản nháp này"' 'const draftWithheld = "chữ không in: S9 đã loại bản nháp này!"' 'VS8-56 [V8b V8AS-06] chữ thay cho đoạn đầu của bản nháp bị loại bị đổi'
 m $W 'ledgerOf(ctx).reject(prefix, text)' 'ledgerOf(ctx).reject(prefix, text+" ")' 'VS8-57 [V8b V8AS-06] S9 loại bản nháp mà sổ đánh dấu sai chữ (S8 vẫn in đoạn đầu)'
+m $ST 's.Decision = "mẫu câu của tenant " + usedTemplate(d.Why.Generate, plan.Template)' 's.Decision = "mẫu câu của tenant " + plan.Template' 'VS8-58 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 lại in mẫu của router thay vì mẫu thật'
+m $ST 'strings.CutPrefix(r, "bản nháp "+TemplateDraftOpen)' 'strings.CutPrefix(r, TemplateDraftOpen)' 'VS8-59 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 không nhận ra dòng mẫu thật (rơi về mẫu của router)'
+m $ST 'if tmpl, _, ok := strings.Cut(rest, TemplateDraftClose); ok && tmpl != "" {' 'if tmpl, _, ok := strings.Cut(rest, ")"); ok && tmpl != "" {' 'VS8-60 [V8b V8AS-05] ô QUYẾT ĐỊNH của S8 cắt tên mẫu sai chỗ'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

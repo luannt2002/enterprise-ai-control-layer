@@ -62,6 +62,14 @@ func IsNotRecorded(s string) bool { return strings.HasPrefix(s, NotRecorded) }
 // BuildSteps đánh dấu S10 lệch khi thấy nó, để "BƯỚC LỆCH ĐẦU TIÊN" chỉ đúng S10 chứ không để người đọc đổ cho S8.
 const DeliveredMismatch = "KHÔNG chứa nguyên văn bản nháp"
 
+// TemplateDraftOpen và TemplateDraftClose bao quanh tên mẫu câu THẬT trong cách sinh của dòng S8 ("bản nháp dựng bằng mẫu câu X (không gọi model): …"): core/pipeline ghi, BuildSteps đọc lại
+// để ô QUYẾT ĐỊNH của S8 nói đúng mẫu mà dòng lý do nói — mẫu của router khác mẫu dùng khi truy vấn không ra dữ liệu (no_data), câu xác nhận (confirm_yes / confirm_no) hay cổng giữ phán quyết
+// (mẫu + confirm_withheld) — V8AS-05.
+const (
+	TemplateDraftOpen  = "dựng bằng mẫu câu "
+	TemplateDraftClose = " (không gọi model)"
+)
+
 // RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
 // chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
 const RejectedDraft = "bản nháp bị loại"
@@ -373,7 +381,7 @@ func BuildSteps(t Turn) []Step {
 				s.Reason += notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
 			}
 		default:
-			s.Decision = "mẫu câu của tenant " + plan.Template
+			s.Decision = "mẫu câu của tenant " + usedTemplate(d.Why.Generate, plan.Template)
 			s.Reason = "route " + d.Route + " không cần model (RouteKind.NeedsModel = false): dựng bằng mẫu câu, không gọi model"
 			if gen := d.Why.Generate; gen.Recorded() {
 				s.Reason += "; " + joinReasons(gen)
@@ -431,6 +439,19 @@ func BuildSteps(t Turn) []Step {
 		}
 	})
 	return steps
+}
+
+// usedTemplate trả tên mẫu câu THẬT mà luồng hỏi đã dùng, đọc từ dòng bản nháp dựng bằng mẫu của S8 (dòng không tiền tố: bản nháp của chính câu giao). Lượt không mang dòng đó (lượt cũ, bản dựng
+// tay) thì giữ mẫu của router (routed).
+func usedTemplate(gen Notes, routed string) string {
+	for _, r := range gen.Reasons {
+		if rest, ok := strings.CutPrefix(r, "bản nháp "+TemplateDraftOpen); ok {
+			if tmpl, _, ok := strings.Cut(rest, TemplateDraftClose); ok && tmpl != "" {
+				return tmpl
+			}
+		}
+	}
+	return routed
 }
 
 // joinReasons nối các ý của Notes.Reasons thành lý do MỘT dòng của bước (cùng quy ước "; " với lý do của S6 / S9).

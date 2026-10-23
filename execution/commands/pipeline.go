@@ -1093,7 +1093,14 @@ func faultLabel(err error, table string) string {
 
 // infra là dừng vì hạ tầng TRƯỚC khi mở giao dịch ghi (đọc danh mục, sổ lệnh, số liệu, tìm phiếu mở lỗi hoặc hết hạn): biết
 // chắc chưa ghi gì nên FAILED STORE_UNAVAILABLE, bên gọi gửi lại cùng khoá.
+// Lỗi mà tầng dưới đã gắn nhãn MÃ hay DỮ LIỆU (pgstore sau 5b: ràng buộc, quyền, sai kiểu — lỗi tất định, gửi lại cũng hỏng như cũ) không phải
+// lỗi hạ tầng: FAILED INTERNAL_ERROR (bảng §2.4: lỗi mã, FAILED khi trước BEGIN), như nhánh Derive. Lỗi nhãn infra:*, chưa gắn nhãn hay hết hạn
+// vẫn là STORE_UNAVAILABLE (soát lại 5abc, 5b-R1).
 func (r *run) infra(st int, err error, in []string, why string) {
+	if f := contracts.FaultOf(err); f == contracts.FaultCode || f == contracts.FaultData {
+		r.fail(st, internalResult(StatusFailed), err, Step{Input: in, Decision: "lỗi mã", Reason: why}, "chưa mở giao dịch ghi")
+		return
+	}
 	r.fail(st, resultFor(ReasonStoreUnavailable), err, Step{Input: in, Decision: "lỗi hạ tầng", Reason: why}, "chưa mở giao dịch ghi")
 }
 

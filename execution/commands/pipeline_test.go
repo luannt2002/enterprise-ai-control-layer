@@ -726,6 +726,44 @@ func TestMalformedLaLuotDungOC0(t *testing.T) {
 	}
 }
 
+// Soát lại 5abc (5b-R1): lỗi đọc mà tầng dưới đã gắn nhãn MÃ hay DỮ LIỆU (pgstore sau 5b: ràng buộc, quyền, sai kiểu — lỗi tất định) không phải
+// "hạ tầng, gửi lại cùng khoá": ở cả bốn chỗ đọc trước BEGIN (danh mục, sổ lệnh, số liệu, tìm phiếu mở) là FAILED INTERNAL_ERROR, fault code, không
+// thử lại — đúng bảng §2.4 (STORE_UNAVAILABLE là lỗi hạ tầng; INTERNAL_ERROR là lỗi mã, FAILED khi trước BEGIN). Lỗi chưa gắn nhãn hay nhãn infra:*
+// vẫn là STORE_UNAVAILABLE (TestLoiDocLaStoreUnavailable).
+func TestLoiDocTatDinhLaInternalError(t *testing.T) {
+	boom := contracts.Label(contracts.FaultData, errors.New("lỗi thô: 23514 vi phạm ràng buộc ở db-noi-bo"))
+	cases := []struct {
+		name string
+		arm  func(*world)
+		stop string
+	}{
+		{"danh mục thực thể", func(w *world) { w.data.dirErr = boom }, "C4"},
+		{"sổ lệnh", func(w *world) { w.deps.Store = &failReads{Store: w.probe, ledger: boom}; w.restart() }, "C4b"},
+		{"số liệu", func(w *world) { w.data.factsErr = boom }, "C5"},
+		{"tìm phiếu mở", func(w *world) { w.deps.Store = &failReads{Store: w.probe, open: boom}; w.restart() }, "C5"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w := newWorld(t)
+			c.arm(w)
+			o := w.run(user("p-1", "director", ""), req(81, "EX-03", day1))
+			wantFail(t, o, StatusFailed, ReasonInternalError)
+			if o.Result.Retry != RetryNone || o.Result.HTTPStatus() != 500 {
+				t.Fatalf("lỗi tất định không được khuyên gửi lại: %+v (HTTP %d)", o.Result, o.Result.HTTPStatus())
+			}
+			if strings.Contains(o.Result.Detail, "db-noi-bo") || strings.Contains(o.Result.Detail, "lỗi thô") {
+				t.Fatalf("detail lộ lỗi gốc: %q", o.Result.Detail)
+			}
+			if !errors.Is(o.Cause, boom) {
+				t.Fatalf("lỗi gốc phải nằm ở Outcome.Cause để ghi log: %v", o.Cause)
+			}
+			assertSteps(t, o, c.stop)
+			w.check(tenantA, want{})
+			w.counters(0, 0)
+		})
+	}
+}
+
 func TestLoiDocLaStoreUnavailable(t *testing.T) {
 	boom := errors.New("lỗi thô: máy chủ nội bộ db-noi-bo không trả lời")
 	cases := []struct {

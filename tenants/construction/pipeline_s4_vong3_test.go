@@ -229,3 +229,14 @@ func TestS4BS06DanhTuNguonCongDongTuBao(t *testing.T) {
 		answersIntent(t, q, want[0], want[1])
 	}
 }
+
+// Hồi quy của chính vòng 3 (bắt bằng bộ phát triển 325 câu của vòng 2): từ phủ định + từ trung tính cuối câu ("… được không ạ?") vẫn là đuôi hỏi có / không, không phải phủ định. Bản đầu của S4BS-05 coi
+// "không" trong "được không ạ?" là phủ định nên bỏ qua cụm "lưu lại" và trả số tiêu thụ cho một lệnh ghi lịch sự.
+func TestDuoiHoiCoKhongSauTuTrungTinh(t *testing.T) {
+	askBack(t, "Lưu lại giúp em EX-03 hôm nay tiêu thụ 3782 L dầu được không ạ?", notWrite)
+	askBack(t, "Chi phí dầu EX-03 hôm nay có cao không ạ?", notMoney)
+	answered(t, "EX-03 hôm nay có đốt 3782 L dầu không ạ")
+	answered(t, "EX-03 hôm nay có đốt 3782 L dầu không nhé")
+	// "không" giữa mệnh đề (không đứng trước từ trung tính cuối) vẫn là phủ định
+	answersIntent(t, "Không tính tiền ạ, EX-03 hôm nay dùng bao nhiêu dầu?", "fuel_consumed", "3.782")
+}

@@ -1251,7 +1251,7 @@ func (s *Set) questioned(raw string) bool {
 	if s.asking(raw) || strings.Contains(raw, "?") {
 		return true
 	}
-	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))
+	end := s.contentEnd(raw)
 	return slices.ContainsFunc(s.opt.NegationMarkers, func(m string) bool {
 		sp := normalization.PhraseSpans(raw, m)
 		return len(sp) > 0 && sp[len(sp)-1][1] == end
@@ -1288,6 +1288,27 @@ func firstSpan(text string, phrases []string) int {
 	return at
 }
 
+// contentEnd trả vị trí byte hết phần NỘI DUNG của text: bỏ dấu câu và các từ trung tính của pack ("ạ", "nhé", "vậy") ở cuối. Từ phủ định đứng ngay trước chúng ("… được không ạ?") vẫn là đuôi hỏi có / không.
+func (s *Set) contentEnd(text string) int {
+	notWord := func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }
+	end := len(strings.TrimRightFunc(text, notWord))
+	for end > 0 {
+		j := end
+		for j > 0 {
+			r, n := utf8.DecodeLastRuneInString(text[:j])
+			if notWord(r) && !unicode.Is(unicode.Mn, r) {
+				break
+			}
+			j -= n
+		}
+		if w := text[j:end]; w == "" || !s.isNeutral(w) {
+			break
+		}
+		end = len(strings.TrimRightFunc(text[:j], notWord))
+	}
+	return end
+}
+
 // negated báo mệnh đề có từ phủ định KHÔNG đứng cuối ("Không tính tiền", "Chưa tính chi phí", "Trị giá hợp đồng không đổi"): cụm báo nghĩa trong đó đang bị phủ nhận, không phải điều được hỏi. Từ phủ định cuối
 // mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định nằm trong cụm hỏi của pack ("đúng không") không tính — câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền (S4BS-05).
 func (s *Set) negated(clause string) bool {
@@ -1295,7 +1316,7 @@ func (s *Set) negated(clause string) bool {
 		return false
 	}
 	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))
-	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))
+	end := s.contentEnd(masked)
 	return slices.ContainsFunc(spansOf(masked, s.opt.NegationMarkers), func(sp [2]int) bool { return sp[1] < end })
 }
 

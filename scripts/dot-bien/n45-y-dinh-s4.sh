@@ -140,9 +140,7 @@ m $I '			if hasOwnFigure && missing < len(strings.Fields(k)) && !s.neutralOnly(k
 m $I '	for _, r := range s.premiseRanges(in, res) { // mệnh đề ngữ cảnh: không phải điều đang hỏi nên không cần giải thích (bất biến (b))
 		cover(r[0], r[1])
 	}' '' 'S81 a2 đòi giải thích cả chữ của mệnh đề ngữ cảnh'
-m $I '	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers...)
-	q := slices.IndexFunc(cl' '	markers := slices.Clone(s.opt.FocusMarkers)
-	q := slices.IndexFunc(cl' 'S82 cụm hỏi lượng ("bao nhiêu") không đánh dấu mệnh đề hỏi'
+m $I '		return s.asking(raw[c[0]:c[1]])' '		return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(raw[c[0]:c[1]], m) })' 'S82 cụm hỏi lượng ("bao nhiêu") không đánh dấu mệnh đề hỏi (vòng 3: viết lại neo vì mệnh đề hỏi nay nhận qua asking)'
 # C4: câu nêu đúng hai chỉ số khác nhau kèm dấu hiệu so sánh là phép so sánh đúng cặp người hỏi nêu; ý định dẫn xuất chỉ trả cặp mặc định khi
 # mọi chỉ số câu nêu nằm trong cặp ấy.
 m $I '		if s.comparing(text[c[0]:c[1]]) {' '		if false {' 'S83 từ so sánh bậc hơn / kém ("cao hơn", "kém") không còn là dấu hiệu so sánh'
@@ -309,4 +307,8 @@ m $I '	if o.SourceNames == nil || len(o.SourceVerbs) == 0 {' '	if true {' 'S183 
 m $I '	if s.hit != nil {' '	if false {' 'S184 cụm sinh ra không được dùng để đếm từ khoá'
 m $I '			for _, name := range o.SourceNames(m) {' '			for _, name := range o.SourceNames("issued_fuel") {' 'S185 mọi ý định số liệu nhận tên nguồn của chỉ số kho xuất ("hoá đơn báo" không thuộc dầu theo hoá đơn)'
 m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: []' 'S186 pack không khai động từ nguồn'
+
+# ---- Hồi quy vòng 3 (bộ 325 câu của vòng 2): từ phủ định + từ trung tính cuối câu vẫn là đuôi hỏi
+m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S187 đuôi hỏi "… có đốt 3782 L dầu không ạ" bị coi là lệnh ghi (từ trung tính cuối câu chặn đuôi hỏi)'
+m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
 

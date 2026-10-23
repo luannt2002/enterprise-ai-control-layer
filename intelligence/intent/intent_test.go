@@ -436,3 +436,46 @@ func TestMenhDeNguCanhKhongQuyetDinhYDinh(t *testing.T) {
 		}
 	}
 }
+
+// C4 (ADR-0010): câu nêu đúng hai chỉ số khác nhau kèm dấu hiệu so sánh là phép so sánh đúng cặp người hỏi nêu; số cụm khớp và độ ưu tiên của ý định
+// dẫn xuất không quyết định thay họ. Ý định dẫn xuất chỉ trả cặp mặc định khi mọi chỉ số câu nêu nằm trong cặp ấy.
+func TestSoSanhDungCapNguoiHoiNeu(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	metricDef := func(name, metric string, kw ...string) Def {
+		return Def{Name: name, Route: "SQL_QUERY", Keywords: kw, Terms: []string{"fuel"}, MetricByTerm: map[string]string{"fuel": metric},
+			Capability: "metrics.read", Slots: slots, Priority: 20}
+	}
+	s, err := Compile([]Def{
+		metricDef("a", "ma", "cấp"), metricDef("b", "mb", "báo", "cảm biến"), metricDef("c", "mc", "hoá đơn"),
+		{Name: "v", Route: "CALCULATION", Keywords: []string{"chênh"}, Terms: []string{"fuel"}, Derived: "d_ab", Capability: "metrics.read", Slots: slots, Priority: 30},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{ComparisonMarkers: []string{"nhiều hơn"}, DerivedOperands: func(d string) (string, string, bool) { return "ma", "mb", d == "d_ab" }})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw string
+		intent    string // "" = hỏi lại (Ambiguous)
+		compare   string // ý định vế phải của phép so sánh ("" = không phải phép so sánh)
+	}{
+		{"cặp mặc định (đúng thứ tự)", "cấp báo chênh", "v", ""},
+		{"cặp mặc định (ngược thứ tự)", "báo cấp chênh", "v", ""},
+		{"một chỉ số trong cặp mặc định", "báo chênh", "v", ""},
+		{"không nêu chỉ số nào: cặp mặc định", "chênh", "v", ""},
+		{"cặp KHÁC cặp mặc định: so đúng cặp, vế nhắc trước đứng trước", "hoá đơn báo chênh", "c", "b"},
+		{"cặp khác cặp mặc định (một chỉ số trong, một ngoài)", "cấp hoá đơn chênh", "a", "c"},
+		{"một chỉ số ngoài cặp mặc định: không có cặp để trả thay người hỏi", "hoá đơn chênh", "", ""},
+		{"ba chỉ số: không có cặp để trả thay người hỏi", "cấp báo hoá đơn chênh", "", ""},
+		{"cụm so sánh, số cụm khớp không quyết định: 'cảm biến … báo' (2 cụm) không thắng 'cấp' (1 cụm)", "cấp nhiều hơn cảm biến báo", "a", "b"},
+		{"hai chỉ số không dấu hiệu so sánh: hoà, hỏi lại", "cấp báo", "", ""},
+		{"cụm so sánh mà chỉ một chỉ số: như thường", "cấp nhiều hơn", "a", ""},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, testNow)
+		if r.Intent.Name != c.intent || r.Compare != c.compare || (c.intent == "" && len(r.Ambiguous) == 0) {
+			t.Errorf("%s: ý định = %q, so sánh với %q, hỏi lại %v; muốn ý định %q, so sánh với %q", c.name, r.Intent.Name, r.Compare, r.Ambiguous, c.intent, c.compare)
+		}
+	}
+}

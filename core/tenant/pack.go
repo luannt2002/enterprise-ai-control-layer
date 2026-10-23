@@ -214,6 +214,10 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil
 				},
+				DerivedOperands: func(id string) (string, string, bool) {
+					d, ok := rt.Metrics.Derived(id)
+					return d.Left, d.Right, ok
+				},
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)
 					return ok && d.DefaultUnit != ""

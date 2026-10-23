@@ -137,4 +137,28 @@ m $I '	for _, r := range s.premiseRanges(in, res) { // mệnh đề ngữ cảnh
 m $I '	markers := append(slices.Clone(s.opt.FocusMarkers), s.opt.QuantityMarkers...)
 	q := slices.IndexFunc(cl' '	markers := slices.Clone(s.opt.FocusMarkers)
 	q := slices.IndexFunc(cl' 'S82 cụm hỏi lượng ("bao nhiêu") không đánh dấu mệnh đề hỏi'
+# C4: câu nêu đúng hai chỉ số khác nhau kèm dấu hiệu so sánh là phép so sánh đúng cặp người hỏi nêu; ý định dẫn xuất chỉ trả cặp mặc định khi
+# mọi chỉ số câu nêu nằm trong cặp ấy.
+m $I '	if len(named) == 0 || len(derived) == 0 && !s.comparing(in.Raw) {' '	if len(named) == 0 || len(derived) == 0 {' 'S83 cụm so sánh ("nhiều hơn") không còn là dấu hiệu so sánh'
+m $I '		if inside {
+			return Result{}, false
+		}' '		if false {
+			return Result{}, false
+		}' 'S84 ý định dẫn xuất không bao giờ trả cặp mặc định'
+m $I '			inside = inside && slices.ContainsFunc(derived' '			inside = inside || slices.ContainsFunc(derived' 'S85 chỉ cần MỘT chỉ số nằm trong cặp mặc định là trả cặp mặc định (chỉ số ngoài cặp bị bỏ thầm)'
+m $I '	if len(named) == 2 && len(distinct) == 2 {' '	if len(named) >= 2 {' 'S86 so sánh cả khi câu nêu ba chỉ số (lấy hai chỉ số đầu)'
+m $I '		if first[right.Name] < first[left.Name] {
+			left, right = right, left
+		}
+		r := s.fill(left, in, res, now, implicit)
+		r.Intent.Slots["compare_metric"]' '		if false {
+			left, right = right, left
+		}
+		r := s.fill(left, in, res, now, implicit)
+		r.Intent.Slots["compare_metric"]' 'S87 vế so sánh theo thứ tự khai báo ý định, không theo thứ tự nhắc'
+m $I '	if len(derived) == 0 {
+		return Result{}, false
+	}
+	var names []string' '	var names []string' 'S88 câu so sánh không phải hai chỉ số cũng hỏi lại (một chỉ số + "nhiều hơn")'
+m core/tenant/pack.go '					return d.Left, d.Right, ok' '					return d.Left, d.Right, ok && false' 'S89 pack không khai cặp mặc định của chỉ số dẫn xuất'
 

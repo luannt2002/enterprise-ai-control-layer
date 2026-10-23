@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 // Vòng sửa S4 23/10 (ADR-0010, D-AI-02 = a): sửa bằng LUẬT theo bất biến, không thêm danh sách cụm đóng theo từng câu. Câu ở đây là câu viết
@@ -68,4 +70,58 @@ func TestC5MenhDeHoiQuyetDinhYDinh(t *testing.T) {
 	// đối chứng: mệnh đề dẫn đề không có con số mà nêu chỉ số KHÁC chỉ số của mệnh đề hỏi: vẫn hỏi lại, không chọn thay người hỏi
 	q := "Đội báo rồi, vậy hôm nay EX-03 tiêu thụ bao nhiêu dầu?"
 	hoiLai(t, ask(t, a, director, q).Response, q)
+}
+
+// C4 (ADR-0010): câu nêu HAI chỉ số khác nhau kèm dấu hiệu so sánh ("chênh", "nhiều hơn") là phép so sánh ĐÚNG cặp người hỏi nêu, theo thứ tự
+// nhắc (vế trước − vế sau); số cụm từ khoá khớp và độ ưu tiên của ý định "chênh lệch" không phải tín hiệu nghĩa. Ý định "chênh lệch" chỉ trả cặp
+// mặc định của nó khi câu không nêu chỉ số nào ngoài cặp ấy. EX-03 hôm nay: kho xuất 3.850 · đội báo 4.000 · tiêu thụ 3.782 · hoá đơn 4.100.
+func TestC4SoSanhDungCapNguoiHoiNeu(t *testing.T) {
+	a := newAsk(t)
+	director := user("director", "")
+	for _, c := range []struct {
+		q, intent, value string // value: số hiệu (vế trước − vế sau)
+	}{
+		// cặp người hỏi nêu KHÔNG phải cặp mặc định của "chênh lệch" (kho xuất − tiêu thụ): so đúng cặp đó, thứ tự nhắc
+		{"EX-03 hôm nay đội báo và hoá đơn chênh nhau bao nhiêu lít?", "fuel_reported", "-100"},
+		{"EX-03 hôm nay kho xuất và đội báo chênh nhau bao nhiêu lít?", "fuel_issued", "-150"},
+		{"EX-03 hôm nay hoá đơn và đội báo chênh nhau bao nhiêu lít?", "fuel_billed", "100"},
+		// số cụm từ khoá không quyết định: "cảm biến … đo được" (2 cụm) không thắng "cấp" (1 cụm) khi câu so sánh hai chỉ số
+		{"EX-03 hôm nay được kho cấp nhiều hơn mức cảm biến đo được bao nhiêu lít?", "fuel_issued", "68"},
+		{"EX-03 hôm nay được kho cấp nhiều hơn mức cảm biến đo bao nhiêu lít?", "fuel_issued", "68"}, // cặp tối thiểu: "đo được" → "đo"
+	} {
+		out := ask(t, a, director, c.q)
+		r := out.Response
+		if r.Route != contracts.RouteCalculation || r.Intent != c.intent || !strings.Contains(r.Answer, "chênh "+c.value+" L") {
+			t.Errorf("%q: muốn phép so sánh %s chênh %s L, được [%s/%s] %q", c.q, c.intent, c.value, r.Route, r.Intent, r.Answer)
+		}
+	}
+	// đối chứng: cặp mặc định của "chênh lệch" (kể cả thứ tự nhắc ngược) và câu chỉ nêu "chênh" / "hao hụt" vẫn trả cặp mặc định (kho xuất − tiêu thụ = 68)
+	for _, q := range []string{
+		"Chênh lệch dầu cấp và tiêu thụ của EX-03 hôm nay?",
+		"Chênh lệch dầu tiêu thụ và cấp của EX-03 hôm nay?",
+		"EX-03 hôm nay hao hụt bao nhiêu dầu?",
+		"EX-03 hôm nay lệch bao nhiêu dầu so với cảm biến?",
+	} {
+		r := ask(t, a, director, q).Response
+		if r.Route != contracts.RouteCalculation || r.Intent != "fuel_variance" || !strings.Contains(r.Answer, "68 L") {
+			t.Errorf("%q: muốn cặp mặc định (fuel_variance, 68 L), được [%s/%s] %q", q, r.Route, r.Intent, r.Answer)
+		}
+	}
+	// "chênh" mà câu nêu chỉ số NGOÀI cặp mặc định (một, hoặc ba) thì không có cặp nào để trả thay người hỏi: hỏi lại
+	for _, q := range []string{
+		"Chênh lệch dầu đội báo của EX-03 hôm nay?",
+		"Chênh lệch dầu cấp, đội báo và hoá đơn của EX-03 hôm nay?",
+	} {
+		r := ask(t, a, director, q).Response
+		hoiLai(t, r, q)
+		if strings.Contains(r.Answer, "68") {
+			t.Errorf("%q: không được trả cặp mặc định thay cặp người hỏi nêu: %q", q, r.Answer)
+		}
+	}
+	// đối chứng: hai chỉ số không có dấu hiệu so sánh vẫn hoà → hỏi lại; câu chỉ một chỉ số vẫn trả chỉ số đó
+	q := "EX-03 hôm nay đội báo kho xuất bao nhiêu dầu?"
+	hoiLai(t, ask(t, a, director, q).Response, q)
+	if r := ask(t, a, director, "EX-03 hôm nay đội báo bao nhiêu dầu?").Response; r.Intent != "fuel_reported" || !strings.Contains(r.Answer, "4.000") {
+		t.Errorf("một chỉ số: muốn dầu đội báo 4.000, được [%s/%s] %q", r.Route, r.Intent, r.Answer)
+	}
 }

@@ -67,6 +67,9 @@ type Options struct {
 	// QuantityFits báo một lượng đổi được sang đơn vị của chỉ số (cùng chiều đo): a2 chỉ coi lượng như thế là chữ của câu hỏi chỉ số
 	// chung ("4 khối" với dầu kho xuất); "7 tấn", "8h" là đại lượng khác. Không khai ⇒ không lượng có đơn vị nào được coi là thuộc nghĩa.
 	QuantityFits func(metric string, v contracts.Value) bool
+	// DerivedOperands trả hai chỉ số gốc (vế trái, vế phải) của một chỉ số dẫn xuất ("issue_vs_measured" → kho xuất, tiêu thụ). Ý định dẫn xuất ("chênh
+	// lệch") chỉ được trả cặp mặc định ấy khi câu không nêu chỉ số nào ngoài cặp; không khai ⇒ không kiểm (xem Set.comparison).
+	DerivedOperands func(derived string) (left, right string, ok bool)
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
@@ -406,6 +409,9 @@ func missingEntity(d Def, it contracts.Intent) bool {
 
 // build chọn ý định thắng trong một nhóm và điền khe của nó.
 func (s *Set) build(matched []Def, score, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) Result {
+	if r, ok := s.comparison(matched, first, in, res, now, implicit); ok {
+		return r
+	}
 	// Ưu tiên cao hơn thắng; cùng ưu tiên thì ý định có NHIỀU cụm từ khoá khớp hơn thắng
 	// ("cảm biến … đo được" hơn "báo"); vẫn hoà thì hỏi lại.
 	matched = append([]Def(nil), matched...)
@@ -422,29 +428,70 @@ func (s *Set) build(matched []Def, score, first map[string]int, in contracts.Nor
 			ambiguous = append(ambiguous, d.Name)
 		}
 	}
-	if len(ambiguous) == 1 && s.comparing(in.Raw) {
-		// Hai nghĩa số liệu ngang nhau + cụm so sánh: "đội báo nhiều hơn kho xuất bao nhiêu" là
-		// hiệu (vế nhắc trước − vế nhắc sau), không phải câu mơ hồ.
-		other, _ := s.Def(ambiguous[0])
-		left, right := top, other
-		if first[right.Name] < first[left.Name] {
-			left, right = right, left
-		}
-		if left.Derived == "" && right.Derived == "" {
-			r := s.fill(left, in, res, now, implicit)
-			lm, ok := r.Intent.Slots["metric"]
-			if rm, _ := metricOf(right, in, implicit); ok && rm != "" && rm != lm.Text {
-				r.Intent.Slots["compare_metric"] = contracts.Slot{Name: "compare_metric", Text: rm}
-				r.Intent.Rule += "+compare:" + right.Name
-				r.Compare = right.Name
-				return r
-			}
-		}
-	}
 	if len(ambiguous) > 0 {
 		return Result{Ambiguous: append([]string{top.Name}, ambiguous...)}
 	}
 	return s.fill(top, in, res, now, implicit)
+}
+
+// comparison xử lý câu SO SÁNH hai chỉ số (ADR-0010, cụm C4). Câu có dấu hiệu so sánh — một ý định dẫn xuất khớp ("chênh", "lệch") hoặc cụm so sánh
+// của pack ("nhiều hơn") — và nêu ĐÚNG hai chỉ số khác nhau là phép so sánh đúng cặp người hỏi nêu (vế nhắc trước − vế nhắc sau): số cụm từ khoá
+// khớp và độ ưu tiên của ý định dẫn xuất không phải tín hiệu nghĩa, nên không được quyết định thay họ ("cảm biến … đo được" hai cụm không thắng "cấp"
+// một cụm; "chênh" không ép cặp mặc định của nó lên cặp khác). Ý định dẫn xuất chỉ trả cặp mặc định khi các chỉ số câu nêu đều nằm trong cặp ấy; câu
+// nêu chỉ số ngoài cặp mà không phải đúng hai chỉ số thì không có cặp nào để trả thay người hỏi: hỏi lại. ok = false: không phải câu so sánh, build
+// chọn như thường.
+func (s *Set) comparison(matched []Def, first map[string]int, in contracts.NormalizedInput, res contracts.Resolution, now time.Time, implicit string) (Result, bool) {
+	var named, derived []Def
+	metrics := map[string]string{}
+	for _, d := range matched {
+		switch m, _ := metricOf(d, in, implicit); {
+		case d.Derived != "":
+			derived = append(derived, d)
+		case !d.Weak && contracts.RouteKind(d.Route) == contracts.RouteSQLQuery && m != "":
+			named, metrics[d.Name] = append(named, d), m
+		}
+	}
+	if len(named) == 0 || len(derived) == 0 && !s.comparing(in.Raw) {
+		return Result{}, false
+	}
+	distinct := map[string]bool{}
+	for _, d := range named {
+		distinct[metrics[d.Name]] = true
+	}
+	if len(derived) > 0 {
+		if s.opt.DerivedOperands == nil {
+			return Result{}, false
+		}
+		inside := true // mọi chỉ số câu nêu đều nằm trong cặp mặc định của (một) ý định dẫn xuất
+		for m := range distinct {
+			inside = inside && slices.ContainsFunc(derived, func(d Def) bool {
+				l, r, ok := s.opt.DerivedOperands(d.Derived)
+				return ok && (m == l || m == r)
+			})
+		}
+		if inside {
+			return Result{}, false
+		}
+	}
+	if len(named) == 2 && len(distinct) == 2 {
+		left, right := named[0], named[1]
+		if first[right.Name] < first[left.Name] {
+			left, right = right, left
+		}
+		r := s.fill(left, in, res, now, implicit)
+		r.Intent.Slots["compare_metric"] = contracts.Slot{Name: "compare_metric", Text: metrics[right.Name]}
+		r.Intent.Rule += "+compare:" + right.Name
+		r.Compare = right.Name
+		return r, true
+	}
+	if len(derived) == 0 {
+		return Result{}, false
+	}
+	var names []string
+	for _, d := range slices.Concat(derived, named) {
+		names = append(names, d.Name)
+	}
+	return Result{Ambiguous: names}, true
 }
 
 // comparing báo câu có cụm so sánh của pack.

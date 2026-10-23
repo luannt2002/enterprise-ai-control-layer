@@ -715,6 +715,13 @@ func (r *run) rules(ctx context.Context) bool {
 		// Giữa C4b và R5 một lượt gửi trước cùng khoá có thể đã ghi xong, và phiếu OPEN vừa thấy chính là của nó: tra lại sổ lệnh trước khi
 		// kết luận "người khác đã tạo" (§6.3 hàng 3, I5).
 		if !r.consultLedger(ctx, true) {
+			if r.replay != nil { // C6 (lệnh ca chiều 23/10): C5 ĐÃ chạy (Derive, R3, R4) trước khi R5 chuyển sang phát lại — vết ghi đúng điều đó
+				r.setStep(stRules, Step{Status: StepOK, Input: in,
+					Output:   []string{"diff=" + diff, fmt.Sprintf("approx=%t", res.Approx), "open_ticket=" + ref.ID},
+					Decision: "phát lại",
+					Reason: "Derive đã chạy, chênh lệch vượt ngưỡng; R5 thấy phiếu OPEN của chính khoá lệnh này (lượt gửi trước cùng khoá ghi xong " +
+						"sau C4b) nên phát lại, không ghi"})
+			}
 			return false // phát lại, khoá bị dùng lại cho nội dung khác, hoặc không đọc được sổ lệnh: kết cục đã nằm ở C4b
 		}
 		r.refuse(stRules, duplicateResult(ref), Step{
@@ -1116,7 +1123,10 @@ func (r *run) outcome() Outcome {
 			continue
 		}
 		reason := "lượt dừng ở " + stages[max(r.stop, 0)].code
-		if r.replay != nil && r.stop == stLedger {
+		switch {
+		case r.replay != nil && r.stop == stLedger && r.done[stRules]: // phát lại do R5 (C6): C5 đã tính, chỉ không ghi
+			reason = "phát lại (R5 thấy phiếu của chính khoá lệnh này): không ghi"
+		case r.replay != nil && r.stop == stLedger:
 			reason = "phát lại ở C4b: không tính lại, không ghi"
 		}
 		r.setStep(i, Step{Status: StepSkipped, Reason: reason})

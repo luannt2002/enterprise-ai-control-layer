@@ -392,6 +392,8 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 			}
 		}
 		vars["reason"] = strings.Join(reasons, "; ")
+		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
+		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired

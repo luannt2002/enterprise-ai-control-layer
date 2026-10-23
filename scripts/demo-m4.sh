@@ -17,8 +17,9 @@
 # EAIS_DEMO_QUESTION, EAIS_WORK (thư mục làm việc; mặc định mktemp -d, xoá khi xong). Script chỉ cho thấy "chạy được", không thay cho cổng X1–X9.
 # Mã thoát: 0 cả sáu bước đúng · 2 từ chối (thiếu DSN) · 1 có bước sai (kèm lý do) · khác: lỗi môi trường.
 #
-# TRẠNG THÁI: soạn theo HOP-DONG §2.6.4 và theo route lệnh của K3 (nhánh m4/k3-route). CHƯA CHẠY ĐẦY ĐỦ: bước 3–6 cần route POST /v1/commands/open_discrepancy_ticket,
-# mà K3 chưa gộp vào main. Đã chạy thử bước 1–2 trên main (route lệnh vắng thì script dừng ở bước 3 với lời nói rõ vì sao).
+# TRẠNG THÁI [ĐO 23/10]: ĐÃ CHẠY ĐỦ sáu bước, thoát 0, trên một cây THỬ GỘP (nhánh K4 + m4/k3-route@1a56f9b, không commit) với database riêng: DONE, mã phiếu, hai vế 3850 và 3782 L,
+# chênh lệch 68, hai bảng vết (11 bước S0…S10 và 9 bước C0…C7), gửi lại nguyên văn replayed = true cùng mã phiếu, command_id mới 409 DUPLICATE_OPEN_TICKET kèm mã phiếu cũ, đúng 1 phiếu OPEN
+# bằng truy vấn quản trị. Trên main (chưa có route lệnh của K3) chỉ chạy được bước 1–2; script dừng ở bước 3 với lời nói rõ vì sao khi gặp 404.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 for v in EAIS_PG_ADMIN_DSN EAIS_PG_DSN; do

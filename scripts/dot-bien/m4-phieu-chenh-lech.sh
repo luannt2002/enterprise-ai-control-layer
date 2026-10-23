@@ -14,7 +14,7 @@
 # Mã thoát 0 chỉ khi không đột biến nào sống sót hay "khác" (như dot-bien-vet.sh); dòng "chờ K3" và "tương đương" có lý do và không tính.
 #
 # Đột biến nào cần cửa HTTP hay đường lưu vết của K3 (M9 ở cửa HTTP, M24 phần vết đã lưu, M25): dòng được viết sẵn ở cuối tệp, tắt bằng dấu #, ghi rõ CHỜ K3
-# (nhánh m4/k3-route, chưa gộp). Dòng M5 và M13 có ghi chú tương đương / giới hạn kèm số đo (xem chỗ đó).
+# (nhánh m4/k3-route, chưa gộp), đã thử trên cây thử gộp. Dòng M5 và M13 có ghi chú giới hạn kèm số đo (xem chỗ đó).
 set -u
 cd "$(dirname "$0")/../.." || exit 1
 : "${EAIS_PG_ADMIN_DSN:?đặt EAIS_PG_ADMIN_DSN (PG riêng của bạn)}"
@@ -259,19 +259,22 @@ m M26 'tra sổ lệnh chỉ theo (tenant, command_id), bỏ người gọi' $S 
 	"$PG/A05_[^ ]*/results"
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
-# CHỜ K3 (nhánh m4/k3-route, chưa gộp vào main). Các dòng dưới được soạn theo m4/k3-route@1a56f9b và CHƯA CHẠY: bỏ dấu # khi route lệnh và đường lưu vết của
-# cmd/eais đã có trên main, rồi đối chiếu lại chuỗi gốc (mutate.sh báo "xuất hiện 0 lần" nếu mã đã đổi). Mẫu test là tên test của K3 ở cmd/eais/lenh_http_test.go.
+# CHỜ K3 (nhánh m4/k3-route, chưa gộp vào main): cần cửa HTTP và đường lưu vết của cmd/eais. Ba dòng dưới được soạn theo m4/k3-route@1a56f9b và ĐÃ THỬ ngày 23/10 trên một cây
+# THỬ GỘP (K4 + K3, không commit, PKGS=./cmd/eais/, mutate.sh bản mới): cả ba "BỊ BẮT" đúng test của K3 (mẫu ghi ở cuối mỗi dòng). Chúng vẫn tắt bằng dấu # vì main chưa có route lệnh:
+# bỏ dấu # khi K3 đã gộp, đặt PKGS=./cmd/eais/ khi chạy, và đối chiếu lại chuỗi gốc (mutate.sh báo "xuất hiện 0 lần" nếu mã đã đổi).
 #
-# M9 ở cửa HTTP (A11, A28): lấy tenant từ thân yêu cầu thay vì từ token — thêm trường tenant vào kiểu thân của lớp HTTP rồi dùng nó; hoặc bỏ giải mã chặt.
-# cho_k3 M9h 'cửa HTTP nhận trường lạ (tenant) trong thân' cmd/eais/server.go 'dec.DisallowUnknownFields()' '_ = 0' 'TestLenhHTTPThanSai|TestLenhHTTPTenTruongLaDuocCat'
+# M9 ở cửa HTTP (A11, A28): thân yêu cầu mang trường tenant / principal / vai được nhận thay vì bị từ chối (bỏ giải mã chặt của decodeCommand).
+# m M9h 'cửa HTTP không còn từ chối trường lạ (tenant, principal, role) trong thân' cmd/eais/server.go \
+#	$'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))\n\tdec.DisallowUnknownFields()' $'\tdec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxCommandBody))' \
+#	'TestLenhHTTPThanSai' 'TestLenhHTTPTenTruongLaDuocCat'
 # M24 (phần vết đã lưu, A29 (c)): chi tiết đã nằm ở m M24 phía trên (dữ liệu thô); phần qua eais trace và GET /v1/trace/{id} do K3 kiểm trong TestLenhHTTPVet.
 # M25: không lưu vết cho lượt không phải DONE, hoặc để lỗi lưu vết đổi kết quả đã ghi (A29 (b), (e)):
 # m M25a 'lỗi lưu vết đổi kết quả đã ghi (đổi mã HTTP)' cmd/eais/server.go \
 #	$'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t}' $'\t\t} else {\n\t\t\tres.TraceID = ""\n\t\t\tstatus = http.StatusServiceUnavailable\n\t\t}' \
-#	"TestLenhHTTPMatVetKhongDoiKetQua"
+#	'TestLenhHTTPMatVetKhongDoiKetQua'
 # m M25b 'chỉ lưu vết lượt DONE' cmd/eais/server.go \
 #	'if s.persistTrace(r.Context(), pr, rec) == nil {' 'if out.Result.Status != commands.StatusDone || s.persistTrace(r.Context(), pr, rec) == nil {' \
-#	"TestLenhHTTPVet"
+#	'TestLenhHTTPVet|TestLenhHTTPKetCuc'
 cho=$((cho + 3)) # M9 (cửa HTTP), M25a, M25b
 
 echo "TỔNG: đúng chỗ $bat · sống sót $song · khác $khac · chờ K3 $cho"

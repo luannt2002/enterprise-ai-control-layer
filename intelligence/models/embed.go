@@ -19,15 +19,20 @@ const (
 
 // ServiceConfig là cấu hình một dịch vụ phụ của truy hồi (embedding, rerank) — đọc ở tầng khởi động, không hard code.
 type ServiceConfig struct {
-	Provider   string // giao thức (Protocol*); "" = tắt
-	BaseURL    string // bắt buộc — không có endpoint mặc định
-	APIKey     string
-	Model      string // bắt buộc — không có model mặc định
-	Dim        int    // số chiều vector (chỉ embedding); bắt buộc vì vector đã lưu gắn với nó
-	MaxRetries int
+	Provider string // giao thức (Protocol*); "" = tắt
+	BaseURL  string // bắt buộc — không có endpoint mặc định
+	APIKey   string
+	Model    string // bắt buộc — không có model mặc định
+	Dim      int    // số chiều vector (chỉ embedding); bắt buộc vì vector đã lưu gắn với nó
+	Batch    int    // số chữ mỗi yêu cầu (chỉ embedding); 0 = 40. Hạn mức tính theo từng chữ thì lô nhỏ mới qua được
+	// QueryTask / PassageTask: giá trị trường "task" gửi kèm khi nhúng câu hỏi / đoạn (chỉ embedding; model phân biệt hai loại);
+	// rỗng = không gửi trường này.
+	QueryTask, PassageTask string
+	MaxRetries             int
 }
 
-// ServiceFromEnv đọc EAIS_<role>_PROVIDER, _MODEL, _BASE_URL, _API_KEY, _DIM, _MAX_RETRIES (trống = 2); role là "EMBED" hoặc
+// ServiceFromEnv đọc EAIS_<role>_PROVIDER, _MODEL, _BASE_URL, _API_KEY, _DIM, _BATCH, _QUERY_TASK, _PASSAGE_TASK, _MAX_RETRIES
+// (trống = 2); role là "EMBED" hoặc
 // "RERANK". Số viết sai thành -1 để constructor báo lỗi cấu hình, không lặng lẽ về mặc định.
 func ServiceFromEnv(role string) ServiceConfig {
 	env := func(k string) string { return os.Getenv("EAIS_" + role + "_" + k) }
@@ -43,7 +48,7 @@ func ServiceFromEnv(role string) ServiceConfig {
 		return n
 	}
 	return ServiceConfig{Provider: env("PROVIDER"), BaseURL: env("BASE_URL"), APIKey: env("API_KEY"), Model: env("MODEL"),
-		Dim: num("DIM", 0), MaxRetries: num("MAX_RETRIES", 2)}
+		Dim: num("DIM", 0), Batch: num("BATCH", 0), QueryTask: env("QUERY_TASK"), PassageTask: env("PASSAGE_TASK"), MaxRetries: num("MAX_RETRIES", 2)}
 }
 
 // check kiểm cấu hình chung của role và trả BaseURL đã bỏ "/" cuối.
@@ -72,7 +77,11 @@ func NewEmbedder(c ServiceConfig) (*Embeddings, error) {
 	if c.Dim <= 0 {
 		return nil, contracts.Errorf(contracts.FaultCode, "EAIS_EMBED_DIM phải là số nguyên dương")
 	}
-	return &Embeddings{caller: caller{Provider: c.Provider, MaxRetries: c.MaxRetries}, BaseURL: base, APIKey: c.APIKey, Model: c.Model, Dim: c.Dim}, nil
+	if c.Batch < 0 {
+		return nil, contracts.Errorf(contracts.FaultCode, "EAIS_EMBED_BATCH phải là số nguyên dương")
+	}
+	return &Embeddings{caller: caller{Provider: c.Provider, MaxRetries: c.MaxRetries}, BaseURL: base, APIKey: c.APIKey, Model: c.Model, Dim: c.Dim, Batch: c.Batch,
+		QueryTask: c.QueryTask, PassageTask: c.PassageTask}, nil
 }
 
 // NewReranker dựng reranker theo cấu hình.
@@ -88,15 +97,26 @@ func NewReranker(c ServiceConfig) (*Rerank, error) {
 type Embeddings struct {
 	caller
 	BaseURL, APIKey, Model string
-	Dim                    int // số chiều yêu cầu (dimensions) và phải nhận về
-	Batch                  int // số chữ mỗi yêu cầu; 0 = 40 (hạn mức theo số yêu cầu mỗi phút)
+	Dim                    int    // số chiều yêu cầu (dimensions) và phải nhận về
+	Batch                  int    // số chữ mỗi yêu cầu; 0 = 40 (hạn mức theo số yêu cầu mỗi phút)
+	QueryTask, PassageTask string // trường "task" khi nhúng câu hỏi / đoạn; rỗng = không gửi
 }
 
-// Name định danh không gian vector: vector của hai Name khác nhau không so được với nhau.
-func (e *Embeddings) Name() string { return fmt.Sprintf("%s/%d", e.Model, e.Dim) }
+// Name định danh không gian vector: vector của hai Name khác nhau không so được với nhau. Kiểu nhiệm vụ của đoạn đổi vector đã lưu
+// nên nằm trong Name; kiểu của câu hỏi chỉ đổi vector lúc hỏi.
+func (e *Embeddings) Name() string {
+	if e.PassageTask != "" {
+		return fmt.Sprintf("%s/%d/%s", e.Model, e.Dim, e.PassageTask)
+	}
+	return fmt.Sprintf("%s/%d", e.Model, e.Dim)
+}
 
-// Embed trả vector theo đúng thứ tự texts. Câu hỏi và tài liệu nhúng cùng một cách (giao thức chung không có kiểu nhiệm vụ).
-func (e *Embeddings) Embed(ctx context.Context, texts []string) ([][]float32, error) {
+// Embed trả vector theo đúng thứ tự texts; query chọn kiểu nhiệm vụ câu hỏi (true) hay đoạn (false) khi cấu hình có đặt.
+func (e *Embeddings) Embed(ctx context.Context, texts []string, query bool) ([][]float32, error) {
+	task := e.PassageTask
+	if query {
+		task = e.QueryTask
+	}
 	batch := e.Batch
 	if batch <= 0 {
 		batch = 40
@@ -111,6 +131,9 @@ func (e *Embeddings) Embed(ctx context.Context, texts []string) ([][]float32, er
 			} `json:"data"`
 		}
 		in := map[string]any{"model": e.Model, "input": lot, "dimensions": e.Dim}
+		if task != "" {
+			in["task"] = task
+		}
 		if err := e.post(ctx, e.BaseURL+"/embeddings", http.Header{"Authorization": {"Bearer " + e.APIKey}}, in, &r); err != nil {
 			return nil, err
 		}
@@ -150,8 +173,8 @@ func (r *Rerank) Rerank(ctx context.Context, query string, docs []string) ([]flo
 	}
 	var resp struct {
 		Results []struct {
-			Index int     `json:"index"`
-			Score float64 `json:"relevance_score"`
+			Index int      `json:"index"`
+			Score *float64 `json:"relevance_score"`
 		} `json:"results"`
 	}
 	in := map[string]any{"model": r.Model, "query": query, "documents": docs, "top_n": len(docs), "return_documents": false}
@@ -163,10 +186,10 @@ func (r *Rerank) Rerank(ctx context.Context, query string, docs []string) ([]flo
 	}
 	scores, seen := make([]float64, len(docs)), make([]bool, len(docs))
 	for _, x := range resp.Results {
-		if x.Index < 0 || x.Index >= len(docs) || seen[x.Index] {
-			return nil, contracts.Errorf(contracts.ThirdParty(r.Provider, contracts.KindBadResponse), fmt.Sprintf("chỉ số đoạn %d lạ hoặc lặp", x.Index))
+		if x.Index < 0 || x.Index >= len(docs) || seen[x.Index] || x.Score == nil {
+			return nil, contracts.Errorf(contracts.ThirdParty(r.Provider, contracts.KindBadResponse), fmt.Sprintf("đoạn #%d: chỉ số lạ / lặp, hoặc thiếu relevance_score", x.Index))
 		}
-		scores[x.Index], seen[x.Index] = x.Score, true
+		scores[x.Index], seen[x.Index] = *x.Score, true
 	}
 	return scores, nil
 }

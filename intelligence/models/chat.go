@@ -38,7 +38,8 @@ type chatMessage struct {
 }
 
 // tagRe bắt thẻ đóng gói (mở hoặc đóng, mọi kiểu chữ hoa, có khoảng trắng) nằm trong NỘI DUNG.
-var tagRe = regexp.MustCompile(`(?i)<(\s*/?\s*)(bang_chung|cau_hoi)`)
+// Dấu "<" gồm cả dạng toàn khổ / nhỏ; giữa "<" và tên thẻ có thể chen khoảng trắng Unicode, ký tự vô hình, nhiều "/" (soát độc lập 23/10).
+var tagRe = regexp.MustCompile(`(?i)[<\x{FF1C}\x{FE64}]([\p{Z}\s\v\x{200B}-\x{200D}\x{2060}\x{FEFF}/\\]*)(bang_chung|cau_hoi)`)
 
 func escapeTags(s string) string { return tagRe.ReplaceAllString(s, "&lt;$1$2") }
 
@@ -90,14 +91,15 @@ func (m *Chat) Generate(ctx context.Context, req Request) (contracts.Draft, erro
 	text := out.Choices[0].Message.Content
 	usage := contracts.Usage{InputTokens: out.Usage.PromptTokens, OutputTokens: out.Usage.CompletionTokens}
 	var ans struct {
-		Answer      string   `json:"answer"`
+		Answer      *string  `json:"answer"`
 		EvidenceIDs []string `json:"evidence_ids"`
 	}
-	if err := json.Unmarshal([]byte(jsonObject(text)), &ans); err != nil {
-		// Văn xuôi thay vì JSON: giữ nguyên văn, KHÔNG claim ⇒ cổng Bound chặn (như Messages, C-05).
+	if err := json.Unmarshal([]byte(jsonObject(text)), &ans); err != nil || ans.Answer == nil {
+		// Không đúng khuôn (văn xuôi, thiếu khoá answer, answer không phải chuỗi, null, {}): giữ nguyên văn, KHÔNG claim, KHÔNG phải
+		// từ chối ⇒ cổng Bound chặn (như Messages, C-05).
 		return contracts.Draft{Text: strings.TrimSpace(text), Model: m.Model, Usage: usage}, nil
 	}
-	d := contracts.Draft{Text: strings.TrimSpace(ans.Answer), Model: m.Model, Usage: usage}
+	d := contracts.Draft{Text: strings.TrimSpace(*ans.Answer), Model: m.Model, Usage: usage, Refused: strings.TrimSpace(*ans.Answer) == ""}
 	if d.Text != "" {
 		d.Claims = []contracts.Claim{{Text: d.Text, EvidenceIDs: ans.EvidenceIDs}}
 	}

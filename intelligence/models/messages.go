@@ -468,7 +468,7 @@ func New(c Config) (Gateway, error) {
 			return nil, contracts.Errorf(contracts.FaultCode, "provider "+ProtocolChat+" cần EAIS_MODEL, EAIS_MODEL_API_KEY và EAIS_MODEL_BASE_URL")
 		}
 		if c.Thinking != "" || c.Effort != "" {
-			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_THINKING / EAIS_MODEL_EFFORT chỉ dùng cho provider anthropic")
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_THINKING / EAIS_MODEL_EFFORT chỉ dùng cho giao thức Messages")
 		}
 		if !secureEndpoint(c.BaseURL) {
 			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback, không kèm thông tin xác thực trong URL", EndpointForLog(c.BaseURL)))

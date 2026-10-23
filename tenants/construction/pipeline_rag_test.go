@@ -117,6 +117,47 @@ func TestRAGHybridModelLoi(t *testing.T) {
 	}
 }
 
+// Model nói bằng chứng không trả lời được (answer rỗng — đường của model thật, ROADMAP-RAG §6.5 "không có thì nói không có"): người
+// hỏi nhận "chưa có tài liệu trả lời được", không phải lỗi hệ thống; không trích dẫn. HYBRID: phần số liệu đã kiểm vẫn giao.
+func TestRAGModelTuChoi(t *testing.T) {
+	a, _ := newAskPhienBan(t, sopBan(2, rag.StatusApproved, "2026-03-01", "", "48 giờ"))
+	a.Deps.Model = modelTuChoi{}
+	r := ask(t, a, user("director", ""), cauQuyTrinh).Response
+	if r.Outcome != contracts.OutcomeInsufficientEvidence || len(r.Citations) != 0 || strings.Contains(r.Answer, "48 giờ") {
+		t.Errorf("model từ chối: muốn INSUFFICIENT_EVIDENCE, không trích dẫn; được %s → %q %+v", r.Outcome, r.Answer, r.Citations)
+	}
+	r = ask(t, a, user("director", ""), cauGhep).Response
+	if r.Outcome != contracts.OutcomeResolved || !strings.Contains(r.Answer, "3.850") || strings.Contains(r.Answer, "48 giờ") {
+		t.Errorf("HYBRID + model từ chối: muốn giữ 3.850, bỏ phần quy trình; được %s → %q", r.Outcome, r.Answer)
+	}
+	// Văn xuôi không claim, và bản nháp RỖNG không mang cờ Refused (model trả sai khuôn), là đầu ra hỏng ⇒ S9 chặn như cũ — không được
+	// hiểu là "không có" (soát độc lập 23/10).
+	for name, m := range map[string]models.Gateway{"văn xuôi": modelVanXuoi{}, "rỗng không cờ": modelRong{}} {
+		a.Deps.Model = m
+		if r := ask(t, a, user("director", ""), cauQuyTrinh).Response; r.Outcome != contracts.OutcomeSystemFailure {
+			t.Errorf("%s: muốn S9 chặn (SYSTEM_FAILURE), được %s → %q", name, r.Outcome, r.Answer)
+		}
+	}
+}
+
+type modelRong struct{}
+
+func (modelRong) Generate(context.Context, models.Request) (contracts.Draft, error) {
+	return contracts.Draft{Model: "gia"}, nil
+}
+
+type modelTuChoi struct{}
+
+func (modelTuChoi) Generate(context.Context, models.Request) (contracts.Draft, error) {
+	return contracts.Draft{Model: "gia", Refused: true}, nil
+}
+
+type modelVanXuoi struct{}
+
+func (modelVanXuoi) Generate(context.Context, models.Request) (contracts.Draft, error) {
+	return contracts.Draft{Text: "Lập biên bản trong 48 giờ.", Model: "gia"}, nil
+}
+
 type modelLoi struct{}
 
 func (modelLoi) Generate(context.Context, models.Request) (contracts.Draft, error) {

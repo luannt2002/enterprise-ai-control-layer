@@ -18,6 +18,7 @@ import (
 // chặn phản hồi sai số vector / số chiều / chỉ số. Máy chủ giả trên máy.
 func TestEmbeddings(t *testing.T) {
 	var lots []int
+	var tasks []string
 	fail429, withIndex, reversed, wrongDim := 1, true, false, false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/embeddings" || r.Header.Get("Authorization") != "Bearer khoa-test" {
@@ -33,6 +34,7 @@ func TestEmbeddings(t *testing.T) {
 			Model string   `json:"model"`
 			Input []string `json:"input"`
 			Dim   int      `json:"dimensions"`
+			Task  *string  `json:"task"`
 		}
 		b, _ := io.ReadAll(r.Body)
 		_ = json.Unmarshal(b, &in)
@@ -40,6 +42,11 @@ func TestEmbeddings(t *testing.T) {
 			t.Errorf("thân sai: %+v", in)
 		}
 		lots = append(lots, len(in.Input))
+		task := "<không gửi>"
+		if in.Task != nil {
+			task = *in.Task
+		}
+		tasks = append(tasks, task)
 		var vs []string
 		for i, s := range in.Input {
 			d := in.Dim
@@ -71,12 +78,12 @@ func TestEmbeddings(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.Batch, e.sleep = 2, func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }
-	v, err := e.Embed(context.Background(), []string{"t1", "t2", "t3", "t4", "t5"})
+	v, err := e.Embed(context.Background(), []string{"t1", "t2", "t3", "t4", "t5"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fmt.Sprint(lots) != "[2 2 1]" || len(v) != 5 || v[0][0] != 1 || v[4][0] != 5 || len(v[2]) != 3 {
-		t.Errorf("lô %v, vector %v", lots, v)
+	if fmt.Sprint(lots) != "[2 2 1]" || len(v) != 5 || v[0][0] != 1 || v[4][0] != 5 || len(v[2]) != 3 || tasks[0] != "<không gửi>" {
+		t.Errorf("lô %v, vector %v, kiểu nhiệm vụ %v (không cấu hình thì không gửi)", lots, v, tasks)
 	}
 	if len(waits) != 1 || waits[0] < 12*time.Second {
 		t.Errorf("429 có retryDelay 12s: phải chờ ≥ 12s, đã chờ %v", waits)
@@ -84,16 +91,24 @@ func TestEmbeddings(t *testing.T) {
 	if e.Name() != "m-embed/3" {
 		t.Errorf("Name = %q", e.Name())
 	}
+	// Có cấu hình kiểu nhiệm vụ: câu hỏi và đoạn gửi đúng giá trị của mình; kiểu của đoạn nằm trong Name (đổi nó là đổi vector đã lưu).
+	e.QueryTask, e.PassageTask, tasks = "kieu-hoi", "kieu-doan", nil
+	_, err1 := e.Embed(context.Background(), []string{"t1"}, true)
+	_, err2 := e.Embed(context.Background(), []string{"t1"}, false)
+	if err1 != nil || err2 != nil || fmt.Sprint(tasks) != "[kieu-hoi kieu-doan]" || e.Name() != "m-embed/3/kieu-doan" {
+		t.Errorf("kiểu nhiệm vụ: gửi %v, Name %q, %v %v", tasks, e.Name(), err1, err2)
+	}
+	e.QueryTask, e.PassageTask = "", ""
 	reversed = true // trả ngược thứ tự nhưng có index: vẫn đúng chỗ
-	if v, err := e.Embed(context.Background(), []string{"t1", "t2"}); err != nil || v[0][0] != 1 || v[1][0] != 2 {
+	if v, err := e.Embed(context.Background(), []string{"t1", "t2"}, false); err != nil || v[0][0] != 1 || v[1][0] != 2 {
 		t.Errorf("trả ngược có index: %v %v", v, err)
 	}
 	reversed, withIndex = false, false // không index: theo thứ tự gửi
-	if v, err := e.Embed(context.Background(), []string{"t1", "t2"}); err != nil || v[0][0] != 1 || v[1][0] != 2 {
+	if v, err := e.Embed(context.Background(), []string{"t1", "t2"}, false); err != nil || v[0][0] != 1 || v[1][0] != 2 {
 		t.Errorf("không index: %v %v", v, err)
 	}
 	wrongDim = true
-	if _, err := e.Embed(context.Background(), []string{"t1"}); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolEmbeddings, contracts.KindBadResponse) {
+	if _, err := e.Embed(context.Background(), []string{"t1"}, true); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolEmbeddings, contracts.KindBadResponse) {
 		t.Errorf("sai số chiều: muốn bad_response, được %v", err)
 	}
 }
@@ -120,6 +135,7 @@ func TestRerank(t *testing.T) {
 		`{"results":[{"index":2,"relevance_score":0.9},{"index":2,"relevance_score":0.5},{"index":1,"relevance_score":0.1}]}`,
 		`{"results":[{"index":2,"relevance_score":0.9}]}`,
 		`{"results":[{"index":7,"relevance_score":0.9},{"index":0,"relevance_score":0.5},{"index":1,"relevance_score":0.1}]}`,
+		`{"results":[{"index":2,"score":0.9},{"index":0,"score":0.5},{"index":1,"score":0.1}]}`, // thiếu relevance_score: không thành 0 im lặng
 	} {
 		reply = bad
 		if _, err := r.Rerank(context.Background(), "q", []string{"a", "b", "c"}); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolRerank, contracts.KindBadResponse) {
@@ -146,6 +162,7 @@ func TestServiceConfig(t *testing.T) {
 		"thiếu số chiều":   func(c *ServiceConfig) { c.Dim = 0 },
 		"http ngoài máy":   func(c *ServiceConfig) { c.BaseURL = "http://embed.example/v1" },
 		"thử lại viết sai": func(c *ServiceConfig) { c.MaxRetries = -1 },
+		"cỡ lô viết sai":   func(c *ServiceConfig) { c.Batch = -1 },
 	} {
 		c := ok
 		mut(&c)

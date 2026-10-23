@@ -487,6 +487,9 @@ type Draft struct {
 	Usage  Usage   `json:"usage"`
 	// FromTemplate = câu dựng bằng mẫu câu của tenant, không qua model.
 	FromTemplate bool `json:"from_template"`
+	// Refused = model trả ĐÚNG khuôn và nói bằng chứng không trả lời được (answer rỗng). Bản nháp rỗng KHÔNG có cờ này là đầu ra hỏng
+	// (sai khuôn, khoảng trắng, null) — đi qua S9 và bị chặn, không được hiểu là "không có" (soát độc lập 23/10, như C2 F-04).
+	Refused bool `json:"refused,omitempty"`
 }
 
 // Severity là mức nghiêm trọng (docs/CONVENTIONS.md §4.4).

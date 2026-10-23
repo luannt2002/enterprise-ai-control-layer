@@ -617,6 +617,13 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		}
 		return err
 	}
+	// Model nói rõ bằng chứng không trả lời được (Draft.Refused): "không có" như khi không đoạn nào khớp — không phải lỗi, không trích
+	// dẫn (ROADMAP-RAG §6.5). Bản nháp rỗng / văn xuôi KHÔNG mang cờ là đầu ra hỏng: vẫn qua S9 và bị chặn.
+	if draft.Refused {
+		why.Context.Reason("%smodel: bằng chứng đã truy hồi không trả lời được câu hỏi — không trích đoạn nào", prefix)
+		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
+		return nil
+	}
 	// S9 — kiểm
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
 		v := validation.Bound(draft, ev)

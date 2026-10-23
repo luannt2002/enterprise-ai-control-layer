@@ -11,7 +11,9 @@ dừng chờ khi tốn tiền, đổi / hạ ngưỡng hay cổng, xoá / ghi đ
 
 ## 1. Đang chặn một khối MVP
 
-Không còn câu nào (23/10 sáng).
+| Câu | Hỏi gì | Khuyến nghị | Trong lúc chờ |
+|---|---|---|---|
+| D-AI-04 (M3, 23/10 12:36) | Bốn họ nghĩa trợ lý chưa hỗ trợ (đánh giá, cảnh báo, dự báo, báo giá) chỉ nhận được bằng danh sách cụm ở pack — chấp nhận làm trần của D-AI-02 = a (H6 đo độ phủ, nợ có nhãn), hay mở model, hay giữ cấm? Số đo: đồng nghĩa ngoài danh sách 154 câu sai 122 → 118 | (a) chấp nhận danh sách ở pack + H6 đo | vòng 3 làm phần cấu trúc (tiền, lệnh ghi theo D-OP-18 = c đúng chữ, WIN-I-086, hồi quy); gộp S4 khi người soát cho qua — nếu chỉ còn vướng câu này thì chờ |
 
 ## 2. Không chặn — đang chạy theo mặc định
 

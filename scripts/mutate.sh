@@ -57,7 +57,7 @@ CHUA_CO)
 	exit 5
 	;;
 *)
-	echo "[$label] NỀN ĐỎ — test đã đỏ trên cây chưa đột biến (${PKGS:-./...}); sửa nền rồi mới đo đột biến"
+	echo "[$label] NỀN ĐỎ — test đã đỏ trên cây chưa đột biến (${PKGS:-./...}); sửa nền rồi mới đo đột biến (kết quả nền được giữ ${MUTATE_NEN_PHUT:-60} phút theo khoá: sửa mà khoá không đổi — bật PG, đổi biến ngoài khoá — thì chạy lại với MUTATE_NEN_PHUT=0)"
 	exit 5
 	;;
 esac

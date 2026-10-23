@@ -4,6 +4,8 @@ package commands
 // và việc bộ chạy không rẽ nhánh theo mã ca. Chỉ dùng tệp thế giới và overlay của ca phát triển (testdata/chay), không cần tệp ca.
 
 import (
+	"context"
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -307,4 +309,57 @@ func TestBoChayKhongReNhanhTheoMaCa(t *testing.T) {
 			return true
 		})
 	}
+}
+
+// F2 trên PG (trigger của bộ chạy): bắn ở câu INSERT audit EXECUTED đầu tiên, tức SAU INSERT phiếu và sổ lệnh (sequence chỉ bị tiêu thụ khi tới câu
+// INSERT audit), đúng một lần dù giao dịch bị huỷ, và huỷ cả ba dòng của đơn vị bị hỏng.
+func TestBoChayF2PGTriggerBanDungChoDungMotLan(t *testing.T) {
+	e := newScratchEnv(t, "f2trig")
+	tn := e.tenant("f2")
+	ctl, err := newFaultCtl(fpInTxAuditInsert, 0, raoWait)
+	if err != nil {
+		t.Fatal(err)
+	}
+	be := &pgBackend{e: e, wd: &worlds{}}
+	be.arm(ctl)
+	defer be.disarm()
+	if be.armErr != nil {
+		t.Fatal(be.armErr)
+	}
+	consumed := func() bool { // sequence đã bị nextval chưa
+		var called bool
+		if err := e.admin.QueryRow(context.Background(), "SELECT is_called FROM k4_f2").Scan(&called); err != nil {
+			t.Fatal(err)
+		}
+		return called
+	}
+	rows := func(want int) {
+		t.Helper()
+		if e.openTickets(tn) != want || e.ledgerRows(tn) != want || e.auditRows(tn, AuditExecuted, "", "") != want {
+			t.Fatalf("phiếu=%d sổ lệnh=%d EXECUTED=%d, muốn %d mỗi loại", e.openTickets(tn), e.ledgerRows(tn), e.auditRows(tn, AuditExecuted, "", ""), want)
+		}
+	}
+	a := richUnit(1, "p-1", "EX-03")
+	if err := e.pg.WriteTicket(ctxOf(tn), a); !errors.Is(err, ErrBeforeCommit) || !consumed() {
+		t.Fatalf("INSERT audit đầu tiên phải bị trigger từ chối TRƯỚC COMMIT và tiêu thụ lượt bắn: lỗi %v, tiêu thụ %v", err, consumed())
+	}
+	rows(0) // cả ba dòng của đơn vị bị hỏng đều mất, kể cả hai dòng đã INSERT
+	if err := e.pg.WriteTicket(ctxOf(tn), a); err != nil {
+		t.Fatalf("lần gửi lại ghi bình thường (lượt bắn đã dùng): %v", err)
+	}
+	rows(1)
+	be.arm(ctl) // nạp lại lượt bắn (sequence về 1)
+	if consumed() {
+		t.Fatal("sau khi nạp lại, sequence chưa bị tiêu thụ")
+	}
+	if err := e.pg.WriteTicket(ctxOf(tn), richUnit(1, "p-1", "EX-04")); !errors.Is(err, ErrUniqueViolation) { // cùng khoá lệnh khác máy
+		t.Fatalf("muốn vi phạm khoá chính của sổ lệnh, được %v", err)
+	}
+	if consumed() {
+		t.Fatal("hỏng ở INSERT sổ lệnh thì chưa tới câu INSERT audit: không được tiêu thụ lượt bắn F2")
+	}
+	if err := e.pg.WriteTicket(ctxOf(tn), richUnit(2, "p-1", "EX-05")); !errors.Is(err, ErrBeforeCommit) || !consumed() {
+		t.Fatalf("đơn vị tới được INSERT audit thì bị F2 từ chối: lỗi %v, tiêu thụ %v", err, consumed())
+	}
+	rows(1)
 }

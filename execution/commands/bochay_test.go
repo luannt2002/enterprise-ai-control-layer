@@ -70,6 +70,7 @@ type tenantData struct {
 
 // worlds là mọi thứ dùng chung của một lần chạy: pack, chính sách, tool, đồng hồ cố định và dữ liệu hạt giống từng tenant.
 type worlds struct {
+	rt          *tenant.Runtime // pack đã nạp (cho test đường hỏi A25)
 	loc         *time.Location
 	now         time.Time // ngày tham chiếu lúc 10:00 giờ tenant, cố định suốt ca (§12.1)
 	policy      router.Policy
@@ -120,7 +121,7 @@ func buildWorlds(cfg chayCfg, tmp string) (*worlds, error) {
 	if err != nil {
 		return nil, fmt.Errorf("nạp pack: %w", err)
 	}
-	wd.loc, wd.catalog, wd.packVersion = rt.Location, rt.Metrics, rt.PackVersion
+	wd.rt, wd.loc, wd.catalog, wd.packVersion = rt, rt.Location, rt.Metrics, rt.PackVersion
 
 	policy := rt.Policy
 	toolsDir := cfg.Pack
@@ -801,13 +802,16 @@ func (b *memBackend) ticketExists(tn, id string) (bool, error) {
 func (b *memBackend) crossRows(string) (int, error) { return 0, nil }
 
 type pgBackend struct {
-	e  *pgEnv
-	wd *worlds
+	e      *pgEnv
+	wd     *worlds
+	armErr error // lỗi gắn F2 (trigger): ca ĐỎ nếu có
 }
 
 func newPGBackend(e *pgEnv, wd *worlds) *pgBackend { return &pgBackend{e: e, wd: wd} }
 
 func (b *pgBackend) label() string { return "pg" }
+
+func (b *pgBackend) failed() error { return b.armErr }
 
 func (b *pgBackend) deps(tn string) (Store, sourceoftruth.Store, entityresolution.Directory, error) {
 	if _, ok := b.wd.tenants[tn]; !ok {
@@ -823,22 +827,43 @@ func (b *pgBackend) reset(tenants []string) error {
 			return fmt.Errorf("dọn %s: %w", table, err)
 		}
 	}
-	b.e.pg.beforeAuditInsert = nil
+	b.armErr = nil
 	return nil
 }
 
+// F2 trên PG là một TRIGGER trong database riêng của lần chạy, không phải móc trong mã: nó bắn ở chính câu INSERT audit EXECUTED dù câu đó nằm ở
+// đâu (trong đơn vị ghi phiếu, hay — nếu mã bị đột biến — sau COMMIT). Chỉ lần INSERT audit EXECUTED ĐẦU TIÊN của cả database bị từ chối (nextval của
+// một sequence không hoàn tác khi giao dịch huỷ), nên "đúng MỘT lần" đúng cả khi giao dịch bị huỷ rồi gửi lại.
+var f2SQL = []string{
+	`CREATE SEQUENCE IF NOT EXISTS k4_f2`,
+	`ALTER SEQUENCE k4_f2 RESTART WITH 1`,
+	`GRANT USAGE ON SEQUENCE k4_f2 TO eais_app`,
+	`CREATE OR REPLACE FUNCTION k4_fail_audit() RETURNS trigger LANGUAGE plpgsql AS $f$
+	BEGIN
+		IF NEW.outcome = 'EXECUTED' AND nextval('k4_f2') = 1 THEN
+			RAISE EXCEPTION 'F2 in_tx_audit_insert: INSERT audit bị từ chối';
+		END IF;
+		RETURN NEW;
+	END $f$`,
+	`DROP TRIGGER IF EXISTS k4_fail_audit ON audit_log`,
+	`CREATE TRIGGER k4_fail_audit BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION k4_fail_audit()`,
+}
+
 func (b *pgBackend) arm(ctl *faultCtl) {
-	if ctl.point == fpInTxAuditInsert { // F2: ngay trước INSERT audit EXECUTED, sau INSERT phiếu và sổ lệnh trong cùng giao dịch
-		b.e.pg.beforeAuditInsert = func() error {
-			if ctl.reach(fpInTxAuditInsert) {
-				return errors.New("F2 in_tx_audit_insert: INSERT audit bị từ chối giữa giao dịch")
-			}
-			return nil
+	if ctl.point != fpInTxAuditInsert {
+		return
+	}
+	for _, q := range f2SQL {
+		if _, err := b.e.admin.Exec(context.Background(), q); err != nil {
+			b.armErr = fmt.Errorf("gắn F2 (%.40s…): %w", q, err)
+			return
 		}
 	}
 }
 
-func (b *pgBackend) disarm() { b.e.pg.beforeAuditInsert = nil }
+func (b *pgBackend) disarm() {
+	_, _ = b.e.admin.Exec(context.Background(), `DROP TRIGGER IF EXISTS k4_fail_audit ON audit_log`)
+}
 
 func (b *pgBackend) loadData(tn string) error {
 	td, ok := b.wd.tenants[tn]
@@ -987,6 +1012,9 @@ func (r *caseRun) execute() error {
 	}
 	r.be.arm(ctl)
 	defer r.be.disarm()
+	if e, ok := r.be.(interface{ failed() error }); ok && e.failed() != nil {
+		return e.failed()
+	}
 	for _, c := range r.pc.Calls {
 		if r.rts[c.Runtime] == nil {
 			if err := r.mkRuntime(c.Runtime); err != nil {

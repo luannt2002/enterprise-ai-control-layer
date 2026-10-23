@@ -8,8 +8,8 @@ package commands
 // thứ tự đó (sổ lệnh có khoá ngoại thường tới phiếu). Lỗi của đơn vị ghi chỉ có ba loại, và loại nào cũng gắn thêm lỗi gốc bằng %w:
 //
 //	ErrBeforeCommit    biết CHẮC chưa ghi: lỗi một câu lệnh (giao dịch đã huỷ), lỗi kết nối hay hết hạn TRƯỚC khi gửi COMMIT (kể cả
-//	                   khi đang chờ khoá), hoặc COMMIT chưa rời máy (ngữ cảnh đã xong từ trước), hoặc PG trả lỗi không-FATAL cho
-//	                   chính COMMIT;
+//	                   khi đang chờ khoá), hoặc COMMIT chưa rời máy (ngữ cảnh đã xong từ trước), hoặc PG trả lỗi đúng mức ERROR
+//	                   cho chính COMMIT (mức lạ, rỗng hay WARNING ⇒ ErrCommitUnknown — C7);
 //	ErrUniqueViolation SQLSTATE 23505, ở bất cứ câu lệnh nào kể cả COMMIT; giao dịch đã huỷ. Pipeline đọc lại để phân loại (§6.4);
 //	ErrCommitUnknown   từ lúc COMMIT đã gửi đi mà không có câu trả lời "đã huỷ" của PG: lỗi kết nối, backend bị kết thúc, hết hạn.
 //

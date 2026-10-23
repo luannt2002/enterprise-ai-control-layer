@@ -152,6 +152,18 @@ func TestNewRecordMoiKetCuc(t *testing.T) {
 			r := req(4, "EX-03", day1)
 			return dir, r, w.run(dir, r)
 		}, "C5 rules", "DUPLICATE_OPEN_TICKET", ""},
+		{"C5 thiếu một vế", func(w *world) (contracts.Principal, Request, Outcome) {
+			r := req(1, "EX-02", day1)
+			return dir, r, w.run(dir, r)
+		}, "C5 rules", "INSUFFICIENT_EVIDENCE", ""},
+		{"C5 hai nguồn ngang thẩm quyền lệch (không chọn số)", func(w *world) (contracts.Principal, Request, Outcome) {
+			r := req(1, "EX-06", day1)
+			return dir, r, w.run(dir, r)
+		}, "C5 rules", "HUMAN_REVIEW_REQUIRED", ""},
+		{"DONE với vế ước lượng", func(w *world) (contracts.Principal, Request, Outcome) {
+			r := req(1, "EX-08", day1)
+			return dir, r, w.run(dir, r)
+		}, "", "DONE", ""},
 		{"C6 hạ tầng trước COMMIT (F1)", func(w *world) (contracts.Principal, Request, Outcome) {
 			w.probe.f1 = 1
 			r := req(1, "EX-03", day1)

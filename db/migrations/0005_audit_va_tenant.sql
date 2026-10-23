@@ -8,3 +8,16 @@
 REVOKE SELECT ON audit_log FROM eais_app;
 GRANT SELECT (tenant_id, id, at, outcome, reason_code, caller_id, caller_roles, entity_scope, command_id, action, subject_key, metric, day,
   ticket_id, fingerprint, pack_version, code_version, trace_id) ON audit_log TO eais_app;
+
+-- C3. tenant_id rỗng bị chặn ở LƯỢC ĐỒ cho ba bảng của 0004 (trước đây chỉ tầng Go từ chối tenant rỗng; vai quản trị hay một đường ghi
+-- khác vẫn ghi được dòng tenant ''). Chạy lại được: bỏ rồi thêm ràng buộc cùng tên. Nợ cùng loại ở các bảng của 0001 (dữ liệu nghiệp vụ)
+-- và 0003 (vết bền): chưa sửa ở đây, ghi nợ ở docs/bao-cao/TIEN-DO-BUILD.md.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['discrepancy_tickets', 'commands', 'audit_log'] LOOP
+    EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', t, t || '_tenant_khong_rong');
+    EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I CHECK (tenant_id <> %L)', t, t || '_tenant_khong_rong', '');
+  END LOOP;
+END
+$$;

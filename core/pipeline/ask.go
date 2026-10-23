@@ -216,6 +216,8 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true, &why); err != nil {
 				return Outcome{}, err
 			}
+		} else if plan.Route == contracts.RouteHybrid {
+			a.noteHybridSkipped(&why, resp.Outcome)
 		}
 	case contracts.RouteRAG:
 		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false, &why); err != nil {
@@ -568,6 +570,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool, why *traces.Why) error {
 
 	fail := func(name string, outcome contracts.Outcome, violations []contracts.Violation) {
+		defer a.noteExit(ctx, why, hybrid, name, outcome, resp, len(violations) > 0)
 		if hybrid {
 			resp.Answer += a.fragment("hybrid_no_knowledge", nil)
 			resp.Verdict.Violations = append(resp.Verdict.Violations, violations...)
@@ -582,6 +585,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	// Câu hỏi đòi LƯỢNG nghiệp vụ ("bao nhiêu lít dầu") mà chỉ có tài liệu: tài liệu không phải
 	// nguồn của số liệu (P4) — không gọi model, báo thiếu bằng chứng.
 	if !hybrid && a.asksFactQuantity(in, now) {
+		a.noteQuantityExit(why, in, now)
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
 	}
@@ -601,6 +605,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	}
 	noteRetrieved(why, prefix, ev, knowledgeK)
 	if len(ev) == 0 {
+		a.noteNoEvidence(why, prefix)
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
 	}

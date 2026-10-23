@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -15,6 +16,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
+	"github.com/luannt2002/enterprise-ai-control-layer/reliability/validation"
 )
 
 // File này dựng phần GIẢI THÍCH của vết (traces.Why, R2-03) từ chính những gì luồng hỏi đã quyết: mọi dòng lấy từ dữ liệu có sẵn tại chỗ
@@ -590,4 +592,73 @@ func (a *Ask) noteDelivered(why *traces.Why, answer string, l *draftLedger) {
 			n.Reason("%scâu giao KHÔNG chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s) dù S9 không loại nó", d.prefix, dr, dh)
 		}
 	}
+}
+
+// quantityTrigger nói câu hỏi kích hoạt nhánh thoát sớm "đòi LƯỢNG nghiệp vụ" (asksFactQuantity) vì cụm hỏi lượng NÀO của pack và chiều đo NÀO của chỉ số
+// nghiệp vụ (marker rỗng = nhánh không kích hoạt). Chỉ để GIẢI THÍCH: đọc lại cùng dữ liệu với asksFactQuantity (hai hàm giữ hai bản vì nhánh RAG đang
+// sửa asksFactQuantity) — TestQuantityTriggerKhopAsksFactQuantity khoá hai hàm cùng kết luận trên mọi câu đã công bố.
+func (a *Ask) quantityTrigger(in contracts.NormalizedInput, now time.Time) (marker string, dims []string) {
+	for _, m := range a.RT.QuantityMarkers {
+		if normalization.ContainsPhrase(in.Raw, m) {
+			marker = m
+			break
+		}
+	}
+	if marker == "" {
+		return "", nil
+	}
+	fact := a.factDimensions()
+	for d := range validation.Dimensions(a.RT.Normalizer, in.Raw, now) {
+		if fact[d] {
+			dims = append(dims, d)
+		}
+	}
+	slices.Sort(dims)
+	return marker, dims
+}
+
+// noteQuantityExit ghi S8 lý do của nhánh thoát sớm TRƯỚC truy xuất: quy tắc (câu đòi lượng nghiệp vụ mà chỉ có tài liệu, tài liệu không phải nguồn của số liệu —
+// P4), cụm hỏi lượng và chiều đo đã kích hoạt nó. Kết cục và mẫu câu do noteExit ghi ngay sau (chung với các nhánh thoát khác).
+func (a *Ask) noteQuantityExit(why *traces.Why, in contracts.NormalizedInput, now time.Time) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	marker, dims := a.quantityTrigger(in, now)
+	n.Reason("thoát sớm TRƯỚC truy xuất, model chưa được gọi: câu đòi lượng nghiệp vụ (cụm hỏi lượng %s của pack, chiều đo %s) mà route RAG chỉ có tài liệu — tài liệu không phải nguồn của số liệu (P4), nên báo thiếu bằng chứng", contracts.Quote(marker), strings.Join(dims, ", "))
+}
+
+// noteNoEvidence ghi S8 lý do của nhánh thoát sớm SAU truy xuất: không đoạn nào người hỏi được đọc (S7 nói thêm vì sao có thể rỗng).
+func (a *Ask) noteNoEvidence(why *traces.Why, prefix string) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	n.Reason("%sthoát sớm SAU truy xuất, model chưa được gọi: truy xuất trả 0 đoạn người hỏi được đọc", prefix)
+}
+
+// noteHybridSkipped ghi S8 vì sao HYBRID không truy xuất tài liệu: phần số liệu không ra câu trả lời (outcome khác RESOLVED) thì không nối tài liệu vào.
+func (a *Ask) noteHybridSkipped(why *traces.Why, outcome contracts.Outcome) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	n.Reason("tri thức: không truy xuất, model chưa được gọi: phần số liệu không ra câu trả lời (outcome %s) nên không nối tài liệu vào", outcome)
+}
+
+// noteExit ghi S8 cho mọi nhánh thoát sớm của answerKnowledge (gọi bằng defer ở đầu fail, sau khi fail đã đặt resp): kết cục mà nhánh CHỌN (đọc từ chính đối số
+// của fail), mẫu câu thật và bản nháp của nó. rejected = S9 loại bản nháp của model (không phải thoát sớm): dòng của S9 / S10 nói chuyện đó, không ghi ở đây.
+// HYBRID không đổi kết cục — fail chỉ nối mẩu hybrid_no_knowledge vào câu số liệu.
+func (a *Ask) noteExit(ctx context.Context, why *traces.Why, hybrid bool, name string, outcome contracts.Outcome, resp *contracts.AskResponse, rejected bool) {
+	if a.noWhy || rejected {
+		return
+	}
+	n := &why.Generate
+	if hybrid {
+		n.Reason("tri thức: phần quy trình bỏ, kết cục giữ nguyên %s: mẫu câu hybrid_no_knowledge nối vào cuối câu số liệu", resp.Outcome)
+		a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_no_knowledge", a.fragment("hybrid_no_knowledge", nil))
+		return
+	}
+	n.Reason("kết cục nhánh đã chọn: %s (mẫu câu %s)", outcome, name)
+	a.noteTemplateDraft(ctx, why, "", name, resp.Answer)
 }

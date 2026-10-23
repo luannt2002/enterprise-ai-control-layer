@@ -271,7 +271,11 @@ func BuildSteps(t Turn) []Step {
 	})
 	add(StageExecute, "execute", func(s *Step) {
 		if !executed {
-			skip(s, "không có span execute / retrieve: route "+d.Route+" không truy vấn nguồn")
+			reason := "không có span execute / retrieve: route " + d.Route + " không truy vấn nguồn"
+			if route.NeedsModel() { // route tri thức luôn truy xuất: không có span nghĩa là lượt thoát sớm TRƯỚC truy xuất, không phải S6 sai
+				reason = "không có span execute / retrieve: route " + d.Route + " cần truy xuất nhưng lượt thoát sớm trước truy xuất (lý do ở S8)"
+			}
+			skip(s, reason)
 			return
 		}
 		s.Input = []string{"route=" + d.Route}
@@ -349,8 +353,13 @@ func BuildSteps(t Turn) []Step {
 			// vụ, truy xuất rỗng, phần số liệu không ra dữ liệu… Vết không được kể là model đã diễn đạt (R1-02): P10 dựa vào chặng MODEL
 			// để chọn đúng miền lỗi, đừng đổi model khi lỗi nằm ở dữ liệu.
 			s.Status, s.Decision = StatusSkipped, "model chưa được gọi"
-			s.Reason = "route " + d.Route + " cần model nhưng không có span generate: lượt kết thúc sớm với outcome " + d.Outcome +
-				", câu dựng bằng mẫu của tenant; " + notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
+			s.Reason = "route " + d.Route + " cần model nhưng không có span generate: lượt kết thúc sớm với outcome " + d.Outcome + ", câu dựng bằng mẫu của tenant; "
+			if gen := d.Why.Generate; gen.Recorded() { // lý do thoát, kết cục mà nhánh chọn, mẫu THẬT và bản nháp: do luồng hỏi ghi tại chỗ thoát
+				s.Reason += joinReasons(gen)
+				s.Rejected = slices.Clone(gen.Rejected)
+			} else {
+				s.Reason += notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
+			}
 		default:
 			s.Decision = "mẫu câu của tenant " + plan.Template
 			s.Reason = "route " + d.Route + " không cần model (RouteKind.NeedsModel = false): dựng bằng mẫu câu, không gọi model"

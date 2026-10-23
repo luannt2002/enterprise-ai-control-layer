@@ -4,10 +4,17 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"os"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
+	"go.yaml.in/yaml/v3"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
 )
 
@@ -176,5 +183,84 @@ func TestDraftLedgerLoaiDungBan(t *testing.T) {
 	(&Ask{noWhy: true}).noteRejected(ctx, "tri thức: ", "B")
 	if !l.drafts[1].rejected == false && l.drafts[1].rejected {
 		t.Errorf("noWhy không được loại bản nháp trong sổ")
+	}
+}
+
+// V8a, nhánh thoát sớm. quantityTrigger là bản đọc lại của asksFactQuantity chỉ để giải thích: trên mọi câu đã công bố (bộ 117, H1, H3, H4) cộng vài câu dựng
+// thêm, "có cụm hỏi lượng VÀ có chiều đo nghiệp vụ" của nó phải đúng bằng kết luận của asksFactQuantity — hai hàm lệch nhau thì dòng S8 nói sai lý do thoát.
+func TestQuantityTriggerKhopAsksFactQuantity(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatalf("nạp pack: %v", err)
+	}
+	a := &Ask{RT: rt}
+	now := time.Date(2026, 10, 19, 10, 0, 0, 0, time.FixedZone("ICT", 7*3600))
+	var questions []string
+	for _, f := range []string{"../../tenants/construction/win/cases-independent.yaml", "../../docs/g7/holdout/h1.yaml", "../../docs/g7/holdout-h3/h3.yaml", "../../docs/g7/holdout-h4/h4.yaml"} {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatalf("đọc %s: %v", f, err)
+		}
+		var doc struct {
+			Cases []struct {
+				Question string `yaml:"question"`
+			} `yaml:"cases"`
+		}
+		if err := yaml.Unmarshal(b, &doc); err != nil {
+			t.Fatalf("đọc %s: %v", f, err)
+		}
+		for _, c := range doc.Cases {
+			questions = append(questions, c.Question)
+		}
+	}
+	questions = append(questions, "Theo quy trình thì một máy xúc tiêu thụ bao nhiêu lít dầu mỗi giờ?", "Định mức cấp phát cho máy xúc theo quy trình là bao nhiêu?",
+		"Quy trình xử lý chênh lệch nhiên liệu là gì?")
+	fires, markerOnly := 0, 0
+	for _, q := range questions {
+		in := rt.Normalizer.Normalize(q, normalization.Options{Now: now})
+		marker, dims := a.quantityTrigger(in, now)
+		got := marker != "" && len(dims) > 0
+		if got != a.asksFactQuantity(in, now) {
+			t.Errorf("%q: quantityTrigger (cụm %q, chiều %v) và asksFactQuantity (%v) kết luận khác nhau", q, marker, dims, a.asksFactQuantity(in, now))
+		}
+		if got {
+			fires++
+		} else if marker != "" {
+			markerOnly++
+		}
+	}
+	if fires < 5 || markerOnly < 1 {
+		t.Errorf("bộ câu không còn khoá được điều kiện: nhánh kích hoạt %d lần (muốn ≥ 5), có cụm hỏi lượng mà không có chiều đo %d lần (muốn ≥ 1)", fires, markerOnly)
+	}
+	in := rt.Normalizer.Normalize("Theo quy trình thì một máy xúc tiêu thụ bao nhiêu lít dầu mỗi giờ?", normalization.Options{Now: now})
+	if marker, dims := a.quantityTrigger(in, now); marker != "bao nhiêu" || !slices.Equal(dims, []string{"volume"}) {
+		t.Errorf("câu mẫu: cụm %q, chiều %v; muốn \"bao nhiêu\" và [volume]", marker, dims)
+	}
+}
+
+// noteExit: không ghi gì khi noWhy, và không ghi khi đây là S9 loại bản nháp (rejected) — chỉ nhánh thoát sớm mới có dòng "kết cục nhánh đã chọn".
+func TestNoteExitChiGhiNhanhThoatSom(t *testing.T) {
+	rt, err := tenant.Load("../../tenants/construction/pack")
+	if err != nil {
+		t.Fatalf("nạp pack: %v", err)
+	}
+	resp := &contracts.AskResponse{Outcome: contracts.OutcomeInsufficientEvidence, Answer: "Chưa có tài liệu bạn được xem trả lời được câu hỏi này."}
+	run := func(a *Ask, hybrid, rejected bool) traces.Notes {
+		var why traces.Why
+		a.noteExit(context.Background(), &why, hybrid, "no_knowledge", contracts.OutcomeInsufficientEvidence, resp, rejected)
+		return why.Generate
+	}
+	a := &Ask{RT: rt}
+	if n := run(a, false, false); len(n.Reasons) != 2 || n.Reasons[0] != "kết cục nhánh đã chọn: INSUFFICIENT_EVIDENCE (mẫu câu no_knowledge)" {
+		t.Errorf("thoát sớm: %q", n.Reasons)
+	}
+	if n := run(a, true, false); len(n.Reasons) != 2 || !strings.HasPrefix(n.Reasons[0], "tri thức: phần quy trình bỏ, kết cục giữ nguyên INSUFFICIENT_EVIDENCE") {
+		t.Errorf("HYBRID: %q", n.Reasons)
+	}
+	if n := run(a, false, true); n.Recorded() {
+		t.Errorf("S9 loại bản nháp không phải thoát sớm: %q", n.Reasons)
+	}
+	if n := run(&Ask{RT: rt, noWhy: true}, false, false); n.Recorded() {
+		t.Errorf("noWhy phải tắt ghi: %q", n.Reasons)
 	}
 }

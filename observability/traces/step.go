@@ -141,7 +141,7 @@ func SpanStage(name string) (stage string, ok bool) {
 }
 
 // BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7, S8 (bản nháp
-// như được sinh) và cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
+// như được sinh), S10 (dấu vân tay câu giao) và cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
 // vấn khi không xung đột, bản nháp của model…) thì Reason / Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của
 // route (không có span tương ứng) có Status skipped.
 // Thời gian của bước lấy từ span cùng chặng theo bảng stageSpans: normalize→S2, resolve→S3, intent→S4, route→S5, execute và
@@ -395,6 +395,10 @@ func BuildSteps(t Turn) []Step {
 		s.Reason = "outcome do chặng thực thi và kiểm quyết (RoutePlan.Outcome rỗng)"
 		if plan.Outcome != "" {
 			s.Reason = "router kết thúc sớm với outcome " + string(plan.Outcome)
+		}
+		if rep := d.Why.Respond; rep.Recorded() { // dấu vân tay của câu giao, đối chiếu với bản nháp ở S8
+			s.Reason += "; " + joinReasons(rep)
+			s.Rejected = slices.Clone(rep.Rejected)
 		}
 		if d.Outcome != string(contracts.OutcomeResolved) {
 			s.Status = StatusDeviant

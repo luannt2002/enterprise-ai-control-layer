@@ -98,6 +98,10 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	// Từ đây mọi truy vấn mang tenant của Principal: tầng lưu trữ đặt GUC cho RLS từ giá trị này.
 	ctx = contracts.WithTenant(ctx, pr.TenantID)
+	var led *draftLedger // sổ bản nháp của lượt, chỉ để S10 đối chiếu với câu giao (why.go); noWhy thì không có sổ
+	if !a.noWhy {
+		ctx, led = withLedger(ctx)
+	}
 	// S2 — chuẩn hoá
 	in, _ := traces.Measure(tr, "normalize", func() (contracts.NormalizedInput, error) {
 		return a.RT.Normalizer.Normalize(req.Text, normalization.Options{Now: now}), nil
@@ -194,12 +198,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
 		resp.Answer = a.render(plan.Template, vars)
-		a.noteTemplateDraft(&why, "", plan.Template, resp.Answer)
+		a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}
 		resp.Clarification.Question = resp.Answer
 	case contracts.RouteReject, contracts.RouteHumanEscalation:
 		resp.Answer = a.render(plan.Template, vars)
-		a.noteTemplateDraft(&why, "", plan.Template, resp.Answer)
+		a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
 		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars, &why); err != nil {
@@ -229,6 +233,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
 		why.Intent = explainIntent(cls, ci)
 		why.Route = a.explainRoute(routed, plan)
+		a.noteDelivered(&why, resp.Answer, led)
 	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
@@ -426,13 +431,13 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
 		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
-		a.noteTemplateDraft(why, prefix, "needs_review", resp.Answer)
+		a.noteTemplateDraft(ctx, why, prefix, "needs_review", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired
 		return nil
 	case result.Total == nil:
 		resp.Answer = a.render("no_data", vars)
-		a.noteTemplateDraft(why, prefix, "no_data", resp.Answer)
+		a.noteTemplateDraft(ctx, why, prefix, "no_data", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 		resp.Outcome = contracts.OutcomeInsufficientEvidence
 		return nil
@@ -535,7 +540,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	if withheld != "" {
 		used += " + confirm_withheld"
 	}
-	a.noteTemplateDraft(why, prefix, used, draft.Text)
+	a.noteTemplateDraft(ctx, why, prefix, used, draft.Text)
 
 	// S9 — kiểm: số có trong bằng chứng (lớp lọc đầu), rồi mỗi số ràng buộc đủ sáu chiều.
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
@@ -543,6 +548,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		return append(v, validation.BindClaims(draft.Text, ignore[:2], draft.Claims, pkg.Evidence)...), nil
 	})
 	if len(violations) > 0 {
+		a.noteRejected(ctx, prefix, draft.Text)
 		resp.Answer = a.render("fallback_unverified", vars)
 		resp.Verdict = contracts.Verdict{Pass: false, Violations: violations, Action: contracts.ActionFallback}
 		resp.Outcome = contracts.OutcomeSystemFailure // câu không kiểm được thì không giao như thành công
@@ -609,7 +615,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	if err != nil {
 		return err
 	}
-	a.noteModelDraft(why, prefix, draft.Model, draft.Text)
+	a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text)
 	// S9 — kiểm
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
 		v := validation.Bound(draft, ev)
@@ -619,6 +625,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	})
 	if len(violations) > 0 {
 		why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn nào được trích dẫn", prefix)
+		a.noteRejected(ctx, prefix, draft.Text)
 		fail("fallback_unverified", contracts.OutcomeSystemFailure, violations)
 		return nil
 	}

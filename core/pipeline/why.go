@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -484,25 +485,109 @@ func draftHead(s string) string {
 
 // noteDraft ghi S8: bản nháp NHƯ ĐƯỢC SINH — cách sinh (how), số ký tự, băm ngắn và đoạn đầu (nằm trong cặp “…” để Why.WithholdQuoted che được khi câu hỏi
 // mang bí mật). Gọi ngay sau khi bản nháp có chữ, TRƯỚC khi S9 kiểm: người đọc vết thấy chính thứ S9 đã nhận. Chỉ ghi, không đọc lại để quyết gì.
-func (a *Ask) noteDraft(why *traces.Why, prefix, how, text string) {
+func (a *Ask) noteDraft(ctx context.Context, why *traces.Why, prefix, how, text string) {
 	if a.noWhy {
 		return
 	}
 	n := &why.Generate
 	runes, hash := textDigest(text)
 	n.Reason("%sbản nháp %s: %d ký tự · băm %s · đầu %s", prefix, how, runes, hash, contracts.Quote(draftHead(text)))
+	ledgerOf(ctx).add(prefix, text)
 }
 
 // noteTemplateDraft ghi S8 cho câu dựng bằng mẫu câu của tenant (route số liệu, hỏi lại, từ chối, chuyển người): tmpl là mẫu THẬT đã dùng, có thể khác
 // RoutePlan.Template (câu xác nhận dùng confirm_yes / confirm_no, truy vấn không ra dữ liệu dùng no_data).
-func (a *Ask) noteTemplateDraft(why *traces.Why, prefix, tmpl, text string) {
-	a.noteDraft(why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)
+func (a *Ask) noteTemplateDraft(ctx context.Context, why *traces.Why, prefix, tmpl, text string) {
+	a.noteDraft(ctx, why, prefix, "dựng bằng mẫu câu "+tmpl+" (không gọi model)", text)
 }
 
 // noteModelDraft ghi S8 cho bản nháp do model diễn đạt (model là tên do gateway khai trong contracts.Draft.Model).
-func (a *Ask) noteModelDraft(why *traces.Why, prefix, model, text string) {
+func (a *Ask) noteModelDraft(ctx context.Context, why *traces.Why, prefix, model, text string) {
 	if model == "" {
 		model = "(không khai tên)"
 	}
-	a.noteDraft(why, prefix, "do model "+model+" diễn đạt", text)
+	a.noteDraft(ctx, why, prefix, "do model "+model+" diễn đạt", text)
+}
+
+// draftLedger là sổ các bản nháp mà MỘT lượt đã dựng ở S8, để S10 đối chiếu chúng với câu giao (noteDelivered). Chỉ để GIẢI THÍCH vết: không bước nào đọc
+// nó để quyết gì. Sổ đi theo ctx của lượt vì answerKnowledge (nhánh RAG đang sửa) không đổi chữ ký; không có sổ trong ctx (test gọi thẳng answerMetric, noWhy)
+// thì mọi phương thức của sổ là không làm gì.
+type draftLedger struct{ drafts []ledgerDraft }
+
+// ledgerDraft là một bản nháp trong sổ: prefix như ở dòng S8 của nó ("", "số liệu: ", "tri thức: "), text là chữ gốc, rejected = S9 đã loại nó.
+type ledgerDraft struct {
+	prefix   string
+	text     string
+	rejected bool
+}
+
+type ledgerKey struct{}
+
+// withLedger gắn một sổ mới vào ctx của lượt.
+func withLedger(ctx context.Context) (context.Context, *draftLedger) {
+	l := &draftLedger{}
+	return context.WithValue(ctx, ledgerKey{}, l), l
+}
+
+// ledgerOf trả sổ của lượt, nil khi ctx không mang sổ.
+func ledgerOf(ctx context.Context) *draftLedger {
+	l, _ := ctx.Value(ledgerKey{}).(*draftLedger)
+	return l
+}
+
+func (l *draftLedger) add(prefix, text string) {
+	if l != nil {
+		l.drafts = append(l.drafts, ledgerDraft{prefix: prefix, text: text})
+	}
+}
+
+// reject đánh dấu S9 đã loại bản nháp (cùng tiền tố và chữ) gần nhất chưa bị loại.
+func (l *draftLedger) reject(prefix, text string) {
+	if l == nil {
+		return
+	}
+	for i := len(l.drafts) - 1; i >= 0; i-- {
+		if d := &l.drafts[i]; !d.rejected && d.prefix == prefix && d.text == text {
+			d.rejected = true
+			return
+		}
+	}
+}
+
+// noteRejected ghi nhận S9 đã loại bản nháp text: S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó.
+func (a *Ask) noteRejected(ctx context.Context, prefix, text string) {
+	if a.noWhy {
+		return
+	}
+	ledgerOf(ctx).reject(prefix, text)
+}
+
+// noteDelivered ghi S10: số ký tự và băm của câu GIAO (answer là chữ cuối cùng rời Handle), rồi với từng bản nháp trong sổ: câu giao trùng bản nháp (băm
+// trùng ⇒ không bước nào sau S8 đổi chữ), chứa nguyên văn nó (route tri thức: mẫu câu bọc bản nháp), không chứa nó dù S9 không loại (một bước sau S9 đã đổi
+// chữ — chính lỗi mà bảng vết trước đây đổ nhầm cho S8), hay S9 đã loại nó (câu giao là mẫu thay thế). So khoảng trắng đầu / cuối đã bỏ như textDigest.
+func (a *Ask) noteDelivered(why *traces.Why, answer string, l *draftLedger) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Respond
+	runes, hash := textDigest(answer)
+	n.Reason("câu giao: %d ký tự · băm %s", runes, hash)
+	if l == nil {
+		return
+	}
+	given := strings.TrimSpace(answer)
+	for _, d := range l.drafts {
+		dr, dh := textDigest(d.text)
+		draft := strings.TrimSpace(d.text)
+		switch {
+		case d.rejected:
+			n.Reason("%sbản nháp ở S8 (%d ký tự · băm %s) đã bị S9 loại nên không vào câu giao; câu giao là mẫu thay thế của tenant", d.prefix, dr, dh)
+		case given == draft:
+			n.Reason("%scâu giao trùng bản nháp ở S8 (băm %s): không bước nào sau S8 đổi chữ", d.prefix, dh)
+		case strings.Contains(given, draft):
+			n.Reason("%scâu giao chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s), phần còn lại do mẫu câu của tenant dựng", d.prefix, dr, dh)
+		default:
+			n.Reason("%scâu giao KHÔNG chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s) dù S9 không loại nó", d.prefix, dr, dh)
+		}
+	}
 }

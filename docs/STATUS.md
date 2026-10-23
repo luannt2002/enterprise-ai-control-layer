@@ -1,12 +1,12 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 23/10/2026 10:02, sau lời chủ dự án 23/10 (trả lời các câu chặn MVP; §5b là nguồn duy nhất của cổng ra; nhãn phải khớp số; tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: 22/10 21:5x dừng tối (báo cáo ca `docs/bao-cao/2026-10-22-ca.md` mục 7); 22/10 17:0x chốt ca ngày; 22/10 14:4x giữa ca; chốt ca tối 21/10; 21/10/2026 chiều, **ca ngày 21/10** (báo cáo ca: `docs/bao-cao/2026-10-21-ca-ngay.md`; tiến độ sống: `docs/bao-cao/TIEN-DO-BUILD.md`). Trước đó: chốt luồng chạy đêm 20→21/10 (mục "Đêm 20→21/10" ngay dưới; báo cáo sáng: `docs/bao-cao/2026-10-21-overnight.md`). Chưa phát hành phiên bản nào.
+> Cập nhật: 23/10/2026 17:26, giữa ca 23/10 — báo cáo ca `docs/bao-cao/2026-10-23-ca.md` (bản giữa ca); tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
 
-## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 chưa RA theo §5b, M3 đang sửa S4 (D-AI-02 = a), M4 đủ điều kiện mở mã
+## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 vế đọc vết 78,9% (< 90%); M2 bộ ca 0a đã băm, mã đang soát; M3 chờ D-AI-05; M4 đã gộp K1–K4, P1 153 / 157, chờ Q-P1-15
 
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). Bảng lệnh và kết quả: báo cáo ca 22/10 mục 7; từng dòng CỔNG TRƯỚC AI:
 `docs/bao-cao/CONG-TRUOC-AI.md`. Từ 23/10, `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra từng khối (chủ dự án 23/10).
@@ -21,7 +21,8 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   thẻ mới chia đều theo tầng, có ca xanh đối chứng.
 - **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu
   sai nghĩa không nhãn). Chủ dự án 23/10: D-AI-02 = a — vòng sửa S4 bằng luật đang chạy (gộp D-OP-18 = c, D-OP-11 = b); chấm trên H6 do người
-  soạn khác soạn, băm trước khi bản sửa lên main, chạy một lần.
+  soạn khác soạn, băm trước khi bản sửa lên main, chạy một lần. H6 đã băm (`6734cff`). Vòng sửa S4 KHOÁ sau vòng 3 (23/10 14:10, soát vòng 3
+  KHÔNG ĐẠT: S4CS-02 hồi quy S1 mới) — không gộp, H6 chưa chạy; chờ chủ dự án **D-AI-05** (khuyến nghị: một vòng ngoại lệ hẹp) và D-AI-04.
 - **M4**: ADR-0011 CHỐT; bộ ca giữ lại độc lập Phase 1 ĐÓNG BĂNG bằng cam kết băm (`1ddd10b`, `docs/g7/holdout-p1/holdout-manifest.json`,
   157 ca / 23 lớp) ⇒ đủ điều kiện mở mã. K1 (lõi lệnh `execution/commands`, kho giả) đã gộp (`e1ce950`; soát vòng 2 ĐẠT CÓ GHI CHÚ);
   K2 (kho PG của phiếu, migration 0004) đã gộp (`d919ebf`; soát ĐẠT CÓ GHI CHÚ); K3 (route `POST /v1/commands/<tool>` ở `cmd/eais`) cùng bảy
@@ -32,9 +33,12 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   độc lập ĐẠT CÓ GHI CHÚ); bộ P1 KHÔNG chạy lại — đo lại M4 độc lập chờ Q-P1-15. X8 (danh mục đột biến M1–M26, mã `32f4930`): 32 đúng chỗ,
   0 sống sót, 0 khác; ngoại lệ M5 của §11.2 chờ Q-P1-14.
 - **M2**: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10: giấy tối đa 3 vòng soát); R6-01, R6-02 thành nợ có mã, chặn bằng test đỏ trong mã Phase 0a.
+  **Bộ ca giữ lại độc lập 0a ĐÓNG BĂNG** (`a52eb67`, `docs/g7/holdout-0a/holdout-manifest.json`): 249 ca, 83 / 84 lớp (LC10 = 0), hai người
+  soạn không đọc mã, kiểm nhiễm 0 vi phạm. Mã bước 2–3b + kho PG (nhánh `m2/0a-ma-truoc-dong-bang`, migration 0006, R6-01 chặn bằng test
+  đỏ): soát 23/10 KHÔNG ĐẠT hẹp (R-01 chết khoá trên PG; S1 = 0) — đang sửa; bộ 0a chạy MỘT lần sau khi mã đóng băng.
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy
-  đo đã khoá); Vết: vế ≥ 90% KHÔNG ĐẠT.
+  đo đã khoá; bộ ca độc lập đang soạn 23/10: 36 kịch bản gốc, bốn lô); Vết: vế ≥ 90% KHÔNG ĐẠT (đo lại 23/10 bằng thẻ mới: 30 / 38 = 78,9%).
 - Cổng cuối (cổng §6 ở cây tích hợp `32f4930` = main `d614395` + 15 commit 5b / 5c (11 cherry-pick + 4 sửa theo soát lại); sau đó chỉ đổi tài
   liệu; lúc 23/10 14:49, database PG riêng `lead_5bcf`, 5 agent chạy song song): `go vet ./...` 0 dòng; `gofmt -l $(git ls-files '*.go')` 0 tệp;
   `go test -count=1 -json ./...` có PG: **1956** test pass, 0 fail, 0 skip — so theo tên với cổng `b22e1e6` (1942): 0 đổi, 0 mất, 14 mới;

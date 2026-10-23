@@ -6,15 +6,13 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 
 ## Bây giờ (ghi đè mỗi lần)
 
-- **Cập nhật lúc:** 23/10/2026 15:56, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go = cây `d43a1bf`
-  của cổng dưới).
+- **Cập nhật lúc:** 23/10/2026 17:28, ca 23/10 (09:00 → 21:30) theo lệnh ca trưa 23/10 · **HEAD:** commit chứa dòng này (mã Go = cây `d43a1bf`
+  của cổng dưới). Báo cáo ca (bản giữa ca): `docs/bao-cao/2026-10-23-ca.md`.
 - **MVP chưa RA.** Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). `docs/ROADMAP-DAY-DU.md` §5b là nguồn duy nhất của cổng ra.
-  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT (29 / 33). R2-03 (`5fd463f`) và C8–C11 (`3aaaf09`) đã gộp; 5b + 5c đã gộp (`32f4930`). 5a (che bí
-    mật trong vết): vòng 3 soát KHÔNG ĐẠT (`s5a3-soat.json`: gộp vùng một lần mở đường lọt MỚI ở dòng Cookie có cặp bí mật trong nháy qua xuống
-    dòng) ⇒ vòng 4 theo ngoại lệ an ninh §9.6: sửa + test đỏ trước, fuzz 4 × 400.000 chuỗi 0 lọt mà main che; cây tích hợp `m1/gop-5a-v4`
-    (`1ca7288`, cổng §6 xanh) đang soát vòng 4. **Đo lại người đọc vết bằng thẻ mới (lần 2): 30 / 38 = 78,9% thẻ đỏ — KHÔNG ĐẠT**
-    (38 / 38 thẻ xanh đúng; S2–S6, S9 đúng trọn; S10 0 / 5, S8 0 / 3 — vết không xuất bản nháp S8 và lý do nhánh RAG thoát sớm;
-    `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`). Đang sửa vết (nhánh `m1/vet-s8-s10`) rồi đo lại bằng thẻ mới.
+  - M1 **CHƯA RA** — vế đọc vết KHÔNG ĐẠT: đo lại bằng thẻ mới 30 / 38 = 78,9% (`docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`; S10 0 / 5,
+    S8 0 / 3). Đang: sửa vết S8 / S9 / S10 (nhánh `m1/vet-s8-s10`, soát vòng 1 KHÔNG ĐẠT — V8AS-01 S2, V8AS-02 S1 hẹp ⇒ vòng 2); 5a che bí mật
+    vòng 5 (`m1/gop-5a-v5` `c81b9fb`, đóng họ "main che, nhánh lọt" bằng cấu trúc; cổng §6 xanh; đang soát); 5e phiên bản dữ liệu từ PG
+    (`m1/5e-data-version`, vòng 2 đang chạy). Đã gộp: R2-03, C8–C11, 5b + 5c, sáu neo gãy của danh mục đột biến ứng dụng (`48491f7`).
   - M3 **chưa RA** · D-AI-02 = a: vòng sửa S4 — vòng 1, 2, 3 soát KHÔNG ĐẠT ⇒ **KHOÁ** sau vòng 3 (luật §9.6), không gộp: vòng 3 có hồi quy S1
     mới S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) dù tốt hơn main ở bộ công bố và bộ mù của người soát. H6 (94 ca, `6734cff`) CHƯA chạy —
     chỉ chạy sau khi S4 gộp. Chờ chủ dự án: **D-AI-05** (khuyến nghị: một vòng ngoại lệ hẹp chỉ sửa hồi quy), D-AI-04.
@@ -22,14 +20,13 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
     cùng một lỗi tầng chuẩn hoá (`"≈"` không là dấu ước lượng ⇒ phiếu mất cờ `approx`) — **lỗi này đã sửa và gộp** (`d43a1bf`, soát ĐẠT CÓ
     GHI CHÚ); bộ P1 KHÔNG chạy lại. X8: danh mục đột biến M1–M26 trên mã `32f4930` — 32 đúng chỗ, 0 sống sót, 0 khác. Còn thiếu để RA: đo lại
     X1 / X5 độc lập (Q-P1-15, bộ giữ lại mới) và ngoại lệ M5 của §11.2 (Q-P1-14).
-  - M2: **bộ ca độc lập 0a ĐÓNG BĂNG** (15:30, `docs/g7/holdout-0a/holdout-manifest.json`): 249 ca (P1 137, P2 112; 80 tự nhiên, 6
-    chờ câu chưa chốt), 83 / 84 lớp có ca (LC10: 0); hai người soạn không đọc mã; kiểm nhiễm 42 nhật ký 0 vi phạm. Điều kiện 5 và 6 của
-    HOP-DONG 0a §14.1 đã đạt (bộ ca băm; "≈" sửa ở main `d43a1bf`). Mã Phase 0a tiếp tục trên nhánh `m2/0a-ma-truoc-dong-bang` (Q-0A-17):
-    bước 3b + kho PG → soát độc lập → gộp → chạy bộ 0a MỘT lần.
+  - M2: **bộ ca độc lập 0a ĐÓNG BĂNG** (`a52eb67`): 249 ca, 83 / 84 lớp (LC10 = 0). Mã bước 3b + kho PG (nhánh `m2/0a-ma-truoc-dong-bang`
+    `ca73f25`, migration 0006): soát KHÔNG ĐẠT hẹp — R-01 chết khoá (40P01) khi nạp chạy cùng quyết định trên PG; S1 = 0 (2,7 triệu sự kiện, 0 cộng
+    đôi) ⇒ sửa R-01 rồi soát hẹp; bộ 0a chạy MỘT lần sau khi mã đóng băng. 5e và 0a cùng xin migration 0006: bên gộp trước giữ số.
   - M5 **chưa đạt** (`docs/bao-cao/CONG-TRUOC-AI.md`): S2, S3, S4, L1 KHÔNG ĐẠT; S5, S6 CHƯA ĐẠT; S7 NGOÀI MVP (D-AI-03 = a); S9 chưa có bộ ca
     độc lập; Vết: vế ≥ 90% KHÔNG ĐẠT. Lỗi `"≈"` của L1 / S2 đã sửa (`d43a1bf`); cổng L1 chưa đo lại.
-- **Đang làm** (tối đa 5 agent; đang 5): soát 5a vòng 4; đo lại người đọc vết (M1); mã Phase 0a bước 3b + kho PG rồi soát (M2); 5e —
-  phiên bản dữ liệu của vết đọc từ PG (nhánh `m1/5e-data-version`); soạn bộ ca độc lập S9 (bảng kịch bản gốc rồi bốn lô).
+- **Đang làm** (tối đa 5 agent): soát 5a vòng 5; 5e vòng 2 (sửa → soát); soạn bộ ca S9 (lô 2 / 4). Chờ chỗ: sửa vết S8–S10 vòng 2,
+  sửa R-01 của mã 0a. PG dùng chung bị OOM-kill hai lần (16:31, 17:15) ⇒ mỗi agent tối đa 1–2 database tạm, DROP ngay.
 - **Xong từ lần trước:** 5b + 5c gộp (`32f4930`, hồ sơ `aabf70d`); sửa năm neo đột biến gãy từ lúc gộp C8–C11 (`98e0168`); X8 32 / 32; bản
   sửa `"≈"` gộp (`d43a1bf`) cùng XXS-01 (so marker bằng đúng) và XXS-04 (test nạp csv / xlsx / PDF).
 - **Tiếp theo (lệnh ca trưa 23/10):** (1) M3: chờ D-AI-05; (2) M2: xong soát / sửa → băm bộ ca 0a → mã 0a (bước 3b) → chạy bộ 0a một lần;
@@ -143,3 +140,4 @@ Khuôn theo `docs/PROMPT-BUILD-EAIS.md` §7:
 | 23/10 15:30 | commit chứa dòng này | **M2: bộ ca giữ lại độc lập Phase 0a ĐÓNG BĂNG** bằng cam kết băm (ADR-0006 §10): 249 ca (P1 137, P2 112; 80 tự nhiên, 6 có `blocked_by`), 83 / 84 lớp của §10 có ca — LC10 không còn ca (ca duy nhất bị người sửa bỏ); người soạn P1, P2 là hai agent không đọc mã, soát / sửa theo khúc bởi người khác (P1: 39 cờ — 26 sửa, 13 bỏ; P2: 36 cờ — 26 sửa, 8 bỏ, 1 giữ); 6 ca mới người sửa tự thêm ở khúc J của P2 (sau một cờ phủ lớp LC71) KHÔNG nhận vì chưa qua soát độc lập (LC71 có 34 ca ở P1) | `python3 -I scripts/cam-ket-bo-ca-0a.py <tệp ca> docs/g7/holdout-0a --bo-do-nghe <bộ đồ nghề> --the-gioi <4 tệp thế giới>` → 249 ca, băm bộ đồ nghề `ec00fba2…` (4 tệp), mã lúc băm `248e8ac`; `python3 -I scripts/kiem-nhiem-soan.py` trên 42 nhật ký công cụ của người soạn / soát / sửa: 0 vi phạm, 0 cảnh báo; sao lưu ngoài repo, 5 / 5 tệp khớp băm | nội dung ở máy tới lúc chạy; mã 0a tiếp tục trên `m2/0a-ma-truoc-dong-bang` theo Q-0A-17, chạy bộ 0a MỘT lần ở mã đóng băng |
 | 23/10 16:09 | `4f829ab` + commit chứa dòng này | **M1: đo lại người chỉ đọc vết bằng bộ thẻ MỚI** (lệnh chủ dự án 23/10 chiều mục 4): người gieo lỗi riêng, một lỗi mỗi tầng S2–S6, S8–S10 trên mã `086fff9`, 38 thẻ đỏ (S8 chỉ 3) + 38 thẻ xanh, tên ẩn danh; người đọc mù riêng | chấm theo bảng ánh xạ kín: **30 / 38 = 78,9% thẻ đỏ ⇒ KHÔNG ĐẠT** (ngưỡng ≥ 90%); 38 / 38 thẻ xanh đúng; S2, S3, S4, S5, S6, S9 5 / 5; S10 0 / 5 (đọc thành S8), S8 0 / 3 (đọc thành S6); tám nhãn sai đều độ tin "thấp" | thẻ, câu trả lời người đọc, đáp án, báo cáo người gieo nguyên văn ở `docs/bao-cao/do-vet-2026-10-23/` (`4f829ab`); phân tích `docs/bao-cao/2026-10-23-do-nguoi-doc-vet-lan2.md`. Nguyên nhân: S8 không xuất bản nháp; nhánh RAG thoát sớm không ghi lý do ⇒ việc kế `m1/vet-s8-s10` |
 | 23/10 16:53 | `48491f7` + commit chứa dòng này | Danh mục đột biến ứng dụng `scripts/dot-bien-ung-dung.sh`: sáu neo gãy có sẵn trên main (AV2, VT5, VT7 khớp 2 lần vì route lệnh K3 chép câu của route hỏi; VT9 khớp 0 lần sau 5b; SM1, RP5 khớp 2 lần) viết lại theo mã hiện tại — bốn dòng do soát 5e nêu (D5ES-07), hai dòng điều phối đếm thêm | cây `48491f7`, DB riêng `g_d07g_db`, mốc đầu ra cổng `d43a1bf`: vet 0; gofmt 0; 1958 pass / 0 fail / 0 skip, so tên 0 mất / 0 đổi; kiem-skip XANH; winreport 0 dòng khác ở 7 tệp; đột biến (PG riêng, PKGS=./cmd/eais/, nền xanh) AV2, VT5, VT7, VT9, RP5 BỊ BẮT (SM1 là dòng smoke chạy scripts/chay-thu.sh — chỉ kiểm neo); toàn danh mục 131 / 131 neo khớp đúng một lần | SELF REVIEW có đột biến. Lỗi cả lớp (lần 2 hôm nay sau 98e0168) ⇒ cổng §6 của điều phối thêm bước đếm neo cho `dot-bien-vet.sh` và `dot-bien-ung-dung.sh`; nợ: đưa phép đếm neo của mọi danh mục vào CI của repo |
+| 23/10 17:28 | commit chứa dòng này | Báo cáo ca giữa ca `docs/bao-cao/2026-10-23-ca.md` (theo lời chủ dự án 17:2x: commit, push, viết báo cáo, cập nhật trạng thái); STATUS (MVP, M2, M3, M5); CHANGELOG; TIEN-DO "Bây giờ" | không mã; nhánh 5a vòng 5 `m1/gop-5a-v5` = `c81b9fb` đã push: cổng §6 (DB g5a5g_db, mốc đầu ra cổng `d43a1bf`) vet 0, gofmt 0, 1958 → 1968 (0 mất / 0 đổi / 10 mới), kiem-skip XANH, neo đột biến 0 dòng gãy, winreport 0 dòng khác ở 7 tệp | 5a vòng 5 chưa lên main (đang soát độc lập) |

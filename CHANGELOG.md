@@ -25,6 +25,10 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   không lộ thông điệp PG thô qua API; pipeline lệnh coi lỗi đọc tất định là INTERNAL_ERROR; `scripts/mutate.sh` chạy lượt nền xanh trước khi đo
   đột biến, "bị bắt" chỉ tính khi đỏ đúng test nhắm tới. 5a (che bí mật) còn một đường lọt (Cookie sau giá trị kết thúc bằng `\`), sửa tiếp.
 - **L1 / S2, lỗi tìm ra ở bộ giữ lại P1, gộp `d43a1bf`:** dấu ước lượng dạng ký hiệu mà pack khai (`"≈"`) được nhận như `"~"` và `"khoảng"` — ô csv / xlsx, dòng PDF, chữ tự do; phiếu chênh lệch có một vế `"≈"` mang `approx`. G1 2736 → 2737 (dòng PDF `"≈ 4 m³"` rời danh sách lệch đã biết); câu trả lời về số đội báo `"≈ 4 m³"` nay kèm ghi chú ước lượng. Soát độc lập ĐẠT CÓ GHI CHÚ. Bộ P1 KHÔNG chạy lại (luật một lần); đo lại M4 độc lập chờ Q-P1-15.
+- **M2:** bộ ca giữ lại độc lập Phase 0a đóng băng bằng cam kết băm trước khi mã tiếp tục (`a52eb67`): 249 ca, 83 / 84 lớp, hai người soạn
+  không đọc mã, kiểm nhiễm 0 vi phạm.
+- **M1, đo lại người chỉ đọc vết bằng thẻ mới:** 30 / 38 = 78,9% thẻ đỏ — KHÔNG ĐẠT (S10 / S8 không phân biệt được); thẻ, câu trả lời người
+  đọc, đáp án commit nguyên văn (`4f829ab`). Danh mục đột biến ứng dụng: sáu neo gãy viết lại (`48491f7`).
 - **M1:** R2-03 vết xuất lý do và phương án đã xét (`5fd463f`); `scripts/chay-thu.sh` khoá theo dự án bằng flock (`c97a989`).
 - **M1, bốn lỗi P2 của R2-03 (C8–C11, lệnh ca chiều 23/10), sửa qua hai vòng soát độc lập:** S5 của lượt chuyển người ghi lý do thật của
   việc ghi đè route (C8); vết của người hỏi phạm vi hạn chế không còn mang khoá / tên thực thể ngoài phạm vi mà họ không tự gõ — che ở MỘT

@@ -15,12 +15,15 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/db"
+	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
 
 // richUnit dựng một đơn vị ghi phiếu mà MỌI trường đều mang giá trị khó: số thập phân vượt float64 và có số 0 cuối, bằng chứng theo
@@ -332,7 +335,7 @@ func TestPGTicketWriteAuditGiaoDichRieng(t *testing.T) {
 		}
 	}
 	exec := base
-	exec.Outcome = AuditExecuted
+	exec.Outcome, exec.TicketID = AuditExecuted, uuid.NewString() // có mã phiếu: chỉ lời từ chối của WriteAudit chặn được, không phải CHECK của bảng
 	if err := e.pg.WriteAudit(ctxOf(tn), exec); err == nil {
 		t.Errorf("WriteAudit phải từ chối EXECUTED (chỉ nằm trong đơn vị ghi phiếu)")
 	}
@@ -341,6 +344,49 @@ func TestPGTicketWriteAuditGiaoDichRieng(t *testing.T) {
 	}
 	if e.openTickets(tn) != 0 || e.ledgerRows(tn) != 0 {
 		t.Errorf("WriteAudit không được tạo phiếu hay dòng sổ lệnh")
+	}
+}
+
+// Mọi đường lỗi của đơn vị ghi phải trả kết nối về pool (huỷ giao dịch trước khi trả lỗi): với pool MỘT kết nối, nếu một lần ghi hỏng giữ
+// lại kết nối thì lời gọi kế tiếp đợi mãi. Kiểm sau ba kiểu hỏng: vi phạm khoá duy nhất, núm F2, ngữ cảnh đã huỷ.
+func TestPGTicketKhongRoKetNoiSauLoi(t *testing.T) {
+	e := newPGEnv(t)
+	st, err := pgstore.Open(context.Background(), withPoolMax(e.appDSN, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { closeWithin(t, "pool một kết nối", st.Close) })
+	pg := NewPGStore(st)
+	tn := e.tenant("leak")
+	usable := func(when string) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(ctxOf(tn), 3*time.Second)
+		defer cancel()
+		if _, _, err := pg.FindLedger(ctx, "p-1", cmdID(1)); err != nil {
+			t.Fatalf("%s: pool một kết nối không còn dùng được (kết nối bị giữ?): %v", when, err)
+		}
+	}
+	if err := pg.WriteTicket(ctxOf(tn), richUnit(20, "p-1", "EX-03")); err != nil {
+		t.Fatal(err)
+	}
+	usable("sau khi ghi thành công")
+	if err := pg.WriteTicket(ctxOf(tn), richUnit(21, "p-1", "EX-03")); !errors.Is(err, ErrUniqueViolation) {
+		t.Fatalf("muốn ErrUniqueViolation, được %v", err)
+	}
+	usable("sau vi phạm khoá duy nhất")
+	pg.failAuditInsertTimes(1)
+	if err := pg.WriteTicket(ctxOf(tn), richUnit(22, "p-1", "EX-04")); !errors.Is(err, ErrBeforeCommit) {
+		t.Fatalf("muốn ErrBeforeCommit, được %v", err)
+	}
+	usable("sau núm F2")
+	cancelled, cancel := context.WithCancel(ctxOf(tn))
+	cancel()
+	if err := pg.WriteTicket(cancelled, richUnit(23, "p-1", "EX-05")); !errors.Is(err, ErrBeforeCommit) {
+		t.Fatalf("muốn ErrBeforeCommit, được %v", err)
+	}
+	usable("sau ngữ cảnh đã huỷ")
+	if e.openTickets(tn) != 1 {
+		t.Errorf("chỉ phiếu đầu được ghi, có %d phiếu", e.openTickets(tn))
 	}
 }
 
@@ -744,6 +790,73 @@ func TestPGTicketLuocDoKieuVaRangBuoc(t *testing.T) {
 		var pe *pgconn.PgError
 		if !errors.As(err, &pe) || pe.Code != "23514" {
 			t.Errorf("%s: muốn vi phạm CHECK (23514), được %v", name, err)
+		}
+	}
+}
+
+// catalogState là dấu vết trạng thái ĐÍCH của migration 0004 trong catalog: quyền từng bên nhận (kể cả PUBLIC), RLS, chính sách, chỉ mục,
+// ràng buộc của ba bảng. Hai trạng thái bằng chữ nghĩa là cùng một trạng thái.
+const catalogStateSQL = `
+SELECT string_agg(x, E'\n' ORDER BY x) FROM (
+  SELECT 'acl ' || c.relname || ' ' || coalesce(nullif(a.grantee, 0)::regrole::text, 'PUBLIC') || ' ' || a.privilege_type || ' ' || a.is_grantable
+    FROM pg_class c, aclexplode(c.relacl) a WHERE c.relname = ANY ($1)
+  UNION ALL SELECT 'rls ' || relname || ' enable=' || relrowsecurity || ' force=' || relforcerowsecurity FROM pg_class WHERE relname = ANY ($1)
+  UNION ALL SELECT 'policy ' || tablename || ' ' || policyname || ' ' || permissive || ' ' || cmd || ' ' || coalesce(qual, '') || ' ' || coalesce(with_check, '')
+    FROM pg_policies WHERE tablename = ANY ($1)
+  UNION ALL SELECT 'index ' || indexdef FROM pg_indexes WHERE tablename = ANY ($1)
+  UNION ALL SELECT 'constraint ' || conrelid::regclass || ' ' || pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = ANY ($2::regclass[])
+) s(x)`
+
+// Migration 0004 chạy lại được (đầu tệp 0004 hứa vậy): trên database tạm, chạy lại trần tệp hai lần không lỗi và không đổi trạng thái đích;
+// rồi cho database "trôi" khỏi trạng thái đích (quyền cấp thêm, tắt FORCE hay RLS, xoá hoặc mở toang chính sách) — mỗi kiểu trôi phải
+// THẤY được trong catalogState (ca âm của chính bộ so) — và chạy lại tệp phải đưa về đúng trạng thái đích.
+func TestPGTicketMigration0004ChayLai(t *testing.T) {
+	e := newScratchEnv(t, "mig")
+	ctx := context.Background()
+	sqlText, err := db.Migrations.ReadFile("migrations/0004_phieu_chenh_lech.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := func() string {
+		t.Helper()
+		var s string
+		if err := e.admin.QueryRow(ctx, catalogStateSQL, newTables, newTables).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	want := state()
+	if !strings.Contains(want, "policy discrepancy_tickets tenant_isolation") || !strings.Contains(want, "force=true") || !strings.Contains(want, "acl commands eais_app INSERT false") {
+		t.Fatalf("trạng thái đích sau Migrate thiếu chính sách, FORCE hoặc quyền INSERT của vai ứng dụng:\n%s", want)
+	}
+	for i := 1; i <= 2; i++ {
+		if _, err := e.admin.Exec(ctx, string(sqlText)); err != nil {
+			t.Fatalf("chạy lại trần tệp 0004 lần %d: %v", i, err)
+		}
+		if got := state(); got != want {
+			t.Fatalf("chạy lại trần 0004 lần %d đổi trạng thái:\n--- trước\n%s\n--- sau\n%s", i, want, got)
+		}
+	}
+	for _, d := range []struct{ name, stmt string }{
+		{"cấp thêm UPDATE cho vai ứng dụng", "GRANT UPDATE ON audit_log TO eais_app"},
+		{"cấp thêm DELETE cho vai ứng dụng", "GRANT DELETE ON commands TO eais_app"},
+		{"cấp quyền cho PUBLIC", "GRANT SELECT ON discrepancy_tickets TO PUBLIC"},
+		{"tắt FORCE", "ALTER TABLE commands NO FORCE ROW LEVEL SECURITY"},
+		{"tắt RLS", "ALTER TABLE audit_log DISABLE ROW LEVEL SECURITY"},
+		{"xoá chính sách", "DROP POLICY tenant_isolation ON audit_log"},
+		{"chính sách mở toang", "ALTER POLICY tenant_isolation ON discrepancy_tickets USING (true) WITH CHECK (true)"},
+	} {
+		if _, err := e.admin.Exec(ctx, d.stmt); err != nil {
+			t.Fatalf("%s: %v", d.name, err)
+		}
+		if state() == want {
+			t.Errorf("%s: bộ so trạng thái không thấy sự trôi (ca âm của chính bộ so)", d.name)
+		}
+		if _, err := e.admin.Exec(ctx, string(sqlText)); err != nil {
+			t.Fatalf("chạy lại 0004 sau %q: %v", d.name, err)
+		}
+		if got := state(); got != want {
+			t.Errorf("chạy lại 0004 không đưa về trạng thái đích sau %q:\n--- đích\n%s\n--- được\n%s", d.name, want, got)
 		}
 	}
 }

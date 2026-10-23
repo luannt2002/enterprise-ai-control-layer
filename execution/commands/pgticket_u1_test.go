@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,37 +67,11 @@ type u1Lab struct {
 	rows []u1Row
 }
 
-// newU1Lab tạo database tạm trong cùng cụm PG, áp migration, gài bẫy; dọn khi test xong.
+// newU1Lab dựng database tạm (newScratchEnv) rồi gài bẫy; dọn khi test xong.
 func newU1Lab(t *testing.T) *u1Lab {
 	t.Helper()
-	admin, app := pgstore.EnvDSN()
-	if admin == "" || app == "" {
-		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
-	}
-	au, err1 := url.Parse(admin)
-	pu, err2 := url.Parse(app)
-	if err1 != nil || err2 != nil || au.User == nil || pu.User == nil {
-		t.Skipf("DSN không ở dạng URL có tên vai (docs/ops/README.md) — không dựng được database tạm: %v %v", err1, err2)
-	}
-	name := fmt.Sprintf("%s_u1_%d_%d", strings.TrimPrefix(au.Path, "/"), os.Getpid(), time.Now().UnixNano()%1_000_000)
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, admin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := conn.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()); err != nil {
-		conn.Close(ctx)
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { // chạy SAU khi các pool của lab đã đóng (Cleanup chạy ngược thứ tự đăng ký)
-		defer conn.Close(context.Background())
-		if _, err := conn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+pgx.Identifier{name}.Sanitize()+" WITH (FORCE)"); err != nil {
-			t.Errorf("dọn database tạm %s: %v", name, err)
-		}
-	})
-	au.Path, pu.Path = "/"+name, "/"+name
-	lab := &u1Lab{pgEnv: openPGEnv(t, au.String(), pu.String(), 4)}
-	if _, err := lab.admin.Exec(ctx, u1HazardSQL); err != nil {
+	lab := &u1Lab{pgEnv: newScratchEnv(t, "u1")}
+	if _, err := lab.admin.Exec(context.Background(), u1HazardSQL); err != nil {
 		t.Fatalf("gài bẫy: %v", err)
 	}
 	return lab
@@ -141,7 +114,7 @@ func (l *u1Lab) newPG(app string, session map[string]string) *PGStore {
 	if err != nil {
 		l.t.Fatal(err)
 	}
-	l.t.Cleanup(st.Close)
+	l.t.Cleanup(func() { closeWithin(l.t, "pool của ca "+app, st.Close) })
 	return NewPGStore(st)
 }
 

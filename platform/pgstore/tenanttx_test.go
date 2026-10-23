@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -69,6 +70,7 @@ func TestBeginTenantTxDatGUCVaKhongRoSangGiaoDichSau(t *testing.T) {
 		if err != nil {
 			t.Fatalf("lượt %d: %v", i, err)
 		}
+		defer tx.Rollback(ctx) // ca đỏ giữa chừng không được giữ kết nối khỏi pool (Rollback sau Commit / Rollback chỉ trả ErrTxClosed)
 		var got string
 		if err := tx.QueryRow(ctx, "SELECT current_setting('eais.tenant_id', true)").Scan(&got); err != nil {
 			t.Fatal(err)
@@ -99,12 +101,16 @@ func TestBeginTenantTxTuChoiKhiThieuTenant(t *testing.T) {
 		"đã huỷ, không tenant": func() context.Context { c, cancel := context.WithCancel(context.Background()); cancel(); return c }(),
 	} {
 		tx, err := s.BeginTenantTx(ctx)
+		if tx != nil { // đáng lẽ không có; trả kết nối về pool để ca đỏ không treo ở các bước sau
+			_ = tx.Rollback(ctx)
+		}
 		if tx != nil || err == nil || contracts.FaultOf(err) != contracts.FaultPolicy {
 			t.Errorf("%s: muốn (nil, lỗi %s), được (%v, %v)", name, contracts.FaultPolicy, tx, err)
 		}
 	}
 	// pool vẫn dùng được và không bị giữ kết nối: một giao dịch có tenant mở được ngay trên pool một kết nối
-	ctx := contracts.WithTenant(context.Background(), "k2-guc-a")
+	ctx, cancel := context.WithTimeout(contracts.WithTenant(context.Background(), "k2-guc-a"), 3*time.Second)
+	defer cancel()
 	tx, err := s.BeginTenantTx(ctx)
 	if err != nil {
 		t.Fatalf("sau các lần từ chối, pool phải còn dùng được: %v", err)
@@ -123,6 +129,7 @@ func TestBeginTenantTxLoiCommitKhongBiGomVaoInfra(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer tx.Rollback(ctx) // như trên: không giữ kết nối nếu ca đỏ trước COMMIT
 	for _, q := range []string{
 		"CREATE TEMP TABLE k2_hoan (a int UNIQUE DEFERRABLE INITIALLY DEFERRED) ON COMMIT DROP",
 		"INSERT INTO k2_hoan VALUES (1), (1)", // chưa lỗi: ràng buộc hoãn tới COMMIT

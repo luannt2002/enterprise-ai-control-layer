@@ -13,11 +13,13 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -70,9 +72,56 @@ func openPGEnv(t *testing.T, admin, app string, appConns int) *pgEnv {
 	t.Cleanup(func() {
 		e.cleanup()
 		ad.Close()
-		st.Close()
+		closeWithin(t, "pool ứng dụng", st.Close)
 	})
 	return e
+}
+
+// closeWithin đóng pool nhưng không đợi quá 10 s: pgxpool.Close đợi MỌI kết nối đang mượn được trả về, nên một giao dịch bị rò (không
+// Commit / Rollback) làm nó treo mãi và treo cả bộ test tới hạn chót của go test. Ở đây thành một ca đỏ nói rõ lý do.
+func closeWithin(t *testing.T, what string, closeFn func()) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() { closeFn(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Errorf("%s không đóng được sau 10 s: còn kết nối bị giữ, nghĩa là có giao dịch bị rò (không Commit / Rollback)", what)
+	}
+}
+
+// newScratchEnv tạo một database TẠM trong cùng cụm PG (tên = tên database đang test + hậu tố tag, pid, thời gian), áp migration và mở
+// môi trường trên nó; xoá database khi test xong. Dùng cho thứ gì làm nhiễu database dùng chung: bẫy trigger, kết thúc backend, chạy lại
+// migration, thả quyền. Cần DSN dạng URL để đổi được tên database.
+func newScratchEnv(t *testing.T, tag string) *pgEnv {
+	t.Helper()
+	admin, app := pgstore.EnvDSN()
+	if admin == "" || app == "" {
+		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
+	}
+	au, err1 := url.Parse(admin)
+	pu, err2 := url.Parse(app)
+	if err1 != nil || err2 != nil || au.User == nil || pu.User == nil {
+		t.Skipf("DSN không ở dạng URL có tên vai (docs/ops/README.md) — không dựng được database tạm: %v %v", err1, err2)
+	}
+	name := fmt.Sprintf("%s_%s_%d_%d", strings.TrimPrefix(au.Path, "/"), tag, os.Getpid(), time.Now().UnixNano()%1_000_000)
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()); err != nil {
+		conn.Close(ctx)
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { // chạy SAU khi các pool của môi trường đã đóng (Cleanup chạy ngược thứ tự đăng ký)
+		defer conn.Close(context.Background())
+		if _, err := conn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+pgx.Identifier{name}.Sanitize()+" WITH (FORCE)"); err != nil {
+			t.Errorf("dọn database tạm %s: %v", name, err)
+		}
+	})
+	au.Path, pu.Path = "/"+name, "/"+name
+	return openPGEnv(t, au.String(), pu.String(), 4)
 }
 
 // withPoolMax đặt cỡ pool của pgxpool qua DSN dạng URL; DSN dạng khác giữ nguyên. Chỉ dùng cho pgstore.Open / pgxpool: pgx.Connect

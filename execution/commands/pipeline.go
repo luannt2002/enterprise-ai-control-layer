@@ -415,13 +415,13 @@ func (r *run) enter(st int) *run {
 // hai ở câu INSERT phiếu và audit). Không audit.
 func (r *run) accept() bool {
 	in := []string{
-		"command_id=" + clean(r.req.CommandID), "subject_key=" + clean(r.req.SubjectKey),
-		"metric=" + clean(r.req.Metric), "day=" + clean(r.req.Day),
+		"command_id=" + echo(r.req.CommandID), "subject_key=" + echo(r.req.SubjectKey),
+		"metric=" + echo(r.req.Metric), "day=" + echo(r.req.Day),
 	}
 	if bad := shapeProblems(r.req); len(bad) > 0 {
 		r.stopStep(stAccept, StepDeviant, resultFor(ReasonInvalidRequest).withFields(bad), Step{
 			Input: in, Output: []string{"invalid_fields=" + strings.Join(bad, ",")},
-			Decision: "từ chối", Reason: "trường thiếu, sai dạng, có ký tự NUL hoặc chuỗi UTF-8 hỏng",
+			Decision: "từ chối", Reason: "trường thiếu, sai dạng, quá dài, có ký tự NUL hoặc chuỗi UTF-8 hỏng",
 		})
 		r.noRead = "lượt dừng ở C0"
 		return false
@@ -432,6 +432,11 @@ func (r *run) accept() bool {
 	return true
 }
 
+// maxSubjectKeyBytes là trần độ dài (byte UTF-8) của subject_key kiểm ở C0 (C5, lệnh ca chiều 23/10). Khoá danh mục là mã ngắn (EX-03);
+// không có trần thì một khoá dài tuỳ ý đi vào câu hỏi chuẩn, vết, dòng audit và sổ lệnh. Đây là giới hạn cấu trúc, không phải giá trị
+// nghiệp vụ.
+const maxSubjectKeyBytes = 128
+
 // shapeProblems trả tên các trường sai hình dạng theo thứ tự command_id, subject_key, metric, day.
 func shapeProblems(req Request) []string {
 	var bad []string
@@ -439,7 +444,8 @@ func shapeProblems(req Request) []string {
 		bad = append(bad, "command_id")
 	}
 	for _, f := range []struct{ name, value string }{{"subject_key", req.SubjectKey}, {"metric", req.Metric}, {"day", req.Day}} {
-		if f.value == "" || strings.ContainsRune(f.value, 0) || !utf8.ValidString(f.value) {
+		if f.value == "" || strings.ContainsRune(f.value, 0) || !utf8.ValidString(f.value) ||
+			(f.name == "subject_key" && len(f.value) > maxSubjectKeyBytes) {
 			bad = append(bad, f.name)
 		}
 	}
@@ -1110,8 +1116,22 @@ func (r *run) outcome() Outcome {
 
 // question là dạng chuẩn của yêu cầu đã làm sạch (HOP-DONG §7.5).
 func question(req Request) string {
-	return CommandOpenDiscrepancyTicket + " subject_key=" + clean(req.SubjectKey) + " metric=" + clean(req.Metric) +
-		" day=" + clean(req.Day) + " command_id=" + clean(req.CommandID)
+	return CommandOpenDiscrepancyTicket + " subject_key=" + echo(req.SubjectKey) + " metric=" + echo(req.Metric) +
+		" day=" + echo(req.Day) + " command_id=" + echo(req.CommandID)
+}
+
+// echo là dạng một trường thô của yêu cầu ghi vào vết: làm sạch như clean, rồi cắt ở maxSubjectKeyBytes byte (trên ranh giới ký tự) kèm
+// số byte gốc, để trường quá dài bị C0 từ chối không mang nguyên giá trị vào câu hỏi chuẩn và đầu vào của bước (C5).
+func echo(s string) string {
+	c := clean(s)
+	if len(c) <= maxSubjectKeyBytes {
+		return c
+	}
+	cut := maxSubjectKeyBytes
+	for cut > 0 && !utf8.RuneStart(c[cut]) {
+		cut--
+	}
+	return c[:cut] + fmt.Sprintf("…(%d byte)", len(s))
 }
 
 // clean làm một chuỗi lấy từ yêu cầu lưu được vào dòng vết: đổi ký tự NUL thành chữ và byte UTF-8 hỏng thành ký tự thay thế, vì kho vết

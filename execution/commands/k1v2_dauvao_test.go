@@ -370,3 +370,47 @@ func TestR4DungTruocR5KhiCaHaiCungDung(t *testing.T) {
 	wantFail(t, o, StatusFailed, ReasonNoDiscrepancy)
 	assertSteps(t, o, "C5")
 }
+
+// C5 (lệnh ca chiều 23/10): subject_key có trần độ dài ở C0. Khoá dài hơn trần bị từ chối INVALID_REQUEST trước mọi tra cứu, và vết của lượt
+// đó (câu hỏi chuẩn, đầu vào bước C0) không mang nguyên giá trị dài; khoá đúng bằng trần vẫn qua C0.
+func TestC0TranDoDaiSubjectKey(t *testing.T) {
+	good := req(1141, "EX-03", day1)
+	for _, c := range []struct {
+		name string
+		key  string
+		ok   bool
+	}{
+		{"đúng bằng trần", strings.Repeat("K", maxSubjectKeyBytes), true},
+		{"hơn trần một byte", strings.Repeat("K", maxSubjectKeyBytes+1), false},
+		{"ký tự nhiều byte vượt trần", strings.Repeat("Ể", maxSubjectKeyBytes/3+1), false},
+		{"rất dài", strings.Repeat("K", 10000), false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			w := newWorld(t)
+			r := good
+			r.SubjectKey = c.key
+			o := w.run(user("p-1", "director", ""), r)
+			if c.ok {
+				if o.Result.ReasonCode == ReasonInvalidRequest {
+					t.Fatalf("khoá dài đúng bằng trần bị từ chối ở C0: %+v", o.Result)
+				}
+				return
+			}
+			wantFail(t, o, StatusFailed, ReasonInvalidRequest)
+			if fmt.Sprint(o.Result.InvalidFields) != "[subject_key]" {
+				t.Fatalf("invalid_fields = %v, muốn [subject_key]", o.Result.InvalidFields)
+			}
+			assertSteps(t, o, "C0")
+			if len(o.Question) > 2*maxSubjectKeyBytes+120 {
+				t.Errorf("câu hỏi chuẩn của lượt mang nguyên khoá dài: %d byte", len(o.Question))
+			}
+			for _, s := range o.Steps {
+				for _, str := range s.Input {
+					if len(str) > maxSubjectKeyBytes+40 {
+						t.Errorf("bước %s ghi nguyên giá trị dài vào vết: %d byte", s.Code, len(str))
+					}
+				}
+			}
+		})
+	}
+}

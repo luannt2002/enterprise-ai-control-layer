@@ -593,7 +593,7 @@ func (a *Ask) noteDelivered(why *traces.Why, answer string, l *draftLedger) {
 		case strings.Contains(given, draft):
 			n.Reason("%scâu giao chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s), phần còn lại do mẫu câu của tenant dựng", d.prefix, dr, dh)
 		default:
-			n.Reason("%scâu giao KHÔNG chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s) dù S9 không loại nó", d.prefix, dr, dh)
+			n.Reason("%scâu giao "+traces.DeliveredMismatch+" ở S8 (%d ký tự · băm %s) dù S9 không loại nó", d.prefix, dr, dh)
 		}
 	}
 }

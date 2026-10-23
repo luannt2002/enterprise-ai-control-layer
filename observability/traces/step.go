@@ -58,6 +58,10 @@ func notRecorded(what string) string { return NotRecorded + ": " + what }
 // IsNotRecorded báo một giá trị có phải chỗ trống ghi rõ của NotRecorded không.
 func IsNotRecorded(s string) bool { return strings.HasPrefix(s, NotRecorded) }
 
+// DeliveredMismatch có mặt trong dòng S10 khi câu giao KHÔNG chứa nguyên văn bản nháp mà S9 đã nhận (Why.Respond): một bước sau S9 đã đổi chữ của câu đã qua kiểm.
+// BuildSteps đánh dấu S10 lệch khi thấy nó, để "BƯỚC LỆCH ĐẦU TIÊN" chỉ đúng S10 chứ không để người đọc đổ cho S8.
+const DeliveredMismatch = "KHÔNG chứa nguyên văn bản nháp"
+
 // RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
 // chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
 const RejectedDraft = "bản nháp bị loại"
@@ -418,6 +422,9 @@ func BuildSteps(t Turn) []Step {
 		if rep := d.Why.Respond; rep.Recorded() { // dấu vân tay của câu giao, đối chiếu với bản nháp ở S8
 			s.Reason += "; " + joinReasons(rep)
 			s.Rejected = slices.Clone(rep.Rejected)
+			if strings.Contains(joinReasons(rep), DeliveredMismatch) {
+				s.Status = StatusDeviant
+			}
 		}
 		if d.Outcome != string(contracts.OutcomeResolved) {
 			s.Status = StatusDeviant

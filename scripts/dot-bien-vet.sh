@@ -391,6 +391,7 @@ m $ST 's.Reason += "; " + joinReasons(rep)' 's.Reason += ""' 'VS8-44 [V8a] S10 k
 m $ST 'const RejectedDraft = "bản nháp bị loại"' 'const RejectedDraft = "bản nháp bị loại!"' 'VS8-45 [V8a] chữ mở đầu dòng bản nháp bị loại bị đổi'
 m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Generate} {' 'VS8-46 [V8a] Why.apply bỏ sót ô S10 (không che, không cắt)'
 m $D '&w.Validate, &w.Generate, &w.Respond} {' '&w.Validate, &w.Respond} {' 'VS8-47 [V8a] Why.apply bỏ sót ô S8 (không che, không cắt)'
+m $ST 'if strings.Contains(joinReasons(rep), DeliveredMismatch) {' 'if false && strings.Contains(joinReasons(rep), DeliveredMismatch) {' 'VS8-48 [V8a] S10 không lệch khi câu giao không chứa bản nháp đã qua S9'
 unset MUTATE_TEST_MUON
 # ---- hết V8a
 

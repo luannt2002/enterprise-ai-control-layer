@@ -500,7 +500,8 @@ func (r *run) tenant() bool {
 
 // params: metric thuộc danh sách của tool; day đúng dạng và là ngày đã qua theo múi giờ tenant. Không audit.
 func (r *run) params() bool {
-	in := []string{"metric=" + r.req.Metric, "day=" + r.req.Day, "today=" + r.today, "metrics_allowed=" + strings.Join(r.p.d.Tool.Metrics, ",")}
+	// echo(): metric và day chưa được kiểm ở đây — giá trị dài hay bẩn không đi nguyên vào vết (soát C1–C7, C17S-04)
+	in := []string{"metric=" + echo(r.req.Metric), "day=" + echo(r.req.Day), "today=" + r.today, "metrics_allowed=" + strings.Join(r.p.d.Tool.Metrics, ",")}
 	var bad []string
 	if !slices.Contains(r.p.d.Tool.Metrics, r.req.Metric) {
 		bad = append(bad, "metric")

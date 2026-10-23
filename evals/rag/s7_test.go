@@ -108,10 +108,13 @@ func kiemS7(bo s7Bo, docs []rag.Document) error {
 		}
 	}
 	if traLoi < s7MinTraLoi {
-		return fmt.Errorf("có %d câu tra_loi, cần ít nhất %d", traLoi, s7MinTraLoi)
+		return fmt.Errorf("%w: có %d câu tra_loi, cần ít nhất %d", errItCau, traLoi, s7MinTraLoi)
 	}
 	return nil
 }
+
+// errItCau: bộ quá ít câu để tỉ lệ top-3 có nghĩa với cổng S7 (phép đo khác vẫn chạy được, xem napS7Do).
+var errItCau = errors.New("bộ quá ít câu cho cổng S7")
 
 func ngayS7(bo s7Bo, c s7Cau) (time.Time, error) {
 	s := c.Ngay
@@ -257,6 +260,17 @@ func kiemKetQua(t *testing.T, ten string, bo s7Bo, kq s7KetQua) {
 // (docs/viec/2-tra-quy-trinh/S7-BO-CA-DOC-LAP.md §3).
 func napS7(t *testing.T) (s7Bo, []rag.Document, *tenant.Runtime) {
 	t.Helper()
+	return napBoS7(t, false)
+}
+
+// napS7Do như napS7 nhưng nhận bộ ít hơn s7MinTraLoi câu (phép đo, không phải cổng S7).
+func napS7Do(t *testing.T) (s7Bo, []rag.Document, *tenant.Runtime) {
+	t.Helper()
+	return napBoS7(t, true)
+}
+
+func napBoS7(t *testing.T, nhanItCau bool) (s7Bo, []rag.Document, *tenant.Runtime) {
+	t.Helper()
 	path := filepath.Join(s7Dir, "phat-trien.yaml")
 	if p := os.Getenv("EAIS_S7_BO"); p != "" {
 		path = p
@@ -266,8 +280,10 @@ func napS7(t *testing.T) (s7Bo, []rag.Document, *tenant.Runtime) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := kiemS7(bo, docs); err != nil {
+	if err := kiemS7(bo, docs); err != nil && !(nhanItCau && errors.Is(err, errItCau)) {
 		t.Fatal(err)
+	} else if err != nil {
+		t.Logf("%v — số đo chỉ để tham khảo", err)
 	}
 	rt, err := tenant.Load(s7Pack)
 	if err != nil {

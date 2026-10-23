@@ -55,9 +55,9 @@ var secretMasks = []struct {
 	{re: regexp.MustCompile(`(?i)(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;]+`), repl: "${1}" + Masked},
 	{re: regexp.MustCompile(`(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}`), repl: "${1} " + Masked},
 	// "tên-có-từ-khoá-bí-mật = giá trị" (password=…, "api_key": "…", EAIS_PG_PASSWORD=…, mật khẩu: …)
-	{value: newValueMask(`(?i)\b[a-z0-9_.\-]*(?:`+secretKeyWords+`)[a-z0-9_.\-]*["']?\s*[:=]\s*`, `[^\s"',;&]+`)},
+	{value: newValueMask(`(?i)\b[a-z0-9_.\-]*(?:`+secretKeyWords+`)[a-z0-9_.\-]*["']?\s*[:=]\s*`, `[^\s"',;&]+`, false)},
 	// tiêu đề Cookie / Set-Cookie: cả giá trị là bí mật phiên (nhiều cặp, kèm thuộc tính), che hết dòng chứ không chỉ cặp đầu
-	{value: newValueMask(`(?i)\b(?:set-)?cookies?["']?\s*[:=]\s*`, `[^\r\n]+`)},
+	{value: newValueMask(`(?i)\b(?:set-)?cookies?["']?\s*[:=]\s*`, `[^\r\n]+`, true)},
 	// dạng mã thông báo đã biết, đứng ở đâu cũng che: sk-…, ghp_…, github_pat_…, xox?-…, AKIA…, AIza…, JWT
 	{re: regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_\-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9\-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_\-]{30,}|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,})`), repl: Masked},
 }
@@ -71,26 +71,42 @@ const (
 	quotedRaw     = `"[^"]*"?|'[^']*'?`
 )
 
-// valueMask là mẫu "tiền tố + giá trị" đọc theo hai cách: giá trị (nhóm v) trong nháy theo quotedEscaped / quotedRaw, hoặc trần.
-type valueMask struct{ escaped, raw *regexp.Regexp }
+// valueMask là mẫu "tiền tố + giá trị" đọc theo hai cách: giá trị (nhóm v) trong nháy theo quotedEscaped / quotedRaw, hoặc trần. line:
+// giá trị trần là phần còn lại của DÒNG (Cookie / Set-Cookie) — maskValues kéo vùng gộp chứa nó tới hết dòng.
+type valueMask struct {
+	escaped, raw *regexp.Regexp
+	line         bool
+}
 
-func newValueMask(prefix, bare string) *valueMask {
+func newValueMask(prefix, bare string, line bool) *valueMask {
 	return &valueMask{
 		escaped: regexp.MustCompile(prefix + `(?P<v>` + quotedEscaped + `|` + bare + `)`),
 		raw:     regexp.MustCompile(prefix + `(?P<v>` + quotedRaw + `|` + bare + `)`),
+		line:    line,
 	}
 }
 
-// maskValues che hợp các vùng giá trị (nhóm v) mà mọi mẫu trong res tìm thấy trên s: vùng chồng nhau gộp thành một, mỗi vùng thay
-// bằng Masked, giữ nháy mở của vùng (nếu có) ở cả hai đầu để cấu trúc JSON không bị phá.
-func maskValues(s string, res ...*regexp.Regexp) string {
-	type span struct{ start, end int }
+// maskValues che hợp các vùng giá trị (nhóm v) mà mọi mẫu trong ms tìm thấy trên s (cả hai cách đọc nháy): vùng chồng nhau gộp thành một,
+// mỗi vùng thay bằng Masked, giữ nháy mở của vùng (nếu có) ở cả hai đầu để cấu trúc JSON không bị phá.
+//
+// Vùng gộp có chứa giá trị TRẦN của một mẫu dòng (Cookie / Set-Cookie) thì kéo tới hết dòng chứa đầu cuối của vùng, rồi gộp tiếp (soát 5a
+// vòng 3, 5a3-1): giá trị trần của Cookie dừng ở xuống dòng ĐẦU TIÊN, kể cả xuống dòng nằm trong nháy của một cặp "tên = giá trị" bên
+// trong dòng Cookie, nên phần sau nháy đóng ở dòng kế tiếp vẫn là của tiêu đề Cookie. Che tuần tự (main) thấy phần đó cùng dòng sau khi giá
+// trị nhiều dòng thành một dấu che; không kéo thì phần đó lọt và Sanitize mất luỹ đẳng.
+func maskValues(s string, ms ...*valueMask) string {
+	type span struct {
+		start, end int
+		line       bool // giá trị trần của mẫu dòng
+	}
 	var spans []span
-	for _, re := range res {
-		v := 2 * re.SubexpIndex("v")
-		for _, m := range re.FindAllStringSubmatchIndex(s, -1) {
-			if m[v+1] > m[v] {
-				spans = append(spans, span{m[v], m[v+1]})
+	for _, m := range ms {
+		for _, re := range []*regexp.Regexp{m.escaped, m.raw} {
+			v := 2 * re.SubexpIndex("v")
+			for _, x := range re.FindAllStringSubmatchIndex(s, -1) {
+				if x[v+1] > x[v] {
+					q := s[x[v]]
+					spans = append(spans, span{x[v], x[v+1], m.line && q != '"' && q != '\''})
+				}
 			}
 		}
 	}
@@ -102,8 +118,19 @@ func maskValues(s string, res ...*regexp.Regexp) string {
 	last := 0
 	for i := 0; i < len(spans); {
 		cur := spans[i]
-		for i++; i < len(spans) && spans[i].start < cur.end; i++ {
+		for i++; ; i++ {
+			if cur.line {
+				if j := strings.IndexAny(s[cur.end:], "\r\n"); j >= 0 {
+					cur.end += j
+				} else {
+					cur.end = len(s)
+				}
+			}
+			if i >= len(spans) || spans[i].start >= cur.end {
+				break
+			}
 			cur.end = max(cur.end, spans[i].end)
+			cur.line = cur.line || spans[i].line
 		}
 		b.WriteString(s[last:cur.start])
 		if q := s[cur.start]; q == '"' || q == '\'' {
@@ -134,12 +161,12 @@ func Sanitize(s string) string {
 		// trước (đọc theo nháy thoát) có thể nuốt tiền tố "Cookie:" của chữ, mẫu Cookie chạy sau không còn khớp và giá trị Cookie lọt.
 		// Hệ quả (che thừa, chấp nhận): vùng gộp nuốt cả tên của cặp kế tiếp — `password="C:\x\"` xuống dòng `Cookie: sid="…"` thành
 		// `password="[REDACTED]"`, `password="a\" secret="…\" token="…"` thành `password="[REDACTED]" token="[REDACTED]"`.
-		var res []*regexp.Regexp
+		var ms []*valueMask
 		for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {
-			res = append(res, secretMasks[i].value.escaped, secretMasks[i].value.raw)
+			ms = append(ms, secretMasks[i].value)
 		}
 		i--
-		s = maskValues(s, res...)
+		s = maskValues(s, ms...)
 	}
 	return s
 }

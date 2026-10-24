@@ -638,18 +638,41 @@ giao dịch cho model; KHÔNG để nó thay luật tất định khi luật t�
 - Băm trước khi chạy; ngưỡng chọn trên bộ S7 phát triển; mỗi phương án chạy MỘT lần.
 - Đường từ khoá + model trích trên máy.
 
-| Phương án (policy phủ vai) | S4 đúng tra_loi /30 | trích đúng | so_lieu tới tri thức | không đáp án mà trả lời /16 | lời gọi model |
+| Phương án (policy phủ vai) | S4 đúng tra_loi /30 | trích đúng ĐOẠN /36 (tra_loi + ca_hai, chấm lại) | so_lieu tới tri thức | không đáp án mà trả lời /16 | số câu phải hỏi model |
 |---|---|---|---|---|---|
-| B0 luật | 4 | 3 | 0 | 0 | 0 |
-| B1 dò chỉ mục | 23 | 22 | **1** | 3 | 0 |
-| B2 model ở câu kẹt (0.7) | 24 | 21 | 0 | 2 | 33 |
-| B3 model mọi câu (0.7) | 24 | 21 | 0 | 2 | 37 |
-| B4 B1 rồi model (0.7) | 25 | 22 | 1 | 3 | 10 |
+| B0 luật | 4 | 4 | 0 | 0 | 0 |
+| B1 dò chỉ mục (bản đã chạy) | 23 | 19 | **1** | 3 | 0 |
+| B2 model ở câu kẹt (0.7) | 24 | 18 | 0 | 2 | 33 |
+| B3 model mọi câu (0.7) | 24 | 18 | 0 | 2 | 37 |
+| B4 B1 rồi model (0.7) | 25 | 19 | 1 | 3 | 10 |
 
 - Policy NGUYÊN của pack: mọi phương án ≤ 9/30, vì vai thiếu capability.
-- ca_hai: 2/6 ở mọi phương án — dự phòng chỉ đổi sang route RAG, không dựng HYBRID.
+- ca_hai: 2/6 ở mọi phương án — cả 6 câu có "bao nhiêu" nên chốt câu hỏi lượng chặn dự phòng ở mọi phương án (dự phòng không được hỏi lần nào).
 - Cổng khai trước cho model (giảm ≥ 30% lỗi S4 so với phương án tất định tốt nhất): KHÔNG ĐẠT — B2 bớt 1/7 lỗi so với B1 (14%), trích đúng không tăng.
 - Câu số liệu lọt ở B1 / B4 là câu XÁC NHẬN con số ("đổ 4 khối dầu đúng không?"). Chốt đã sửa sau lần chạy và có test, nhưng số của bộ giữ như đã chạy.
+
+**Soát độc lập (24/10, agent riêng, chỉ đọc) bắt được hai lỗi nặng; đã sửa, số ở bảng trên được CHẤM LẠI từ kết quả thô, không chạy lại:**
+1. **B1 đẩy câu số liệu không có "bao nhiêu" sang tài liệu.** Tái lập 9/9 câu, ví dụ "Hôm qua kho xuất mấy lít dầu?" hay "Cho xin số dầu đội báo hôm qua": luật hỏi lại máy, còn B1 trả lời bằng đoạn quy trình.
+   - Nguyên nhân: B1 dò cả câu "ý định số liệu thiếu khe" và câu "hỏi lại nghĩa số liệu".
+   - Đã sửa: B1 chỉ dò khi luật KHÔNG nhận ra ý định (không khớp / thiếu thuật ngữ). 9 câu đó vào test; bỏ chốt nào thì test đỏ (10/10 đột biến bị bắt).
+   - Bộ độc lập không bắt được lỗi này vì 11/12 câu so_lieu có chữ "bao nhiêu" ⇒ vế "0 so_lieu tới tri thức" ở bộ này gần như không chứng minh gì.
+   - Trên bộ độc lập, 2/19 câu B1 cứu đi qua hai nhánh đã bỏ (S4M-07, S4M-08) ⇒ B1 bản sửa ước **~21/30, CHƯA ĐO**: cần bộ MỚI có nhiều câu số liệu không có "bao nhiêu".
+2. **Bộ chấm "trích đúng" chỉ so tài liệu + bản, không so đoạn.**
+   - Chấm lại (câu trả lời phải chứa chuỗi đáp án): B1 22 → 19 trên bộ độc lập; 22 → 15 trên bộ phát triển.
+   - Đường từ khoá + model trích thường trả đoạn ĐẦU thay vì đoạn đáp án.
+   - Kiểm rò nay dùng đúng luật quyền + hiệu lực của dòng S7 và tính cả trích dẫn không có trong kho ⇒ 0 rò.
+
+Sửa thêm theo soát:
+- thông báo phiên bản đi route tri thức (trước bị coi là lỗi ⇒ "ngoài phạm vi");
+- chỉ lỗi của bên thứ ba được nuốt (lỗi hạ tầng / chính sách làm hỏng lượt);
+- vết S5 ghi "do dự phòng S4 chọn";
+- móc nằm trong chặng đo S4;
+- trần thời gian TỔNG 8 s cho một quyết định kể cả thử lại;
+- hoà xác suất nghiêng về nhãn không đổi route.
+
+Bộ phát triển sau sửa (policy phủ vai):
+- B1 24/36 đúng route, 15 trích đúng đoạn;
+- B2 / B3 / B4 26 đúng route, 15 trích đúng đoạn — model không thêm câu trích đúng nào.
 
 | Chấm đoạn, ngưỡng 0.5 | top-3 trúng /36 | câu không đáp án nhận đoạn /16 | đoạn được chấm |
 |---|---|---|---|
@@ -666,7 +689,8 @@ giao dịch cho model; KHÔNG để nó thay luật tất định khi luật t�
 **Kết luận đề xuất:**
 1. Việc làm ngay, tất định, không model:
    - sửa cấu hình vai của pack (chủ dự án / team);
-   - B1 (sau sửa chốt) bật được khi chủ dự án quyết — dò chỉ mục là phương án S4 rẻ nhất, cứu 19/26 câu tri thức bị luật bỏ.
+   - B1 là phương án S4 rẻ nhất. Bản đã chạy cứu 19/26 câu tri thức bị luật bỏ; bản đã sửa ước ~17/26, chưa đo.
+   - Chỉ bật B1 (D-RAG-03) sau khi đo bản sửa trên bộ MỚI, có nhiều câu số liệu nói tự nhiên (không "bao nhiêu").
 2. Model phân loại S4: chưa đưa vào luồng — không thắng B1 đủ cổng. Giữ ở bộ đo.
 3. Chấm đoạn trên đường từ khoá là chỗ duy nhất có tín hiệu mạnh (8 → 0 câu lọt, 0 đoạn đúng mất ở câu một ý). Vòng sau:
    - chấm theo phần tri thức của câu;

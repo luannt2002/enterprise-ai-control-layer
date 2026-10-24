@@ -257,7 +257,7 @@ hai lần chạy) ⇒ thêm luật tất định; câu không dấu sai ở đi�
 | Thứ tự | Việc | Loại |
 |---|---|---|
 | 1 | Chỉ nhúng bản làm căn cứ được (không gửi chữ bản nháp / chờ duyệt ra nhà cung cấp) | sửa an toàn (RAG-1) |
-| 2 | **S4 B1** (đã có mã, mặc định tắt: luật không ra kế hoạch trả lời ⇒ dò chỉ mục bằng đúng quyền + ngày hỏi; chốt câu hỏi lượng + capability trong pipeline). Bộ độc lập: 4 → 23/30 câu tri thức tới đúng route khi vai có quyền đọc | **chủ dự án quyết** D-RAG-02 (vai) rồi D-RAG-03 (bật) |
+| 2 | **S4 B1** (đã có mã, mặc định tắt: luật không ra kế hoạch trả lời ⇒ dò chỉ mục bằng đúng quyền + ngày hỏi; chốt câu hỏi lượng + capability trong pipeline). Bộ độc lập: 4 → 23/30 câu tri thức tới đúng route khi vai có quyền đọc (bản đã chạy); soát độc lập bắt B1 đẩy câu số liệu không có "bao nhiêu" sang tài liệu ⇒ đã thu hẹp, cần đo lại trên bộ MỚI | **chủ dự án quyết** D-RAG-02 (vai) rồi D-RAG-03 (bật) |
 | 3 | Đã so B0 / B1 / B2 / B3 / B4 trên bộ độc lập mới (64 câu, băm trước): model phân loại +1 câu so với B1, không qua cổng 30% ⇒ chưa đưa vào luồng. Vòng sau của chấm đoạn: chấm theo PHẦN tri thức của câu, chế độ bóng, bộ độc lập MỚI; không thay xếp lại | đo xong 24/10 (10.2b) |
 | 4 | Split-then-merge theo token + cổng SC / BI / phủ hết | RAG-2 |
 | 5 | Công bố nguyên tử tài liệu + vector; tự nhúng sau nạp; GC; cổng xoá hàng loạt | RAG-7 |

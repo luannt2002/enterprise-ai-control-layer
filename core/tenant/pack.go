@@ -58,6 +58,8 @@ type intentsFile struct {
 	NegationMarkers []string `yaml:"negation_markers"`
 	// ConditionMarkers: từ nối mở mệnh đề điều kiện (xem intent.Options.ConditionMarkers).
 	ConditionMarkers []string `yaml:"condition_markers"`
+	// ConditionCloseMarkers: từ đóng vế điều kiện (xem intent.Options.ConditionCloseMarkers).
+	ConditionCloseMarkers []string `yaml:"condition_close_markers"`
 	// SourceVerbs: động từ của nguồn (xem intent.Options.SourceVerbs).
 	SourceVerbs []string     `yaml:"source_verbs"`
 	Intents     []intent.Def `yaml:"intents"`
@@ -230,6 +232,8 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 				NegationMarkers:   inf.NegationMarkers,
 				ConditionMarkers:  inf.ConditionMarkers,
 				SourceVerbs:       inf.SourceVerbs,
+				// từ đóng vế điều kiện ("thì", S4CS-02)
+				ConditionCloseMarkers: inf.ConditionCloseMarkers,
 				// tên nguồn cấp số liệu (nhãn + bí danh ở metrics.yaml) của một chỉ số; metric rỗng = mọi chỉ số
 				SourceNames: func(metric string) []string {
 					if rt.Metrics == nil {

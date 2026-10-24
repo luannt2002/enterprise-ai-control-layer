@@ -324,7 +324,10 @@ type ingestReport struct {
 	Observations  int    `json:"observations"`
 	Quarantined   int    `json:"quarantined"`
 	NewQuarantine int    `json:"quarantine_new"` // bản ghi cách ly GHI MỚI; 0 khi nạp lại cùng mã
-	ElapsedMs     int64  `json:"elapsed_ms"`
+	// Held: số bản tài liệu cổng chất lượng giữ lại (chờ soát, KHÔNG được công bố ở lần nạp này); Holds: "mã@vN: lý do" của từng bản (F-018).
+	Held      int      `json:"held"`
+	Holds     []string `json:"holds,omitempty"`
+	ElapsedMs int64    `json:"elapsed_ms"`
 }
 
 // ingest nạp thư mục dữ liệu <dataRoot>/<tenant> của tenant mà pack này phục vụ: nguồn → quan sát + cách ly; lưu bản ghi cách ly
@@ -372,6 +375,17 @@ func (a *app) ingest(ctx context.Context) (ingestReport, error) {
 	}
 	if err := a.loadInto(tctx, pgstore.LoadInfo{LoadID: rep.LoadID, DataVersion: before}, directory, res.Facts(), docs); err != nil {
 		return rep, err
+	}
+	// Bản bị cổng chất lượng giữ lại vẫn được nạp (chờ soát, không phục vụ): lần nạp thành công nhưng phải nói ra, không thì tài liệu
+	// biến mất khỏi câu trả lời mà không ai biết (F-018).
+	for _, d := range docs {
+		if d.Hold != "" {
+			rep.Holds = append(rep.Holds, fmt.Sprintf("%s@v%d: %s", d.ID, d.Version, d.Hold))
+		}
+	}
+	if rep.Held = len(rep.Holds); rep.Held > 0 {
+		a.log.Warn("cổng chất lượng giữ lại tài liệu: các bản này KHÔNG được công bố", "tenant", tenantID, "load_id", rep.LoadID,
+			"held", rep.Held, "holds", strings.Join(rep.Holds, " | "))
 	}
 	a.setAsk(before)
 	rep.ElapsedMs = time.Since(t0).Milliseconds()

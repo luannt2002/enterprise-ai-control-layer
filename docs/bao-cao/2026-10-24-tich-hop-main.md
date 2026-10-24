@@ -53,10 +53,10 @@ Không có P0, không có đường lộ bí mật hay vượt quyền [soát]. 
 
 | Phép đo | Kết quả |
 |---|---|
-| Cổng có PG, so theo tên (`scripts/cong/`) | (điền khi cổng trên `4fe8e0b` chạy xong — mục 4b) |
+| Cổng có PG, so theo tên (`scripts/cong/`), trên đúng `4fe8e0b` đã đẩy [ĐO] | **2398** test theo tên (2395 pass, 3 skip), 0 mất, 0 đổi, 5 mới (test giao nhau), **0 đỏ** — so với cây gộp trước các bản sửa |
 | Trên cây gộp trước các bản sửa ở mục 3 [ĐO] | 2393 test theo tên, 0 mất, 0 đổi, 309 mới, 0 đỏ |
-| winreport (bộ nhớ = PG) [ĐO] | 117/117 (0 dòng khác); H1 91 → **96**/104; H3 112 → **122**/134; H4 103 → **109**/119; **0 ca xanh → đỏ**, 21 ca đỏ → xanh. H1 / H3 / H4 là bộ ĐÃ công bố — không phải chấm độc lập |
-| Smoke đầu–cuối [ĐO] | 21 đạt, 0 hỏng |
+| winreport trên `4fe8e0b`, so main cũ `5ea3ae3` (bộ nhớ = PG) [ĐO] | 117/117 (0 dòng khác); H1 91 → **96**/104; H3 112 → **122**/134; H4 103 → **109**/119; **0 ca xanh → đỏ**, 21 ca đỏ → xanh. H1 / H3 / H4 là bộ ĐÃ công bố — không phải chấm độc lập |
+| Smoke đầu–cuối trên `4fe8e0b`, PG riêng [ĐO] | 21 đạt, 0 hỏng |
 | `go vet ./...`, `go test ./...` (không PG) trên `4fe8e0b` [ĐO] | sạch, xanh |
 
 ## 5. Tiến độ MVP (`docs/ROADMAP-DAY-DU.md` §5b) sau tích hợp

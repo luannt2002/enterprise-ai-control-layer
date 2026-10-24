@@ -13,7 +13,7 @@
   S8–S10, 5a vòng 5, mã Phase 0a (migration **0009**; R-01 chết khoá PG còn mở), RAG (D-RAG-01, D-RAG-04); 13 nhánh đã vào / bị thay chỉ ghi
   nhận. Soát độc lập sau gộp: 0 P0, 1 P1 + 6 P2 do giao nhau — đã sửa có test đỏ trước (bảng ở báo cáo tích hợp mục 3).
 - Đo [lệnh ở báo cáo mục 7]: winreport 117/117, H1 **96**/104, H3 **122**/134, H4 **109**/119 (bộ đã công bố), 0 ca xanh → đỏ, bộ nhớ = PG;
-  smoke 21/21; cổng có PG so theo tên: báo cáo mục 4.
+  smoke 21/21; cổng có PG trên `4fe8e0b`: 2398 test theo tên, 0 mất, 0 đổi, 0 đỏ.
 - CHƯA chạy (dùng một lần, chờ chủ dự án): H6, bộ ca 0a. Migration mới tiếp theo: **0010**.
 
 ## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 vế đọc vết 78,9% (< 90%); M2 bộ ca 0a đã băm, mã đang soát; M3 chờ D-AI-05; M4 đã gộp K1–K4, P1 153 / 157, chờ Q-P1-15

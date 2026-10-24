@@ -86,10 +86,10 @@ P=core/tenant/pack.go
 m $P '			if text, ok := tf.Templates[name]; ok && !strings.Contains(text, "{assumption_note}") {' '			if text, ok := tf.Templates[name]; ok && false && !strings.Contains(text, "{assumption_note}") {' 'S32 pack không kiểm chỗ cho câu giả định'
 m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil' '					_, err := rt.Normalizer.Convert(v, def.Unit)
-					return err == nil || true' 'S33 mọi lượng đều cùng chiều đo với chỉ số'
+					return err == nil || true' 'S33 mọi lượng đều cùng chiều đo với chỉ số ("7 tấn" thành chữ của câu hỏi chỉ số)'
 m $P '					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil' '					_, err := rt.Normalizer.Convert(v, def.Unit)
-					return err == nil && false' 'S34 không lượng nào cùng chiều đo với chỉ số'
+					return err == nil && false' 'S34 không lượng nào cùng chiều đo với chỉ số ("4 khối" thành chữ lạ)'
 # Soát S4 vòng 2 (F1, F3, F4): chữ chỉ loại của thực thể đã giải thuộc tên; đếm ý định chung trước khi đọc; mọi bí danh của vật tư "dầu
 # không phải nhiên liệu" có test.
 m $I '		types = append(types, e.Type)
@@ -317,3 +317,22 @@ m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: [
 m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S187 đuôi hỏi "… có đốt 3782 L dầu không ạ" bị coi là lệnh ghi (từ trung tính cuối câu chặn đuôi hỏi)'
 m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
 
+# Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
+# mang nghĩa khác không phải từ khoá (S4R-03).
+m $I '			if s.inRange(metric, sp.Value) {' '			if true {' 'S51 a2 che mọi số trần, kể cả ngoài miền chỉ số ("4 củ")'
+# S50, S52 — nhánh đổi đơn vị của ValueInRange không chạy trên pack cầu đường: a2 chỉ gọi nó cho số trần và lượng có đơn vị nhờ
+# thuật ngữ, mà đơn vị mặc định của "dầu" (L) trùng đơn vị chỉ số ⇒ tương đương trên pack này; giữ nhánh cho pack có đơn vị khác
+# m $P '					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {' '					if false {' 'S50 không đổi đơn vị trước khi kiểm miền ("7 tấn" thành 7 trong miền)'
+# m $P '						c, err := rt.Normalizer.Convert(v, def.Unit)
+# 						if err != nil {
+# 							return false' '						c, err := rt.Normalizer.Convert(v, def.Unit)
+# 						if err != nil {
+# 							return true' 'S52 lượng không đổi được đơn vị vẫn là giá trị của chỉ số'
+L2=tenants/construction/pack/intents.yaml
+m $L2 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, xác nhận, nhận xét, cấp bách]' 'S53 bỏ cụm ghép "ghi nhận" khỏi ignore_phrases'
+m $L2 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, cấp bách]' 'S54 bỏ cụm ghép "nhận xét" khỏi ignore_phrases'
+m $L2 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, nhận xét]' 'S55 bỏ cụm ghép "cấp bách" khỏi ignore_phrases'
+m $P '					return def.InRange(v.Number) == nil' '					return true' 'S61 không kiểm miền một lần đo ("4 củ", "dầu 4,1 triệu" thành lít)'
+m $P '					return def.InRange(v.Number) == nil' '					return false' 'S62 mọi số đều ngoài miền ("4k", "3850" thành chữ lạ)'
+m $I ' && (!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' '' 'S63 lượng chỉ có đơn vị nhờ "dầu" không bị kiểm miền ("4,1 triệu dầu")'
+m $I '(!strings.Contains(sp.Rule, "unit_from_term") || s.inRange(metric, sp.Value))' 's.inRange(metric, sp.Value)' 'S64 kiểm miền cả lượng viết rõ đơn vị ("80000 L" của cả tháng bị hỏi lại)'

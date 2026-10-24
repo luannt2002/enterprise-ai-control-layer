@@ -7,10 +7,15 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"regexp"
 	"slices"
 	"strings"
+	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 )
 
 // Embedder biến chữ thành vector. Name định danh không gian vector (model + số chiều): vector của hai Name khác nhau không so
@@ -114,6 +119,11 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 	if missing > 0 {
 		return nil, contracts.Errorf(contracts.FaultData, fmt.Sprintf("chỉ mục thiếu vector của %d đoạn trong không gian %s — chạy nhúng lại kho", missing, sem.Embedder.Name()))
 	}
+	// Câu gõ không dấu: nhúng / xếp lại bằng câu đã khôi phục dấu (điểm xếp lại của câu không dấu thấp hơn hẳn — khoi_phuc_dau_test.go).
+	// Đường từ khoá vẫn chấm câu gốc (đã so bỏ dấu).
+	if rq, changes, ok := ix.restoreDiacritics(query, vis); ok {
+		query, report(ctx).Restored = rq, changes
+	}
 	qv, err := sem.Embedder.Embed(ctx, []string{query}, true)
 	if err != nil {
 		return nil, err
@@ -209,4 +219,148 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 		}
 	}
 	return out, nil
+}
+
+// wordRe: một từ (chữ / số).
+var wordRe = regexp.MustCompile(`[\p{L}\p{N}]+`)
+
+// docVocab là từ vựng của MỘT tài liệu (tiêu đề + thân, đếm một lần) để khôi phục dấu: cặp từ liền nhau đã bỏ dấu → các dạng có dấu và số
+// lần gặp. Theo tài liệu vì tài liệu là đơn vị quyền đọc: mỗi câu chỉ cộng từ vựng của tài liệu người hỏi thấy.
+type docVocab map[[2]string]map[[2]string]int
+
+// lazyVocab giữ từ vựng của mọi tài liệu trong chỉ mục, dựng MỘT lần ở câu không dấu đầu tiên: chỉ mục chỉ chạy đường từ khoá (không
+// đường lai) không trả bộ nhớ cho nó (đo 24/10: dựng sẵn làm mỗi lần dựng chỉ mục 5.100 tài liệu tốn 728 → 1.005 MB). Con trỏ: bản sao
+// của MemoryIndex trong Retrieve dùng chung.
+type lazyVocab struct {
+	once sync.Once
+	m    map[*Document]docVocab
+}
+
+func (ix *MemoryIndex) vocabs() map[*Document]docVocab {
+	ix.vocab.once.Do(func() {
+		ix.vocab.m = make(map[*Document]docVocab, len(ix.docs))
+		for _, d := range ix.docs {
+			ix.vocab.m[d] = vocabOf(d.Title + "\n" + d.Body)
+		}
+	})
+	return ix.vocab.m
+}
+
+// vocabOf dựng từ vựng cặp từ của một văn bản: chỉ cặp cách nhau bằng dấu cách (không qua dấu câu, xuống dòng, ký hiệu bảng).
+func vocabOf(text string) docVocab {
+	t := strings.ToLower(normalization.NFC(text))
+	loc := wordRe.FindAllStringIndex(t, -1)
+	v := docVocab{}
+	for i := 1; i < len(loc); i++ {
+		if strings.Trim(t[loc[i-1][1]:loc[i][0]], " \t") != "" {
+			continue
+		}
+		a, b := t[loc[i-1][0]:loc[i-1][1]], t[loc[i][0]:loc[i][1]]
+		k := [2]string{normalization.Fold(a), normalization.Fold(b)}
+		if v[k] == nil {
+			v[k] = map[[2]string]int{}
+		}
+		v[k][[2]string{a, b}]++
+	}
+	return v
+}
+
+// restorable: từ được phép khôi phục dấu — không có chữ số, không viết hoa toàn bộ (mã như "TT", "NHNN"), không dính "-", ".", "@", "/",
+// "_", ":", "\\", "#", "+", "=" hay chữ số ở hai bên (mã "EX-03", email, đường dẫn, tệp).
+func restorable(q string, l []int) bool {
+	w := q[l[0]:l[1]]
+	if strings.ContainsFunc(w, unicode.IsDigit) || utf8.RuneCountInString(w) > 1 && strings.ToUpper(w) == w {
+		return false
+	}
+	code := func(r rune) bool { return strings.ContainsRune("-.@/_:\\#+=", r) || unicode.IsDigit(r) }
+	before, _ := utf8.DecodeLastRuneInString(q[:l[0]])
+	after, _ := utf8.DecodeRuneInString(q[l[1]:])
+	return !(l[0] > 0 && code(before)) && !(l[1] < len(q) && code(after))
+}
+
+// restoreDiacritics khôi phục dấu cho câu hỏi gõ KHÔNG dấu theo CẶP từ liền nhau trong từ vựng của các tài liệu người hỏi thấy (vis):
+// dạng gặp nhiều nhất — hoà điểm thì không đoán; cặp được chồng nhau ("lưu két" + "két sắt") nhưng cặp mà dạng thắng mâu thuẫn từ đã
+// gán thì bỏ cả cặp. Không khôi phục từ đơn (đoán sai nghĩa: "do" → "đo"); câu quá maxRestoreWords từ không khôi phục. Từ không đổi giữ nguyên từng byte; chữ hoa đầu từ giữ. Câu đã có dấu, hoặc không từ nào đổi: trả
+// nguyên câu, "", false. changes = các từ đã đổi ("bien → biên, ban → bản") cho vết. Chỉ tài liệu người hỏi thấy góp chữ nên chữ của
+// tài liệu bị cấm không lọt vào câu gửi đi lẫn vết.
+// shortcut: cộng từ vựng của mọi tài liệu thấy được cho mỗi cặp của câu (số tài liệu × số cặp lượt tra); gom chỉ mục cặp → tài liệu khi
+// kho thật vượt vài nghìn tài liệu.
+func (ix *MemoryIndex) restoreDiacritics(query string, vis map[*Document]bool) (string, string, bool) {
+	q := normalization.NFC(query)
+	if normalization.Fold(q) != strings.ToLower(q) {
+		return query, "", false
+	}
+	loc := wordRe.FindAllStringIndex(q, -1)
+	if len(loc) > maxRestoreWords {
+		return query, "", false
+	}
+	pair := func(i int) ([2]string, bool) { // cặp (i, i+1) khôi phục được: hai từ đều được phép, cách nhau chỉ dấu cách
+		if i+1 >= len(loc) || !restorable(q, loc[i]) || !restorable(q, loc[i+1]) || strings.Trim(q[loc[i][1]:loc[i+1][0]], " \t") != "" {
+			return [2]string{}, false
+		}
+		return [2]string{strings.ToLower(q[loc[i][0]:loc[i][1]]), strings.ToLower(q[loc[i+1][0]:loc[i+1][1]])}, true
+	}
+	out := make([]string, len(loc)) // "" = giữ nguyên
+	for i := range loc {
+		k, ok := pair(i)
+		if !ok {
+			continue
+		}
+		counts := map[[2]string]int{}
+		for d, v := range ix.vocabs() {
+			if vis[d] {
+				for form, n := range v[k] {
+					counts[form] += n
+				}
+			}
+		}
+		best, ok := bestForm(counts)
+		if !ok || out[i] != "" && out[i] != best[0] { // hoà điểm, hoặc mâu thuẫn từ cặp trước đã gán: không đoán
+			continue
+		}
+		for j, w := range []string{best[0], best[1]} {
+			if out[i+j] == "" {
+				out[i+j] = w
+			}
+		}
+	}
+	var b strings.Builder
+	var changes []string
+	last := 0
+	for i, l := range loc {
+		orig, w := q[l[0]:l[1]], out[i]
+		if w == "" || w == strings.ToLower(orig) {
+			w = orig
+		} else {
+			if r, _ := utf8.DecodeRuneInString(orig); unicode.IsUpper(r) {
+				first, n := utf8.DecodeRuneInString(w)
+				w = string(unicode.ToUpper(first)) + w[n:]
+			}
+			changes = append(changes, orig+" → "+w)
+		}
+		b.WriteString(q[last:l[0]] + w)
+		last = l[1]
+	}
+	if len(changes) == 0 {
+		return query, "", false
+	}
+	return b.String() + q[last:], strings.Join(changes, ", "), true
+}
+
+// maxRestoreWords: câu dài hơn không khôi phục dấu — chi phí theo số cặp × số tài liệu, và câu hỏi thật hiếm khi dài vậy.
+const maxRestoreWords = 64
+
+// bestForm trả dạng gặp nhiều nhất; hoà (hai dạng cùng nhiều nhất) hoặc rỗng thì false — không đoán.
+func bestForm(counts map[[2]string]int) ([2]string, bool) {
+	var best [2]string
+	top, ties := 0, 0
+	for f, n := range counts {
+		switch {
+		case n > top:
+			best, top, ties = f, n, 1
+		case n == top:
+			ties++
+		}
+	}
+	return best, ties == 1
 }

@@ -90,6 +90,7 @@ type MemoryIndex struct {
 	InScope func(pr contracts.Principal, keys []string) bool
 	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.
 	Semantic *Semantic
+	vocab    *lazyVocab // từ vựng cặp từ của từng tài liệu — khôi phục dấu câu không dấu (semantic.go); dựng ở lần cần đầu tiên
 }
 
 // stopWords là từ chức năng tiếng Việt — không mang nghĩa để so khớp.
@@ -476,7 +477,7 @@ func isTableSeparator(line string) bool {
 
 // NewMemoryIndex dựng chỉ mục cho một tenant; tài liệu của tenant khác bị bỏ ngay ở đây.
 func NewMemoryIndex(tenant string, docs []Document) *MemoryIndex {
-	ix := &MemoryIndex{tenant: tenant, MinScore: 2.0}
+	ix := &MemoryIndex{tenant: tenant, MinScore: 2.0, vocab: &lazyVocab{}}
 	for i := range docs {
 		d := &docs[i]
 		if d.Tenant != tenant {

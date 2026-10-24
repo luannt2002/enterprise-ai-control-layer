@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -24,6 +25,12 @@ func TestNoteExecute(t *testing.T) {
 	noteExecute(&w, "", contracts.RetrievalReport{Path: "lai, xếp lại", Silence: "điểm xếp lại của đoạn đầu 0.100 < ngưỡng 0.190"}, nil, 3)
 	if len(w.Execute.Reasons) != 2 || w.Execute.Reasons[1] != "không trả đoạn nào: điểm xếp lại của đoạn đầu 0.100 < ngưỡng 0.190" || len(w.Execute.Rejected) != 0 {
 		t.Errorf("S6 im: %+v", w.Execute)
+	}
+	w = traces.Why{}
+	noteExecute(&w, "", contracts.RetrievalReport{Path: "lai, xếp lại", Restored: "bien → biên, ban → bản"}, ev, 3)
+	if len(w.Execute.Reasons) < 2 || w.Execute.Reasons[1] != "câu hỏi không dấu: đường lai dùng câu đã khôi phục dấu theo cặp từ của tài liệu người hỏi thấy, đổi "+contracts.Quote("bien → biên, ban → bản") ||
+		strings.Contains(strings.Join(w.WithholdQuoted().Execute.Reasons, " "), "biên") {
+		t.Errorf("S6 câu khôi phục dấu phải bọc Quote (bộ che che được): %+v", w.Execute)
 	}
 	w = traces.Why{}
 	noteExecute(&w, "", contracts.RetrievalReport{}, ev, 3)

@@ -44,6 +44,7 @@ type RetrievalReport struct {
 	NotServable  int    // bản thấy được mà không làm căn cứ được ở ngày hỏi (chưa duyệt, hết hiệu lực, bị thay, đang giữ lại)
 	Beyond       int    // đoạn khớp, làm căn cứ được, nhưng xếp sau hạng k — không đưa vào ngữ cảnh
 	Silence      string // rỗng = có trả đoạn; còn lại = luật đã chặn và vì sao ("im")
+	Restored     string // câu không dấu: các từ đã khôi phục dấu theo cặp từ của tài liệu người hỏi thấy ("bien → biên, …"; rỗng = không đổi)
 }
 
 // WithKnowledgeQuery gắn điều kiện truy xuất tri thức của lượt vào ngữ cảnh.

@@ -383,6 +383,9 @@ func noteExecute(why *traces.Why, prefix string, rep contracts.RetrievalReport, 
 	}
 	n.Reason("%sđường truy xuất: %s; xét %d bản tài liệu / %d đoạn người hỏi thấy, %d bản trong đó không làm căn cứ được ở ngày hỏi",
 		prefix, rep.Path, rep.Docs, rep.Chunks, rep.NotServable)
+	if rep.Restored != "" { // chữ của người hỏi: bọc Quote để bộ che (WithholdQuoted) che được khi câu mang bí mật
+		n.Reason("%scâu hỏi không dấu: đường lai dùng câu đã khôi phục dấu theo cặp từ của tài liệu người hỏi thấy, đổi %s", prefix, contracts.Quote(rep.Restored))
+	}
 	for i, e := range ev {
 		n.Reason("%s%s (%s): hạng %d, điểm %.3f", prefix, e.ID, e.Source.Name, i+1, e.Confidence)
 	}

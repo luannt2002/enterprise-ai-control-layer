@@ -27,6 +27,12 @@ multipliers:
 
 approx_markers: [khoảng, tầm, cỡ, gần, chừng, ước, xấp xỉ, hơn, "≈", "~"]
 
+# Danh từ nhãn / đếm của ngành (F-030): con số đứng cạnh chúng là số hiệu hay số đếm, không phải lượng — câu xác nhận "… 3850 L đúng không?"
+# bỏ qua chúng. label_nouns đứng TRƯỚC số ("khối 2", "L 5"; từ nào cũng là đơn vị thì đứng sau một chữ số nó là đơn vị của số đó: "3850 L 19");
+# count_nouns đứng SAU số ("2 máy", "3-4 chuyến"). Từ chức năng ("phiếu 912", "ca 2", "3 lần") nằm trong bộ chuẩn hoá, không khai ở đây.
+label_nouns: [khối, lít, l]
+count_nouns: [máy, xe, chuyến, thiết bị, dự án]
+
 terms:
   - {term: diesel_fuel, label: dầu, aliases: [dầu, dầu diesel, dầu DO, nhiên liệu], default_unit: L}
   - {term: work_quantity, label: khối lượng, aliases: [khối lượng]}

@@ -285,6 +285,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					d, ok := rt.Normalizer.Term(t)
 					return ok && d.DefaultUnit != ""
 				},
+				Labels: rt.Normalizer.LabelContext, // danh từ nhãn / đếm của lexicon pack (F-030)
 			})
 			rt.Intents = set
 		}

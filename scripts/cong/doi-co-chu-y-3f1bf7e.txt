@@ -48,3 +48,8 @@ TestPhamViQuaPG hai ca theo thuộc tính tự đưa luật phạm vi; thêm ca 
 TestLoadSourcesRejectsBrokenMaps 6 ca hỏng thêm một dòng entity_lists để mỗi ca hỏng vì đúng lý do của nó, không vì thiếu lược đồ danh mục mới — F-004, lát L5
 TestNarrowGhiUngVienTruocVaSauKhiLoc ca gỡ theo dự án truyền Settings có kiểu cha {project, dự án} do pack khai và so By với "project" thay hằng NarrowByProject đã gỡ; kỳ vọng không đổi — F-005, lát L5
 TestExplainResolveKhongKeTrangThaiPhamViTungUngVien fixture Narrowing gỡ theo cha mang By "project" + ByLabel "dự án" thay hằng NarrowByProject đã gỡ; chữ kỳ vọng không đổi — F-005, lát L5
+# Lát L5b (F-030): danh từ nhãn / đếm của ngành ra lexicon pack; LabelContext / DashDateAt thành method của Engine; kỳ vọng của ba test giữ nguyên.
+TestLabelContext gọi e.LabelContext của Engine dựng từ testLexicon (có danh từ nhãn / đếm cũ) thay hàm mức gói đã gỡ; mọi ca và kỳ vọng không đổi — F-030, lát L5b
+TestDashDateAt gọi e.DashDateAt thay hàm mức gói đã gỡ; mọi ca và kỳ vọng không đổi — F-030, lát L5b
+TestQualifierVaDashDateKhongPanicTrenChuoiNgauNhien gọi e.LabelContext / e.DashDateAt thay hàm mức gói đã gỡ; phép kiểm không đổi — F-030, lát L5b
+testLexicon thêm label_nouns [khối, lít, l] và count_nouns [máy, xe, chuyến, thiết bị, dự án] — đúng danh sách cũ trong qualifier.go — F-030, lát L5b

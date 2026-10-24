@@ -1019,7 +1019,7 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
 			continue
 		}
-		if text, n := normalization.DashDateAt(in.Raw, in.Spans, i); n > 1 {
+		if text, n := a.RT.Normalizer.DashDateAt(in.Raw, in.Spans, i); n > 1 {
 			// "19-10", "19-10-26": ngày viết dd-mm mà bộ chuẩn hoá không đọc khi thiếu chữ "ngày" — kỳ của câu có thể khác kỳ họ nói
 			if !slices.Contains(cs.doubts, text) {
 				cs.doubts = append(cs.doubts, text)
@@ -1048,7 +1048,7 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 				}
 				continue
 			}
-			if normalization.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {
+			if a.RT.Normalizer.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {
 				labelEnd = sp.End
 				continue
 			}

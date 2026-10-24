@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Danh mục đột biến của gói execution/reports (Phase 0a, khối M2, bước 2 đến 3b và kho PG): kho bản ghi, sổ lần giao, TR1, TR2, TR3, quyết định của người, bản rời nhóm (R6-01, R6-02),
-# khoá tuần tự hoá, lược đồ PostgreSQL. Đối chiếu HOP-DONG 0a §11.3: DB05, DB07, DB26 đến DB36 và các đột biến của bất biến BB1, BB2, BB3, BB4, BB8; mã M01..M34 và S1..S8 là mã của danh mục này.
+# khoá tuần tự hoá (kể cả khoá bản ghi của R-01), lược đồ PostgreSQL. Đối chiếu HOP-DONG 0a §11.3: DB05, DB07, DB26 đến DB36 và các đột biến của bất biến BB1, BB2, BB3, BB4, BB8; mã M01..M36 và S1..S8 là mã của danh mục này.
 # Mỗi đột biến sửa MỘT chỗ ở MỘT tệp (scripts/mutate.sh: chuỗi gốc phải xuất hiện đúng 1 lần, tệp luôn được khôi phục) rồi chạy test của gói. "ĐÚNG CHỖ" nghĩa là: có test đỏ VÀ mỗi mẫu "phải thấy"
 # khớp ít nhất một tên test đỏ (mẫu là biểu thức chính quy ERE khớp tên test, kể cả test con). Đỏ mà thiếu một mẫu là "khác"; không test nào đỏ là "SỐNG SÓT"; đỏ sai chỗ là "khác".
 #
@@ -255,6 +255,17 @@ mm M32 "BB4 nguyên văn bị chuẩn hoá trước khi lưu (PG)" $R/pg.go 'Tes
 	raw := []byte(r.Raw)
 === ĐỘT BIẾN ===
 	raw := []byte(NormalizeText(r.Raw))
+EOF
+# R-01 (chết khoá 40P01): hai đột biến đã đo ở commit sửa (1b4c1da) trên 14.700 thao tác trộn của TestPG_R01_.
+mm M35 "R-01 bỏ khoá tư vấn theo bản ghi ở getLocked (bản không có ô và bản vừa đổi ô hết được che: 23505)" $R/engine.go 'TestPG_R01_' <<'EOF'
+	if err := c.ensureLock(lockRef{rec: key}); err != nil {
+=== ĐỘT BIẾN ===
+	if err := error(nil); err != nil {
+EOF
+mm M36 "R-01 đặt lại FOR UPDATE ở getRecord (khoá hàng nằm ngoài thứ tự tăng dần của khoá tư vấn: 40P01)" $R/pg.go 'TestPG_R01_' <<'EOF'
+FROM report_records WHERE unit_key = $1`, key)
+=== ĐỘT BIẾN ===
+FROM report_records WHERE unit_key = $1 FOR UPDATE`, key)
 EOF
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

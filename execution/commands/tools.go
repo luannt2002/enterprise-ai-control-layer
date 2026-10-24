@@ -19,8 +19,8 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
 )
 
 // Tool là một tool trong tools.yaml.
@@ -79,7 +79,7 @@ func (t *Tools) Names() []string {
 //
 // Ngoài ba luật đó: khoá lạ bị từ chối (gõ nhầm không được thành giá trị rỗng), tên tool phải có, không trùng và là lệnh mà gói đã cài
 // (installedCommands), danh sách chỉ số không rỗng, min_abs_diff là số không âm, timeout không âm.
-func LoadTools(packDir string, policy router.Policy, catalog *sourceoftruth.Catalog) (*Tools, error) {
+func LoadTools(packDir string, policy policy.Policy, catalog *sourceoftruth.Catalog) (*Tools, error) {
 	if catalog == nil {
 		return nil, errors.New("LoadTools: thiếu danh mục chỉ số (metrics.yaml) để kiểm chéo luật 3")
 	}
@@ -117,7 +117,7 @@ func LoadTools(packDir string, policy router.Policy, catalog *sourceoftruth.Cata
 }
 
 // problems trả mọi chỗ sai của một tool: ba luật nạp và các luật phụ.
-func (t Tool) problems(label string, policy router.Policy, catalog *sourceoftruth.Catalog) []string {
+func (t Tool) problems(label string, policy policy.Policy, catalog *sourceoftruth.Catalog) []string {
 	var out []string
 	bad := func(format string, a ...any) {
 		out = append(out, fmt.Sprintf("tool %s: ", label)+fmt.Sprintf(format, a...))

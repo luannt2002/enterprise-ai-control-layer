@@ -21,9 +21,9 @@ import (
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
 )
 
 // ---------------------------------------------------------------------------
@@ -225,7 +225,7 @@ type Deps struct {
 	Tenant    string         // tenant của runtime: Principal.TenantID phải bằng nó (C1)
 	Location  *time.Location // múi giờ tenant: "hôm nay" và ngày của yêu cầu
 	Tool      Tool           // cấu hình tool (tools.yaml)
-	Policy    router.Policy
+	Policy    policy.Policy
 	Catalog   *sourceoftruth.Catalog
 	Facts     sourceoftruth.Store
 	Directory entityresolution.Directory

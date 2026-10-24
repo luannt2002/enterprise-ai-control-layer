@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
@@ -116,7 +117,7 @@ type Runtime struct {
 	Metrics     *sourceoftruth.Catalog
 	Intents     *intent.Set
 	Router      router.Settings
-	Policy      router.Policy
+	Policy      policy.Policy
 	Templates   map[string]string
 	// ConfirmMarkers: cụm biến câu hỏi số liệu thành câu xác nhận ("đúng không?").
 	ConfirmMarkers []string

@@ -56,6 +56,13 @@ func TestDuPhongS4Moc(t *testing.T) {
 	if r := ask(t, a, user("accountant", ""), q).Response; do.lan != 0 || r.Outcome != contracts.OutcomeOutOfScope {
 		t.Errorf("thiếu documents.read: dự phòng không được hỏi (%d lần), muốn OUT_OF_SCOPE, được %s", do.lan, r.Outcome)
 	}
+	// Câu hỏi lượng — hỏi "bao nhiêu" hay xác nhận một con số có đơn vị — không bao giờ tới dự phòng (bộ độc lập S4 24/10: S4M-46).
+	for _, qq := range []string{"xuất kho bao nhiêu lít?", "Hôm qua máy 03 đổ 4 khối dầu đúng không?", "xuat kho bao nhieu lit?", "EX-03 hôm qua nhận 3850 L phải không?"} {
+		ask(t, a, user("director", ""), qq)
+	}
+	if do.lan != 0 {
+		t.Errorf("câu hỏi lượng không được hỏi dự phòng, đã hỏi %d lần", do.lan)
+	}
 	do.loi = contracts.Label(contracts.ThirdParty("decide", contracts.KindRateLimit), errors.New("429"))
 	o := ask(t, a, user("director", ""), q)
 	if do.lan != 1 || o.Response.Outcome != contracts.OutcomeOutOfScope ||

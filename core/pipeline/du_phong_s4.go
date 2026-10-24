@@ -34,9 +34,18 @@ func (p KnowledgeProbe) Fallback(ctx context.Context, pr contracts.Principal, in
 	return true, 1, fmt.Sprintf("luật không ra kế hoạch trả lời; chỉ mục tri thức có %d đoạn người hỏi được đọc qua ngưỡng", len(ev)), nil
 }
 
-// asksQuantity: câu mang dấu hiệu hỏi lượng của pack ("bao nhiêu", "định mức"; gõ không dấu vẫn khớp). Rộng hơn asksFactQuantity (chốt
-// đó đòi một con số kèm đơn vị nghiệp vụ nên để lọt "xuất kho bao nhiêu lít?"): tài liệu không phải nguồn của số (P4), nên dự phòng S4
-// thà bỏ sót câu quy trình hỏi "trong bao nhiêu giờ" còn hơn trả lời câu số liệu bằng đoạn quy trình (đo 24/10, ca trong test).
+// asksQuantity: câu hỏi lượng — mang dấu hiệu hỏi lượng của pack ("bao nhiêu", "định mức"; gõ không dấu vẫn khớp), hoặc nêu một con số
+// thuộc chiều đo nghiệp vụ ("đổ 4 khối dầu đúng không?" — câu xác nhận số, bộ độc lập S4 24/10, S4M-46). Rộng hơn asksFactQuantity
+// (chốt đó đòi CẢ HAI nên để lọt "xuất kho bao nhiêu lít?"): tài liệu không phải nguồn của số (P4), nên dự phòng S4 thà bỏ sót câu
+// quy trình hỏi "trong bao nhiêu giờ" còn hơn trả lời câu số liệu bằng đoạn quy trình.
 func (a *Ask) asksQuantity(in contracts.NormalizedInput) bool {
-	return slices.ContainsFunc(a.RT.QuantityMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Text, m) })
+	if slices.ContainsFunc(a.RT.QuantityMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Text, m) }) {
+		return true
+	}
+	// chỉ lượng CÓ SỐ (span lượng), không tính thuật ngữ có đơn vị mặc định — "dầu" một mình không phải câu hỏi lượng
+	fact := a.factDimensions()
+	return slices.ContainsFunc(in.Spans, func(sp contracts.Span) bool {
+		u, ok := a.RT.Normalizer.Unit(sp.Value.Unit)
+		return sp.Kind == contracts.ValueQuantity && ok && fact[u.Dimension]
+	})
 }

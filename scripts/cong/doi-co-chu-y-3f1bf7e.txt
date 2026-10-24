@@ -3,11 +3,13 @@
 TestSharedCodeHasNoTenantLiterals duyệt tệp bằng sharedGoFiles (denylist mọi thư mục trừ tenants/examples/case-studies) thay sharedRoots; kỳ vọng vẫn 0 lần trúng — F-011, lát L1
 TestRequestTypesHaveNoTenantField duyệt tệp bằng sharedGoFiles thay sharedRoots; kỳ vọng không đổi — F-011, lát L1
 legacyAllowed thêm mục cho phép tên cũ ở NAME-EVOLUTION và bản chép báo cáo audit (hạn mức đúng bằng số lần) — ADR-0013, lát L3
-# Lát L4 (F-015): bỏ tên hãng / endpoint / tên model khỏi test — thay 1:1 bằng giao thức ProtocolMessages, endpoint api.example.com, model giả;
-# kiểm header phiên bản chặt hơn (đúng giá trị thay vì khác rỗng); 0 phép kiểm bị bỏ (điều phối đối chiếu 8 dòng xoá ↔ dòng thay).
-clearModelEnv bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-fakeOfficial bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestBackoffDoublesWithCap bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+# Lát L4 (F-015): bỏ tên hãng / endpoint / tên model khỏi test — thay bằng giao thức ProtocolMessages, endpoint api.example.com, model giả
+# (giá trị hợp đồng G7 của g7run: xem mục S2 cuối tệp). Mục ghi "thay 1:1" chỉ đổi giá trị như vậy. Mục còn lại đổi theo HÀNH VI MỚI của mã
+# (hết endpoint mặc định, hết header phiên bản ghi cứng, hợp đồng G7 từ .env) và nói rõ ở lý do: BỎ phép kiểm header phiên bản mặc định
+# (TestMessagesGateway), phép kiểm BaseURL mặc định mất nghĩa (TestNewTheoCauHinh) — hai hành vi đã gỡ, TestMessagesTheoGiaoThuc phủ hành vi mới.
+clearModelEnv xoá thêm EAIS_MODEL_HEADERS (biến mới) và đặt EAIS_G7_MODEL / EAIS_G7_ENDPOINT / EAIS_G7_PRICES (hợp đồng G7 nay từ .env, không còn hằng trong mã); bỏ tên hãng — F-015, lát L4
+fakeOfficial đặt thêm EAIS_MODEL_BASE_URL (giao thức messages hết endpoint mặc định); provider → ProtocolMessages, model / endpoint → giá trị hợp đồng của test — F-015, lát L4
+TestBackoffDoublesWithCap ca MaxRetries vượt trần kèm BaseURL (nay bắt buộc) để hỏng đúng vì MaxRetries; provider → ProtocolMessages; kỳ vọng không đổi — F-015, lát L4
 TestBackoffStopsOnContextCancel bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestBangChungKhongGhiBiMatTrongURL bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestBudgetCapStopsCalls bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
@@ -17,15 +19,15 @@ TestKhongTheoChuyenHuong bỏ tên hãng khỏi test, thay 1:1 theo giao thức 
 TestLoiEndpointChiInSchemeVaHost bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestLoiEndpointKhongInMatKhau bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestLoiTruyenTaiKhongInBiMatTrongURL bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestMaxTokensHongLaLoi bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestMessagesGateway bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMaxTokensHongLaLoi đặt thêm EAIS_MODEL_BASE_URL (nay bắt buộc) để lỗi đến từ MAX_TOKENS hỏng, không từ thiếu BASE_URL; provider → ProtocolMessages; kỳ vọng không đổi — F-015, lát L4
+TestMessagesGateway BỎ phép kiểm header phiên bản MẶC ĐỊNH (mã đổi hành vi: không còn header phiên bản ghi cứng, header bổ sung đến từ cấu hình EAIS_MODEL_HEADERS — TestMessagesTheoGiaoThuc phủ); thay bằng kiểm header đặt qua Headers đúng giá trị; provider → ProtocolMessages — F-015, lát L4
 TestMessagesGuiThamSoDaCauHinh bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestMessagesMacDinhKhongGuiSampling bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestMessagesProviderTuChoiTemperature bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestMessagesThuLai bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestNewChiNhanHTTPSHoacLoopback bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestNewKiemThamSo bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestNewTheoCauHinh bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestNewKiemThamSo cấu hình nền và cấu hình hợp lệ kèm BaseURL (nay bắt buộc) để mỗi ca hỏng vì đúng tham số sai; provider → ProtocolMessages; kỳ vọng không đổi — F-015, lát L4
+TestNewTheoCauHinh phép kiểm BaseURL MẶC ĐỊNH mất nghĩa (mã đổi hành vi: giao thức messages không có endpoint mặc định, thiếu BASE_URL là lỗi cấu hình — TestMessagesTheoGiaoThuc phủ); cấu hình thiếu model / khoá và cấu hình đủ nay kèm BaseURL để hỏng / đạt đúng lý do; provider → ProtocolMessages — F-015, lát L4
 TestProviderOutageMakesRunInvalid bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestRunDungTruocKhiGoiModelKhiOutCoTep bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestRunNganSachVaTepBam bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
@@ -33,7 +35,7 @@ TestSmokeFailsOnBadResponse bỏ tên hãng khỏi test, thay 1:1 theo giao th�
 TestSmokeFailsWhenProviderRejects bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestSmokeKhongDatKhiHeCongBiChan bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestSmokeThroughFakeProvider bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestUnstablePathsAndCosts bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestUnstablePathsAndCosts gọi thêm clearModelEnv (bảng giá nay đọc từ EAIS_G7_PRICES, không còn trong mã); model → modelHopDong; kỳ vọng không đổi — F-015, lát L4
 # Lát gia cố PG (F-037, phần migration): danh sách migration ghim thêm 0010_tenant_khong_rong.sql; phép kiểm khác giữ nguyên.
 # Lát Q11 (quyền và phạm vi / ACL từ CÙNG một vai): chỉ mục tri thức bỏ nhánh tự đoán phạm vi theo thuộc tính entity_scope (không luật = tài
 # liệu có phạm vi đóng); test cần phạm vi theo thuộc tính tự đưa luật policy.Policy{}.InScope = đúng ngữ nghĩa nhánh cũ, kỳ vọng giữ nguyên.

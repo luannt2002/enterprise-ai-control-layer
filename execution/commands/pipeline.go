@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -21,9 +22,9 @@ import (
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
-	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
 )
 
 // ---------------------------------------------------------------------------
@@ -225,7 +226,7 @@ type Deps struct {
 	Tenant    string         // tenant của runtime: Principal.TenantID phải bằng nó (C1)
 	Location  *time.Location // múi giờ tenant: "hôm nay" và ngày của yêu cầu
 	Tool      Tool           // cấu hình tool (tools.yaml)
-	Policy    router.Policy
+	Policy    policy.Policy
 	Catalog   *sourceoftruth.Catalog
 	Facts     sourceoftruth.Store
 	Directory entityresolution.Directory
@@ -334,11 +335,20 @@ func (r *run) panicked(rec any) {
 // Malformed dựng kết quả cho thân yêu cầu mà lớp HTTP không giải mã được (JSON hỏng, trường lạ, nội dung thừa): INVALID_REQUEST
 // dừng ở C0 với đủ chín bước, để lượt đó vẫn có vết (HOP-DONG §2.6.2, A28 (b)). fields là tên trường lạ đầu tiên, hoặc rỗng khi
 // lỗi không quy về một trường.
+//
+// Tên trường lạ là chữ tự do của bên gọi (có thể mang bí mật mà che theo mẫu không bắt được, F-035): kết quả trả bên gọi giữ nguyên,
+// nhưng vết bền chỉ ghi tên nằm trong requestFields và SỐ tên còn lại.
 func (p *Pipeline) Malformed(fields ...string) Outcome {
 	r := p.newRun(contracts.Principal{}, Request{})
 	r.question = ""
+	var known []string
+	for _, f := range fields {
+		if slices.Contains(requestFields, f) {
+			known = append(known, f)
+		}
+	}
 	r.stopStep(stAccept, StepDeviant, resultFor(ReasonInvalidRequest).withFields(fields), Step{
-		Output:   []string{"invalid_fields=" + strings.Join(fields, ",")},
+		Output:   []string{"invalid_fields=" + strings.Join(known, ","), "unknown_fields=" + strconv.Itoa(len(fields)-len(known))},
 		Decision: "từ chối", Reason: "thân yêu cầu không giải mã được hoặc có trường lạ",
 	})
 	r.noRead = "lượt dừng ở C0"
@@ -436,6 +446,9 @@ func (r *run) accept() bool {
 // không có trần thì một khoá dài tuỳ ý đi vào câu hỏi chuẩn, vết, dòng audit và sổ lệnh. Đây là giới hạn cấu trúc, không phải giá trị
 // nghiệp vụ.
 const maxSubjectKeyBytes = 128
+
+// requestFields là tên JSON các trường của Request — tên duy nhất được ghi nguyên vào vết khi thân bị từ chối.
+var requestFields = []string{"command_id", "subject_key", "metric", "day"}
 
 // shapeProblems trả tên các trường sai hình dạng theo thứ tự command_id, subject_key, metric, day.
 func shapeProblems(req Request) []string {

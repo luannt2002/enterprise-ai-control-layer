@@ -31,7 +31,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
 
-const usageText = `eais — ứng dụng EAIS (Enterprise AI Systems)
+const usageText = `eais — ứng dụng EAIS (Enterprise AI Integration Reference Architecture)
 
   eais migrate                                 áp migration (cần EAIS_PG_ADMIN_DSN)
   eais ingest -pack P -data D                  nạp dữ liệu nguồn của tenant của pack (cần EAIS_PG_DSN)

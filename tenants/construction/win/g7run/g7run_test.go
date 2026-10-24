@@ -44,11 +44,21 @@ func baseCfg(data string) config {
 		tenant: "abc-infra", grade: gradeContent, k: 1, topK: 10, systems: sysB2Plus, budget: 15}
 }
 
-// clearModelEnv đảm bảo test chạy bằng model giả bất kể môi trường của người chạy.
+// modelHopDong, endpointChinhThuc: giá trị GIẢ trung tính của hợp đồng G7 trong test — giá trị thật chỉ ở .env.
+const (
+	modelHopDong      = "model-hop-dong"
+	endpointChinhThuc = "https://api.example.com"
+)
+
+// clearModelEnv đảm bảo test chạy bằng model giả bất kể môi trường của người chạy; hợp đồng G7 (model, endpoint chính thức, giá
+// 2 / 10 USD mỗi triệu token của model hợp đồng) đặt giá trị giả ở trên.
 func clearModelEnv(t *testing.T) {
-	for _, k := range []string{"EAIS_MODEL_PROVIDER", "EAIS_MODEL", "EAIS_MODEL_API_KEY", "EAIS_MODEL_BASE_URL", "EAIS_MODEL_THINKING", "EAIS_MODEL_EFFORT", "EAIS_MODEL_TEMPERATURE", "EAIS_MODEL_MAX_RETRIES", "EAIS_MODEL_MAX_TOKENS"} {
+	for _, k := range []string{"EAIS_MODEL_PROVIDER", "EAIS_MODEL", "EAIS_MODEL_API_KEY", "EAIS_MODEL_BASE_URL", "EAIS_MODEL_THINKING", "EAIS_MODEL_EFFORT", "EAIS_MODEL_TEMPERATURE", "EAIS_MODEL_MAX_RETRIES", "EAIS_MODEL_MAX_TOKENS", "EAIS_MODEL_HEADERS"} {
 		t.Setenv(k, "")
 	}
+	t.Setenv("EAIS_G7_MODEL", modelHopDong)
+	t.Setenv("EAIS_G7_ENDPOINT", endpointChinhThuc)
+	t.Setenv("EAIS_G7_PRICES", modelHopDong+"=2/10")
 }
 
 type loaded struct {
@@ -620,7 +630,7 @@ func TestSmokeThroughFakeProvider(t *testing.T) {
 	defer srv.Close()
 	clearModelEnv(t)
 	const key = "khoa-test-khong-duoc-lo"
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": key,
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": key,
 		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools", "EAIS_MODEL_EFFORT": "medium"} {
 		t.Setenv(k, v)
 	}
@@ -640,7 +650,7 @@ func TestSmokeThroughFakeProvider(t *testing.T) {
 	for i, b := range bodies {
 		th, _ := b["thinking"].(map[string]any)
 		oc, _ := b["output_config"].(map[string]any)
-		if _, has := b["temperature"]; has || th["type"] != "between_tools" || oc["effort"] != "medium" || b["model"] != "claude-sonnet-5-5" {
+		if _, has := b["temperature"]; has || th["type"] != "between_tools" || oc["effort"] != "medium" || b["model"] != modelHopDong {
 			t.Errorf("yêu cầu %d sai tham số: temperature có mặt = %v, thinking %v, output_config %v, model %v", i, has, b["thinking"], b["output_config"], b["model"])
 		}
 	}
@@ -701,7 +711,7 @@ func TestSmokeKhongDatKhiHeCongBiChan(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools", "EAIS_MODEL_EFFORT": "medium"} {
 		t.Setenv(k, v)
 	}
@@ -723,7 +733,7 @@ func TestSmokeFailsWhenProviderRejects(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_THINKING": "between_tools"} {
 		t.Setenv(k, v)
 	}
@@ -813,7 +823,8 @@ func TestUnstablePathsAndCosts(t *testing.T) {
 	if len(inv) != 1 || !strings.Contains(inv[0], "B1 lượt 1: 1/2") {
 		t.Errorf("invalidRuns = %v, muốn đúng một lượt vô hiệu của B1 (1/2 > 2%%)", inv)
 	}
-	c := costs(recs, "claude-sonnet-5-5", []string{sysEAIS, sysB2Plus})
+	clearModelEnv(t)
+	c := costs(recs, modelHopDong, []string{sysEAIS, sysB2Plus})
 	if c[1].USD != 3 || !c[1].Priced || c[0].USD != 0 {
 		t.Errorf("chi phí = %+v, muốn B2+ = 1 MTok × 2 + 0,1 MTok × 10 = 3 USD", c)
 	}
@@ -829,7 +840,7 @@ func TestSmokeFailsOnBadResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": "m", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -905,7 +916,7 @@ func TestProviderOutageMakesRunInvalid(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
 		t.Setenv(k, v)
 	}
@@ -938,7 +949,7 @@ func TestProviderOutageMakesRunInvalid(t *testing.T) {
 
 // Trần ngân sách giữ trong MÃ (hợp đồng G7 §9; bản soát mã S3-4): chi tiêu tính từ usage × bảng giá; chạm
 // trần thì không gọi model nữa và lần chạy VÔ HIỆU. Mỗi phản hồi giả báo 1 triệu token vào = 2 USD với
-// Sonnet 5.5, trần 15 USD ⇒ tối đa 8 lời gọi tới được nhà cung cấp.
+// giá của model hợp đồng trong test (clearModelEnv), trần 15 USD ⇒ tối đa 8 lời gọi tới được nhà cung cấp.
 func TestBudgetCapStopsCalls(t *testing.T) {
 	var mu sync.Mutex
 	n := 0
@@ -950,7 +961,7 @@ func TestBudgetCapStopsCalls(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL, "EAIS_MODEL_MAX_RETRIES": "0"} {
 		t.Setenv(k, v)
 	}
@@ -1003,7 +1014,7 @@ func TestRunNganSachVaTepBam(t *testing.T) {
 		{"trần hợp lệ", 7.5, "", true},
 	} {
 		clearModelEnv(t)
-		for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+		for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 			t.Setenv(k, v)
 		}
 		mu.Lock()
@@ -1043,7 +1054,7 @@ func TestDryRunIsNotEvidence(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}
 	cfg := baseCfg(genData(t))
@@ -1140,7 +1151,7 @@ func TestRunDungTruocKhiGoiModelKhiOutCoTep(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": "claude-sonnet-5-5", "EAIS_MODEL_API_KEY": "khoa-gia",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "khoa-gia",
 		"EAIS_MODEL_BASE_URL": srv.URL} {
 		t.Setenv(k, v)
 	}

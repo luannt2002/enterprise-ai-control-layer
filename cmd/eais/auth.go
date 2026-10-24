@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
-	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -101,7 +101,7 @@ func clonePrincipal(p contracts.Principal) contracts.Principal {
 //   - nạp lại dữ liệu (THAY toàn bộ dữ liệu của tenant, nên chỉ vai nắm trọn quyền đọc mới được);
 //   - đọc vết của người khác trong tenant (vết mang câu hỏi, câu trả lời và bằng chứng; người đã đọc được mọi dữ liệu của tenant thì
 //     đọc vết không lộ thêm gì). Người còn lại chỉ đọc được vết của chính mình.
-func fullAccess(pol router.Policy, pr contracts.Principal) bool {
+func fullAccess(pol policy.Policy, pr contracts.Principal) bool {
 	all := map[string]bool{}
 	for _, rd := range pol.Roles {
 		for _, c := range rd.Capabilities {

@@ -18,7 +18,7 @@ func TestMessagesGateway(t *testing.T) {
 	var got messagesRequest
 	reply, status := "", http.StatusOK
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/messages" || r.Header.Get("x-api-key") != "khoa-test" || r.Header.Get("anthropic-version") == "" {
+		if r.URL.Path != "/v1/messages" || r.Header.Get("x-api-key") != "khoa-test" || r.Header.Get("x-phien-ban") != "v-test" {
 			t.Errorf("yêu cầu sai: %s %v", r.URL.Path, r.Header)
 		}
 		b, _ := io.ReadAll(r.Body)
@@ -27,7 +27,8 @@ func TestMessagesGateway(t *testing.T) {
 		_, _ = io.WriteString(w, reply)
 	}))
 	defer srv.Close()
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "khoa-test", Model: "model-cau-hinh", MaxTokens: 256}
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "khoa-test", Model: "model-cau-hinh", MaxTokens: 256,
+		Headers: http.Header{"X-Phien-Ban": {"v-test"}}}
 	ctx := context.Background()
 	req := Request{Question: "Biên bản lập trong bao lâu?", Evidence: []contracts.Evidence{{ID: "SOP#0", Text: "Lập biên bản trong vòng 24 giờ."}}}
 
@@ -51,10 +52,10 @@ func TestMessagesGateway(t *testing.T) {
 		reply  string
 		label  string
 	}{
-		{http.StatusTooManyRequests, `{}`, contracts.ThirdParty("anthropic", contracts.KindRateLimit)},
-		{http.StatusBadGateway, `{}`, contracts.ThirdParty("anthropic", contracts.KindUnavailable)},
+		{http.StatusTooManyRequests, `{}`, contracts.ThirdParty(ProtocolMessages, contracts.KindRateLimit)},
+		{http.StatusBadGateway, `{}`, contracts.ThirdParty(ProtocolMessages, contracts.KindUnavailable)},
 		{http.StatusUnauthorized, `{}`, contracts.FaultCode},
-		{http.StatusOK, `không phải json`, contracts.ThirdParty("anthropic", contracts.KindBadResponse)},
+		{http.StatusOK, `không phải json`, contracts.ThirdParty(ProtocolMessages, contracts.KindBadResponse)},
 	} {
 		status, reply = c.status, c.reply
 		if _, err := m.Generate(ctx, req); contracts.FaultOf(err) != c.label {
@@ -85,7 +86,7 @@ func TestMessagesGateway(t *testing.T) {
 		`{"content":[{"type":"text","text":"{\"answer\": \"3.85"}],"stop_reason":"max_tokens"}`,
 	} {
 		status, reply = http.StatusOK, bad
-		if d, err := m.Generate(ctx, req); contracts.FaultOf(err) != contracts.ThirdParty("anthropic", contracts.KindBadResponse) {
+		if d, err := m.Generate(ctx, req); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolMessages, contracts.KindBadResponse) {
 			t.Errorf("HTTP 200 %s: được %+v, nhãn lỗi %q (lỗi %v); muốn lỗi KindBadResponse", bad, d, contracts.FaultOf(err), err)
 		}
 	}
@@ -97,20 +98,21 @@ func TestNewTheoCauHinh(t *testing.T) {
 	if g, err := New(Config{}); err != nil || g == nil {
 		t.Errorf("không cấu hình: muốn model giả, được %v / %v", g, err)
 	}
-	for _, c := range []Config{{Provider: "anthropic", APIKey: "k"}, {Provider: "anthropic", Model: "m"}, {Provider: "khac"}} {
+	const base = "https://api.example.com"
+	for _, c := range []Config{{Provider: ProtocolMessages, APIKey: "k", BaseURL: base}, {Provider: ProtocolMessages, Model: "m", BaseURL: base}, {Provider: "khac"}} {
 		if _, err := New(c); contracts.FaultOf(err) != contracts.FaultCode {
 			t.Errorf("%+v: muốn lỗi cấu hình, được %v", Config{Provider: c.Provider, Model: c.Model}, err)
 		}
 	}
-	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k"})
+	g, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: base})
 	if m, ok := g.(*Messages); err != nil || !ok || m.BaseURL == "" || m.MaxTokens <= 0 {
-		t.Errorf("anthropic đủ cấu hình: được %+v (lỗi %v)", g, err)
+		t.Errorf("messages đủ cấu hình: được %+v (lỗi %v)", g, err)
 	}
-	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EAIS_MODEL_PROVIDER", ProtocolMessages)
 	t.Setenv("EAIS_MODEL", "m-env")
 	t.Setenv("EAIS_MODEL_API_KEY", "k-env")
 	t.Setenv("EAIS_MODEL_MAX_TOKENS", "300")
-	if c := ConfigFromEnv(); c.Provider != "anthropic" || c.Model != "m-env" || c.APIKey != "k-env" || c.MaxTokens != 300 {
+	if c := ConfigFromEnv(); c.Provider != ProtocolMessages || c.Model != "m-env" || c.APIKey != "k-env" || c.MaxTokens != 300 {
 		t.Errorf("ConfigFromEnv = %+v", Config{Provider: c.Provider, Model: c.Model, MaxTokens: c.MaxTokens})
 	}
 }

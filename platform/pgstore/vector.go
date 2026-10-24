@@ -88,6 +88,23 @@ func (s *Store) EmbedKnowledge(ctx context.Context, tenant contracts.TenantID) (
 	return len(todo), removed, nil
 }
 
+// PruneVectorSpaces xoá vector của tenant ở MỌI không gian khác keep (F-022): EmbedKnowledge chỉ dọn trong không gian hiện tại, nên sau
+// khi đổi model nhúng, vector của model cũ — kể cả của tài liệu đã xoá — nằm lại mãi. keep rỗng là lỗi đầu vào: quên nêu không gian
+// không được thành "xoá hết". Trả số dòng đã xoá.
+func (s *Store) PruneVectorSpaces(ctx context.Context, tenant contracts.TenantID, keep string) (int, error) {
+	if keep == "" {
+		return 0, contracts.Errorf(contracts.FaultInput, "dọn vector cần không gian giữ lại (Embedder.Name() hiện tại)")
+	}
+	var n int
+	err := s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
+		// tenant_id: như lệnh xoá của Load — không chỉ dựa vào RLS (F-037).
+		tag, err := tx.Exec(ctx, "DELETE FROM document_vectors WHERE tenant_id = $1 AND space <> $2", string(tenant), keep)
+		n = int(tag.RowsAffected())
+		return err
+	})
+	return n, err
+}
+
 // loadVectors đọc vector của không gian space trong giao dịch của tenant; mark là dấu của các dòng đã đọc (như dấu nạp tài liệu).
 func loadVectors(ctx context.Context, tx pgx.Tx, space string) (map[string][]float32, []string, error) {
 	rows, err := tx.Query(ctx, "SELECT text_hash, vec, xmin::text FROM document_vectors WHERE space = $1", space)

@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,7 +27,7 @@ import (
 
 // Đo các phương án S4 trên luồng hỏi TRỌN (docs/ROADMAP-RAG.md §10.2): B0 luật hiện tại · B1 luật + dò chỉ mục tri thức khi luật không
 // ra kế hoạch trả lời (tất định, 0 lời gọi model) · B2 luật + model phân loại ở đúng các câu đó · B3 model phân loại MỌI câu, code vẫn giữ
-// quyền / phạm vi / khe và chốt câu hỏi lượng. B2 / B3 chỉ chạy khi cấu hình model phân loại (EAIS_DECIDE_*, khuôn ở .env.example) — câu
+// quyền / phạm vi / khe và chốt câu hỏi lượng; B4 = B1 trước, model chỉ khi chỉ mục im. B2 / B3 / B4 chỉ chạy khi cấu hình model phân loại (EAIS_DECIDE_*, khuôn ở .env.example) — câu
 // hỏi được GỬI RA nhà cung cấp: chỉ bộ giả lập / công khai.
 //
 // Bộ câu: EAIS_S4_BO (mặc định bộ S7 phát triển), kho ở EAIS_S4_KHO (mặc định kho/ cạnh tệp). Ngoài loai của S7 (tra_loi, khong_co) bộ
@@ -82,8 +84,10 @@ func TestS4PhuongAn(t *testing.T) {
 					moc[c.Ma] = o.Response.Outcome
 				}
 				kq.cham(t, pa, c, o, err, docs, moc)
+				moHinh := dem.cuoi
+				dem.cuoi = ""
 				if ra != nil {
-					_ = ra.Encode(map[string]any{"policy": ten, "pa": pa, "ma": c.Ma, "loai": c.Loai, "bay": c.Bay, "hoi": c.Hoi, "loi": fmt.Sprint(err),
+					_ = ra.Encode(map[string]any{"policy": ten, "pa": pa, "ma": c.Ma, "loai": c.Loai, "bay": c.Bay, "hoi": c.Hoi, "loi": fmt.Sprint(err), "mo_hinh": moHinh,
 						"route": o.Response.Route, "outcome": o.Response.Outcome, "intent": o.Plan.Intent.Name, "ly_do": o.Plan.Reason,
 						"s4": o.Decision.Why.Intent.Reasons, "trich": o.Response.Citations, "tra_loi": o.Response.Answer})
 				}
@@ -282,10 +286,14 @@ func timTaiLieu(docs []rag.Document, id string, v int) *rag.Document {
 	return nil
 }
 
-// demGoi đếm lời gọi model phân loại của một phương án.
-type demGoi struct{ goi, loi int }
+// demGoi đếm lời gọi model của một phương án.
+type demGoi struct {
+	mu       sync.Mutex
+	goi, loi int
+	cuoi     string // quyết định của model ở câu vừa chạy (ghi JSONL)
+}
 
-// duPhongS4 dựng móc S4 của phương án; B2 / B3 bỏ qua (Skip từng phương án) khi chưa cấu hình model phân loại.
+// duPhongS4 dựng móc S4 của phương án; B2 / B3 / B4 cần model phân loại (Skip cả phép đo khi chưa cấu hình).
 func duPhongS4(t *testing.T, pa string, ix *rag.MemoryIndex) (pipeline.IntentFallback, *demGoi) {
 	t.Helper()
 	dem := &demGoi{}
@@ -294,6 +302,28 @@ func duPhongS4(t *testing.T, pa string, ix *rag.MemoryIndex) (pipeline.IntentFal
 		return nil, dem
 	case "B1":
 		return pipeline.KnowledgeProbe{Knowledge: ix, Name: s4YDinhTriThuc}, dem
+	}
+	// B2 / B3 / B4, có thể kèm ngưỡng: "B2@0.6" (không kèm = EAIS_S4_NGUONG, trống = 0.5)
+	ten, so, co := strings.Cut(pa, "@")
+	nguong := nguongDanhSach(t, "EAIS_S4_NGUONG", 0.5)[0]
+	if co {
+		f, err := strconv.ParseFloat(so, 64)
+		if err != nil || f < 0 || f > 1 {
+			t.Fatalf("phương án %q: ngưỡng phải là số trong [0, 1]", pa)
+		}
+		nguong = f
+	}
+	switch ten {
+	case "B2", "B3", "B4":
+		qd := quyetDinhTuMoiTruong(t)
+		if qd == nil {
+			t.Skipf("%s cần model phân loại: đặt EAIS_DECIDE_* (khuôn ở .env.example) — câu hỏi được gửi ra ngoài", pa)
+		}
+		m := moHinhS4{qd: qd, moi: ten == "B3", nguong: nguong, dem: dem}
+		if ten == "B4" {
+			m.truoc = &pipeline.KnowledgeProbe{Knowledge: ix, Name: s4YDinhTriThuc}
+		}
+		return m, dem
 	}
 	t.Fatalf("phương án lạ %q", pa)
 	return nil, dem

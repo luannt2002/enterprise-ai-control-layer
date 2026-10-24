@@ -526,7 +526,7 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request, pr contracts.Pri
 		return
 	}
 	s.log.Info("đã nạp lại dữ liệu", "tenant", pr.TenantID, "principal", pr.ID, "load_id", rep.LoadID, "observations", rep.Observations,
-		"quarantined", rep.Quarantined, "quarantine_new", rep.NewQuarantine, "ms", rep.ElapsedMs)
+		"quarantined", rep.Quarantined, "quarantine_new", rep.NewQuarantine, "held", rep.Held, "kept_published", len(rep.KeptPublished), "ms", rep.ElapsedMs)
 	writeJSON(w, http.StatusOK, rep)
 }
 

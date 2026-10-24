@@ -41,57 +41,69 @@ type Result struct {
 	Quarantined  []Quarantine
 }
 
-type entitiesFile struct {
-	Projects []struct {
-		ID      string   `json:"id"`
-		Name    string   `json:"name"`
-		Aliases []string `json:"aliases"`
-	} `json:"projects"`
-	Equipment []struct {
-		ID        string            `json:"id"`
-		Type      string            `json:"type"`
-		Name      string            `json:"name"`
-		Project   string            `json:"project"`
-		Aliases   []string          `json:"aliases"`
-		SourceIDs map[string]string `json:"source_ids"`
-	} `json:"equipment"`
+// entityRecord là một phần tử của một mảng trong entities_file (EntityList); trường mang id cha đọc riêng theo khai của pack.
+type entityRecord struct {
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Aliases   []string          `json:"aliases"`
+	SourceIDs map[string]string `json:"source_ids"`
 }
 
 // index là dữ liệu gốc của tenant: danh mục thực thể + bảng tra mã theo nguồn.
 type index struct {
 	base      entityresolution.MemoryDirectory
 	sourceIDs map[string]map[string]string // namespace → Key(mã) → id thực thể
-	raw       entitiesFile
+	codes     map[string]map[string]string // id thực thể → namespace → mã (nguyên văn)
 }
 
-func loadIndex(path string) (*index, error) {
+// loadIndex đọc entities_file theo lược đồ của pack: mảng nào là loại thực thể nào, trường nào trỏ cha. Khoá không khai thì bỏ qua.
+func loadIndex(path string, lists []EntityList) (*index, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var f entitiesFile
+	var f map[string]json.RawMessage
 	if err := json.Unmarshal(b, &f); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	ix := &index{sourceIDs: map[string]map[string]string{}, raw: f}
-	for _, p := range f.Projects {
-		e := entityresolution.Entity{ID: p.ID, Type: "project", Key: p.ID, Name: p.Name}
-		for _, a := range p.Aliases {
-			e.Aliases = append(e.Aliases, entityresolution.Alias{Text: a, Source: "master"})
-		}
-		ix.base = append(ix.base, e)
-	}
-	for _, q := range f.Equipment {
-		e := entityresolution.Entity{ID: q.ID, Type: "equipment", Key: q.ID, Name: q.Name, Parent: q.Project}
-		for _, a := range q.Aliases {
-			e.Aliases = append(e.Aliases, entityresolution.Alias{Text: a, Source: "master"})
-		}
-		ix.base = append(ix.base, e)
-		for ns, code := range q.SourceIDs {
-			if ix.sourceIDs[ns] == nil {
-				ix.sourceIDs[ns] = map[string]string{}
+	ix := &index{sourceIDs: map[string]map[string]string{}, codes: map[string]map[string]string{}}
+	for _, l := range lists {
+		var raws []json.RawMessage
+		if f[l.List] != nil {
+			if err := json.Unmarshal(f[l.List], &raws); err != nil {
+				return nil, fmt.Errorf("%s: %s: %w", path, l.List, err)
 			}
-			ix.sourceIDs[ns][entityresolution.Key(code)] = q.ID
+		}
+		for _, raw := range raws {
+			var r entityRecord
+			if err := json.Unmarshal(raw, &r); err != nil {
+				return nil, fmt.Errorf("%s: %s: %w", path, l.List, err)
+			}
+			e := entityresolution.Entity{ID: r.ID, Type: l.Type, Key: r.ID, Name: r.Name}
+			if l.ParentField != "" {
+				var fields map[string]json.RawMessage
+				if err := json.Unmarshal(raw, &fields); err != nil {
+					return nil, fmt.Errorf("%s: %s: %w", path, l.List, err)
+				}
+				if p := fields[l.ParentField]; p != nil {
+					if err := json.Unmarshal(p, &e.Parent); err != nil {
+						return nil, fmt.Errorf("%s: %s %s.%s: %w", path, l.List, r.ID, l.ParentField, err)
+					}
+				}
+			}
+			for _, a := range r.Aliases {
+				e.Aliases = append(e.Aliases, entityresolution.Alias{Text: a, Source: "master"})
+			}
+			ix.base = append(ix.base, e)
+			if len(r.SourceIDs) > 0 {
+				ix.codes[r.ID] = r.SourceIDs
+			}
+			for ns, code := range r.SourceIDs {
+				if ix.sourceIDs[ns] == nil {
+					ix.sourceIDs[ns] = map[string]string{}
+				}
+				ix.sourceIDs[ns][entityresolution.Key(code)] = r.ID
+			}
 		}
 	}
 	return ix, nil
@@ -104,11 +116,8 @@ func (ix *index) directoryFor(ns string) entityresolution.MemoryDirectory {
 	}
 	out := make(entityresolution.MemoryDirectory, 0, len(ix.base))
 	for _, e := range ix.base {
-		for _, q := range ix.raw.Equipment {
-			if q.ID == e.ID && q.SourceIDs[ns] != "" {
-				e.Aliases = append(append([]entityresolution.Alias(nil), e.Aliases...),
-					entityresolution.Alias{Text: q.SourceIDs[ns], Source: ns})
-			}
+		if code := ix.codes[e.ID][ns]; code != "" {
+			e.Aliases = append(append([]entityresolution.Alias(nil), e.Aliases...), entityresolution.Alias{Text: code, Source: ns})
 		}
 		out = append(out, e)
 	}
@@ -118,14 +127,15 @@ func (ix *index) directoryFor(ns string) entityresolution.MemoryDirectory {
 // Ingest nạp mọi nguồn trong thư mục dữ liệu của MỘT tenant (rt). Tệp không đọc được là lỗi hạ
 // tầng (không thể liệt kê bản ghi để cách ly); bản ghi hỏng thì vào cách ly.
 func Ingest(ctx context.Context, dir string, rt *tenant.Runtime, sm SourceMap, x TextExtractor) (Result, error) {
-	ix, err := loadIndex(filepath.Join(dir, sm.EntitiesFile))
+	ix, err := loadIndex(filepath.Join(dir, sm.EntitiesFile), sm.EntityLists)
 	if err != nil {
 		return Result{}, err
 	}
 	var res Result
 	for _, s := range sm.Sources {
 		def, _ := rt.Metrics.Metric(s.Metric)
-		c := &conformer{ctx: ctx, rt: rt, spec: s, def: def, ix: ix, dir: ix.directoryFor(s.EntityNamespace), last: map[string]string{}}
+		c := &conformer{ctx: ctx, rt: rt, spec: s, def: def, ix: ix, dir: ix.directoryFor(s.EntityNamespace), free: sm.FreeTextEntity,
+			last: map[string]string{}}
 		for _, f := range s.Files {
 			paths, err := filepath.Glob(filepath.Join(dir, f.Path))
 			if err != nil {
@@ -158,7 +168,8 @@ type conformer struct {
 	}
 	ix   *index
 	dir  entityresolution.MemoryDirectory
-	last map[string]string // người gửi|ngày → thiết bị của tin gần nhất (cho CarryEntity)
+	free FreeTextEntity    // loại thực thể mà chữ tự do nhận dạng, và tên gọi của nó
+	last map[string]string // người gửi|ngày → thực thể của tin gần nhất (cho CarryEntity)
 }
 
 func (c *conformer) field(r map[string]string, k string) string {
@@ -252,15 +263,15 @@ func (c *conformer) freeTextDate(rel string, f FileSpec, r map[string]string) (t
 	return time.ParseInLocation("2006-01-02", c.field(r, "date"), c.rt.Location)
 }
 
-// freeText trích thiết bị và lượng từ chữ tự do bằng CHÍNH bộ chuẩn hoá + nhận dạng của luồng hỏi.
+// freeText trích thực thể (loại do pack khai) và lượng từ chữ tự do bằng CHÍNH bộ chuẩn hoá + nhận dạng của luồng hỏi.
 func (c *conformer) freeText(text, sender string, on time.Time) (entity string, v contracts.Value, note, reason, detail string) {
 	in := c.rt.Normalizer.Normalize(text, normalization.Options{Now: on})
-	res, err := entityresolution.Resolve(c.ctx, c.dir, in, "equipment")
+	res, err := entityresolution.Resolve(c.ctx, c.dir, in, c.free.Type)
 	if err != nil {
 		return "", v, "", ReasonUnparseable, err.Error()
 	}
 	if len(res.Ambiguous) > 0 {
-		return "", v, "", ReasonAmbiguousEntity, fmt.Sprintf("cụm %q khớp nhiều thiết bị", res.Ambiguous[0].Mention)
+		return "", v, "", ReasonAmbiguousEntity, fmt.Sprintf("cụm %q khớp nhiều %s", res.Ambiguous[0].Mention, c.free.Label)
 	}
 	ids := map[string]bool{}
 	var exclude [][2]int
@@ -280,11 +291,11 @@ func (c *conformer) freeText(text, sender string, on time.Time) (entity string, 
 	case 0:
 		prev, ok := c.last[carryKey]
 		if !c.spec.CarryEntity || sender == "" || !ok {
-			return "", v, "", ReasonUnknownEntity, "tin không nhắc thiết bị nào"
+			return "", v, "", ReasonUnknownEntity, "tin không nhắc " + c.free.Label + " nào"
 		}
-		entity, note = prev, "thiết bị kế thừa từ tin trước của "+sender+" cùng ngày"
+		entity, note = prev, c.free.Label+" kế thừa từ tin trước của "+sender+" cùng ngày"
 	default:
-		return "", v, "", ReasonAmbiguousEntity, "một tin nhắc nhiều thiết bị"
+		return "", v, "", ReasonAmbiguousEntity, "một tin nhắc nhiều " + c.free.Label
 	}
 	v, reason, detail = c.quantity(text, exclude, false)
 	return entity, v, note, reason, detail
@@ -292,7 +303,7 @@ func (c *conformer) freeText(text, sender string, on time.Time) (entity string, 
 
 // quantity đọc đúng MỘT lượng từ chữ (bỏ qua phần nằm trong cụm thực thể); số trần lấy đơn vị
 // mặc định của nguồn; đổi về đơn vị chuẩn của chỉ số. cell: text là MỘT ô lượng của nguồn có cấu trúc (bảng, ERP, phiếu) — lượng viết nhóm nghìn
-// trong ô luôn chắc chắn (normalization.Options.Cell); chữ tự do thì nhóm nghìn chưa phân định (không đứng đầu văn bản, hay chồng lên tên thiết bị)
+// trong ô luôn chắc chắn (normalization.Options.Cell); chữ tự do thì nhóm nghìn chưa phân định (không đứng đầu văn bản, hay chồng lên tên thực thể)
 // bị cách ly, không ghi một cách đọc vào nguồn sự thật (P5; D-OP-9).
 func (c *conformer) quantity(text string, exclude [][2]int, cell bool) (contracts.Value, string, string) {
 	in := c.rt.Normalizer.Normalize(text, normalization.Options{Cell: cell})
@@ -305,7 +316,7 @@ func (c *conformer) quantity(text string, exclude [][2]int, cell bool) (contract
 		for _, x := range exclude {
 			if normalization.GroupSplitsName(sp, x[0], x[1]) {
 				// "máy 3 850 lít": "3" là số hiệu của tên hay phần đầu của lượng? Không loại im lặng rồi lấy số khác ("…, phiếu 912" thành 912 L)
-				return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chồng lên tên thiết bị %q: số đầu là số hiệu hay phần đầu của lượng", sp.Raw, in.Raw[x[0]:x[1]])
+				return contracts.Value{}, ReasonUnparseable, fmt.Sprintf("nhóm nghìn %q chồng lên tên %s %q: số đầu là số hiệu hay phần đầu của lượng", sp.Raw, c.free.Label, in.Raw[x[0]:x[1]])
 			}
 			inside = inside || (sp.Start < x[1] && sp.End > x[0])
 		}

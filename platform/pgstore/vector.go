@@ -78,7 +78,8 @@ func (s *Store) EmbedKnowledge(ctx context.Context, tenant contracts.TenantID) (
 		if err := tx.SendBatch(ctx, b).Close(); err != nil {
 			return err
 		}
-		tag, err := tx.Exec(ctx, "DELETE FROM document_vectors WHERE space = $1 AND NOT (text_hash = ANY($2))", space, keep)
+		// tenant_id: như lệnh xoá của Load — không chỉ dựa vào RLS (F-037; soát độc lập cuối, S4).
+		tag, err := tx.Exec(ctx, "DELETE FROM document_vectors WHERE space = $1 AND NOT (text_hash = ANY($2)) AND tenant_id = $3", space, keep, string(tenant))
 		removed = int(tag.RowsAffected())
 		return err
 	})

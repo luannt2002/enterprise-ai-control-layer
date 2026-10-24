@@ -4,7 +4,8 @@
 > `docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md`). Các cột HIỆN CÓ / ĐÍCH, số dòng và `tệp:dòng` bên dưới đã lệch mã. Ví dụ đã sai:
 > P4 Hành động ghi "0 dòng mã thi hành" trong khi `execution/commands` (C0–C7) chạy thật qua `POST /v1/commands/<tool>` và
 > `execution/reports` đã có mã; `cmd/eais/`, `execution/` ghi là "ĐÍCH" nhưng đã có. Đọc hiện trạng gói từ `go list ./...`; lớp và ranh
-> giới đích ở ADR-0015; định nghĩa sản phẩm ở ADR-0013. Lời bên dưới giữ nguyên làm lịch sử.
+> giới đích ở ADR-0015; định nghĩa sản phẩm ở ADR-0013. Riêng dòng sứ mệnh ngay dưới đã đổi theo ADR-0013 mục 2 (24/10); phần còn lại
+> bên dưới giữ nguyên làm lịch sử.
 
 > **EAIS (Enterprise AI Integration Reference Architecture) is a runnable reference architecture for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities: a control kernel, optional modules (QUERY, RAG), and examples / case studies, without coupling the kernel to a single industry.**
 

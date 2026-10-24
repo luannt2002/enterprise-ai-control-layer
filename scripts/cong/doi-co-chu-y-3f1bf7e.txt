@@ -35,3 +35,6 @@ TestSmokeFailsWhenProviderRejects bỏ tên hãng khỏi test, thay 1:1 theo gia
 TestSmokeKhongDatKhiHeCongBiChan bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestSmokeThroughFakeProvider bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestUnstablePathsAndCosts bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+# Lát gia cố PG (F-037, phần migration): danh sách migration ghim thêm 0010_tenant_khong_rong.sql; phép kiểm khác giữ nguyên.
+TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037
+TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037

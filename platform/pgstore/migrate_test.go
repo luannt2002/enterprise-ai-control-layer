@@ -52,7 +52,7 @@ func TestMigrateDongThoiTrenDBTrong(t *testing.T) {
 			got = append(got, v)
 		}
 		rows.Close()
-		if want := "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql,0005_audit_va_tenant.sql,0006_so_nap_du_lieu.sql,0007_tai_lieu_phien_ban.sql,0008_vector_tai_lieu.sql,0009_kho_bao_cao_ngay.sql"; strings.Join(got, ",") != want {
+		if want := "0001_win.sql,0002_dinh_danh_eais.sql,0003_kho_vet_ben.sql,0004_phieu_chenh_lech.sql,0005_audit_va_tenant.sql,0006_so_nap_du_lieu.sql,0007_tai_lieu_phien_ban.sql,0008_vector_tai_lieu.sql,0009_kho_bao_cao_ngay.sql,0010_tenant_khong_rong.sql"; strings.Join(got, ",") != want {
 			t.Fatalf("vòng %d: schema_migrations = %v, muốn %s", r, got, want)
 		}
 	}
@@ -168,5 +168,88 @@ func TestMigrateDanhTinhBangChecksum(t *testing.T) {
 	exec("INSERT INTO schema_migrations (version) VALUES ('0004_tai_lieu_phien_ban.sql')")
 	if err := pgstore.Migrate(ctx, fa); err != nil {
 		t.Errorf("dòng thừa không đụng tệp nào đang chờ mà Migrate lỗi: %v", err)
+	}
+}
+
+// F-037 (phần migration, 0010): MỌI bảng có cột tenant_id chặn tenant rỗng ở lược đồ — danh sách lấy từ CATALOG, nên bảng mới quên CHECK
+// cũng đỏ ở đây. Nâng cấp kho ĐANG CÓ dữ liệu: dòng hợp lệ còn nguyên; có dòng tenant rỗng thì cả tệp hoàn tác (đóng mặc định như 0005, C3),
+// dọn xong thì áp được; chính tệp chạy lại trần không lỗi.
+func TestMigration0010TenantKhongRong(t *testing.T) {
+	_, admin, app := open(t)
+	fa, _ := freshDB(t, admin, app)
+	ctx := context.Background()
+	if err := pgstore.Migrate(ctx, fa); err != nil {
+		t.Fatal(err)
+	}
+	conn := connect(t, fa)
+	exec := func(q string) {
+		t.Helper()
+		if _, err := conn.Exec(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	missing := func() []string {
+		t.Helper()
+		rows, err := conn.Query(ctx, `SELECT c.table_name FROM information_schema.columns c
+			WHERE c.table_schema = current_schema() AND c.column_name = 'tenant_id' AND NOT EXISTS (SELECT 1 FROM pg_constraint k
+				WHERE k.conrelid = (quote_ident(c.table_schema) || '.' || quote_ident(c.table_name))::regclass AND k.contype = 'c'
+				AND k.convalidated AND pg_get_constraintdef(k.oid) LIKE '%tenant_id <> ''''%')
+			ORDER BY 1`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	var tables int
+	if err := conn.QueryRow(ctx, "SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND column_name = 'tenant_id'").Scan(&tables); err != nil || tables < 16 {
+		t.Fatalf("catalog chỉ thấy %d bảng có tenant_id (lỗi %v): bộ kiểm dưới đây vô nghĩa", tables, err)
+	}
+	if m := missing(); len(m) != 0 {
+		t.Fatalf("bảng có tenant_id mà không chặn tenant rỗng: %v", m)
+	}
+	if _, err := conn.Exec(ctx, "INSERT INTO document_vectors VALUES ('', 's', repeat('a', 64), '{1}')"); err == nil || !strings.Contains(err.Error(), "23514") {
+		t.Errorf("vai quản trị ghi tenant rỗng vào document_vectors: muốn check_violation (23514), được %v", err)
+	}
+
+	// đưa kho về trước 0010, có dữ liệu hợp lệ và MỘT dòng tenant rỗng
+	news := []string{"entities", "entity_aliases", "facts", "documents", "decision_records", "quarantine_records", "usage_records", "document_vectors"}
+	for _, table := range news {
+		exec("ALTER TABLE " + table + " DROP CONSTRAINT " + table + "_tenant_khong_rong")
+	}
+	exec("DELETE FROM schema_migrations WHERE version = '0010_tenant_khong_rong.sql'")
+	exec("INSERT INTO entities (tenant_id, id, type, key, name, ord) VALUES ('t-cu', 'EX-1', 'equipment', 'EX-1', 'Máy 1', 0), ('', 'EX-2', 'equipment', 'EX-2', 'Máy 2', 1)")
+	exec("INSERT INTO document_vectors VALUES ('t-cu', 's', repeat('b', 64), '{1, 2}')")
+	if err := pgstore.Migrate(ctx, fa); err == nil || !strings.Contains(err.Error(), "entities_tenant_khong_rong") {
+		t.Errorf("kho có dòng tenant rỗng: Migrate phải lỗi nêu ràng buộc của entities, được %v", err)
+	}
+	if m := missing(); len(m) != len(news) {
+		t.Errorf("0010 hỏng giữa chừng mà vẫn để lại ràng buộc: còn thiếu %v, muốn thiếu đủ %v", m, news)
+	}
+	exec("DELETE FROM entities WHERE tenant_id = ''")
+	if err := pgstore.Migrate(ctx, fa); err != nil {
+		t.Fatalf("dọn dòng tenant rỗng rồi mà 0010 vẫn lỗi: %v", err)
+	}
+	if m := missing(); len(m) != 0 {
+		t.Errorf("sau 0010 còn bảng không chặn tenant rỗng: %v", m)
+	}
+	var kept int
+	if err := conn.QueryRow(ctx, "SELECT (SELECT count(*) FROM entities WHERE tenant_id = 't-cu') + (SELECT count(*) FROM document_vectors WHERE tenant_id = 't-cu')").Scan(&kept); err != nil || kept != 2 {
+		t.Errorf("dữ liệu hợp lệ sau 0010: %d dòng (lỗi %v), muốn 2", kept, err)
+	}
+	sql, err := db.Migrations.ReadFile("migrations/0010_tenant_khong_rong.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 2; i++ {
+		if _, err := conn.Exec(ctx, string(sql)); err != nil {
+			t.Fatalf("chạy lại trần 0010 lần %d: %v", i, err)
+		}
+	}
+	if m := missing(); len(m) != 0 {
+		t.Errorf("chạy lại 0010 làm mất ràng buộc: %v", m)
 	}
 }

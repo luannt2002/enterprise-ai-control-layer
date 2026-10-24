@@ -7,6 +7,7 @@ package policy
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
@@ -56,6 +57,22 @@ func (p Policy) Allows(pr contracts.Principal, capability string) bool {
 		}
 	}
 	return false
+}
+
+// Holding trả principal chỉ còn các vai có capability: quyền và phạm vi / ACL phải đến từ CÙNG một vai (Q11), nên vai thiếu capability
+// không cho vai khác mượn ACL hay phạm vi của nó. capability rỗng (ý định không đòi capability — router cũng không kiểm) thì giữ nguyên.
+func (p Policy) Holding(pr contracts.Principal, capability string) contracts.Principal {
+	if capability == "" {
+		return pr
+	}
+	out := pr
+	out.Roles = nil
+	for _, role := range pr.Roles {
+		if slices.Contains(p.Roles[role].Capabilities, capability) {
+			out.Roles = append(out.Roles, role)
+		}
+	}
+	return out
 }
 
 // InScope báo principal có được xem một thực thể không. lineage là khoá của thực thể và mọi

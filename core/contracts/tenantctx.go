@@ -28,7 +28,7 @@ func TenantFrom(ctx context.Context) (TenantID, bool) {
 // và chỉ mục trên PG xét cùng một ngày với phần còn lại của lượt — kể cả khi phát lại một lượt cũ.
 type KnowledgeQuery struct {
 	AsOf    time.Time
-	InScope func(pr Principal, keys []string) bool // nil = chỉ mục tự xét theo thuộc tính "entity_scope"
+	InScope func(pr Principal, keys []string) bool // nil = luật của chỉ mục; chỉ mục cũng không có thì tài liệu có phạm vi đóng
 	// Topic là phần câu hỏi nói về chủ đề (câu gốc bỏ con số / ngày / mã đã chuẩn hoá ở S2): chỉ mục dùng nó để biết kho có nói
 	// tới điều được hỏi không. Rỗng = không xét.
 	Topic string

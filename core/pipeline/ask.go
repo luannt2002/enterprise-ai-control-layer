@@ -135,7 +135,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	cls, err := traces.Measure(tr, "intent", func() (intent.Result, error) {
 		r := a.RT.Intents.Classify(in, res, now)
 		if f := a.Deps.IntentFallback; f != nil {
-			return a.fallbackIntent(ctx, now, pr, in, r, f)
+			// dò chỉ mục chỉ bằng vai có capability của ý định tri thức, như lượt tri thức (Q11)
+			def, _ := a.RT.Intents.Def(f.Intent())
+			return a.fallbackIntent(ctx, now, a.RT.Policy.Holding(pr, def.Capability), in, r, f)
 		}
 		return r, nil
 	})
@@ -246,14 +248,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// được câu trả lời thì không nối thêm tài liệu vào.
 		if plan.Route == contracts.RouteHybrid && resp.Outcome == contracts.OutcomeResolved {
 			kdef, _ := a.RT.Intents.Def(cls.Knowledge)
-			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true, &why); err != nil {
+			if err := a.answerKnowledge(ctx, tr, now, a.RT.Policy.Holding(pr, kdef.Capability), in, kdef.Template, &resp, true, &why); err != nil {
 				return Outcome{}, err
 			}
 		} else if plan.Route == contracts.RouteHybrid {
 			a.noteHybridSkipped(&why, resp.Outcome)
 		}
 	case contracts.RouteRAG:
-		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false, &why); err != nil {
+		def, _ := a.RT.Intents.Def(plan.Intent.Name)
+		if err := a.answerKnowledge(ctx, tr, now, a.RT.Policy.Holding(pr, def.Capability), in, plan.Template, &resp, false, &why); err != nil {
 			return Outcome{}, err
 		}
 	default:
@@ -604,7 +607,8 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	return nil
 }
 
-// answerKnowledge chạy S6–S9 cho câu hỏi tri thức: truy xuất đoạn tài liệu người hỏi được đọc, cho
+// answerKnowledge chạy S6–S9 cho câu hỏi tri thức: truy xuất đoạn tài liệu người hỏi được đọc (pr chỉ mang các vai có capability của
+// ý định tri thức — Policy.Holding: ACL / phạm vi tài liệu không được thoả bằng vai không có quyền đọc, Q11), cho
 // model diễn đạt, rồi kiểm — claim gắn bằng chứng, số có trong bằng chứng, không lượng nghiệp vụ
 // nào lấy từ tài liệu. hybrid = phần quy trình nối sau câu số liệu đã RESOLVED: phần này hỏng thì
 // chỉ bỏ phần này kèm ghi chú, không làm hỏng phần số liệu đã kiểm.

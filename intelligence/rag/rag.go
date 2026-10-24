@@ -87,7 +87,7 @@ type MemoryIndex struct {
 	// Now cho ngày HỎI (giờ của tenant) để xét hiệu lực, khi ngữ cảnh không mang ngày của lượt; nil = time.Now.
 	Now func() time.Time
 	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ policy.Policy.InScope), khi ngữ cảnh không mang luật
-	// của lượt; nil = thuộc tính "entity_scope" của principal giao với keys.
+	// của lượt; nil = tài liệu có phạm vi đóng với mọi người — chỉ mục không tự đoán luật phạm vi của policy (F-031, Q11).
 	InScope func(pr contracts.Principal, keys []string) bool
 	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.
 	Semantic *Semantic
@@ -566,7 +566,7 @@ func allowed(d *Document, pr contracts.Principal) bool {
 
 // visible: người hỏi được đọc tài liệu (vai trong ACL, và phạm vi nếu tài liệu khai). Tài liệu không thấy
 // thì coi như không tồn tại. Tài liệu có phạm vi: ACL và phạm vi phải thoả bởi CÙNG một vai — vai không được đọc
-// tài liệu (vd accountant, scope "all" cho số liệu) không cho vai khác mượn phạm vi của nó.
+// tài liệu (vd accountant, scope "all" cho số liệu) không cho vai khác mượn phạm vi của nó. Không có luật phạm vi thì đóng.
 func (ix *MemoryIndex) visible(d *Document, pr contracts.Principal) bool {
 	if len(d.Scope) == 0 {
 		return allowed(d, pr)
@@ -579,13 +579,6 @@ func (ix *MemoryIndex) visible(d *Document, pr contracts.Principal) bool {
 		one.Roles = []string{r}
 		if ix.InScope != nil && ix.InScope(one, d.Scope) {
 			return true
-		}
-		if ix.InScope == nil {
-			for _, k := range strings.Split(pr.Attributes["entity_scope"], ",") {
-				if k = strings.TrimSpace(k); k != "" && slices.Contains(d.Scope, k) {
-					return true
-				}
-			}
 		}
 	}
 	return false

@@ -118,6 +118,12 @@ type Options struct {
 	// Measurable báo một thuật ngữ là đại lượng đo được (có đơn vị mặc định) — có đại lượng khác
 	// trong câu thì KHÔNG hiểu ngầm thuật ngữ mặc định ("giá", "nhân công").
 	Measurable func(term string) bool
+	// Labels báo con số ở [start, end) của câu là nhãn / số đếm / tần suất ("phiếu 912", "2 máy"): normalization.Engine.LabelContext với danh từ
+	// nhãn / đếm của lexicon pack (F-030). Không khai ⇒ như pack không khai danh từ nào: chỉ từ chức năng của bộ chuẩn hoá.
+	Labels func(raw string, start, end int) bool
+	// NarrowParentLabel: tên gọi kiểu cha mà router dùng gỡ bí danh mơ hồ (narrow_parent.label của pack, F-005) — cho lời giải thích khe thiếu.
+	// Rỗng ⇒ router chỉ gỡ theo phạm vi dữ liệu của người hỏi.
+	NarrowParentLabel string
 }
 
 // SetOptions gắn chính sách phân loại của pack. Pack khai động từ nguồn (SourceVerbs) thì sinh luôn cụm "<tên nguồn> <động từ>" ("cảm biến báo", "hoá đơn báo", "ERP báo") cho ý định của chỉ số mà nguồn đó
@@ -807,7 +813,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 			}
 			if sd.Required {
 				it.Missing = append(it.Missing, sd.Name)
-				w.reason("khe %s thiếu: không có thực thể rõ đúng loại (%s)%s", sd.Name, orAny(sd.Types), ambiguousHint(res))
+				w.reason("khe %s thiếu: không có thực thể rõ đúng loại (%s)%s", sd.Name, orAny(sd.Types), s.ambiguousHint(res))
 			}
 		case "period":
 			ps := distinctPeriods(in)
@@ -921,13 +927,13 @@ func (s *Set) premiseRanges(in contracts.NormalizedInput, res contracts.Resoluti
 	var out [][2]int
 	for i := range cl {
 		// trước mệnh đề hỏi: nguồn của con số ("phiếu kho ghi 3.850, vậy …"); sau mệnh đề hỏi: phần chú thêm nêu con số ("…, biết đội báo 4000 L?") — cả hai chỉ là ngữ cảnh
-		if i != q && hasFigure(in, res, cl[i][0], cl[i][1]) {
+		if i != q && s.hasFigure(in, res, cl[i][0], cl[i][1]) {
 			out = append(out, cl[i])
 		}
 	}
 	// Chỉ che khi mệnh đề hỏi CÓ chỉ số riêng. Mệnh đề hỏi chỉ là cái đuôi ("…, tại bể 7 đúng không?", "…, hay 4000 L đúng không?") thì con số và
 	// chữ chỉ số nằm ở mệnh đề đứng trước chính là câu hỏi, không phải ngữ cảnh.
-	if len(out) == 0 || !s.ownMetric(maskRanges(raw, s.backgroundRanges(raw))[cl[q][0]:cl[q][1]], hasFigure(in, res, cl[q][0], cl[q][1])) {
+	if len(out) == 0 || !s.ownMetric(maskRanges(raw, s.backgroundRanges(raw))[cl[q][0]:cl[q][1]], s.hasFigure(in, res, cl[q][0], cl[q][1])) {
 		return nil
 	}
 	return out
@@ -986,8 +992,12 @@ func (s *Set) onlyMarkers(clause string, markers []string) bool {
 }
 
 // hasFigure báo khoảng [start, end) của câu có một CON SỐ: lượng, tiền, hay số trần không nằm trong tên thực thể ("03" của "máy 03"), không là
-// nhãn ("phiếu 912") và không là số của mốc thời gian ("tuần 43").
-func hasFigure(in contracts.NormalizedInput, res contracts.Resolution, start, end int) bool {
+// nhãn ("phiếu 912", Options.Labels) và không là số của mốc thời gian ("tuần 43").
+func (s *Set) hasFigure(in contracts.NormalizedInput, res contracts.Resolution, start, end int) bool {
+	labels := s.opt.Labels
+	if labels == nil {
+		labels = new(normalization.Engine).LabelContext // pack không khai danh từ nhãn / đếm: chỉ từ chức năng
+	}
 	inName := func(sp contracts.Span) bool {
 		return slices.ContainsFunc(res.Entities, func(e contracts.EntityRef) bool { return e.Start <= sp.Start && sp.End <= e.End }) ||
 			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
@@ -1001,7 +1011,7 @@ func hasFigure(in contracts.NormalizedInput, res contracts.Resolution, start, en
 			return true
 		case contracts.ValueNumber:
 			_, period := normalization.PeriodQualifier(in.Raw, sp.Start, sp.End)
-			return !inName(sp) && !period && !normalization.LabelContext(in.Raw, sp.Start, sp.End)
+			return !inName(sp) && !period && !labels(in.Raw, sp.Start, sp.End)
 		}
 		return false
 	})
@@ -1226,9 +1236,9 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 					continue // cụm là chữ MÔ TẢ trong câu hỏi ("ghi nhận tiêu thụ bao nhiêu dầu?")
 				}
 				// chỗ của con số: chính mệnh đề, hay một mệnh đề KỀ không phải câu hỏi ("Ghi nhận cho EX-03, dùng 3782 L dầu"): cụm và con số ở hai mệnh đề liền nhau vẫn là một lệnh (S4BS-03 i)
-				figure := hasFigure(in, res, c[0], c[1])
+				figure := s.hasFigure(in, res, c[0], c[1])
 				for _, nj := range []int{ci + 1, ci - 1} {
-					figure = figure || nj >= 0 && nj < len(clauses) && hasFigure(in, res, clauses[nj][0], clauses[nj][1]) && !askedAt(nj)
+					figure = figure || nj >= 0 && nj < len(clauses) && s.hasFigure(in, res, clauses[nj][0], clauses[nj][1]) && !askedAt(nj)
 				}
 				if figure {
 					if slices.Contains(prem, c) && len(strings.Fields(ct[:at])) > 1 {
@@ -1405,7 +1415,7 @@ func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, raw
 func (s *Set) dataIn(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, start, end int) bool {
 	text := s.withoutCues(rawBG[start:end])
 	return slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return r[0] < end && start < r[1] }) ||
-		hasFigure(in, res, start, end) || s.asking(text) || s.metricWord(text)
+		s.hasFigure(in, res, start, end) || s.asking(text) || s.metricWord(text)
 }
 
 // conditional báo cụm báo nghĩa ở byte at của mệnh đề nằm trong vế ĐIỀU KIỆN (giả thiết, không phải điều đang hỏi): mệnh đề bắt đầu bằng từ nối điều kiện của pack và cụm đứng trước từ
@@ -1430,7 +1440,7 @@ func (s *Set) conditional(clause string, at int, others bool) bool {
 // "cảm ơn" là chữ của "cảm biến".
 func (s *Set) consequent(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, start, end int) bool {
 	text := rawBG[start:end]
-	return s.asking(text) || s.UnsupportedCue(text) || hasFigure(in, res, start, end) ||
+	return s.asking(text) || s.UnsupportedCue(text) || s.hasFigure(in, res, start, end) ||
 		slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return start < r[1] && r[0] < end })
 }
 
@@ -1822,8 +1832,8 @@ func orAny(types []string) string {
 	return strings.Join(types, "|")
 }
 
-// ambiguousHint nhắc các cụm mơ hồ của S3 khi khe thực thể thiếu (router còn có thể gỡ ở S5 bằng phạm vi / dự án).
-func ambiguousHint(res contracts.Resolution) string {
+// ambiguousHint nhắc các cụm mơ hồ của S3 khi khe thực thể thiếu (router còn có thể gỡ ở S5 bằng phạm vi / kiểu cha do pack khai).
+func (s *Set) ambiguousHint(res contracts.Resolution) string {
 	if len(res.Ambiguous) == 0 {
 		return ""
 	}
@@ -1831,7 +1841,11 @@ func ambiguousHint(res contracts.Resolution) string {
 	for _, m := range res.Ambiguous {
 		ms = append(ms, contracts.Quote(m.Mention))
 	}
-	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng dự án đã nêu hay phạm vi dữ liệu của người hỏi)"
+	by := "phạm vi dữ liệu của người hỏi"
+	if s.opt.NarrowParentLabel != "" {
+		by = s.opt.NarrowParentLabel + " đã nêu hay " + by
+	}
+	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng " + by + ")"
 }
 
 // termFor trả thuật ngữ đã quyết chỉ số (cùng thứ tự với metricOf): thuật ngữ trong câu, không có thì thuật ngữ hiểu ngầm.

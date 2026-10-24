@@ -43,6 +43,8 @@ var testLexicon = Lexicon{
 		{Type: "tire_size", Pattern: `(?P<w>\d{3})\s*[/ ]\s*(?P<a>\d{2})\s*[rR]\s*(?P<r>\d{2})`, Format: "{w}/{a}R{r}"},
 		{Type: "issue_slip", Pattern: `(?i)PX-?(?P<n>\d{3,6})`, Format: "PX-{n}", Upper: true},
 	},
+	LabelNouns: []string{"khối", "lít", "l"},
+	CountNouns: []string{"máy", "xe", "chuyến", "thiết bị", "dự án"},
 }
 
 // now là "hôm nay" của mọi vector: 19/10/2026, giờ Việt Nam.

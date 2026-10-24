@@ -36,8 +36,6 @@ TestSmokeKhongDatKhiHeCongBiChan bỏ tên hãng khỏi test, thay 1:1 theo giao
 TestSmokeThroughFakeProvider bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestUnstablePathsAndCosts bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 # Lát gia cố PG (F-037, phần migration): danh sách migration ghim thêm 0010_tenant_khong_rong.sql; phép kiểm khác giữ nguyên.
-TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037
-TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037
 # Lát Q11 (quyền và phạm vi / ACL từ CÙNG một vai): chỉ mục tri thức bỏ nhánh tự đoán phạm vi theo thuộc tính entity_scope (không luật = tài
 # liệu có phạm vi đóng); test cần phạm vi theo thuộc tính tự đưa luật policy.Policy{}.InScope = đúng ngữ nghĩa nhánh cũ, kỳ vọng giữ nguyên.
 TestRetrievePhamViKhongLo chỉ mục được đưa luật phạm vi theo thuộc tính (trước dựa nhánh dự phòng đã bỏ); kỳ vọng giữ nguyên — Q11, F-031
@@ -50,3 +48,11 @@ TestNarrowGhiUngVienTruocVaSauKhiLoc ca gỡ theo dự án truyền Settings có
 TestExplainResolveKhongKeTrangThaiPhamViTungUngVien fixture Narrowing gỡ theo cha mang By "project" + ByLabel "dự án" thay hằng NarrowByProject đã gỡ; chữ kỳ vọng không đổi — F-005, lát L5
 # Lát dọn mã (F-015, phần còn sót của L4): cổng "không có đường gọi model thật" của cmd/eais so chuỗi cấm theo GIAO THỨC thay tên hãng.
 TestKhongCoDuongGoiModelThat chuỗi cấm theo giao thức (EAIS_MODEL, _API_KEY, /v1/messages, /chat/completions) thay tên hãng / miền của hãng; phép kiểm khác giữ nguyên — F-015, dọn mã
+# Lát L5b (F-030): danh từ nhãn / đếm của ngành ra lexicon pack; LabelContext / DashDateAt thành method của Engine; kỳ vọng của ba test giữ nguyên.
+TestLabelContext gọi e.LabelContext của Engine dựng từ testLexicon (có danh từ nhãn / đếm cũ) thay hàm mức gói đã gỡ; mọi ca và kỳ vọng không đổi — F-030, lát L5b
+TestDashDateAt gọi e.DashDateAt thay hàm mức gói đã gỡ; mọi ca và kỳ vọng không đổi — F-030, lát L5b
+TestQualifierVaDashDateKhongPanicTrenChuoiNgauNhien gọi e.LabelContext / e.DashDateAt thay hàm mức gói đã gỡ; phép kiểm không đổi — F-030, lát L5b
+testLexicon thêm label_nouns [khối, lít, l] và count_nouns [máy, xe, chuyến, thiết bị, dự án] — đúng danh sách cũ trong qualifier.go — F-030, lát L5b
+# Lát L5b (F-008): migration mới 0011_ghi_chu_suy_luan.sql; dòng dưới thay lý do của hai mục 0010 ở trên (mục sau cùng tên thắng).
+TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008
+TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008

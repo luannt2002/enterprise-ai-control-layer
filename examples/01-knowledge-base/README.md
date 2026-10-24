@@ -32,8 +32,8 @@ Test PostgreSQL bị bỏ qua khi thiếu `EAIS_PG_ADMIN_DSN` / `EAIS_PG_DSN`. �
 
 ## Giới hạn đã biết
 
-- Pack chỉ có tài liệu vẫn phải khai các mẫu câu của luồng số liệu (`no_data`, `needs_review`, `approx_note`,
-  `conflict_note`), và vẫn phải có `lexicon.yaml` / `metrics.yaml` (được phép rỗng). Lõi đòi chúng cho mọi pack
-  (`core/tenant/pack.go`, `requiredTemplates`).
+- Pack chỉ có tài liệu vẫn phải có `lexicon.yaml` / `metrics.yaml` (được phép rỗng): lõi đọc mọi tệp của pack và báo lỗi khi
+  thiếu tệp (`core/tenant/pack.go`). Mẫu câu của luồng số liệu (`no_data`, `needs_review`, `approx_note`, `conflict_note`)
+  chỉ bắt buộc khi pack khai ít nhất một chỉ số (`metricTemplates`), nên pack này không khai chúng.
 - Đường từ khoá (đường của app) trả cả đoạn chỉ chạm vài từ. Luật "chủ đề ngoài kho" chỉ chạy khi lượt hỏi mang chủ đề, tức
   là đi qua luồng hỏi. Gọi thẳng `Retrieve` thì không có luật này.

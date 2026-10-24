@@ -3,6 +3,7 @@ package normalization
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -20,6 +21,10 @@ type Lexicon struct {
 	Terms         []TermDef       `yaml:"terms"`
 	Abbreviations []AbbrDef       `yaml:"abbreviations"`
 	Codes         []CodeDef       `yaml:"codes"`
+	// LabelNouns: danh từ NHÃN của ngành đứng ngay trước con số ("khối 2", "L 5": con số là số hiệu, không phải lượng); CountNouns: danh từ
+	// ĐẾM đứng ngay sau ("2 máy", "3-4 chuyến"). Từ chức năng ("phiếu 912", "3 lần") nằm trong mã, xem Engine.LabelContext (F-030).
+	LabelNouns []string `yaml:"label_nouns"`
+	CountNouns []string `yaml:"count_nouns"`
 }
 
 // UnitDef định nghĩa một đơn vị chuẩn và các cách người dùng viết nó.
@@ -107,6 +112,8 @@ type Engine struct {
 	termDefs map[string]TermDef
 	abbrs    map[string]AbbrDef
 	codes    []compiledCode
+	// danh từ nhãn / đếm của pack (Lexicon.LabelNouns / CountNouns); unitLabels là các nhãn cũng là bí danh đơn vị ("khối", "lít", "L")
+	labels, unitLabels, counts []string
 }
 
 // Compile kiểm toàn bộ lexicon và trả lỗi gom đủ mọi chỗ sai — cấu hình hỏng thì không
@@ -171,6 +178,25 @@ func Compile(lex Lexicon) (*Engine, error) {
 
 	for _, a := range lex.ApproxMarkers {
 		e.approx = append(e.approx, NFC(a))
+	}
+
+	// danh từ rỗng khớp mọi con số: lexicon hỏng
+	for _, w := range lex.LabelNouns {
+		if strings.TrimSpace(w) == "" {
+			fail("label_nouns có danh từ rỗng")
+			continue
+		}
+		e.labels = append(e.labels, NFC(w))
+		if slices.ContainsFunc(e.units, func(u unitAlias) bool { return strings.EqualFold(u.alias, NFC(w)) }) {
+			e.unitLabels = append(e.unitLabels, NFC(w))
+		}
+	}
+	for _, w := range lex.CountNouns {
+		if strings.TrimSpace(w) == "" {
+			fail("count_nouns có danh từ rỗng")
+			continue
+		}
+		e.counts = append(e.counts, NFC(w))
 	}
 
 	for _, t := range lex.Terms {

@@ -197,6 +197,8 @@ func Compile(defs []Def, termKnown, metricKnown func(string) bool) (*Set, error)
 		seen[d.Name] = true
 		if !contracts.RouteKind(d.Route).Valid() {
 			fail("ý định %s: route %q không thuộc 12 route", d.Name, d.Route)
+		} else if !Installed(contracts.RouteKind(d.Route)) {
+			fail("ý định %s: route %s chưa cài trong luồng hỏi (đã cài: %s)", d.Name, d.Route, installedList())
 		}
 		if d.Capability == "" && !responseOnly(contracts.RouteKind(d.Route)) {
 			// Quên khai capability không được biến thành "ai cũng được": chặn lúc khởi động.
@@ -251,6 +253,22 @@ func topPriority(defs []Def) []string {
 		}
 	}
 	return out
+}
+
+// installed là các route luồng hỏi (core/pipeline) đã có đường thực thi. Route khác thuộc 12 route nhưng CHƯA cài: pack khai nó thì
+// mọi lượt khớp hỏng lúc chạy (F-007), nên chặn lúc nạp. Cài thêm route ở luồng hỏi thì thêm vào đây.
+var installed = []contracts.RouteKind{contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid, contracts.RouteRAG,
+	contracts.RouteClarification, contracts.RouteHumanEscalation, contracts.RouteReject}
+
+// Installed báo route đã có đường thực thi trong luồng hỏi.
+func Installed(r contracts.RouteKind) bool { return slices.Contains(installed, r) }
+
+func installedList() string {
+	names := make([]string, len(installed))
+	for i, r := range installed {
+		names[i] = string(r)
+	}
+	return strings.Join(names, ", ")
 }
 
 // responseOnly là route chỉ trả lời bằng mẫu câu, không đọc dữ liệu hay gọi model — chỉ

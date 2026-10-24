@@ -28,3 +28,7 @@ m core/pipeline/why.go '		if nar.By != contracts.NarrowByScope {' '		if nar.By =
 P=core/tenant/pack.go
 m $P 'UnmatchedTemplate: inf.UnmatchedTemplate, NarrowParent: inf.NarrowParent}' 'UnmatchedTemplate: inf.UnmatchedTemplate}' 'L5-14 runtime bỏ narrow_parent của pack (F-005)'
 m $P '		if p := inf.NarrowParent; (p.Type == "") != (p.Label == "") || p.Type == contracts.NarrowByScope {' '		if p := inf.NarrowParent; false {' 'L5-15 narrow_parent nửa vời vẫn nạp (F-005)'
+export PKGS="./intelligence/intent/ ./core/tenant/"
+m intelligence/intent/intent.go '		} else if !Installed(contracts.RouteKind(d.Route)) {' '		} else if false {' 'L5-16 ý định route chưa cài vẫn nạp (F-007)'
+m $P '		} else if !intent.Installed(r) {' '		} else if false {' 'L5-17 unmatched_route chưa cài vẫn nạp (F-007)'
+m intelligence/intent/intent.go 'contracts.RouteClarification, contracts.RouteHumanEscalation, contracts.RouteReject}' 'contracts.RouteClarification, contracts.RouteHumanEscalation, contracts.RouteReject, contracts.RouteWorkflow}' 'L5-18 coi WORKFLOW là đã cài (F-007)'

@@ -310,8 +310,10 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 			})
 			rt.Intents = set
 		}
-		if !contracts.RouteKind(inf.UnmatchedRoute).Valid() {
+		if r := contracts.RouteKind(inf.UnmatchedRoute); !r.Valid() {
 			problems = append(problems, fmt.Sprintf("intents.yaml: unmatched_route %q không thuộc 12 route", inf.UnmatchedRoute))
+		} else if !intent.Installed(r) {
+			problems = append(problems, fmt.Sprintf("intents.yaml: unmatched_route %s chưa cài trong luồng hỏi (F-007)", r))
 		}
 		if p := inf.NarrowParent; (p.Type == "") != (p.Label == "") || p.Type == contracts.NarrowByScope {
 			problems = append(problems, fmt.Sprintf("intents.yaml: narrow_parent cần cả type và label, type khác %q (gặp %+v)", contracts.NarrowByScope, p))

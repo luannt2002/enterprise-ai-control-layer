@@ -51,8 +51,8 @@ func (s *Store) Ping(ctx context.Context) error {
 	return nil
 }
 
-// Ready kiểm Store dùng được cho ứng dụng: kết nối còn sống, mọi bảng ứng dụng cần có mặt (migration đã áp) và vai ứng dụng có đủ
-// quyền trên chúng (readyNeeds). Không đặt tenant nên không đọc dòng nào — chỉ hỏi catalog. Lỗi mang nhãn hạ tầng postgres và nói
+// Ready kiểm Store dùng được cho ứng dụng: kết nối còn sống, mọi bảng ứng dụng cần có mặt (migration đã áp), vai ứng dụng có đủ
+// quyền trên chúng (readyNeeds) và cách ly tenant của chúng còn nguyên (RLS bật + FORCE, có chính sách tenant, không chính sách mở — F-010). Không đặt tenant nên không đọc dòng nào — chỉ hỏi catalog. Lỗi mang nhãn hạ tầng postgres và nói
 // rõ thiếu gì ("chạy eais migrate"), để server từ chối khởi động thay vì phục vụ rồi mất vết ở lượt đầu tiên.
 // Giới hạn đã biết (soát lại M4, M4R-06): has_table_privilege / has_column_privilege chỉ nhìn quyền THỪA KẾ của vai đang đăng nhập. Nếu quản trị
 // cấp cho eais_app một vai có quyền đọc reason_detail với INHERIT FALSE (hay đặt eais_app NOINHERIT) mà vẫn cho SET, Ready cho qua dù ứng
@@ -76,6 +76,32 @@ func (s *Store) Ready(ctx context.Context) error {
 			if !ok {
 				missing = append(missing, fmt.Sprintf("vai ứng dụng thiếu quyền %s trên %s", p, n.table))
 			}
+		}
+		// F-010: quyền đủ mà cách ly tenant bị gỡ (quản trị tắt RLS, bỏ FORCE, xoá chính sách, thêm chính sách không lọc tenant) thì
+		// Load xoá / truy vấn đọc chéo mọi tenant ⇒ chưa sẵn sàng. Chính sách PERMISSIVE cộng dồn bằng OR nên MỘT cái không lọc tenant
+		// là đủ mở toang; biểu thức NULL (lệnh không dùng USING / WITH CHECK) không mở gì.
+		var rls, force bool
+		var tenantPolicies int
+		var openPolicies []string
+		if err := s.pool.QueryRow(ctx, `SELECT c.relrowsecurity, c.relforcerowsecurity,
+			count(p.policyname) FILTER (WHERE p.permissive = 'PERMISSIVE' AND p.cmd = 'ALL' AND strpos(p.qual, 'eais.tenant_id') > 0),
+			coalesce(array_agg(p.policyname ORDER BY p.policyname) FILTER (WHERE p.permissive = 'PERMISSIVE' AND
+				(strpos(coalesce(p.qual, 'eais.tenant_id'), 'eais.tenant_id') = 0 OR strpos(coalesce(p.with_check, 'eais.tenant_id'), 'eais.tenant_id') = 0)), '{}')
+			FROM pg_class c LEFT JOIN pg_policies p ON p.schemaname = current_schema() AND p.tablename = c.relname
+			WHERE c.oid = $1::regclass GROUP BY c.relrowsecurity, c.relforcerowsecurity`, n.table).Scan(&rls, &force, &tenantPolicies, &openPolicies); err != nil {
+			return contracts.Label(contracts.Infra("postgres"), err)
+		}
+		if !rls {
+			missing = append(missing, fmt.Sprintf("RLS trên %s đang tắt (ALTER TABLE %s ENABLE ROW LEVEL SECURITY)", n.table, n.table))
+		}
+		if !force {
+			missing = append(missing, fmt.Sprintf("RLS trên %s không FORCE (ALTER TABLE %s FORCE ROW LEVEL SECURITY)", n.table, n.table))
+		}
+		if tenantPolicies == 0 {
+			missing = append(missing, fmt.Sprintf("%s không có chính sách tenant (FOR ALL, lọc theo eais.tenant_id)", n.table))
+		}
+		if len(openPolicies) > 0 {
+			missing = append(missing, fmt.Sprintf("%s có chính sách không lọc tenant: %s", n.table, strings.Join(openPolicies, ", ")))
 		}
 		for _, c := range append(slices.Clone(n.selectCols), n.noSelectCols...) {
 			var ok bool

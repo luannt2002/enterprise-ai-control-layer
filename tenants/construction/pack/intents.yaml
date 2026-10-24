@@ -56,11 +56,13 @@ purpose_markers: [để, nhằm]
 negation_markers: [không, chưa, hông, ko]
 
 # Từ nối mở vế ĐIỀU KIỆN ở đầu mệnh đề ("Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?"): giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong vế đó không kích hoạt (S4BS-05). Vế
-# điều kiện chạy tới từ đóng vế (condition_close_markers: "Nếu dự báo mưa thì …"); không có từ đóng vế thì tới hết mệnh đề, và chỉ khi sau nó còn mệnh đề khác — mệnh đề cuối câu mở bằng "nếu"
-# mà không có từ đóng vế thì vế kết quả nằm ngay trong nó ("Nếu mưa to dự báo EX-03 …"), cụm không phải giả thiết (S4CS-02).
+# điều kiện chạy tới từ đóng vế (condition_close_markers: "Nếu dự báo mưa thì …", "Hễ … là nhắc tôi"); không có từ đóng vế thì tới hết mệnh đề, và chỉ khi vế kết quả là
+# một mệnh đề khác có tên thực thể, con số, cụm hỏi hay cụm báo nghĩa ("Nếu dự báo mưa, EX-03 …") — câu một mệnh đề, hay chỉ thêm mệnh đề lịch sự ("…, cảm ơn em."), thì
+# vế kết quả nằm ngay trong mệnh đề điều kiện ("Nếu mưa to dự báo EX-03 …"), cụm không phải giả thiết (S4CS-02).
 condition_markers: [nếu, giả sử, hễ]
-# Từ đóng vế điều kiện (lớp đóng của ngữ pháp): cụm báo nghĩa đứng SAU nó là điều đang hỏi / nhờ làm ("Nếu mưa to thì dự báo …", "Hễ EX-03 dùng hết dầu thì nhắc tôi") — S4CS-02.
-condition_close_markers: [thì]
+# Từ đóng vế điều kiện (lớp đóng của ngữ pháp): cụm báo nghĩa đứng SAU nó là điều đang hỏi / nhờ làm ("Nếu mưa to thì dự báo …", "Hễ EX-03 dùng hết dầu là nhắc tôi") — S4CS-02.
+# Cũng là ranh giới vế của mệnh đề có cụm ghi / đánh giá: cụm hỏi ở vế sau ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?") là câu hỏi của vế đó.
+condition_close_markers: [thì, là]
 
 # Động từ của NGUỒN (S4BS-06): "<tên nguồn> báo" ("cảm biến báo", "hoá đơn báo", "phiếu kho báo", "ERP báo") là chữ của nguồn, không phải chỉ số đội báo. Tên nguồn lấy từ metrics.yaml (nhãn + bí danh) cho MỌI
 # chỉ số; lúc nạp ý định của chỉ số nhận thêm cụm "<tên nguồn> <động từ>" (cụm dài thắng "báo" trong luật khớp dài nhất). Thêm nguồn mới ở metrics.yaml là đủ — không thêm từ khoá theo từng nguồn.

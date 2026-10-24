@@ -45,7 +45,8 @@ func TestS4CS02LuatViTriPhuDinhDieuKien(t *testing.T) {
 	askBack(t, "EX-03 hôm nay không nghỉ, dùng 3782 L dầu", notWrite)
 	// X4: từ nối điều kiện GIỮA mệnh đề không biến cả mệnh đề thành giả thiết (cũng là câu (3) của người soát)
 	askBack(t, "Cảnh báo giúp em nếu EX-03 được cấp dầu.", notWarning)
-	askBack(t, "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu, em cảm ơn.", notWarning) // còn mệnh đề khác: "nếu" giữa mệnh đề vẫn không mở vế điều kiện
+	// còn mệnh đề khác có nội dung số liệu: "nếu" giữa mệnh đề vẫn không mở vế điều kiện (vòng 3: mệnh đề lịch sự "em cảm ơn" không còn là vế kết quả nên ghim đổi câu)
+	askBack(t, "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu, hôm nay EX-03 dùng bao nhiêu dầu?", notWarning)
 	// từ phủ định không đứng LIỀN trước cụm thì thuộc vị ngữ khác
 	askBack(t, "Không biết EX-03 hôm nay dự báo dùng bao nhiêu dầu?", notForecast)
 	// từ phủ định / dấu bỏ qua đứng sau cụm mà phần sau có chữ của từ khoá chỉ số, cụm hỏi hay con số
@@ -114,4 +115,37 @@ func TestS4CS02Vong2ChuNguTruocCumGhi(t *testing.T) {
 		answersIntent(t, q, "fuel_issued", "3.850")
 	}
 	hoiLaiKhongNhan(t, "Đoàn kiểm tra kết luận EX-03 hôm nay dùng 3782 L dầu thì kho xuất bao nhiêu?")
+}
+
+// S4CS-02 vòng 3 (soát lại vòng 2). F1: lời nhờ đứng trước cụm ghi / đánh giá ("Nhờ anh", "Anh ơi", "Em muốn") không phải lời của nguồn — mệnh đề có cả giá trị
+// đã nêu lẫn cụm hỏi lượng mà trước cụm không có tên nguồn của pack thì là lệnh, hỏi lại kèm nhãn (hướng an toàn); cụm hỏi ở vế riêng sau "thì" vẫn là câu hỏi khi có
+// chủ ngữ trước cụm ("Đồng hồ ghi nhận … thì kho xuất bao nhiêu?"). F2: mệnh đề lịch sự ("cảm ơn em", "được không?") không phải vế kết quả của mệnh đề điều kiện.
+func TestS4CS02Vong3LoiNhoVaMenhDeLichSu(t *testing.T) {
+	for q, note := range map[string]string{
+		"Nhờ anh nhận xét định mức tiêu thụ 3782 L dầu hôm qua của EX-03.":  notEval,
+		"Giúp em nhận xét định mức tiêu thụ 3782 L dầu hôm qua của EX-03.":  notEval,
+		"Anh ơi ghi nhận giúp em EX-03 hôm qua dùng 3782 L dầu cho ca mấy.": notWrite,
+		"Em muốn ghi nhận EX-03 hôm qua dùng 3782 L dầu cho ca mấy.":        notWrite,
+		"Hễ EX-03 dùng hết dầu là nhắc tôi, cảm ơn em.":                     notWarning,
+		"Nếu EX-03 dùng quá 4000 L dầu là báo động giúp em, được không?":    notWarning,
+		// không có từ đóng vế: mệnh đề lịch sự sau đó không phải vế kết quả, vế kết quả nằm ngay trong mệnh đề điều kiện
+		"Hễ EX-03 dùng hết dầu nhắc tôi nhé, cảm ơn em.":                 notWarning,
+		"Ghi nhận EX-03 hôm nay dùng 3782 L dầu thì kho xuất bao nhiêu?": notWrite, // lệnh đứng đầu mệnh đề: câu hỏi ở vế sau "thì" không xoá lệnh
+		// "là" đóng vế điều kiện (condition_close_markers): vế kết quả "nhắc tôi" / "báo động" nằm trong mệnh đề điều kiện dù sau đó còn mệnh đề khác
+		"Hễ EX-03 dùng hết dầu là nhắc tôi, EX-03 hôm nay dùng bao nhiêu dầu?": notWarning,
+		"Nếu EX-03 dùng quá 4000 L dầu là báo động giúp em, đúng không?":       notWarning,
+		// giá trị đã nêu ở sau "là" vẫn là giá trị của lệnh (cả mệnh đề)
+		"Nhận xét định mức tiêu thụ của EX-03 hôm nay là 3782 L dầu": notEval,
+	} {
+		askBack(t, q, note)
+	}
+	// ghim dương: "thì" làm trợ từ chủ đề không gây hỏi oan; tên nguồn của pack trước cụm là lời của nguồn
+	hoiLaiKhongNhan(t, "Máy 03 thì hôm qua dùng bao nhiêu dầu?") // bí danh mơ hồ của seed: hỏi lại máy, không nhãn nghĩa chưa hỗ trợ
+	answersIntent(t, "Tiền dầu thì để sau, EX-03 hôm qua dùng bao nhiêu dầu?", "fuel_consumed", "Dầu tiêu thụ đo được")
+	answersIntent(t, "Đồng hồ ghi nhận 3782 L dầu cho EX-03 hôm qua thì kho xuất bao nhiêu?", "fuel_issued", "Dầu kho xuất")
+	answersIntent(t, "Cảm biến ghi nhận 3782 L dầu cho EX-03 hôm nay bao nhiêu?", "fuel_consumed", "3.782")
+	// mệnh đề chỉ mang cụm báo nghĩa vẫn là vế kết quả: "dự báo" của vế điều kiện là giả thiết, chỉ nói nghĩa cảnh báo
+	if r := ask(t, newAsk(t), user("director", ""), "Nếu EX-03 có dự báo mưa, nhắc tôi nhé.").Response; !strings.Contains(r.Answer, notWarning) || strings.Contains(r.Answer, notForecast) {
+		t.Errorf("vế điều kiện có cụm dự báo + vế kết quả nhắc tôi: muốn chỉ nhãn cảnh báo, được %q", r.Answer)
+	}
 }

@@ -5,3 +5,4 @@
 github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestCaseStudy # bộ đo case study: cần EAIS_RAG_CASE trỏ tệp cấu hình riêng, không có trong repo
 github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestDongCoThat # đo với động cơ thật: cần EAIS_RAG_DONG_CO=1 + nhà cung cấp, gửi dữ liệu ra ngoài
 github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestChamDoan # đo bộ chấm đoạn với model thật: cần EAIS_DECIDE_*, gửi dữ liệu ra ngoài
+github.com/luannt2002/enterprise-ai-control-layer/tenants/construction TestS4CS02NoN8LaDongVeDieuKien # nợ S4CS-02-N8 (LỌT, ADR-0010): kỳ vọng đúng giữ nguyên, Skip tới khi "là" đóng vế điều kiện được làm lại mà không phá hệ từ của vế hỏi — xoá mục khi bỏ Skip

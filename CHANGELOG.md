@@ -6,6 +6,22 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 24/10/2026 — vNext lát L3: định nghĩa sản phẩm, giấy phép MIT, sự thật tài liệu
+
+Chủ dự án GO báo cáo audit vNext (phương án B′; `docs/CHO-QUYET-DINH.md` mục 0, dòng "vNext"). Lát này chỉ đổi tài liệu, `LICENSE` và
+danh sách cho phép của cổng danh tính; không đổi hành vi mã.
+
+- **Giấy phép:** `LICENSE` MIT (D-OP-3).
+- **ADR-0013:** sản phẩm là "EAIS — Enterprise AI Integration Reference Architecture" (lõi kiểm soát + module tuỳ chọn QUERY, RAG + ví dụ /
+  case study; Fuel là case study). Viết tắt EAIS và mọi định danh chạy, kể cả đường dẫn module, không đổi. Thay phần định nghĩa của D-RM-01,
+  REQ-MND-016 (ghi SUPERSEDED-BY, câu cũ giữ), ràng buộc "chỉ QUERY tới G7" của ADR-0001. Dòng thời gian tên: `docs/history/NAME-EVOLUTION.md`.
+- **ADR-0015** (ranh giới module, luật "≥ 2 miền mới vào lõi" đo bằng `git diff --stat`, cây đích chưa dời) và **ADR-0016** (lõi cấp bộ lọc
+  quyền đọc tài liệu, RAG chỉ áp).
+- **Sự thật tài liệu:** nhãn STALE cho `docs/01-architecture.md` (F-033); ghi chú trạng thái cuối ADR-0001 / 0006 / 0010 / 0012 (F-038, D14);
+  số RAG trong README gắn nhãn đường đo (F-020); câu CI thành "định nghĩa, chưa chạy trên GitHub" (D4); dữ liệu "giả lập hoặc văn bản công
+  khai" (D13); ghi chú thứ tự ở `docs/ROADMAP-RAG.md` (D8); nhãn mốc ở `docs/ROADMAP-DAY-DU.md` (D7, D9); Sports gắn DOCS_ONLY (D5).
+- Báo cáo audit chép vào `docs/bao-cao/2026-10-24-vnext-audit/` (đường dẫn máy, tên tệp nội bộ, tên hãng thay bằng mô tả trung tính).
+
 ### 23/10/2026 — D-OP-9 (a') nhóm nghìn; H6 đóng băng; K1, K2, R2-03, flock đã gộp
 
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA.**

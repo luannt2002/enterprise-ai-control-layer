@@ -237,7 +237,7 @@ m $I '					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)'
 
 # ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'
-m $I '			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) ||' '			if false ||' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
+m $I 'marks := spansOf(in.Raw[c[0]:c[1]], s.opt.DismissMarkers)' 'marks := spansOf(in.Raw[c[0]:c[1]], nil)' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
 m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
 
 # ---- S4AS-06: kiểm nạp pack của nghĩa chưa hỗ trợ và khử trùng ứng viên
@@ -299,9 +299,9 @@ m core/tenant/pack.go '						out = append(out, rt.Normalizer.MultiplierAliases("
 # ---- S4BS-05 (vòng 3): cụm báo nghĩa chỉ kích hoạt ở mệnh đề hỏi; cụm quá chung cần chính mệnh đề hỏi một chỉ số
 m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && metricAsk {' 'S174 cụm quá chung ("sẽ") kích hoạt ở mệnh đề không phải câu hỏi ("Anh sẽ duyệt, …" thành câu dự báo)'
 m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && (metricAsk || true) && s.asking(ct) {' 'S175 cụm quá chung kích hoạt khi câu không hỏi chỉ số nào ("EX-03 sẽ về công trường lúc mấy giờ?" thành câu dự báo)'
-m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.conditional(ct) {' 'S176 mệnh đề phủ định ("Không tính tiền, …") vẫn kích hoạt cụm tiền'
-m $I ' || s.negated(ct) || s.conditional(ct) {' ' || s.negated(ct) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
-m $I 'func(sp [2]int) bool { return sp[1] < end })' 'func(sp [2]int) bool { return sp[1] <= end })' 'S178 từ phủ định cuối mệnh đề (đuôi hỏi "… có cao không?") bị coi là phủ định'
+m $I 'for _, sp := range spansOf(masked, s.opt.NegationMarkers) {' 'for _, sp := range spansOf(masked, nil) {' 'S176 mệnh đề phủ định ("Không tính tiền, …") vẫn kích hoạt cụm tiền'
+m $I 'if s.denied(in, res, rawBG, c, at) || s.conditional(ct) {' 'if s.denied(in, res, rawBG, c, at) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
+m $I '		if sp[1] < end {' '		if sp[1] <= end {' 'S178 từ phủ định cuối mệnh đề (đuôi hỏi "… có cao không?") bị coi là phủ định'
 m $I '	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))' '	masked := clause' 'S179 "không" của cụm xác nhận ("đúng không ạ") bị coi là phủ định'
 m tenants/construction/pack/intents.yaml 'cues: [dự báo, dự đoán, dự phóng, dự trù], weak_cues: [dự kiến, dự tính, ước tính, sẽ]}' 'cues: [dự báo, dự đoán, dự phóng, dự trù, dự kiến, dự tính, ước tính, sẽ]}' 'S180 pack để "sẽ", "dự kiến" … làm cụm thường (mọi câu có "sẽ" thành câu dự báo)'
 m tenants/construction/pack/intents.yaml 'bỏ qua, lo sau, tính sau, làm sau, xong]' 'bỏ qua]' 'S181 pack không có cụm hoãn / đã xong ("em lo sau", "em tính sau", "xong")'
@@ -316,6 +316,19 @@ m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: [
 # ---- Hồi quy vòng 3 (bộ 325 câu của vòng 2): từ phủ định + từ trung tính cuối câu vẫn là đuôi hỏi
 m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S187 đuôi hỏi "… có đốt 3782 L dầu không ạ" bị coi là lệnh ghi (từ trung tính cuối câu chặn đuôi hỏi)'
 m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
+
+# ---- S4CS-02 (soát 23/10, hồi quy S1 của S4BS-05) + S4CS-07 (X3, X4 của người soát từng sống sót): từ phủ định / dấu bỏ qua chỉ phủ nhận cụm báo nghĩa khi đứng trước cụm
+# không có nội dung số liệu chen giữa, hay đứng sau cụm mà phần còn lại không có nội dung số liệu; mệnh đề điều kiện mang cụm hỏi không phải giả thiết thuần.
+m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return len(sp) > 0 && sp[len(sp)-1][1] <= end' 'X3 từ phủ định ở bất kỳ đâu là đuôi hỏi ("EX-03 hôm nay không nghỉ, dùng 3782 L dầu" thành câu hỏi, trả số)'
+m $I 'func(sp [2]int) bool { return sp[0] == trimmed })' 'func(sp [2]int) bool { return sp[0] >= trimmed })' 'X4 từ nối điều kiện ở mọi vị trí ("Cảnh báo giúp em nếu EX-03 … cấp dầu" thành giả thiết, trả số)'
+m $I 'return !s.asking(clause) && slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'S189 mệnh đề điều kiện mang cụm hỏi vẫn là giả thiết ("Nếu mưa to thì dự báo EX-03 dùng bao nhiêu dầu?" trả số)'
+m $I 'return !s.dataIn(in, res, rawBG, c[0]+at, c[1])' 'return true' 'S190 từ phủ định / dấu bỏ qua đứng sau cụm luôn phủ nhận cụm ("Dự báo EX-03 không dùng hết dầu …" trả số)'
+m $I 'return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)' 'return true' 'S191 từ phủ định đứng trước cụm phủ nhận cụm dù tên thực thể chen giữa ("Không biết EX-03 hôm nay dự báo …" trả số)'
+m $I 'return slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return r[0] < end && start < r[1] }) ||' 'return false ||' 'S192 tên thực thể không là nội dung số liệu'
+m $I 'hasFigure(in, res, start, end) || s.asking(text)' 's.asking(text)' 'S193 con số không là nội dung số liệu ("EX-03 hôm nay dự báo không quá 4000 L dầu" thành lệnh ghi)'
+m $I '|| s.asking(text) || s.metricWord(text)' '|| s.metricWord(text)' 'S194 cụm hỏi không là nội dung số liệu ("EX-03 dự báo không cần chính xác bao nhiêu dầu …" trả số)'
+m $I '|| s.asking(text) || s.metricWord(text)' '|| s.asking(text)' 'S195 chữ của từ khoá chỉ số không là nội dung số liệu ("EX-03 hôm nay dự báo không dùng hết dầu" trả số)'
+m $I 'text := s.withoutCues(rawBG[start:end])' 'text := rawBG[start:end]' 'S196 chữ của chính cụm báo nghĩa là nội dung số liệu ("báo" của "Dự báo khỏi cần, …" làm cụm không bị bỏ qua)'
 
 # Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
 # mang nghĩa khác không phải từ khoá (S4R-03).

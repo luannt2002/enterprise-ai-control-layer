@@ -29,7 +29,7 @@ Cả hai đều **giả lập hoàn toàn**: công ty, người, máy móc, gi�
 | Mã | Slug | Tên | Domain | Vai trò kiến trúc |
 |---|---|---|---|---|
 | `CON` | `abc-infra` | ABC Infrastructure JSC | xây dựng cầu đường, hạ tầng | Reference Tenant #01: **khám phá** kiến trúc (dữ liệu người nhập bẩn → tài liệu → nguồn sự thật → workflow → số liệu chính xác) |
-| `SPT` | `xyz-sports` | XYZ Sports Data JSC | dữ liệu thể thao nhiều nguồn | Reference Tenant #02: **tấn công** kiến trúc (realtime → thứ tự sự kiện → nhận dạng thực thể → nhiều provider → sửa muộn → cache → độ trễ) |
+| `SPT` | `xyz-sports` | XYZ Sports Data JSC | dữ liệu thể thao nhiều nguồn | **DOCS_ONLY** (24/10/2026: chỉ có tài liệu + `tenants/sports/evals/cases.yaml`, chưa có pack chạy được; ADR-0015 mục 5) · Reference Tenant #02: **tấn công** kiến trúc (realtime → thứ tự sự kiện → nhận dạng thực thể → nhiều provider → sửa muộn → cache → độ trễ) |
 
 Mã `PLT` dùng cho thứ thuộc nền tảng/xuyên tenant.
 

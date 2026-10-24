@@ -94,6 +94,7 @@ var legacyAllowed = map[string]allowance{
 	"docs/g7/holdout/ket-qua-h1/phan-tich.md":      {3, "HISTORICAL_EVIDENCE: phân tích lần chạy H1 duy nhất"},
 	"docs/g7/holdout/kho-soat.md":                  {3, "HISTORICAL_EVIDENCE: bản soát kho ca"},
 	"docs/g7/holdout/loai-truoc-dong-bang.txt":     {9, "IMMUTABLE_HASHED_ARTIFACT: danh sách loại trước đóng băng (băm trong manifest)"},
+	"docs/history/NAME-EVOLUTION.md":               {6, "HISTORICAL_EVIDENCE: dòng thời gian tên (ADR-0013), nêu tên cũ để giải thích lịch sử git"},
 	"docs/ops/README.md":                           {9, "COMPATIBILITY_ALIAS: ghi bí danh EACL_*, cách gỡ container tên cũ; tên tệp báo cáo lịch sử (EXTERNAL_REFERENCE)"},
 	"docs/study/CLAUDE-EACL-DRAFT.md":              {15, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10, câu gắn danh tính lúc đó"},
 	"docs/study/README.md":                         {7, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10"},

@@ -53,3 +53,6 @@ TestLabelContext gọi e.LabelContext của Engine dựng từ testLexicon (có 
 TestDashDateAt gọi e.DashDateAt thay hàm mức gói đã gỡ; mọi ca và kỳ vọng không đổi — F-030, lát L5b
 TestQualifierVaDashDateKhongPanicTrenChuoiNgauNhien gọi e.LabelContext / e.DashDateAt thay hàm mức gói đã gỡ; phép kiểm không đổi — F-030, lát L5b
 testLexicon thêm label_nouns [khối, lít, l] và count_nouns [máy, xe, chuyến, thiết bị, dự án] — đúng danh sách cũ trong qualifier.go — F-030, lát L5b
+# Lát L5b (F-008): migration mới 0011_ghi_chu_suy_luan.sql; dòng dưới thay lý do của hai mục 0010 ở trên (mục sau cùng tên thắng).
+TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008
+TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008

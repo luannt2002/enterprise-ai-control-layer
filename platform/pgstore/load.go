@@ -196,18 +196,21 @@ func loadFacts(ctx context.Context, tx pgx.Tx, fs []sourceoftruth.Fact, offset i
 	approx := make([]bool, n)
 	stype, sref, raw, by := make([]string, n), make([]string, n), make([]string, n), make([]string, n)
 	observed := make([]pgtype.Timestamptz, n)
+	notes := make([]pgtype.Text, n) // NULL = số đọc thẳng từ nguồn (migration 0011)
 	ords := make([]int64, n)
 	for i, f := range fs {
 		ids[i], metrics[i], ents[i], days[i] = f.ID, f.Metric, f.EntityID, f.OccurredOn.Format(time.DateOnly)
 		values[i], units[i], approx[i] = f.Value.Number, f.Value.Unit, f.Value.Approx
 		stype[i], sref[i], raw[i], by[i] = f.Source.SourceType, f.Source.SourceRef, f.Source.Raw, f.Source.ReportedBy
 		observed[i] = pgtype.Timestamptz{Time: f.Source.ObservedAt, Valid: !f.Source.ObservedAt.IsZero()}
+		notes[i] = pgtype.Text{String: f.Source.Note, Valid: f.Source.Note != ""}
 		ords[i] = int64(offset + i)
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO facts (tenant_id, id, metric, entity_id, occurred_on, value, unit, approx,
-			source_type, source_ref, raw, observed_at, reported_by, ord)
+			source_type, source_ref, raw, observed_at, reported_by, note, ord)
 		SELECT current_setting('eais.tenant_id'), * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[]::date[],
-			$5::text[]::numeric[], $6::text[], $7::bool[], $8::text[], $9::text[], $10::text[], $11::timestamptz[], $12::text[], $13::bigint[])`,
-		ids, metrics, ents, days, values, units, approx, stype, sref, raw, observed, by, ords)
+			$5::text[]::numeric[], $6::text[], $7::bool[], $8::text[], $9::text[], $10::text[], $11::timestamptz[], $12::text[], $13::text[],
+			$14::bigint[])`,
+		ids, metrics, ents, days, values, units, approx, stype, sref, raw, observed, by, notes, ords)
 	return err
 }

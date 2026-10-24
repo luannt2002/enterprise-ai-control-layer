@@ -9,7 +9,10 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -84,6 +87,100 @@ func tenantLiterals(t *testing.T, path string) []string {
 			if strings.Contains(strings.ToLower(s), m) {
 				out = append(out, fset.Position(lit.Pos()).String()+" "+lit.Value)
 			}
+		}
+		return true
+	})
+	return out
+}
+
+// domainWord: từ vựng NGÀNH của mẫu tham chiếu (công trình / nhiên liệu; báo cáo audit vNext §04.3, F-030). Thuật ngữ là của tenant
+// (pack, lexicon.yaml), không phải của lõi. So theo TỪ (ranh giới chữ Unicode, không phân biệt hoa thường), không theo chuỗi con: "xe"
+// không bắt "xem". shortcut: chỉ khớp chữ dựng sẵn NFC (291/291 tệp .go là NFC, đo 24/10); literal viết NFD sẽ lọt — thêm chuẩn hoá khi gặp.
+var domainWord = regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{M}\p{N}])(projects?|equipment|fuel|nhiên liệu|dầu|lít|khối|thiết bị|dự án|chuyến|xe|prj-\d+|ex-\d+)(?:$|[^\p{L}\p{M}\p{N}])`)
+
+// domainWholeLiteral: từ miền chỉ tính khi đứng một mình thành CẢ literal (danh sách danh từ đếm {"lần", "máy", "xe"}). Trong câu chữ
+// "máy" thường là nghĩa chung: "máy chủ", "máy dev", "máy không tự nhận" là 5 trên 6 lần trúng ở literal mã dùng chung (đo 24/10).
+var domainWholeLiteral = []string{"máy"}
+
+// domainAllowFile: nợ từ miền hiện có, mỗi dòng MỘT lần xuất hiện: "<tệp>\t<literal Go đã quote>\t<F-0xx>\t<lý do>".
+const domainAllowFile = "testdata/tu-mien-cho-phep.tsv"
+
+// Cổng TỪ MIỀN (F-011): literal chuỗi (không tính comment) của mã dùng chung không mang từ vựng ngành. Nợ hiện có khớp CHÍNH XÁC theo
+// (tệp, literal) và đếm từng lần: literal mới hay literal nợ bị sửa → đỏ; mục không còn trong mã → đỏ, để danh sách không mục ruỗng.
+// Lát nào gỡ literal thì xoá đúng mục đó trong cùng commit (ADR-0014).
+func TestSharedCodeHasNoDomainLiterals(t *testing.T) {
+	allowed := readDomainAllow(t, domainAllowFile)
+	for _, path := range sharedGoFiles(t) {
+		for _, h := range domainLiterals(t, path) {
+			if k := path + "\t" + h[1]; allowed[k] > 0 {
+				allowed[k]--
+				continue
+			}
+			t.Errorf("mã dùng chung mang từ miền: %s %s — gỡ, hoặc ghi nợ vào %s dòng:\n%s\t%s\tF-0xx\t<lý do>", h[0], h[1], domainAllowFile, path, h[1])
+		}
+	}
+	var thua []string
+	for k, n := range allowed {
+		for ; n > 0; n-- {
+			thua = append(thua, k)
+		}
+	}
+	sort.Strings(thua)
+	for _, k := range thua {
+		t.Errorf("%s: mục thừa, không còn trong mã — xoá mục: %s", domainAllowFile, k)
+	}
+}
+
+// readDomainAllow đọc domainAllowFile thành số lần cho phép theo khoá "<tệp>\t<literal>". Dòng sai khuôn làm cổng dừng: mục không lý do,
+// không mã phát hiện hay literal không ở dạng strconv.Quote (không khớp chính xác được) đều không phải nợ có ghi.
+func readDomainAllow(t *testing.T, file string) map[string]int {
+	t.Helper()
+	b, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fcode := regexp.MustCompile(`^F-\d{3}$`)
+	out := map[string]int{}
+	for i, line := range strings.Split(string(b), "\n") {
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		f := strings.Split(line, "\t")
+		if len(f) != 4 || !fcode.MatchString(f[2]) || strings.TrimSpace(f[3]) == "" {
+			t.Fatalf("%s:%d: cần '<tệp>\\t<literal>\\t<F-0xx>\\t<lý do>', gặp %q", file, i+1, line)
+		}
+		if v, err := strconv.Unquote(f[1]); err != nil || strconv.Quote(v) != f[1] {
+			t.Fatalf("%s:%d: literal %s không ở dạng strconv.Quote", file, i+1, f[1])
+		}
+		out[f[0]+"\t"+f[1]]++
+	}
+	return out
+}
+
+// domainLiterals trả [vị trí, strconv.Quote(giá trị)] của các literal chuỗi (không tính comment) mang từ miền.
+func domainLiterals(t *testing.T, path string) [][2]string {
+	t.Helper()
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("đọc %s: %v", path, err)
+	}
+	var out [][2]string
+	ast.Inspect(f, func(n ast.Node) bool {
+		lit, ok := n.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return true
+		}
+		s, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			return true
+		}
+		hit := domainWord.MatchString(s)
+		for _, w := range domainWholeLiteral {
+			hit = hit || strings.EqualFold(strings.TrimSpace(s), w)
+		}
+		if hit {
+			out = append(out, [2]string{fset.Position(lit.Pos()).String(), strconv.Quote(s)})
 		}
 		return true
 	})

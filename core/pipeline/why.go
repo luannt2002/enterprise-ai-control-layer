@@ -686,13 +686,7 @@ func (a *Ask) noteDelivered(why *traces.Why, answer string, l *draftLedger) {
 // nghiệp vụ (marker rỗng = nhánh không kích hoạt). Chỉ để GIẢI THÍCH: đọc lại cùng dữ liệu với asksFactQuantity (hai hàm giữ hai bản vì nhánh RAG đang
 // sửa asksFactQuantity) — TestQuantityTriggerKhopAsksFactQuantity khoá hai hàm cùng kết luận trên mọi câu đã công bố.
 func (a *Ask) quantityTrigger(in contracts.NormalizedInput, now time.Time) (marker string, dims []string) {
-	for _, m := range a.RT.QuantityMarkers {
-		if normalization.ContainsPhrase(in.Raw, m) {
-			marker = m
-			break
-		}
-	}
-	if marker == "" {
+	if marker = a.quantityMarker(in.Raw); marker == "" {
 		return "", nil
 	}
 	fact := a.factDimensions()

@@ -988,6 +988,19 @@ func hasFigure(in contracts.NormalizedInput, res contracts.Resolution, start, en
 }
 
 // maskRanges thay mọi byte trong các khoảng bằng dấu cách (giữ nguyên độ dài và vị trí) để phép đếm từ khoá bỏ qua chúng.
+// nameRanges là các cụm TÊN thực thể của câu (đã giải hay mơ hồ): chữ trong tên không phải chữ hỏi — câu gõ không dấu "ghi nhan may xuc 03
+// …" có "may" (= máy) khớp chữ hỏi lượng "mấy" theo luật dấu (đợt gộp 24/10, soát độc lập).
+func nameRanges(res contracts.Resolution) [][2]int {
+	var out [][2]int
+	for _, e := range res.Entities {
+		out = append(out, [2]int{e.Start, e.End})
+	}
+	for _, m := range res.Ambiguous {
+		out = append(out, [2]int{m.Start, m.End})
+	}
+	return out
+}
+
 func maskRanges(text string, ranges [][2]int) string {
 	if len(ranges) == 0 {
 		return text
@@ -1104,6 +1117,12 @@ func (s *Set) isNeutral(w string) bool {
 // inRange báo số nằm trong miền một lần đo của chỉ số (không khai ValueInRange thì không chặn).
 func (s *Set) inRange(metric string, v contracts.Value) bool {
 	return s.opt.ValueInRange == nil || s.opt.ValueInRange(metric, v)
+}
+
+// UnsupportedCue báo câu có cụm báo nghĩa chưa hỗ trợ của pack (cảnh báo, dự báo, báo giá, lệnh ghi…) — kể cả khi câu không nêu thực thể nên
+// S4 không trả Unsupported: dự phòng S4 không được trả lời những câu này bằng tài liệu.
+func (s *Set) UnsupportedCue(text string) bool {
+	return slices.ContainsFunc(s.cuePhrases(), func(c string) bool { return normalization.ContainsPhrase(text, c) })
 }
 
 // cuePhrases trả mọi cụm báo nghĩa chưa hỗ trợ của pack.
@@ -1229,7 +1248,7 @@ func (s *Set) statedValue(in contracts.NormalizedInput, res contracts.Resolution
 			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
 	}
 	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })
-	return figure && !s.questioned(in.Raw)
+	return figure && !s.questioned(maskRanges(in.Raw, nameRanges(res)))
 }
 
 // fitsAnyMetric báo một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo).

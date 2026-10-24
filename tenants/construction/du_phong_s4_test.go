@@ -21,7 +21,9 @@ func TestDuPhongS4DoChiMuc(t *testing.T) {
 	a, _ := newAskPhienBan(t, sopBan(2, rag.StatusApproved, "2026-03-01", "", "48 giờ"))
 	tat := map[string]contracts.Outcome{}
 	cau := []string{"Kế toán đối chiếu hoá đơn lúc nào?", "Tổ trưởng kho phải đối soát khi nào?",
-		"Thời tiết mai thế nào?", "lech dau thi to truong kho doi soat trong may tieng", "Tổ trưởng kho cần đối soát trong mấy tiếng?",
+		// "mấy tiếng" hỏi THỜI HẠN (đơn vị chiều thời lượng của lexicon), không phải lượng nghiệp vụ — gộp 24/10
+		"Tổ trưởng kho cần đối soát trong mấy tiếng?",
+		"Thời tiết mai thế nào?", "lech dau thi to truong kho doi soat trong may tieng",
 		"Hôm qua cấp bao nhiêu dầu?", "EX-03 hôm qua hết bao nhiêu dầu?",
 		"xuất kho bao nhiêu lít?", "tiêu thụ đo được hôm qua bao nhiêu lít?", "Hôm qua lượng xuất kho lệch bao nhiêu?", "xuat kho bao nhieu lit?",
 		"Hôm qua kho xuất mấy lít dầu?", "Tổng dầu đã cấp hôm qua là mấy?", "dau kho xuat hom qua het may lit?", "Lượng dầu tiêu thụ đo được tuần trước?",
@@ -30,11 +32,11 @@ func TestDuPhongS4DoChiMuc(t *testing.T) {
 	for _, q := range cau {
 		tat[q] = ask(t, a, user("director", ""), q).Response.Outcome
 	}
-	if tat[cau[0]] != contracts.OutcomeClarificationRequired || tat[cau[1]] != contracts.OutcomeOutOfScope {
+	if tat[cau[0]] != contracts.OutcomeClarificationRequired || tat[cau[1]] != contracts.OutcomeOutOfScope || tat[cau[2]] != contracts.OutcomeOutOfScope {
 		t.Fatalf("mốc B0 đổi (test giả định luật hiện tại): %v", tat)
 	}
 	a.Deps.IntentFallback = pipeline.KnowledgeProbe{Knowledge: a.Deps.Knowledge, Name: "sop_question"}
-	for _, q := range cau[:2] {
+	for _, q := range cau[:3] {
 		o := ask(t, a, user("director", ""), q)
 		if r := o.Response; r.Outcome != contracts.OutcomeResolved || r.Route != contracts.RouteRAG || len(r.Citations) == 0 {
 			t.Errorf("%q: muốn trả lời từ tài liệu, được %s %s %q", q, r.Route, r.Outcome, r.Answer)
@@ -43,7 +45,7 @@ func TestDuPhongS4DoChiMuc(t *testing.T) {
 			t.Errorf("%q: vết S4 / S5 phải ghi dự phòng: %+v · %q", q, o.Decision.Why.Intent, o.Plan.Reason)
 		}
 	}
-	for _, q := range cau[2:] {
+	for _, q := range cau[3:] {
 		if got := ask(t, a, user("director", ""), q).Response.Outcome; got != tat[q] {
 			t.Errorf("%q: dự phòng không được đổi kết quả (ngoài kho / câu số liệu): %s → %s", q, tat[q], got)
 		}

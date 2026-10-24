@@ -265,6 +265,16 @@ func (e *Engine) Unit(code string) (UnitDef, bool) {
 	return u, ok
 }
 
+// Units trả mọi đơn vị của lexicon, xếp theo mã (thứ tự ổn định).
+func (e *Engine) Units() []UnitDef {
+	out := make([]UnitDef, 0, len(e.unitDefs))
+	for _, u := range e.unitDefs {
+		out = append(out, u)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Unit < out[j].Unit })
+	return out
+}
+
 // UnitsOf trả mọi đơn vị thuộc một chiều đo, xếp theo mã (thứ tự ổn định).
 func (e *Engine) UnitsOf(dimension string) []UnitDef {
 	var out []UnitDef

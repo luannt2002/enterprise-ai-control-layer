@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
-	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 )
 
@@ -44,7 +43,7 @@ func (p KnowledgeProbe) Fallback(ctx context.Context, pr contracts.Principal, in
 // sửa S4) còn hơn trả lời câu số liệu bằng đoạn quy trình. Đã thử 24/10 và bỏ: chỉ tính chữ hỏi lượng khi câu nhắc chiều đo nghiệp vụ —
 // lọt "Hôm qua lượng xuất kho lệch bao nhiêu?"; tách "mấy tiếng" khỏi "bao nhiêu" cần danh sách từ thời lượng, không đặt trong lõi chung.
 func (a *Ask) asksQuantity(in contracts.NormalizedInput) bool {
-	if slices.ContainsFunc(a.RT.QuantityMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Text, m) }) {
+	if a.quantityMarker(in.Text) != "" {
 		return true
 	}
 	// chỉ lượng CÓ SỐ (span lượng), không tính thuật ngữ có đơn vị mặc định — "dầu" một mình không phải câu hỏi lượng
@@ -64,7 +63,7 @@ func (a *Ask) fallbackIntent(ctx context.Context, now time.Time, pr contracts.Pr
 	if !ok || contracts.RouteKind(def.Route) != contracts.RouteRAG {
 		return cls, contracts.Errorf(contracts.FaultCode, "dự phòng S4 khai ý định không phải ý định tri thức của pack: "+f.Intent())
 	}
-	if (def.Capability != "" && !a.RT.Policy.Allows(pr, def.Capability)) || a.asksQuantity(in) {
+	if (def.Capability != "" && !a.RT.Policy.Allows(pr, def.Capability)) || a.asksQuantity(in) || a.RT.Intents.UnsupportedCue(in.Text) {
 		return cls, nil
 	}
 	kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in)})

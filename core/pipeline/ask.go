@@ -651,11 +651,14 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 			noteExecute(why, prefix, rep, nil, knowledgeK)
 			why.Execute.Reason("%sdừng ở thông báo phiên bản của tài liệu %s: không trả đoạn nào (các bản ở S7)", prefix, n.DocumentID)
 			noteNotice(why, hybrid, n)
-			a.versionNotice(n, resp, hybrid)
+			name, text, outcome := a.versionNotice(n, resp, hybrid)
+			why.Generate.Reason("%sdừng ở thông báo phiên bản, model không được gọi: kết cục %s (mẫu câu %s)", prefix, outcome, name)
+			a.noteTemplateDraft(ctx, why, prefix, name, text)
 			return nil
-		case hybrid: // phần số liệu đã kiểm vẫn giao; lỗi nằm trong vết của bước retrieve
+		case hybrid: // phần số liệu đã kiểm vẫn giao; lỗi ghi ở S6 (nguyên nhân), S7 và S8 (phần quy trình bị bỏ)
+			why.Execute.Reason("tri thức: truy xuất lỗi (%s): không trả đoạn nào", contracts.FaultOf(err))
 			why.Context.Reason("tri thức: truy xuất lỗi (%s) — bỏ phần quy trình, giữ phần số liệu đã kiểm", contracts.FaultOf(err))
-			resp.Answer += a.fragment("hybrid_knowledge_error", nil)
+			a.hybridKnowledgeError(ctx, why, resp)
 			return nil
 		}
 		return err
@@ -677,19 +680,22 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	})
 	if err != nil {
 		if hybrid {
-			resp.Answer += a.fragment("hybrid_knowledge_error", nil)
+			why.Generate.Reason("tri thức: %s (%s) — bỏ phần quy trình, giữ phần số liệu đã kiểm", traces.ModelFailed, contracts.FaultOf(err))
+			a.hybridKnowledgeError(ctx, why, resp)
 			return nil
 		}
 		return err
 	}
-	a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text)
 	// Model nói rõ bằng chứng không trả lời được (Draft.Refused): "không có" như khi không đoạn nào khớp — không phải lỗi, không trích
-	// dẫn (ROADMAP-RAG §6.5). Bản nháp rỗng / văn xuôi KHÔNG mang cờ là đầu ra hỏng: vẫn qua S9 và bị chặn.
+	// dẫn (ROADMAP-RAG §6.5). Bản nháp rỗng / văn xuôi KHÔNG mang cờ là đầu ra hỏng: vẫn qua S9 và bị chặn. Bản nháp từ chối không có
+	// chữ nên KHÔNG vào sổ bản nháp: S10 không được nói câu giao "chứa nguyên văn" một bản nháp rỗng.
 	if draft.Refused {
+		why.Generate.Reason("%s%s (model %s) — không có bản nháp", prefix, traces.ModelRefused, draft.Model)
 		why.Context.Reason("%smodel: bằng chứng đã truy hồi không trả lời được câu hỏi — không trích đoạn nào", prefix)
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
 	}
+	a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text)
 	// S9 — kiểm
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
 		v := validation.Bound(draft, ev)
@@ -735,7 +741,15 @@ func noteNotice(why *traces.Why, hybrid bool, n *contracts.KnowledgeNotice) {
 
 // versionNotice nói rõ cho người hỏi khi tài liệu khớp nhất không có đúng một bản làm căn cứ: không chọn bản ngầm,
 // không gọi model, không dùng bản cũ (BR-DOC-01, docs/viec/2-tra-quy-trinh/HOP-DONG.md §4).
-func (a *Ask) versionNotice(n *contracts.KnowledgeNotice, resp *contracts.AskResponse, hybrid bool) {
+// hybridKnowledgeError nối mẫu hybrid_knowledge_error vào câu số liệu đã kiểm và ghi nó là bản nháp S8 của phần tri thức.
+func (a *Ask) hybridKnowledgeError(ctx context.Context, why *traces.Why, resp *contracts.AskResponse) {
+	text := a.fragment("hybrid_knowledge_error", nil)
+	resp.Answer += text
+	a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_knowledge_error", text)
+}
+
+// versionNotice dựng câu thông báo phiên bản (nối vào câu số liệu khi hybrid); trả tên mẫu THẬT đã dùng, chữ của nó và kết cục.
+func (a *Ask) versionNotice(n *contracts.KnowledgeNotice, resp *contracts.AskResponse, hybrid bool) (string, string, contracts.Outcome) {
 	vs := make([]string, len(n.Versions))
 	for i, v := range n.Versions {
 		vs[i] = fmt.Sprintf("v%d", v.Version)
@@ -746,21 +760,19 @@ func (a *Ask) versionNotice(n *contracts.KnowledgeNotice, resp *contracts.AskRes
 		name, outcome = "knowledge_version_conflict", contracts.OutcomeSourceConflict
 	}
 	if hybrid {
-		resp.Answer += a.fragment("hybrid_"+name, vars)
-		return
+		text := a.fragment("hybrid_"+name, vars)
+		resp.Answer += text
+		return "hybrid_" + name, text, resp.Outcome
 	}
 	resp.Answer, resp.Outcome = a.render(name, vars), outcome
 	resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
+	return name, resp.Answer, outcome
 }
 
 // asksFactQuantity báo câu hỏi đòi một LƯỢNG thuộc chiều đo của chỉ số nghiệp vụ ("bao nhiêu lít
 // dầu"); cụm hỏi lượng do pack khai (quantity_markers).
 func (a *Ask) asksFactQuantity(in contracts.NormalizedInput, now time.Time) bool {
-	marked := false
-	for _, m := range a.RT.QuantityMarkers {
-		marked = marked || normalization.ContainsPhrase(in.Raw, m)
-	}
-	if !marked {
+	if a.quantityMarker(in.Raw) == "" {
 		return false
 	}
 	fact := a.factDimensions()
@@ -770,6 +782,28 @@ func (a *Ask) asksFactQuantity(in contracts.NormalizedInput, now time.Time) bool
 		}
 	}
 	return false
+}
+
+// quantityMarker trả chữ hỏi lượng đầu tiên của pack có trong câu mà KHÔNG đứng ngay trước đơn vị của một chiều đo khác chiều nghiệp vụ
+// ("mấy tiếng", "bao nhiêu giờ" hỏi THỜI HẠN của quy trình, không phải lượng nghiệp vụ — pack coi "mấy" là chữ hỏi lượng từ vòng sửa S4,
+// S7D-01 "lệch dầu … mấy tiếng phải có biên bản?" bị chặn oan khi gộp 24/10); "" = không có. Đơn vị lấy từ lexicon của pack.
+func (a *Ask) quantityMarker(text string) string {
+	fact := a.factDimensions()
+	var other []string
+	for _, u := range a.RT.Normalizer.Units() {
+		if !fact[u.Dimension] {
+			other = append(other, u.Aliases...)
+		}
+	}
+	for _, m := range a.RT.QuantityMarkers {
+		for _, sp := range normalization.PhraseSpans(text, m) {
+			rest := strings.TrimLeft(normalization.NFC(text)[sp[1]:], " ")
+			if !slices.ContainsFunc(other, func(u string) bool { s := normalization.PhraseSpans(rest, u); return len(s) > 0 && s[0][0] == 0 }) {
+				return m
+			}
+		}
+	}
+	return ""
 }
 
 // factDimensions là các chiều đo có chỉ số nghiệp vụ (lượng dầu → volume): lượng thuộc các chiều

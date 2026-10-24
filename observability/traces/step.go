@@ -74,6 +74,14 @@ const (
 // chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
 const RejectedDraft = "bản nháp bị loại"
 
+// Dấu luồng hỏi ghi vào lý do S8 (Why.Generate) ở hai lối ra của route tri thức mà span generate CÓ mặt nhưng không có bản nháp dùng
+// được — để bảng vết chỉ đúng chặng: ModelRefused = model nói bằng chứng không trả lời được (Draft.Refused, nguyên nhân của
+// INSUFFICIENT_EVIDENCE nằm ở S8, không phải S6 đã trả đoạn); ModelFailed = model lỗi ở phần tri thức của HYBRID (phần số liệu vẫn giao).
+const (
+	ModelRefused = "model từ chối: bằng chứng đã truy hồi không trả lời được câu hỏi"
+	ModelFailed  = "model lỗi"
+)
+
 // ValidStage báo mã bước có hợp lệ không: S0…S10 (luồng hỏi), C0…C7 và C4b (luồng lệnh, HOP-DONG §7.5), S? hoặc L1.<tên>.
 func ValidStage(s string) bool {
 	if s == StageUnknown {
@@ -338,7 +346,7 @@ func BuildSteps(t Turn) []Step {
 		// Truy vấn chạy xong mà không đủ dữ liệu để trả lời: nguyên nhân của outcome INSUFFICIENT_EVIDENCE nằm Ở ĐÂY, S10 chỉ là hệ
 		// quả — bước lệch đầu tiên của vết phải là chặng đã gây ra nó (R1-03). Khi luồng hỏi xuất sourceoftruth.Result thì ghi hẳn
 		// "truy vấn không trả dữ liệu" thay cho suy ra từ outcome (làn 1).
-		if d.Outcome == string(contracts.OutcomeInsufficientEvidence) {
+		if d.Outcome == string(contracts.OutcomeInsufficientEvidence) && !genSays(d.Why.Generate, ModelRefused) {
 			s.Status = StatusDeviant
 			s.Decision = "đã truy vấn nguồn nhưng không đủ dữ liệu để trả lời"
 			s.Output = append(s.Output, fmt.Sprintf("không đủ dữ liệu: outcome %s, %d bằng chứng được trích dẫn", d.Outcome, len(d.Evidence)))
@@ -373,6 +381,12 @@ func BuildSteps(t Turn) []Step {
 			skip(s, "route trống hoặc không hợp lệ nên không có cách dựng câu")
 		case route.NeedsModel() && has("generate"):
 			s.Decision = "model diễn đạt"
+			switch { // span generate có mặt mà không có bản nháp dùng được: chặng này là nguyên nhân, không phải chặng trước
+			case genSays(d.Why.Generate, ModelRefused):
+				s.Status, s.Decision = StatusDeviant, "model từ chối trả lời từ bằng chứng"
+			case genSays(d.Why.Generate, ModelFailed):
+				s.Status, s.Decision = StatusDeviant, "model lỗi"
+			}
 			if gen := d.Why.Generate; gen.Recorded() {
 				s.Reason, s.Rejected = joinReasons(gen), slices.Clone(gen.Rejected)
 			} else {
@@ -486,4 +500,9 @@ func stepText(st contracts.Step) string {
 		args = append(args, k+"="+st.Args[k])
 	}
 	return s + "{" + strings.Join(args, ",") + "}"
+}
+
+// genSays báo lý do S8 có một dòng mang dấu m (ModelRefused / ModelFailed) do luồng hỏi ghi.
+func genSays(n Notes, m string) bool {
+	return slices.ContainsFunc(n.Reasons, func(l string) bool { return strings.Contains(l, m) })
 }

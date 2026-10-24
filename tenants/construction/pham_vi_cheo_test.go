@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/pipeline"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
@@ -119,5 +120,22 @@ func TestHaiVaiTachQuyenDocVaACL(t *testing.T) {
 				t.Errorf("vai %v: %s có documents.read và nằm trong ACL mà không đọc được (%s → %q)", c.roles, c.roles[0], r.Outcome, r.Answer)
 			}
 		})
+	}
+}
+
+// Q11 ở dự phòng S4: dò chỉ mục hộ người hỏi cũng chỉ bằng vai có documents.read. Tài liệu chỉ mở cho vai không có quyền đọc không được
+// kéo câu sang route tri thức — kết cục khác đi là lộ "có tài liệu" — nên người hai vai nhận đúng kết cục của luật như khi kho không có
+// tài liệu đó; đối chứng dương: tài liệu mở cho chính vai có documents.read thì dự phòng vẫn trả lời từ tài liệu.
+func TestHaiVaiDuPhongS4(t *testing.T) {
+	q := "Tổ trưởng kho phải đối soát khi nào?"
+	pr := user("site_engineer", "")
+	pr.Roles = []string{"site_engineer", "accountant"}
+	for acl, want := range map[string]contracts.Outcome{"accountant": contracts.OutcomeOutOfScope, "site_engineer": contracts.OutcomeResolved} {
+		a := newAsk(t)
+		a.Deps.Knowledge, a.Deps.Model = rag.NewMemoryIndex("abc-infra", []rag.Document{taiLieuPhamVi([]string{acl}, nil)}), &models.Extractive{}
+		a.Deps.IntentFallback = pipeline.KnowledgeProbe{Knowledge: a.Deps.Knowledge, Name: "sop_question"}
+		if r := ask(t, a, pr, q).Response; r.Outcome != want {
+			t.Errorf("tài liệu chỉ mở cho %s, người hỏi %v: muốn %s, được %s %s → %q", acl, pr.Roles, want, r.Route, r.Outcome, r.Answer)
+		}
 	}
 }

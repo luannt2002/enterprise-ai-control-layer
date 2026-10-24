@@ -135,7 +135,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	cls, err := traces.Measure(tr, "intent", func() (intent.Result, error) {
 		r := a.RT.Intents.Classify(in, res, now)
 		if f := a.Deps.IntentFallback; f != nil {
-			return a.fallbackIntent(ctx, now, pr, in, r, f)
+			// dò chỉ mục chỉ bằng vai có capability của ý định tri thức, như lượt tri thức (Q11)
+			def, _ := a.RT.Intents.Def(f.Intent())
+			return a.fallbackIntent(ctx, now, a.RT.Policy.Holding(pr, def.Capability), in, r, f)
 		}
 		return r, nil
 	})

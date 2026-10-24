@@ -198,3 +198,16 @@ Mỗi cổng một bảng: yêu cầu · bằng chứng cũ (bị nhiễm) · b�
 - **H1 có thể lộ lỗi thật,** khi đó G2 / G5 / G6 FAIL trên bằng chứng độc lập. Đó là kết quả đúng. "FAIL sạch hơn PASS bẩn."
 - **Kho ca không đủ ca khác nhau thật** thì H1 < 104 và G6' có thể chỉ PARTIAL. Không độn ca.
 - **Một bộ giữ lại chỉ dùng được một lần** cho chứng minh độc lập. Sửa mã theo nó thì phải soạn bộ mới, chưa ai chạm.
+
+## Ghi chú trạng thái 24/10/2026 (thêm sau, không sửa lời trên; D14 của báo cáo audit vNext)
+
+Cờ `content_published: false` trong manifest **không** cập nhật khi chạy, nên đọc cờ sẽ hiểu sai. Ba bộ đã công bố dù cờ còn `false`; nội
+dung trong repo khớp sha256 đã cam kết (kiểm 24/10 bằng `sha256sum` so `files_sha256` của manifest):
+
+| Bộ | Tệp đã công bố | Commit công bố |
+|---|---|---|
+| H3 | `docs/g7/holdout-h3/h3.yaml` | `9091c84` (21/10) |
+| H4 | `docs/g7/holdout-h4/h4.yaml` | `57409f2` (22/10) |
+| P1 | `docs/g7/holdout-p1/p1.yaml`, `world-p1.yaml` | `18fb206` (23/10); `soat-ca.md` công bố dưới dạng đã che đường dẫn (`soat-ca.da-che-duong-dan.md`, `d614395`), nên bản trong repo không so được với băm |
+
+Manifest là tạo phẩm đã băm: **không lật cờ** trong manifest. H6 và 0a chưa chạy, nội dung chưa có trong repo.

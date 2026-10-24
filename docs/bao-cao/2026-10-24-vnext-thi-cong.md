@@ -39,8 +39,14 @@ không ghi kết luận soát thì ghi đúng như vậy.
 Phát hiện CHƯA thuộc đợt này: F-003 (xác thực chỉ có dev) → L7, đợt sau; F-006 (HYBRID thiếu quyền tài liệu từ chối cả câu) chờ câu Q7;
 F-039, F-040 là lịch sử (REPO_CLAIM), không có việc mã. Các mục còn mở khác ở mục 3.
 
-Soát độc lập cuối trên `f589cf6`: các mục S3 / S4 của người soát chia cho hai lát sửa song song (tài liệu: ADR-0016, ADR-0017, tài liệu vận
-hành cấu hình model, ghi chú Q-P1-10 — lát này; mã: lát `vnext/sua-soat-ma`).
+Soát độc lập cuối trên `f589cf6`: KHÔNG ĐẠT vì một S2 (mốc chống tự chấm của G7 chuyển sang `.env`) và vài S3 / S4 tài liệu; KHÔNG thấy chỗ
+nào nới quyền / RLS, winreport `3f1bf7e` ↔ `f589cf6` khác 0 dòng, 4 lần phá thử cổng đều đỏ. Các mục được sửa ở hai lát sau:
+
+| Merge | Lát | Đã sửa | Bằng chứng |
+|---|---|---|---|
+| `b37a231` | tài liệu theo soát cuối | S3 tài liệu vận hành cấu hình model; S3 ADR-0017 đính chính comment 0010; S3 ADR-0016 ghi mục chưa làm; S4 CHO Q-P1-10; báo cáo này | chỉ `docs/`, README, CHANGELOG |
+| `48eeea2` | mã theo soát cuối | **S2**: mốc hợp đồng G7 ghim sha256 trong mã (`.env` trỏ máy giả không còn thành bằng chứng); S4 `DELETE` của `EmbedKnowledge` lọc `tenant_id`; loại SKIP "nợ đã khoá có mã ADR"; 8 lý do đổi thân L4 viết đúng. **Bổ sung**: G7 qua giao thức khác `messages` bị từ chối trước lời gọi model | S2: 7/7 đột biến bị bắt; `chat_completions`: đỏ trước đo được **124 lời gọi model không trần ngân sách** (httptest đếm), sau sửa mã 2, 0 lời gọi |
+| `204e0cf` | điều phối | `docs/g7/CHI-PHI-G7.md` mục 8 khớp mã ghim băm cuối; `.env.example` ghi `EAIS_G7_*` phải khớp băm | cổng danh tính / tên hãng xanh |
 
 ## 2. Số đo do điều phối chạy
 
@@ -56,6 +62,8 @@ hành cấu hình model, ghi chú Q-P1-10 — lát này; mã: lát `vnext/sua-so
 | Pack thứ hai [ĐO, lát L5, chạy lùi] | cần 7 tệp lõi |
 | Nợ chữ miền trong lõi (danh sách của cổng từ miền) [REPO, L5 / L5b] | 29 → 14 → **4** mục |
 | Cổng SKIP của CI | trước đỏ (rc=1 trên `3f1bf7e`), nay xanh. CI vẫn CHƯA chạy trên GitHub |
+| **CHỐT — cổng có PG trên `204e0cf`** (đỉnh nhánh lúc đẩy) [ĐO, điều phối] | **2.482** tên, 2.478 pass, 4 skip, **0 fail**; `kiem-skip` XANH; `so-than` XANH; so tên với mốc có PG `3f1bf7e`: **mất 0**, đổi 0, mới 84 (8 subtest g7run lấy lại tên cũ: tên đọc từ hợp đồng lúc chạy, mã không chứa tên hãng) |
+| **CHỐT — smoke** `scripts/chay-thu.sh` trên `204e0cf` [ĐO, điều phối] | 21 đạt, 0 hỏng; binary nhúng `code_version=204e0cf…` (cây sạch) |
 
 ## 3. Sổ nợ bền
 
@@ -76,13 +84,12 @@ Chiều sai: **an toàn** = sai về phía từ chối / hỏi lại / lỗi ồ
 | L7 (xác thực thật + CRM giả, F-003) | — | lời chủ dự án 24/10 | đợt sau |
 | Tên hãng trong docs lịch sử | không ảnh hưởng chạy; cổng `TestKhongTenHangTrongMa` bỏ qua `docs/` | [ĐO, lát này] trên `f589cf6`: 35 tệp, 267 từ trúng danh sách băm của cổng tên hãng (cùng cách tách từ); sau lát này 33 tệp, 264 từ | chủ dự án quyết (câu 3) |
 | Đột biến S209; neo gãy có sẵn | S209 từng sống sót, đã khoá (`tenants/construction/l5b_test.go`). **Mới nghi:** toàn bộ danh mục `scripts/dot-bien/` chưa chạy lại trên `f589cf6`, có thể còn neo gãy | `scripts/dot-bien/n45-y-dinh-s4.sh`; ADR-0014 mục 5 | chạy mọi danh mục trên bản clone riêng, đếm dòng "neo gãy" (rc=2) |
+| Đường ĐỌC tài liệu / vector không lọc `tenant_id` dưới vai vượt RLS (`readDocuments`, `knowledgeIndex` ở `pgstore.go`; `SELECT` ở `vector.go` ~27; `loadVectors`) | an toàn với app (`pgstore.Open` từ chối vai superuser / BYPASSRLS); **LỌT** chỉ khi một công cụ dùng pool quản trị. **Mới nghi:** `EmbedKnowledge(A)` dưới vai quản trị có thể nhúng chữ của tenant B rồi ghi dưới A | lát sửa mã (soát cuối) đo khi viết `TestNhungChiXoaVectorCuaTenantKhiVuotRLS`: bản đầu xanh oan vì `readDocuments` đọc cả B | thêm `WHERE tenant_id` cho các câu đọc (phòng thủ chiều sâu, như `load.go`); test đếm `document_vectors WHERE tenant_id=A` sau khi A nhúng |
 | H6 + bộ 0a | **BLOCKED**: tệp ca không có trên máy | ADR-0010; `docs/CHO-QUYET-DINH.md` | chủ dự án chọn "làm L5 trước H6", nên H6 chấm mã đã tách; chạy MỘT lần |
 
-**Mới nghi (lát này đọc mã, chưa chạy):** `g7run` với `EAIS_MODEL_PROVIDER=chat_completions` không bọc trần ngân sách và không qua kiểm
-trước khi tiêu tiền: trong `run()` (`tenants/construction/win/g7run/main.go`), `dry, costly := false, false` chỉ được gán trong nhánh
-`*models.Messages`. Kết luận vẫn CHẶN ("không phải client model thật") nên không thành bằng chứng giả, nhưng lời gọi tới endpoint trả tiền
-không có trần. Cách kiểm / sửa: test đỏ trước — provider `chat_completions` trỏ máy chủ giả ⇒ `g7run` phải thoát 2 trước khi máy chủ nhận
-yêu cầu nào. `docs/g7/CHI-PHI-G7.md` mục 8 đã ghi "đừng chạy `g7run` với `chat_completions`".
+**Đã chứng minh, đã sửa (`6e0c37a`, merge `48eeea2`):** `g7run` với `EAIS_MODEL_PROVIDER=chat_completions` trước đây không bọc trần ngân
+sách và không qua kiểm trước khi tiêu tiền — đo đỏ trước: một lượt k=1 gọi model **124 lần** (có từ trước `3f1bf7e`). Nay giao thức khác
+`messages` bị từ chối ngay sau khi dựng client: mã 2, 0 lời gọi (`TestGiaoThucNgoaiHopDongBiTuChoiTruocLoiGoiModel`, 2/2 đột biến bị bắt).
 
 ## 4. Câu cho chủ dự án
 

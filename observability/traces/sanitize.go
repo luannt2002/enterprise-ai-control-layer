@@ -44,8 +44,11 @@ const secretKeyWords = `password|passwd|pwd|secret|token|api[_\-]?key|apikey|acc
 // (Cookie: theme="x⏎y"; sid=…: giá trị trần dừng ở xuống dòng đầu tiên, phần sau nháy đóng ở dòng kế tiếp lọt — main cũng lọt, đo 23/10). Che thừa: "http://máy:8080,me@x.com" bị coi là mật khẩu URL. Mẫu URL người dùng rỗng nuốt tên khoá
 // đứng ở chỗ mật khẩu ("redis://:secret=x@máy…"), nên phần sau "@" (máy, đường dẫn) không còn bị mẫu "khoá = giá trị" che thừa như trước
 // (fuzz 23/10: 105 / 300.000 chuỗi ghép). Giá trị MỞ bằng nháy thoát (password=\"…\": logfmt / slog lồng, chữ đã qua %q) chỉ che được
-// dấu \ đứng đầu, bí mật sau \" lọt (soát lại 5abc, 5a-R3; có từ trước 5a) — đường chạm tới: tên trường lạ trong thân POST
-// /v1/commands/<công cụ> ghi vào bước C0 dạng "invalid_fields=…", lấy từ lỗi `json: unknown field %q` (bí mật do chính bên gọi gõ).
+// dấu \ đứng đầu, bí mật sau \" lọt (soát lại 5abc, 5a-R3; có từ trước 5a). Đường chạm tới đã biết — tên trường lạ trong thân POST
+// /v1/commands/<công cụ>, lấy từ lỗi `json: unknown field %q` — đóng ở chỗ GHI, không ở mẫu: vết C0 chỉ ghi tên trường hợp lệ và SỐ
+// trường lạ (F-035, commands.Pipeline.Malformed), log của server chỉ ghi loại lỗi (cmd/eais decodeCommand). Chữ tự do của bên gọi vẫn
+// tới mẫu ở vết của lượt hỏi: câu hỏi, và thông điệp "trường lạ %q" của /v1/ask (đo 24/10: `password=\"…` lọt ở cả hai; vết đó chỉ người
+// hỏi và vai toàn quyền đọc được).
 // Che THỪA (mất chữ không phải bí mật; đo 23/10, soát 5a vòng 3, 5a3-4): (i) có từ vòng 3, main giữ được — "Cookie:" nằm trong một giá trị
 // trong nháy hay làm giá trị trần của khoá bí mật thì vùng Cookie trần (tính trên chữ gốc) chạy qua nháy đóng và nuốt nốt phần còn lại của
 // DÒNG: `token="abc Cookie: sid=… def" tail X` → `token="[REDACTED]"`, `password:Cookie: X` → `password:[REDACTED] [REDACTED]`; (ii) có từ

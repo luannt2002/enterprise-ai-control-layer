@@ -3,6 +3,7 @@
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — theo GO chung 24/10 của chủ dự án cho các khuyến nghị của báo cáo audit vNext (§11.6, dòng
   ADR-0017). Mã đã thi công cùng ADR này: `platform/pgstore/migrate.go`.
+- **Đính chính 24/10 (sau lát L5b):** comment của `0010_tenant_khong_rong.sql` về dữ liệu bẩn nay sai — xem mục "Đính chính" cuối tệp.
 - **Giải:** F-036 (migration nhận diện bằng tên tệp). **Liên quan:** F-037 (migration `0010_tenant_khong_rong.sql` là migration đầu tiên áp
   theo luật này); báo cáo `docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md` §01, §10, §11.6.
 
@@ -59,3 +60,28 @@ Trước ADR này `Migrate` coi một tệp đã áp khi `schema_migrations` có
 - **(b) tự ghi tên mới rồi bỏ qua:** bị loại — giấu lỗi gộp, và phép nhận theo phần tên sau số có thể sai.
 - **Lỗi với mọi dòng không ứng với tệp nào:** bị loại — database dev thật có bốn dòng như vậy, vô hại; lỗi sẽ chặn oan.
 - **Dùng công cụ migration bên ngoài:** bị loại — thêm phụ thuộc cho một thay đổi +71 / −11 dòng ở `migrate.go`.
+
+## Đính chính 24/10/2026 — 0010 gặp dữ liệu bẩn thì app KHÔNG khởi động
+
+Comment đầu `db/migrations/0010_tenant_khong_rong.sql` (dòng 9–10) ghi: database đã có dòng tenant `''` thì cả tệp hoàn tác, "ứng dụng vẫn
+chạy vì Ready không đòi 0010". Câu đó đúng lúc viết, nay **sai**. Tệp migration không sửa được, kể cả comment (mục 4), nên đính chính ở đây.
+
+Chuỗi đọc mã (`f589cf6`):
+1. `Migrate` áp các tệp chờ theo thứ tự tên; tệp nào lỗi thì trả lỗi ngay, tệp sau **không** áp (`platform/pgstore/migrate.go`, vòng `pending`).
+2. Lát L5b thêm `0011_ghi_chu_suy_luan.sql` (cột `facts.note`) và `Ready` đòi cột đó (`platform/pgstore/ready.go:44`,
+   `readyColumns`; commit `f589cf6`).
+3. Vậy database có dòng tenant `''` ⇒ 0010 hỏng ⇒ 0011 không áp ⇒ `Ready` báo "cột facts.note chưa có (migration 0011)" ⇒ `eais serve`
+   không khởi động. Đóng mặc định — đúng hướng (không phục vụ khi lược đồ chưa đủ), nhưng người vận hành phải biết nguyên nhân thật nằm ở 0010.
+
+Chưa có test chạy trọn chuỗi này trên PG (dòng tenant `''` → `eais migrate` → `eais serve`); ba mắt xích trên là đọc mã.
+
+**Xử lý (vai quản trị):**
+1. Đọc lỗi của `eais migrate`, không phải của `serve`: lỗi nêu `migration 0010_tenant_khong_rong.sql` và ràng buộc
+   `<bảng>_tenant_khong_rong` bị vi phạm. Thông báo "chạy `eais migrate`" của `Ready` chỉ là hệ quả.
+2. Đếm dòng tenant `''` từng bảng bằng câu `SELECT` ghi ở comment đầu tệp 0010.
+3. Với từng dòng: thuộc một tenant thật thì `UPDATE … SET tenant_id = '<tenant>'`; là rác thì chép ra trước (`COPY (SELECT …) TO …`) rồi
+   `DELETE`. `decision_records`, `usage_records` là vết (chỉ thêm, 0003): chép ra trước khi xoá, không bao giờ xoá mà không giữ bản.
+4. Chạy lại `eais migrate` (0010 rồi 0011 áp), rồi `eais serve`.
+
+Không có đường tắt: không sửa tệp 0010 (mục 4), không ghi tay dòng 0010 / 0011 vào `schema_migrations` (lược đồ sẽ thiếu ràng buộc / cột
+mà sổ khai là đã áp).

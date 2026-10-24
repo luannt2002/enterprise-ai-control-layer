@@ -6,6 +6,25 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 24/10/2026 — vNext thi công (nhánh `vnext/tach-2410`, CHƯA gộp main)
+
+Theo GO 24/10 (phương án B′). Bảng từng lát, số đo và sổ nợ: `docs/bao-cao/2026-10-24-vnext-thi-cong.md`. **MVP CHƯA RA**; H6 chưa chạy.
+
+- **L1 cổng trước** (ADR-0014): cổng kiến trúc quét mọi thư mục, cổng từ miền, `so-than` so thân test, danh sách SKIP cho phép (F-011,
+  F-014, F-025, F-034).
+- **L2 S4CS-02:** sửa hẹp + hai vòng sửa + KHOÁ (F-001); nợ N1–N9 ở ADR-0010 (N6, N8 LỌT có từ trước).
+- **L3 tài liệu:** mục riêng ngay dưới.
+- **R-01:** kho báo cáo 0a hết chết khoá 40P01 (F-002).
+- **L4:** `Policy` ra `core/policy`; provider theo giao thức `messages`, endpoint / header / giá trị G7 từ `.env`; cổng tên hãng trong mã
+  (F-015, F-031, F-035). Giá trị provider cũ mang tên hãng bị từ chối; `EAIS_MODEL_BASE_URL` bắt buộc — `docs/ops/README.md` mục 4.
+- **Gia cố PG:** `Ready` đóng khi RLS bị gỡ, migration nhận diện bằng checksum, migration 0010 chặn tenant rỗng (F-010, F-036, F-037,
+  ADR-0017 — có đính chính về 0010 gặp dữ liệu bẩn).
+- **L6 ranh giới RAG** (F-017, F-018, F-019, F-022, F-023, F-024, F-028); F-021 chờ quyết.
+- **Q11, Q11b:** quyền và phạm vi / ACL từ CÙNG một vai, cả đường số liệu S5 (Q-P1-10 = A, suy diễn của điều phối).
+- **L5, L5b:** Fuel xuống case study, pack thứ hai `examples/02-sme-minimal`, từ miền ra lexicon pack, migration 0011 `facts.note` (F-004,
+  F-005, F-007, F-008, F-009, F-029 một phần, F-030).
+- **Dọn mã:** log không ghi chữ của bên gọi, hết tên hãng còn sót trong mã, CLI / log nạp nói số bản bị giữ.
+
 ### 24/10/2026 — vNext lát L3: định nghĩa sản phẩm, giấy phép MIT, sự thật tài liệu
 
 Chủ dự án GO báo cáo audit vNext (phương án B′; `docs/CHO-QUYET-DINH.md` mục 0, dòng "vNext"). Lát này chỉ đổi tài liệu, `LICENSE` và

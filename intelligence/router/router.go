@@ -6,44 +6,20 @@
 package router
 
 import (
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 )
 
-// RoleDef là một vai nghiệp vụ trong pack (policy.yaml).
-type RoleDef struct {
-	Capabilities []string `yaml:"capabilities"`
-	// Scope: "all" = xem mọi thực thể; "attribute" = chỉ thực thể có khoá nằm trong thuộc
-	// tính entity_scope của principal. Không có giá trị mặc định nào mở toang.
-	Scope string `yaml:"scope"`
-}
-
-// Policy là chính sách vai → capability + phạm vi dữ liệu.
-type Policy struct {
-	Roles map[string]RoleDef `yaml:"roles"`
-}
-
-// Validate kiểm chính sách.
-func (p Policy) Validate() error {
-	var errs []string
-	if len(p.Roles) == 0 {
-		errs = append(errs, "policy không có vai nào")
-	}
-	for name, r := range p.Roles {
-		if r.Scope != "all" && r.Scope != "attribute" {
-			errs = append(errs, fmt.Sprintf("vai %s: scope phải là all hoặc attribute, đang là %q", name, r.Scope))
-		}
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("policy không hợp lệ:\n  - %s", strings.Join(errs, "\n  - "))
-	}
-	return nil
-}
+// Policy, RoleDef là bí danh của core/policy: ranh giới quyền đã ra lõi (F-031); giữ tên cũ để nơi gọi qua router không vỡ.
+type (
+	Policy  = policy.Policy
+	RoleDef = policy.RoleDef
+)
 
 // narrow gỡ bí danh mơ hồ bằng NGỮ CẢNH đã có trong câu và trong danh tính — luật tất định:
 //
@@ -139,44 +115,6 @@ func terminalOutcome(r contracts.RouteKind) contracts.Outcome {
 		return contracts.OutcomeOutOfScope
 	}
 	return ""
-}
-
-// Allows báo principal có capability không (qua bất kỳ vai nào của họ). Đóng mặc định:
-// capability rỗng không cấp quyền cho ai.
-func (p Policy) Allows(pr contracts.Principal, capability string) bool {
-	if capability == "" {
-		return false
-	}
-	for _, role := range pr.Roles {
-		for _, c := range p.Roles[role].Capabilities {
-			if c == capability {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// InScope báo principal có được xem một thực thể không. lineage là khoá của thực thể và mọi
-// tổ tiên của nó: được giao dự án PRJ-A thì xem được máy thuộc PRJ-A.
-func (p Policy) InScope(pr contracts.Principal, lineage []string) bool {
-	for _, role := range pr.Roles {
-		if p.Roles[role].Scope == "all" {
-			return true
-		}
-	}
-	for _, k := range strings.Split(pr.Attributes["entity_scope"], ",") {
-		k = strings.TrimSpace(k)
-		if k == "" {
-			continue
-		}
-		for _, key := range lineage {
-			if key == k {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // Settings là phần cấu hình router của pack (nằm cùng intents.yaml).

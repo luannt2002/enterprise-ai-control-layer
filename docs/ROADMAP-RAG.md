@@ -588,7 +588,21 @@ tầng sai đầu tiên là điểm XẾP LẠI của câu không dấu, không 
 0/8 qua ngưỡng; đường lai nay nhúng + xếp lại bằng câu đã khôi phục dấu theo CẶP từ của tài liệu người hỏi thấy ⇒ 4/8 qua, cả bộ 58 →
 62–63 / 94, từ chối đúng không giảm. Chỉ cặp từ: từ đơn đoán sai nghĩa ("do" → "đo"). Không cứu: lỗi gõ Telex, cặp không có trong kho).
 
-**Không làm khi chưa có bằng chứng:** LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition
+**"Biết im" bằng ngưỡng một mình — đo 24/10, bộ phát triển Thông tư (12 câu phải từ chối) [ĐỀ XUẤT]:** ngưỡng điểm xếp lại 0.19 chặn
+tốt câu NGOÀI CHỦ ĐỀ (7/12: phí, tỷ giá, lãi suất, khuyến mãi, hack — điểm ≤ 0.137). Luật chủ đề theo từ khoá không thêm gì khi đã có
+rerank (chặn 2 câu đã dưới ngưỡng, chặn oan 2 câu có đáp án). Phần nguy hiểm còn lại: 5/12 câu hỏi MỤC KHÔNG TỒN TẠI ("Điều 999",
+"Chương XX", "Phụ lục Z", "Khoản 555 Điều 5") — rerank chấm 0.02–0.21 vì chữ "Điều / Chương" trùng mọi đoạn, và lệch giữa hai lần chạy
+cùng mã (trap-003 0.212 ↔ 0.179: một lượt đã trả lời về chương không có). **Đã làm (24/10, `missingSections`):** câu nhắc mục đánh số
+("<từ> <số>", hoặc la mã / chữ cái VIẾT HOA đúng như gõ) với tiền tố của hệ đánh số trong kho (từ đầu của ≥ 2 tiêu đề trong thân của tài
+liệu người hỏi thấy — không ghi cứng "Điều / Chương"), mà KHÔNG mục nào được nhắc xuất hiện ở đâu trong các tài liệu đó (kể cả dẫn chiếu
+trong thân) ⇒ im ngay, nêu lý do. So GIỮ DẤU ("mục" ≠ "mức"), la mã ↔ số, bỏ số 0 đầu; mục chỉ có ở tài liệu ngoài quyền = không có
+(§6.2); kho không có tiêu đề (kho xây dựng) không đổi. Soát độc lập: bản đầu chặn oan nhiều cách hỏi thật ("Chương 2" ↔ "Chương II",
+"mức 5" ↔ "mục 5", "những điều vi phạm", tiêu đề "Lưu ý" lặp) → làm hẹp, các ca đó thành test không-được-im. Đo trên bộ phát triển:
+chặn đúng 3/5 câu loại này ("Điều 999", "Điều 99", "Chương XX"), 0/94 câu có đáp án bị chặn oan. **Chưa phủ:** "Phụ lục Z" (tiền tố hai
+từ), "Khoản 555 Điều 5" (khoản là mục danh sách, và "Điều 5" có thật) — hai câu này vẫn do ngưỡng chặn (0.065, 0.085).
+
+**Không làm khi chưa có bằng chứng:** gom nhóm hàng cho bảng dài theo ngân sách (phần còn lại của U3b) — chưa có ca trượt nào đòi;
+LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition
 chunking, kho vector riêng (vector đang ở cùng PG, cosine trong Go trên đoạn người hỏi được đọc), LLM chấm làm bằng chứng duy nhất.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)

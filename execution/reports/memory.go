@@ -48,7 +48,7 @@ func (m *Memory) run(ctx context.Context, fn func(c *opctx) error) error {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return retryOp(func(want []slotKey) error {
+	return retryOp(func(want []lockRef) error {
 		var tx txn = &memTx{t: m.tenantData(tenant)}
 		if m.wrapTx != nil {
 			tx = m.wrapTx(tx)
@@ -170,7 +170,7 @@ type memTx struct{ t *memTenant }
 
 func (x *memTx) lock(int64) error { return nil } // khoá toàn kho (Memory.mu) đã giữ suốt thao tác
 
-func (x *memTx) getRecord(key string, forUpdate bool) (*Record, error) {
+func (x *memTx) getRecord(key string) (*Record, error) {
 	if r, ok := x.t.recs[key]; ok {
 		c := r.clone()
 		return &c, nil

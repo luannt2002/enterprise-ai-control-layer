@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 )
 
 // CommandOpenDiscrepancyTicket là tên lệnh duy nhất của Phase 1: tên tool trong tools.yaml, tên ở đường dẫn route lệnh và
@@ -26,8 +27,8 @@ const TicketOpen = "OPEN"
 
 // CapMetricsRead là capability đọc số liệu. Phiếu chứa giá trị của hai vế và kết quả lệnh trả lại chúng, nên người tạo phiếu
 // phải đọc được cả hai vế: phiếu không được là đường vòng quyền đọc (HOP-DONG §4.1 lớp 2). Tên chung của nền tảng, không
-// phải của tenant nào; capability của chính lệnh (tickets.create) thì do tools.yaml khai.
-const CapMetricsRead = "metrics.read"
+// phải của tenant nào; capability của chính lệnh (tickets.create) thì do tools.yaml khai. Một nguồn duy nhất: core/policy (Q11b).
+const CapMetricsRead = policy.CapMetricsRead
 
 // Status là một trong ba trị kết quả (HOP-DONG §2.3). Không biết thì UNKNOWN: không làm tròn thành FAILED hay DONE.
 type Status string

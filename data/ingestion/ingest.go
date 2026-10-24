@@ -132,10 +132,11 @@ func Ingest(ctx context.Context, dir string, rt *tenant.Runtime, sm SourceMap, x
 		return Result{}, err
 	}
 	var res Result
+	seen := map[string]bool{} // khoá bản ghi đã gặp, chung mọi nguồn: khoá là id của fact (khoá chính facts)
 	for _, s := range sm.Sources {
 		def, _ := rt.Metrics.Metric(s.Metric)
 		c := &conformer{ctx: ctx, rt: rt, spec: s, def: def, ix: ix, dir: ix.directoryFor(s.EntityNamespace), free: sm.FreeTextEntity,
-			last: map[string]string{}}
+			seen: seen, last: map[string]string{}}
 		for _, f := range s.Files {
 			paths, err := filepath.Glob(filepath.Join(dir, f.Path))
 			if err != nil {
@@ -169,6 +170,7 @@ type conformer struct {
 	ix   *index
 	dir  entityresolution.MemoryDirectory
 	free FreeTextEntity    // loại thực thể mà chữ tự do nhận dạng, và tên gọi của nó
+	seen map[string]bool   // khoá bản ghi đã gặp trong lượt nạp
 	last map[string]string // người gửi|ngày → thực thể của tin gần nhất (cho CarryEntity)
 }
 
@@ -185,6 +187,13 @@ func (c *conformer) add(res *Result, rel string, f FileSpec, r map[string]string
 	quarantine := func(reason, detail string) {
 		res.Quarantined = append(res.Quarantined, Quarantine{Key: key, Tenant: c.rt.Meta.Tenant, Source: c.spec.Type, Reason: reason, Detail: detail})
 	}
+	// Bản sau của một khoá đã gặp không được thành fact thứ hai cùng id (cả lần nạp sẽ hỏng ở khoá chính facts, F-009); bản đầu giữ
+	// nguyên kết cục của nó. Chi tiết cố định: lưu cách ly định danh theo (khoá, lý do), nên mọi bản trùng của một khoá là một dòng.
+	if c.seen[key] {
+		quarantine(ReasonDuplicate, "khoá bản ghi trùng một bản ghi trước đó trong cùng tệp")
+		return
+	}
+	c.seen[key] = true
 	var (
 		on     time.Time
 		entity string

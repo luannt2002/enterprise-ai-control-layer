@@ -23,6 +23,7 @@ const (
 	ReasonOutOfRange      = "out_of_range"
 	ReasonUnitDimension   = "unit_dimension"
 	ReasonUnparseable     = "unparseable"
+	ReasonDuplicate       = "duplicate" // khoá bản ghi (tệp + record_id) trùng một bản ghi đã gặp
 )
 
 // FileSpec là một tệp của một nguồn.

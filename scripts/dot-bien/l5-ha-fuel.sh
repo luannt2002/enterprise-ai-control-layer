@@ -15,3 +15,4 @@ m $I '	res, err := entityresolution.Resolve(c.ctx, c.dir, in, c.free.Type)' '	re
 m $I '"tin không nhắc " + c.free.Label + " nào"' '"tin không nhắc thực thể nào"' 'L5-4 lý do cách ly không gọi tên loại của pack'
 m $S '	if len(sm.EntityLists) == 0 {' '	if false {' 'L5-5 thiếu lược đồ danh mục vẫn nạp'
 m $S '	} else if freeText && !types[fe.Type] {' '	} else if false {' 'L5-6 chữ tự do trỏ loại chưa khai vẫn nạp'
+m $I '	if c.seen[key] {' '	if false {' 'L5-7 bản ghi trùng khoá thành fact thứ hai cùng id (F-009)'

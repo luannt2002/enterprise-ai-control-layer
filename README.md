@@ -1,11 +1,11 @@
-# EAIS — Enterprise AI Systems
+# EAIS — Enterprise AI Integration Reference Architecture
 
-**Nền tảng multi-tenant biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát, kiểm thử được và quan sát được.**
+**Kiến trúc tham chiếu chạy được — lõi kiểm soát, module tuỳ chọn (QUERY, RAG), ví dụ / case study — biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát, kiểm thử được và quan sát được (ADR-0013).**
 - **Dùng lại** hệ thống doanh nghiệp đã có khi hệ đó đang giữ sự thật (chế độ A, tích hợp).
 - **Tự lo** phần doanh nghiệp còn thiếu: thu dữ liệu, chuẩn hoá, đối soát (chế độ B).
 - Core **không gắn** vào một ngành.
 
-EAIS is a multi-tenant Enterprise AI Systems Platform for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities without coupling the core platform to a single industry.
+EAIS (Enterprise AI Integration Reference Architecture) is a runnable reference architecture for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities: a control kernel, optional modules (QUERY, RAG), and examples / case studies, without coupling the kernel to a single industry.
 
 Phần mềm tất định giữ quyền quyết định về danh tính, tenant, quyền hạn, sự thật nghiệp vụ, trạng thái, giao dịch, chính sách, kiểm và thực thi. AI chỉ làm phần bất định: diễn giải, phân loại, trích xuất, tổng hợp, đề xuất. Model là một năng lực bên trong hệ, không phải nguồn sự thật.
 

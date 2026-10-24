@@ -4,7 +4,7 @@
 
 ## Dự án
 
-- **EAIS — Enterprise AI Systems.** Nền tảng multi-tenant biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát, kiểm thử được và quan sát được; hai chế độ sở hữu: dùng lại hệ thống đã giữ sự thật (A, tích hợp) hoặc tự lo phần còn thiếu (B) — `docs/ROADMAP-DAY-DU.md` §1. Mục tiêu: chuyển từ hệ lấy model làm trung tâm (RAG ở giữa) sang hệ lấy hệ thống làm trung tâm. Chứng minh bằng cổng có lệnh chạy, không bằng tài liệu.
+- **EAIS — Enterprise AI Integration Reference Architecture** (ADR-0013, 24/10/2026; viết tắt và định danh chạy không đổi). Kiến trúc tham chiếu chạy được (lõi kiểm soát + module tuỳ chọn QUERY, RAG + ví dụ / case study, Fuel là case study) biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI có kiểm soát, kiểm thử được và quan sát được; hai chế độ sở hữu: dùng lại hệ thống đã giữ sự thật (A, tích hợp) hoặc tự lo phần còn thiếu (B) — `docs/ROADMAP-DAY-DU.md` §1. Mục tiêu: chuyển từ hệ lấy model làm trung tâm (RAG ở giữa) sang hệ lấy hệ thống làm trung tâm. Chứng minh bằng cổng có lệnh chạy, không bằng tài liệu.
 - **Stack:** Go 1.26 + PostgreSQL 17. Python chỉ khi có bằng chứng ("Go first, Python by evidence"). Không Redis / Kafka khi chưa có số đo đòi.
 - **Cách làm:** strangler từ dịch vụ trả lời của hệ cũ. Không viết lại từ trắng; mỗi tệp dời đúng lúc lát cần nó (`docs/02-migration-audit.md`).
 - **Hướng đã chốt (19/10/2026):** WIN MVP trước (`docs/04-core-mvp.md`: chỉ QUERY, Fuel Discrepancy Resolution, tenant A + canary B, baseline RAG, 7 cổng), roadmap sau (`docs/05-master-roadmap.md`). Thứ gì không cần để thắng 7 cổng thì không làm.

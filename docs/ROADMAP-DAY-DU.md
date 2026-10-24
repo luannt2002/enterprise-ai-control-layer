@@ -9,7 +9,7 @@
 > **Tên:** theo **D-RM-02**.
 > - Toàn bộ code, luồng và tài liệu đổi lại về **tên gốc ngày 20/10** (`d70ebc8`).
 > - **Link git giữ nguyên**: tên repo, remote, đường dẫn module Go.
-> - BUILD làm việc đổi tên (brief §4, mục 1). Tên dùng trong tệp: **EAIS** (Enterprise AI Systems).
+> - BUILD làm việc đổi tên (brief §4, mục 1). Tên dùng trong tệp: **EAIS** (lúc viết: Enterprise AI Systems; tên hiển thị từ 24/10/2026: Enterprise AI Integration Reference Architecture, ADR-0013).
 >
 > **Mốc đo:** `d6afad7` (origin/main, 21/10 16:44).
 >

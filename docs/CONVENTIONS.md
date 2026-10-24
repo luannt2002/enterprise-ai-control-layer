@@ -6,7 +6,7 @@ Tài liệu này là **một nguồn duy nhất** cho tên gọi, mã định da
 
 | Thứ | Quy ước |
 |---|---|
-| Tên sản phẩm | **EAIS** — Enterprise AI Systems (D-RM-02) |
+| Tên sản phẩm | **EAIS** — Enterprise AI Integration Reference Architecture (ADR-0013, 24/10/2026; trước đó Enterprise AI Systems, D-RM-02). Viết tắt và mọi định danh chạy không đổi |
 | Link git | tên repo, remote, đường dẫn module Go `github.com/luannt2002/enterprise-ai-control-layer`: giữ nguyên (D-RM-02) |
 | Định danh chạy | biến môi trường tiền tố `EAIS_`; PostgreSQL: GUC `eais.tenant_id`, vai `eais_app`, database `eais`, `eais_giu_lai` |
 | Định danh chạy khác | container PG dev `eais-pg`; database tạm của đột biến migration `eais_dot_bien`; mã hệ G7 `eais`, khoá `eais_unstable_cases` |

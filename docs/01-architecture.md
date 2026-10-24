@@ -1,6 +1,6 @@
 # Kiến trúc EAIS
 
-> **EAIS is a multi-tenant Enterprise AI Systems Platform for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities without coupling the core platform to a single industry.**
+> **EAIS (Enterprise AI Integration Reference Architecture) is a runnable reference architecture for turning domain-specific business data, knowledge, workflows, and tools into governed, testable AI capabilities: a control kernel, optional modules (QUERY, RAG), and examples / case studies, without coupling the kernel to a single industry.**
 
 Tài liệu này mô tả EAIS theo **bảy mặt phẳng** (§2) và **các luồng L0–L10** (§4) của roadmap hiện hành (`docs/ROADMAP-DAY-DU.md` §3, §5; D-RM-01). Mỗi phần tách hai thứ:
 - **HIỆN CÓ**: có mã chạy thật, kèm `tệp:dòng` hoặc tên test. Số dòng đo tại `bff56c4` (21/10/2026 tối);

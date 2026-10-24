@@ -29,7 +29,7 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 | **RAG** (luồng L6) | Đã gộp vào main 24/10 (D-RAG-01). Ngoài phạm vi MVP (D-AI-03 = a). App chạy từ khoá + model trích; đường lai (từ khoá + vector + xếp lại) và model thật chỉ ở bộ đo | §5 dưới; `docs/ROADMAP-RAG.md` |
 | **Nút thắt số 1** | Hiểu ý định S4 chỉ bằng luật: tầng sai đầu tiên ở 13/15 ca đỏ H1, 20/25 H3; với câu hỏi quy trình chỉ 7/92 câu tới được RAG | `docs/adr/` ADR-0010; `docs/ROADMAP-RAG.md` §10.2 |
 | **Phụ thuộc số 1** | Chưa có doanh nghiệp / người nghiệp vụ thật (D-RM-03) ⇒ mọi kết luận "trên dữ liệu giả lập" | `docs/ROADMAP-DAY-DU.md` §9 |
-| **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05, Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: S4 phương án (b), mở model thật trong app, nhà cung cấp embedding / rerank | `docs/CHO-QUYET-DINH.md` |
+| **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05, Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: D-RAG-02 (12 vai của ACL kho không có trong policy), D-RAG-03 (bật dự phòng S4 B1), mở model thật trong app | `docs/CHO-QUYET-DINH.md` |
 
 Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go). Mọi dữ liệu trong repo là **giả lập**; repo công
 khai không chứa dữ liệu thật của tenant nào.
@@ -250,15 +250,15 @@ hai lần chạy) ⇒ thêm luật tất định; câu không dấu sai ở đi�
 |---|---|---|
 | Adaptive Chunking (Ekimetrics, MIT) | thuật toán **split-then-merge** theo ranh giới mạnh nhất + đếm token thật (port sang Go: không gộp qua Chương / Điều, trả offset trực tiếp); **SC + BI** làm cổng mỗi lần nạp | chọn cách cắt theo trung bình metric nội tại (chọn = chấm; chỉ hơn cách cắt cố định tốt nhất **+0,39 điểm**); RC / coref (chỉ tiếng Anh, giấy phép phi thương mại) |
 | AdapChunk-App (không có LICENSE ⇒ chỉ học ý) | policy chọn cách cắt **tất định**, ghi lý do theo từng đoạn; bảng tính "mỗi dòng một bản ghi, lặp header"; header bảng theo sang phần tách | LLM chọn / viết lại nội dung; nhúng bản tóm tắt thay chữ gốc; luôn trả top-k (không biết im); fallback âm thầm; ACL hậu kiểm; secret trong mã |
-| Model phân loại ngữ nghĩa bên thứ ba (đánh giá cho S4) | đúng vị trí là **S4 — phân loại ý định** (đầu ra đóng, có xác suất, code quyết bước sau); thứ tự: luật → model → policy; S5 quyền vẫn là code | không giao quyền, sự thật, giao dịch, phiên bản; phải thắng baseline tất định **B1** trước |
+| Model quyết định có kiểu, bên thứ ba (đã ĐO 24/10, `docs/ROADMAP-RAG.md` 10.2b) | đầu ra đóng có xác suất; nhiều câu hỏi độc lập trên một state; ngưỡng + tổ hợp nằm trong code; ghim mã phiên bản; vị trí đúng: S4 và chấm "đoạn có trả lời được không" | "không bịa" chỉ là đúng kiểu; xác suất ≠ chắc chắn, không tất định; không giao quyền / sự thật / giao dịch / phiên bản. Bộ độc lập: S4 không thắng B1 tất định đủ cổng; chấm đoạn chặn 8/8 câu lọt của đường từ khoá nhưng loại oan đoạn của câu hai ý; thay xếp lại thua xếp lại (27 so với 31) |
 
 ### 5.7 Việc tiếp (gắn vào RAG-0…RAG-8)
 
 | Thứ tự | Việc | Loại |
 |---|---|---|
 | 1 | Chỉ nhúng bản làm căn cứ được (không gửi chữ bản nháp / chờ duyệt ra nhà cung cấp) | sửa an toàn (RAG-1) |
-| 2 | **S4 phương án (b) = baseline B1:** câu không khớp ý định ⇒ hỏi chỉ mục tri thức với ngưỡng "biết im" trước khi kết luận OUT_OF_SCOPE; vá kiểm capability ở nhánh không khớp | **chủ dự án quyết** (đổi ranh giới S4) |
-| 3 | So B0 (luật) / B1 / B2 (luật + model phân loại) / B3 (model trước + policy) trên bộ lỗi S4 độc lập; cổng: giảm ≥ 30% lỗi S4, 0 hồi quy quyền / tenant, không tăng từ chối oan, đo p50 / p95 / chi phí | sau (2); model bên thứ ba cần duyệt + khoá |
+| 2 | **S4 B1** (đã có mã, mặc định tắt: luật không ra kế hoạch trả lời ⇒ dò chỉ mục bằng đúng quyền + ngày hỏi; chốt câu hỏi lượng + capability trong pipeline). Bộ độc lập: 4 → 23/30 câu tri thức tới đúng route khi vai có quyền đọc | **chủ dự án quyết** D-RAG-02 (vai) rồi D-RAG-03 (bật) |
+| 3 | Đã so B0 / B1 / B2 / B3 / B4 trên bộ độc lập mới (64 câu, băm trước): model phân loại +1 câu so với B1, không qua cổng 30% ⇒ chưa đưa vào luồng. Vòng sau của chấm đoạn: chấm theo PHẦN tri thức của câu, chế độ bóng, bộ độc lập MỚI; không thay xếp lại | đo xong 24/10 (10.2b) |
 | 4 | Split-then-merge theo token + cổng SC / BI / phủ hết | RAG-2 |
 | 5 | Công bố nguyên tử tài liệu + vector; tự nhúng sau nạp; GC; cổng xoá hàng loạt | RAG-7 |
 | 6 | BM25 thật, cue cấu trúc làm feature, viết tắt; bộ giữ lại MỚI | RAG-3 / RAG-6 |

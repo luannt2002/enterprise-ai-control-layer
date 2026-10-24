@@ -574,6 +574,11 @@ lệnh đo động cơ thật. Bỏ: "nối cấu hình model vào app" — vư�
 Route tri thức của pack chỉ bắt từ khoá (`intents.yaml`: quy trình, quy định, thủ tục, làm gì, bao lâu…); câu hỏi quy trình nói kiểu
 khác ("chạy bao nhiêu giờ thì phải thay nhớt máy?") rơi vào OUT_OF_SCOPE trước khi RAG được hỏi.
 
+**Đính chính 24/10 [ĐO, `evals/rag/s4_test.go`]:** bảng trên TRỘN hai lỗi. Policy của pack khai 5 vai, ACL của kho S7 dùng 16 vai ⇒ câu tri
+thức của 12 vai không có `documents.read` bị S5 chặn dù S4 đúng hay sai (một phần PERMISSION_DENIED, và mọi dự phòng S4 đều không được
+hỏi cho các vai đó). Đo tách bằng lớp phủ CHỈ trong phép đo (cấp `documents.read` cho vai có trong ACL kho mà policy chưa khai): xem
+10.2b. Việc cấu hình vai là của pack / chủ dự án, không phải của S4.
+
 **Cần chủ dự án quyết:**
 1. Cách đưa câu hỏi tri thức tới route RAG (S4 — phần của team, đổi ranh giới pipeline, CLAUDE.md §34): (a) thêm từ khoá vào pack —
    rẻ, giòn, chỉnh trên bộ đã công bố là tự chấm bài; (b) **khi S4 không khớp ý định nào, hỏi chỉ mục tri thức với ngưỡng "biết im" rồi
@@ -604,6 +609,73 @@ từ), "Khoản 555 Điều 5" (khoản là mục danh sách, và "Điều 5" c�
 **Không làm khi chưa có bằng chứng:** gom nhóm hàng cho bảng dài theo ngân sách (phần còn lại của U3b) — chưa có ca trượt nào đòi;
 LLM chọn cách cắt (con số "cắt theo heading tốt nhất 11/11 tài liệu" của C-1 là metric vòng tròn — chọn và chấm cùng một metric; đo đầu–cuối trên cùng bộ thì cắt theo heading thắng 0/12, cắt cố định 512 thắng 8/12), semantic / proposition
 chunking, kho vector riêng (vector đang ở cùng PG, cosine trong Go trên đoạn người hỏi được đọc), LLM chấm làm bằng chứng duy nhất.
+
+### 10.2b Thí nghiệm S4 và chấm đoạn bằng model quyết định có kiểu (24/10) [ĐO]
+
+**Mindset.** Model quyết định có kiểu (giao thức `typed_questions`: đưa state + câu hỏi đóng, nhận xác suất từng nhãn; không sinh chữ)
+chỉ được làm hai việc: (1) S4 — câu này hỏi số liệu, quy trình, cả hai hay không thuộc phạm vi; (2) sau truy hồi — đoạn này có TRẢ LỜI
+ĐƯỢC câu hỏi không (khác "liên quan": xếp lại tìm đoạn đáng đọc nhất, chấm hỏi đoạn có đủ căn cứ). Học cái hay: đầu ra đóng có xác
+suất; nhiều câu hỏi độc lập trên một state; ngưỡng và tổ hợp nằm trong CODE; ghim mã phiên bản và ghi vào vết; chia vùng tự động / hỏi lại
+theo rủi ro. Không học cái dở: "không bịa" chỉ nghĩa là đầu ra đúng kiểu, không phải đúng; xác suất không phải chắc chắn và không tất định
+giữa các lần gọi; ngưỡng mặc định không dùng được nếu chưa chọn trên bộ có nhãn của mình; KHÔNG giao quyền, tenant, phiên bản, số liệu,
+giao dịch cho model; KHÔNG để nó thay luật tất định khi luật tất định đã làm được. Mọi phương án phải thắng phương án tất định TỐT NHẤT
+(không phải thắng luật cũ), trên bộ độc lập băm trước.
+
+**Cài đặt (nhánh `rag/1-quyet-dinh`):**
+- `pipeline.Deps.IntentFallback`: móc S4, mặc định tắt.
+  - Chỉ được đổi kết quả của luật sang ĐÚNG ý định tri thức nó khai.
+  - Code giữ ba chốt: thiếu capability thì không hỏi; câu hỏi lượng không hỏi; lỗi thì giữ kết quả luật và ghi vết.
+  - Câu hỏi lượng gồm cả câu có "bao nhiêu" / "định mức" lẫn câu nêu con số có đơn vị nghiệp vụ.
+- `pipeline.KnowledgeProbe` = B1: dò chỉ mục bằng đúng quyền và ngày hỏi, 0 lời gọi model.
+- `models.Decide`: client theo giao thức, cấu hình `EAIS_DECIDE_*`.
+- Bộ đo `evals/rag`:
+  - `TestS4PhuongAn`: B0, B1, B2 (model ở câu luật không ra kế hoạch), B3 (model mọi câu), B4 (B1 trước, model khi chỉ mục im), viết dạng `B2@0.7`.
+  - `TestChamDoan`: A (đường gốc), B (gốc rồi chấm, bỏ đoạn dưới ngưỡng — BỔ SUNG xếp lại), C (nhóm 10, xếp bằng xác suất chấm — THAY xếp lại).
+  - Chấm chỉ chạy trên đoạn ĐÃ qua lọc quyền.
+
+**Bộ độc lập mới `bo-s4-moi`:** 64 câu do agent riêng soạn mù với mã và luật từ khoá.
+- Cơ cấu: tra_loi 30, ca_hai 6, so_lieu 12, khong_co 16.
+- Băm trước khi chạy; ngưỡng chọn trên bộ S7 phát triển; mỗi phương án chạy MỘT lần.
+- Đường từ khoá + model trích trên máy.
+
+| Phương án (policy phủ vai) | S4 đúng tra_loi /30 | trích đúng | so_lieu tới tri thức | không đáp án mà trả lời /16 | lời gọi model |
+|---|---|---|---|---|---|
+| B0 luật | 4 | 3 | 0 | 0 | 0 |
+| B1 dò chỉ mục | 23 | 22 | **1** | 3 | 0 |
+| B2 model ở câu kẹt (0.7) | 24 | 21 | 0 | 2 | 33 |
+| B3 model mọi câu (0.7) | 24 | 21 | 0 | 2 | 37 |
+| B4 B1 rồi model (0.7) | 25 | 22 | 1 | 3 | 10 |
+
+- Policy NGUYÊN của pack: mọi phương án ≤ 9/30, vì vai thiếu capability.
+- ca_hai: 2/6 ở mọi phương án — dự phòng chỉ đổi sang route RAG, không dựng HYBRID.
+- Cổng khai trước cho model (giảm ≥ 30% lỗi S4 so với phương án tất định tốt nhất): KHÔNG ĐẠT — B2 bớt 1/7 lỗi so với B1 (14%), trích đúng không tăng.
+- Câu số liệu lọt ở B1 / B4 là câu XÁC NHẬN con số ("đổ 4 khối dầu đúng không?"). Chốt đã sửa sau lần chạy và có test, nhưng số của bộ giữ như đã chạy.
+
+| Chấm đoạn, ngưỡng 0.5 | top-3 trúng /36 | câu không đáp án nhận đoạn /16 | đoạn được chấm |
+|---|---|---|---|
+| từ khoá A / B / C | 33 / 27 / 27 | **8** / 0 / 0 | 0 / 123 / 347 |
+| lai (xếp lại thật) A / B / C | 31 / 26 / 27 | 0 / 0 / 0 | 0 / 93 / 397 |
+
+- Cổng khai trước (top-3 giảm ≤ 1 câu VÀ bớt câu lọt): KHÔNG ĐẠT ở cả B lẫn C.
+- "C thay xếp lại" trên đường lai thua xếp lại 27 so với 31: **bác bỏ thay xếp lại**.
+- Chẩn đoán sau lần chạy, không tuyên bố lại số:
+  - Bộ chấm giữ đoạn đáp án ở 27/27 câu một ý, xác suất 0.90–0.98.
+  - Cả 6 đoạn bị loại oan đều là câu ca_hai: đoạn trả lời phần quy trình, không có con số ⇒ "trả lời được" 0.07–0.47 dù "liên quan" 0.70–0.87.
+  - Bộ chấm phải nhận đúng PHẦN câu hỏi thuộc tri thức (HYBRID đã tách số ↔ quy trình), và phải kiểm lại trên bộ MỚI.
+
+**Kết luận đề xuất:**
+1. Việc làm ngay, tất định, không model:
+   - sửa cấu hình vai của pack (chủ dự án / team);
+   - B1 (sau sửa chốt) bật được khi chủ dự án quyết — dò chỉ mục là phương án S4 rẻ nhất, cứu 19/26 câu tri thức bị luật bỏ.
+2. Model phân loại S4: chưa đưa vào luồng — không thắng B1 đủ cổng. Giữ ở bộ đo.
+3. Chấm đoạn trên đường từ khoá là chỗ duy nhất có tín hiệu mạnh (8 → 0 câu lọt, 0 đoạn đúng mất ở câu một ý). Vòng sau:
+   - chấm theo phần tri thức của câu;
+   - chạy chế độ bóng (ghi điểm, không lọc);
+   - kiểm trên bộ độc lập MỚI;
+   - KHÔNG thay xếp lại.
+
+Lệnh (dữ liệu giả lập; `.env` có `EAIS_DECIDE_*`): `EAIS_S4_BO=<bộ> EAIS_S4_KHO=<kho> EAIS_S4_PHUONG_AN=B0,B1,B2@0.7,B3@0.7,B4@0.7
+go test -run TestS4PhuongAn -v ./evals/rag/` · `EAIS_CHAM_DUONG=tu_khoa|lai EAIS_CHAM_NGUONG=0.5 go test -run TestChamDoan -v ./evals/rag/`.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)
 

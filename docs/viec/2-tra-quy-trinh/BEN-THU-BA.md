@@ -1,7 +1,7 @@
 # Bên thứ ba của nhánh RAG — cái gì cần, khi nào, ổn định tới đâu, cần chủ dự án quyết gì
 
 > **Viết cho:** chủ dự án — mọi thứ phụ thuộc bên ngoài (dịch vụ, model, API, phần mềm cài thêm) phải được nêu ở đây TRƯỚC khi
-> dùng. **Cập nhật:** 23/10/2026 tối. Tài liệu này KHÔNG nêu tên nhà cung cấp, endpoint hay model: code chỉ biết GIAO THỨC, nhà cung
+> dùng. **Cập nhật:** 24/10/2026. Tài liệu này KHÔNG nêu tên nhà cung cấp, endpoint hay model: code chỉ biết GIAO THỨC, nhà cung
 > cấp cụ thể nằm trong `.env` của máy chạy (bị git chặn; khuôn: `.env.example`). Giá và hạn mức: tra lúc chọn, không lấy số ở đây.
 
 ## 1. Hiện trạng (đo bằng lệnh, 23/10)
@@ -22,6 +22,16 @@
 - Mã khác gửi HTTP ra ngoài: gateway kiểu Messages có sẵn của team (`intelligence/models/messages.go`, công cụ benchmark G7).
 - Chương trình ngoài chạy trên máy: `pdftotext` (đọc PDF chữ cho nạp báo cáo); `git` (g7run). Thư viện Go: `pgx`, `yaml`. Ảnh
   Docker: `postgres:17` ghim băm. Vector là mảng `real[]` thường — không cần phần mở rộng nào của PG.
+
+## 1b. Kiểm 24/10 (một lời gọi tối thiểu, dữ liệu giả lập)
+
+- Embedding + rerank:
+  - 5 khoá được cấp, 4 khoá trả 403 "hết số dư";
+  - 1 khoá chạy cả hai, đã đặt vào `.env`.
+- Model quyết định: 200, 0,5 s; trường `model` trả đúng mã phiên bản đã ghim.
+- Embedding thứ ba (bậc miễn phí): khoá hợp lệ, nhúng thử 200.
+  - Bậc miễn phí dùng dữ liệu gửi lên để cải thiện sản phẩm ⇒ chỉ dữ liệu giả lập / công khai.
+- LLM qua proxy trên máy của chủ dự án: không gọi thử (không đụng proxy của người khác).
 
 ## 2. Độ ổn định đo được của các dịch vụ đang thử (23/10)
 
@@ -46,6 +56,7 @@ Dữ liệu gửi đi: CHỈ bộ S7 giả lập và một văn bản pháp quy 
 | 6 | **OCR** | PDF scan, ảnh chụp tài liệu | chưa | chỉ khi tài liệu thật là bản scan | có tài liệu scan không; API hay máy | CÓ với API |
 | 7 | **LLM nhỏ** cho làm giàu đoạn / viết lại câu hỏi nối tiếp | chất lượng truy hồi | chưa | chỉ khi đo thấy đoạn đúng không được tìm vì thiếu ngữ cảnh | như #1 | như #1 |
 | 8 | **Nhà cung cấp dự phòng** | khi nhà cung cấp chính lỗi | chưa | sau khi #1–#3 chạy thật trong ứng dụng | chọn nhà cung cấp thứ hai, **đã thử thật** | như #1 |
+| 9 | **Model quyết định có kiểu** (giao thức `typed_questions`: state + câu hỏi đóng → xác suất từng nhãn; không sinh chữ) | S4 phân loại ý định khi luật không ra kế hoạch; chấm "đoạn có trả lời được câu hỏi không" sau truy hồi | client `intelligence/models/decide.go` + bộ đo (`evals/rag`: `TestS4PhuongAn` B2–B4, `TestChamDoan` A/B/C); **ứng dụng KHÔNG dùng** | bộ độc lập 24/10 (ROADMAP-RAG 10.2b): S4 không thắng phương án tất định B1 đủ cổng; chấm đoạn chặn 8/8 câu lọt của đường từ khoá nhưng loại oan đoạn của câu hai ý — chỉ mở lại khi vòng sau (chấm theo phần tri thức, chế độ bóng) đạt trên bộ MỚI | khoá + ngân sách (đã cấp 24/10 cho thử nghiệm); chính sách gửi dữ liệu (máy chủ ở nước ngoài, không dùng dữ liệu khách để huấn luyện theo điều khoản; lưu "khi còn cần", không ghi số ngày) | **CÓ**: câu hỏi (S4); câu hỏi + đoạn ĐÃ qua lọc quyền (chấm đoạn) |
 
 ## 4. Luật
 

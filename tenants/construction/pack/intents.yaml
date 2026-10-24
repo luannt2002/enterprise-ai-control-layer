@@ -41,20 +41,26 @@ comparison_markers: [hơn, kém, so với]
 # không đơn vị ("1tr dầu", "4 củ") KHÔNG phải tín hiệu: ca WIN-I-010 ghim câu trả lời theo nguồn có thẩm quyền. Không dùng thuật ngữ "giá" của lexicon làm tín hiệu: nó khớp
 # cả "giá trị" ("báo cáo giá trị" không phải hỏi tiền) — "đơn giá", "giá dầu" là cụm. needs_value: chỉ tính khi câu nêu một con số và không phải câu hỏi (cụm xác nhận / cụm hỏi lượng) — dấu "?" một mình không làm câu thành
 # câu hỏi ("Ghi nhận EX-03 tiêu thụ 3782 L dầu nhé?" là lệnh ghi; "EX-03 ghi nhận tiêu bao nhiêu dầu?" là câu hỏi).
-# Cụm cho biết một MỆNH ĐỀ bị bỏ qua ("chi phí không quan tâm, …", "tiền dầu thì để sau, …"): cụm báo nghĩa chưa hỗ trợ nằm trong mệnh đề ấy không làm câu thành hỏi lại (cụm vẫn
-# chiếm chỗ trong luật khớp dài nhất). Dấu hiệu phải ở CÙNG mệnh đề với cụm.
-# Hoãn / đã xong ("Chi phí em lo sau, …", "Tiền em tính sau, …", "Quyết toán kỳ trước xong, …") cũng là mệnh đề không phải điều đang hỏi (S4BS-05); phủ định thì theo negation_markers (không đứng cuối mệnh đề).
-dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong]
+# Cụm cho biết cụm báo nghĩa BỊ BỎ QUA ("chi phí không quan tâm, …", "tiền dầu thì để sau, …", "không tính tiền, …"): cụm báo nghĩa chưa hỗ trợ không làm câu thành hỏi lại (cụm vẫn
+# chiếm chỗ trong luật khớp dài nhất). Dấu hiệu phải ở CÙNG mệnh đề với cụm và theo VỊ TRÍ (S4CS-02): đứng LIỀN trước cụm ("Không tính tiền", "Chưa tính chi phí"), hoặc đứng sau cụm mà từ cụm
+# tới hết mệnh đề không có nội dung số liệu — tên thực thể, con số, cụm hỏi, chữ của từ khoá chỉ số ("Chi phí em lo sau, …", "Quyết toán kỳ trước xong, …"). "Dự báo nhanh không cần chính
+# xác EX-03 … bao nhiêu dầu?" không bỏ qua cụm: "không cần" mở vị ngữ khác. "không tính" / "chưa tính" là cụm vì luật liền trước không nhận chữ chen giữa ("Không biết dự báo …" không phải bỏ qua).
+dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong, không tính, chưa tính]
 
 # Từ nối mở đoạn MỤC ĐÍCH (S4BS-01): đoạn từ từ nối tới hết mệnh đề nói vì sao người hỏi cần câu trả lời ("… để em báo cáo gấp", "… nhằm lập báo cáo tuần"), không nói chỉ số nào: chữ trong đó không góp từ khoá
 # chỉ số, không kích hoạt cụm báo nghĩa chưa hỗ trợ. Đoạn mang cụm hỏi ("để biết đội báo bao nhiêu dầu?") là chính câu hỏi nên vẫn tính. Đây là từ nối ngữ pháp (lớp đóng), không phải danh sách nghĩa.
 purpose_markers: [để, nhằm]
 
-# Từ phủ định (lớp đóng của ngữ pháp). Đứng CUỐI câu chúng là đuôi hỏi có / không ("EX-03 hôm nay có dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm xác nhận và dấu "?".
+# Từ phủ định (lớp đóng của ngữ pháp). Đứng CUỐI câu chúng là đuôi hỏi có / không ("EX-03 hôm nay có dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm xác nhận và dấu "?". Ở chỗ khác
+# chúng phủ nhận cụm báo nghĩa theo cùng luật vị trí của dismiss_markers: liền trước cụm, hoặc sau cụm khi phần còn lại không có nội dung số liệu ("Trị giá hợp đồng không đổi, …").
 negation_markers: [không, chưa, hông, ko]
 
-# Từ nối mở mệnh đề điều kiện ("Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?"): giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong đó không kích hoạt (S4BS-05).
+# Từ nối mở vế ĐIỀU KIỆN ở đầu mệnh đề ("Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?"): giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong vế đó không kích hoạt (S4BS-05). Vế
+# điều kiện chạy tới từ đóng vế (condition_close_markers: "Nếu dự báo mưa thì …"); không có từ đóng vế thì tới hết mệnh đề, và chỉ khi sau nó còn mệnh đề khác — mệnh đề cuối câu mở bằng "nếu"
+# mà không có từ đóng vế thì vế kết quả nằm ngay trong nó ("Nếu mưa to dự báo EX-03 …"), cụm không phải giả thiết (S4CS-02).
 condition_markers: [nếu, giả sử, hễ]
+# Từ đóng vế điều kiện (lớp đóng của ngữ pháp): cụm báo nghĩa đứng SAU nó là điều đang hỏi / nhờ làm ("Nếu mưa to thì dự báo …", "Hễ EX-03 dùng hết dầu thì nhắc tôi") — S4CS-02.
+condition_close_markers: [thì]
 
 # Động từ của NGUỒN (S4BS-06): "<tên nguồn> báo" ("cảm biến báo", "hoá đơn báo", "phiếu kho báo", "ERP báo") là chữ của nguồn, không phải chỉ số đội báo. Tên nguồn lấy từ metrics.yaml (nhãn + bí danh) cho MỌI
 # chỉ số; lúc nạp ý định của chỉ số nhận thêm cụm "<tên nguồn> <động từ>" (cụm dài thắng "báo" trong luật khớp dài nhất). Thêm nguồn mới ở metrics.yaml là đủ — không thêm từ khoá theo từng nguồn.

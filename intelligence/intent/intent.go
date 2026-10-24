@@ -75,6 +75,8 @@ type Options struct {
 	SourceNames func(metric string) []string
 	// ConditionMarkers: từ nối mở một mệnh đề ĐIỀU KIỆN ("nếu", "giả sử"): mệnh đề bắt đầu bằng chúng nêu giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong đó không kích hoạt (S4BS-05).
 	ConditionMarkers []string
+	// ConditionCloseMarkers: từ ĐÓNG vế điều kiện ("thì"): vế điều kiện chạy từ từ nối tới đó, cụm báo nghĩa đứng sau là điều đang hỏi / nhờ làm (S4CS-02, xem Set.conditional).
+	ConditionCloseMarkers []string
 	// NegationMarkers: từ phủ định ("không", "chưa", "chẳng"). Đứng CUỐI câu chúng là đuôi hỏi có / không ("… dùng quá 4000 L dầu không"): một dấu hiệu hỏi như cụm hỏi và dấu "?" (xem Set.questioned).
 	NegationMarkers []string
 	// PurposeMarkers: từ nối mở một đoạn MỤC ĐÍCH ("để", "nhằm"). Đoạn từ từ nối tới hết mệnh đề nói VÌ SAO người hỏi cần câu trả lời, không nói câu trả lời là chỉ số nào nên chữ trong
@@ -1179,16 +1181,20 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if at < 0 {
 				continue
 			}
-			if s.denied(in, res, rawBG, c, at) || s.conditional(ct) {
+			// vế kết quả của mệnh đề điều kiện không đóng vế nằm ở một mệnh đề khác còn chữ ("Nếu dự báo mưa, EX-03 …", "EX-03 …, nếu dự báo mưa?")
+			others := slices.ContainsFunc(clauses, func(n [2]int) bool { return n != c && strings.TrimSpace(in.Raw[n[0]:n[1]]) != "" })
+			if s.denied(in, res, rawBG, c, at) || s.conditional(ct, at, others) {
 				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau, phủ định hay nêu điều kiện (S4BS-05)", u.Name, contracts.Quote(ct))
 				continue
 			}
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				askedAt := func(j int) bool {
-					// lệnh nêu sẵn giá trị ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm xác nhận làm nó thành câu hỏi
-					// (S4CS-02). Mệnh đề nêu tên nguồn là lời của nguồn ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?"): cụm hỏi trong đó hỏi chỉ số khác.
-					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (s.confirming(cj) || s.hasSourceName(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
+					// lệnh nêu sẵn giá trị, cụm đứng ĐẦU mệnh đề ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm
+					// xác nhận làm nó thành câu hỏi (S4CS-02). Có chủ ngữ trước cụm ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" — cùng luật đứng đầu của mệnh đề ngữ cảnh ở dưới) hay
+					// tên nguồn của pack ("ERP ghi nhận …") thì đó là lời của một nguồn: cụm hỏi trong mệnh đề hỏi chỉ số khác.
+					command := j == ci && len(strings.Fields(ct[:at])) <= 1 && !s.hasSourceName(ct)
+					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (!command || s.confirming(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
 						return true
 					}
 					next := ""
@@ -1336,10 +1342,11 @@ func (s *Set) contentEnd(text string) int {
 	return end
 }
 
-// denied báo cụm báo nghĩa ở byte at của mệnh đề c bị PHỦ NHẬN hay BỎ QUA (S4BS-05): một từ phủ định hay một dấu bỏ qua của pack đứng TRƯỚC cụm mà đoạn chen giữa không có nội dung
-// số liệu ("Không tính tiền, …", "Chưa tính chi phí, …"), hoặc đứng SAU cụm mà từ cụm tới hết mệnh đề không có nội dung số liệu ("Chi phí em lo sau, …", "Trị giá hợp đồng không đổi, …"). Có
-// nội dung số liệu chen giữa hay theo sau thì từ ấy thuộc một vị ngữ khác, không phủ nhận cụm (S4CS-02: "Dự báo EX-03 không dùng hết dầu …", "Dự báo nhanh không cần chính xác EX-03 … bao
-// nhiêu dầu?", "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu"). Từ phủ định cuối mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định trong cụm hỏi ("đúng không") không tính.
+// denied báo cụm báo nghĩa ở byte at của mệnh đề c bị PHỦ NHẬN hay BỎ QUA (S4BS-05, S4CS-02): một từ phủ định hay một dấu bỏ qua của pack đứng LIỀN trước cụm ("Không tính tiền, …",
+// "Chưa tính chi phí, …" — "không tính" / "chưa tính" là dấu bỏ qua của pack), hoặc đứng SAU cụm mà từ cụm tới hết mệnh đề không có nội dung số liệu — nó khép vị ngữ của chính cụm ("Chi
+// phí em lo sau, …", "Trị giá hợp đồng không đổi, …"). Chữ chen giữa ("Không biết dự báo …", "Em không rõ dự báo …") hay nội dung số liệu theo sau ("Dự báo EX-03 không dùng hết dầu …",
+// "Dự báo nhanh không cần chính xác EX-03 … bao nhiêu dầu?") nghĩa là từ ấy thuộc một vị ngữ khác. Từ phủ định cuối mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định trong
+// cụm hỏi ("đúng không") không tính.
 func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, c [2]int, at int) bool {
 	clause := rawBG[c[0]:c[1]]
 	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))
@@ -1352,7 +1359,7 @@ func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, raw
 	}
 	return slices.ContainsFunc(marks, func(m [2]int) bool {
 		if m[1] <= at {
-			return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)
+			return strings.TrimSpace(clause[m[1]:at]) == ""
 		}
 		return !s.dataIn(in, res, rawBG, c[0]+at, c[1])
 	})
@@ -1365,11 +1372,21 @@ func (s *Set) dataIn(in contracts.NormalizedInput, res contracts.Resolution, raw
 		hasFigure(in, res, start, end) || s.asking(text) || s.metricWord(text)
 }
 
-// conditional báo mệnh đề là GIẢ THIẾT: bắt đầu bằng từ nối điều kiện của pack ("Nếu dự báo mưa, …") và không mang cụm hỏi. Mệnh đề điều kiện có cụm hỏi ("Nếu mưa to thì dự báo EX-03
-// dùng bao nhiêu dầu?") gộp cả vế hỏi vì không có dấu ngắt — pack chưa khai từ đóng vế điều kiện ("thì") — nên cụm báo nghĩa trong đó không được coi là giả thiết (S4CS-02).
-func (s *Set) conditional(clause string) bool {
+// conditional báo cụm báo nghĩa ở byte at của mệnh đề nằm trong vế ĐIỀU KIỆN (giả thiết, không phải điều đang hỏi): mệnh đề bắt đầu bằng từ nối điều kiện của pack và cụm đứng trước từ
+// đóng vế đầu tiên ("Nếu dự báo mưa thì EX-03 …"); cụm đứng sau từ đóng vế là điều đang hỏi / nhờ làm ("Nếu mưa to thì dự báo …", "Hễ … thì nhắc tôi"). Không có từ đóng vế thì cả mệnh đề
+// là vế điều kiện khi vế kết quả là một mệnh đề khác (others: "Nếu dự báo mưa, EX-03 …"); câu chỉ một mệnh đề thì vế kết quả nằm ngay trong nó ("Nếu mưa to dự báo EX-03 …"), không có ranh
+// giới để bỏ qua cụm (S4CS-02).
+func (s *Set) conditional(clause string, at int, others bool) bool {
 	trimmed := len(clause) - len(strings.TrimLeft(clause, " "))
-	return !s.asking(clause) && slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers), func(sp [2]int) bool { return sp[0] == trimmed })
+	return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers), func(sp [2]int) bool {
+		if sp[0] != trimmed {
+			return false
+		}
+		if end := firstSpan(clause[sp[1]:], s.opt.ConditionCloseMarkers); end >= 0 {
+			return at < sp[1]+end
+		}
+		return others
+	})
 }
 
 // ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "stated_value" (câu nêu giá trị, không dấu hiệu hỏi), "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều

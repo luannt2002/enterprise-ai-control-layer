@@ -238,7 +238,7 @@ m $I '					return strings.TrimSpace(next) != "" && s.onlyMarkers(next, markers)'
 # ---- S4AS-05: lời chào thuần và mệnh đề bị bỏ qua
 m $I '			if d.Alone && counts[i] > 0 {' '			if false {' 'S136 "chào" luôn là lời chào dù câu còn thực thể / con số ("chào cờ ở dự án A" được chào lại)'
 m $I 'marks := spansOf(in.Raw[c[0]:c[1]], s.opt.DismissMarkers)' 'marks := spansOf(in.Raw[c[0]:c[1]], nil)' 'S137 cụm nghĩa trong mệnh đề "không quan tâm / để sau" vẫn bị hỏi lại'
-m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
+m tenants/construction/pack/intents.yaml 'dismiss_markers: [không quan tâm, không cần, chưa cần, khỏi cần, để sau, bỏ qua, lo sau, tính sau, làm sau, xong, không tính, chưa tính]' 'dismiss_markers: []' 'S138 pack không khai mệnh đề bị bỏ qua'
 
 # ---- S4AS-06: kiểm nạp pack của nghĩa chưa hỗ trợ và khử trùng ứng viên
 m core/tenant/pack.go '				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {' '				if false {' 'S139 pack không đòi name / template / cues của nghĩa chưa hỗ trợ'
@@ -300,11 +300,11 @@ m core/tenant/pack.go '						out = append(out, rt.Normalizer.MultiplierAliases("
 m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && metricAsk {' 'S174 cụm quá chung ("sẽ") kích hoạt ở mệnh đề không phải câu hỏi ("Anh sẽ duyệt, …" thành câu dự báo)'
 m $I '			if at < 0 && metricAsk && s.asking(ct) {' '			if at < 0 && (metricAsk || true) && s.asking(ct) {' 'S175 cụm quá chung kích hoạt khi câu không hỏi chỉ số nào ("EX-03 sẽ về công trường lúc mấy giờ?" thành câu dự báo)'
 m $I 'for _, sp := range spansOf(masked, s.opt.NegationMarkers) {' 'for _, sp := range spansOf(masked, nil) {' 'S176 mệnh đề phủ định ("Không tính tiền, …") vẫn kích hoạt cụm tiền'
-m $I 'if s.denied(in, res, rawBG, c, at) || s.conditional(ct) {' 'if s.denied(in, res, rawBG, c, at) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
+m $I '|| s.conditional(ct, at, others) {' '|| (others && false) {' 'S177 mệnh đề điều kiện ("Nếu dự báo mưa, …") vẫn kích hoạt cụm dự báo'
 m $I '		if sp[1] < end {' '		if sp[1] <= end {' 'S178 từ phủ định cuối mệnh đề (đuôi hỏi "… có cao không?") bị coi là phủ định'
 m $I '	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))' '	masked := clause' 'S179 "không" của cụm xác nhận ("đúng không ạ") bị coi là phủ định'
 m tenants/construction/pack/intents.yaml 'cues: [dự báo, dự đoán, dự phóng, dự trù], weak_cues: [dự kiến, dự tính, ước tính, sẽ]}' 'cues: [dự báo, dự đoán, dự phóng, dự trù, dự kiến, dự tính, ước tính, sẽ]}' 'S180 pack để "sẽ", "dự kiến" … làm cụm thường (mọi câu có "sẽ" thành câu dự báo)'
-m tenants/construction/pack/intents.yaml 'bỏ qua, lo sau, tính sau, làm sau, xong]' 'bỏ qua]' 'S181 pack không có cụm hoãn / đã xong ("em lo sau", "em tính sau", "xong")'
+m tenants/construction/pack/intents.yaml 'bỏ qua, lo sau, tính sau, làm sau, xong, không tính, chưa tính]' 'bỏ qua, không tính, chưa tính]' 'S181 pack không có cụm hoãn / đã xong ("em lo sau", "em tính sau", "xong")'
 m tenants/construction/pack/intents.yaml 'condition_markers: [nếu, giả sử, hễ]' 'condition_markers: []' 'S182 pack không khai từ nối điều kiện'
 
 # ---- S4BS-06 (vòng 3): "<tên nguồn> báo" theo cấu trúc cho mọi nguồn của pack
@@ -317,22 +317,31 @@ m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: [
 m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S187 đuôi hỏi "… có đốt 3782 L dầu không ạ" bị coi là lệnh ghi (từ trung tính cuối câu chặn đuôi hỏi)'
 m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
 
+# Vòng 2 (soát độc lập L2): trước cụm phải LIỀN trước; vế điều kiện đóng ở "thì" (condition_close_markers), không "thì" thì vế kết quả là mệnh đề khác; lệnh nêu
+# sẵn giá trị chỉ khi cụm đứng đầu mệnh đề (S200, F2).
 # ---- S4CS-02 (soát 23/10, hồi quy S1 của S4BS-05) + S4CS-07 (X3, X4 của người soát từng sống sót): từ phủ định / dấu bỏ qua chỉ phủ nhận cụm báo nghĩa khi đứng trước cụm
 # không có nội dung số liệu chen giữa, hay đứng sau cụm mà phần còn lại không có nội dung số liệu; mệnh đề điều kiện mang cụm hỏi không phải giả thiết thuần; mệnh đề nêu sẵn giá trị
 # không thành câu hỏi nhờ cụm hỏi lượng.
 m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return len(sp) > 0 && sp[len(sp)-1][1] <= end' 'X3 từ phủ định ở bất kỳ đâu là đuôi hỏi ("EX-03 hôm nay không nghỉ, dùng 3782 L dầu" thành câu hỏi, trả số)'
-m $I 'func(sp [2]int) bool { return sp[0] == trimmed })' 'func(sp [2]int) bool { return sp[0] >= trimmed })' 'X4 từ nối điều kiện ở mọi vị trí ("Cảnh báo giúp em nếu EX-03 … cấp dầu" thành giả thiết, trả số)'
-m $I 'return !s.asking(clause) && slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'S189 mệnh đề điều kiện mang cụm hỏi vẫn là giả thiết ("Nếu mưa to thì dự báo EX-03 dùng bao nhiêu dầu?" trả số)'
+m $I '		if sp[0] != trimmed {' '		if sp[0] < trimmed {' 'X4 từ nối điều kiện ở mọi vị trí ("Cảnh báo giúp em nếu EX-03 … cấp dầu" thành giả thiết, trả số)'
+m $I 'if end := firstSpan(clause[sp[1]:], s.opt.ConditionCloseMarkers); end >= 0 {' 'if end := firstSpan(clause[sp[1]:], nil); end >= 0 {' 'S189 không cắt vế điều kiện ở "thì" ("Nếu mưa to thì dự báo giúp em, EX-03 …" trả số; "Nếu dự báo mưa thì EX-03 … bao nhiêu" bị hỏi lại)'
 m $I 'return !s.dataIn(in, res, rawBG, c[0]+at, c[1])' 'return true' 'S190 từ phủ định / dấu bỏ qua đứng sau cụm luôn phủ nhận cụm ("Dự báo EX-03 không dùng hết dầu …" trả số)'
-m $I 'return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)' 'return true' 'S191 từ phủ định đứng trước cụm phủ nhận cụm dù tên thực thể chen giữa ("Không biết EX-03 hôm nay dự báo …" trả số)'
-m $I 'return slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return r[0] < end && start < r[1] }) ||' 'return false ||' 'S192 tên thực thể không là nội dung số liệu'
+m $I 'return strings.TrimSpace(clause[m[1]:at]) == ""' 'return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)' 'S191 từ phủ định / dấu bỏ qua đứng TRƯỚC cụm không cần liền trước (luật vòng 1: "Không biết dự báo EX-03 …" trả số)'
+m $I 'return slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return r[0] < end && start < r[1] }) ||' 'return false ||' 'S192 tên thực thể không là nội dung số liệu ("Dự báo nhanh không cần chính xác cho EX-03 hôm nay" bị bỏ qua cụm)'
 m $I 'hasFigure(in, res, start, end) || s.asking(text)' 's.asking(text)' 'S193 con số không là nội dung số liệu ("EX-03 hôm nay dự báo không quá 4000 L dầu" thành lệnh ghi)'
 m $I '|| s.asking(text) || s.metricWord(text)' '|| s.metricWord(text)' 'S194 cụm hỏi không là nội dung số liệu ("EX-03 dự báo không cần chính xác bao nhiêu dầu …" trả số)'
 m $I '|| s.asking(text) || s.metricWord(text)' '|| s.asking(text)' 'S195 chữ của từ khoá chỉ số không là nội dung số liệu ("EX-03 hôm nay dự báo không dùng hết dầu" trả số)'
 m $I 'text := s.withoutCues(rawBG[start:end])' 'text := rawBG[start:end]' 'S196 chữ của chính cụm báo nghĩa là nội dung số liệu ("báo" của "Dự báo khỏi cần, …" làm cụm không bị bỏ qua)'
 m $I '|| !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {' '|| true) {' 'S197 cụm hỏi lượng làm lệnh nêu sẵn giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu cho ca mấy" trả số)'
-m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.hasSourceName(cj) ||' 'S198 cụm xác nhận không làm mệnh đề nêu giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu đúng không?" thành lệnh ghi)'
-m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.confirming(cj) ||' 'S199 mệnh đề nêu tên nguồn cũng là lệnh ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?" thành lệnh ghi)'
+m $I '!command || s.confirming(cj) ||' '!command ||' 'S198 cụm xác nhận không làm mệnh đề nêu giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu đúng không?" thành lệnh ghi)'
+m $I ' && !s.hasSourceName(ct)' '' 'S199 tên nguồn của pack đứng đầu mệnh đề cũng là lệnh ("ERP ghi nhận 3900 L … thì cảm biến đo bao nhiêu?" thành lệnh ghi)'
+m $I 'len(strings.Fields(ct[:at])) <= 1' 'true' 'S200 chủ ngữ đứng trước cụm ghi vẫn là lệnh nêu sẵn giá trị ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" thành lệnh ghi — F2 soát L2)'
+m $I '			return at < sp[1]+end' '			return end >= 0' 'S201 cụm SAU "thì" cũng thuộc vế điều kiện ("Nếu mưa to thì dự báo EX-03 …", "Hễ … thì nhắc tôi" trả số)'
+m $I '		return others' '		return true' 'S202 mệnh đề duy nhất mở bằng "nếu" (không "thì") là giả thiết ("Nếu mưa to dự báo EX-03 … bao nhiêu" trả số)'
+m $I '		return others' '		return false' 'S203 vế điều kiện là mệnh đề riêng mà không "thì" vẫn kích hoạt cụm ("Nếu dự báo mưa, …", "…, nếu dự báo mưa?" bị hỏi lại)'
+m $I '			return strings.TrimSpace(clause[m[1]:at]) == ""' '			return false' 'S204 từ phủ định / dấu bỏ qua liền trước cụm không phủ nhận cụm ("Không tính tiền, …" bị hỏi lại)'
+m tenants/construction/pack/intents.yaml 'condition_close_markers: [thì]' 'condition_close_markers: []' 'S205 pack không khai từ đóng vế điều kiện'
+m tenants/construction/pack/intents.yaml 'làm sau, xong, không tính, chưa tính]' 'làm sau, xong]' 'S206 pack không có dấu bỏ qua "không tính" / "chưa tính" ("Không tính tiền, …" bị hỏi lại vì luật liền trước)'
 
 # Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
 # mang nghĩa khác không phải từ khoá (S4R-03).

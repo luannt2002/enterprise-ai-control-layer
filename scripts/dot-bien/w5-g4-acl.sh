@@ -6,7 +6,7 @@
 cd "$(dirname "$0")/../.." || exit 1
 export PKGS="./data/... ./core/... ./intelligence/... ./tenants/... ./evals/ ./reliability/..."
 m() { scripts/mutate.sh "$1" "$2" "$3" "$4"; echo "rc=$?"; }
-m intelligence/rag/rag.go '		if !allowed(c.doc, pr) {' '		if false && !allowed(c.doc, pr) {' 'AL bỏ ACL tài liệu'
+m intelligence/rag/rag.go '		if vis[d] = ix.visible(d, pr); !vis[d] {' '		if vis[d] = true; !vis[d] {' 'AL bỏ ACL tài liệu'
 m core/pipeline/ask.go '		if _, derived := a.RT.Metrics.Derived(metric); derived {' '		if plan.Route == contracts.RouteCalculation {' 'AZ HYBRID phép tính đi đường Query'
 m core/pipeline/ask.go '	draft := contracts.Draft{Text: text, FromTemplate: true, Claims: claims}' '	if a.Deps.Model != nil {
 		_, _ = a.Deps.Model.Generate(ctx, models.Request{Question: in.Raw})

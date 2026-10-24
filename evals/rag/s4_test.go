@@ -38,6 +38,9 @@ func TestS4PhuongAn(t *testing.T) {
 	bo, docs, kho := napBoS4(t)
 	t.Logf("bộ %s · kho %s · %d câu · %d tài liệu", os.Getenv("EAIS_S4_BO"), kho, len(bo.Cau), len(docs))
 	phuongAn := strings.Split(cmp.Or(os.Getenv("EAIS_S4_PHUONG_AN"), "B0,B1"), ",")
+	if !slices.Contains(phuongAn, "B0") || phuongAn[0] != "B0" { // B0 là mốc của "đổi kết quả": luôn chạy trước
+		phuongAn = append([]string{"B0"}, slices.DeleteFunc(phuongAn, func(x string) bool { return x == "B0" })...)
+	}
 	var ra *json.Encoder
 	if p := os.Getenv("EAIS_S4_RA"); p != "" {
 		f, err := os.Create(p)
@@ -68,7 +71,11 @@ func TestS4PhuongAn(t *testing.T) {
 		moc := map[string]contracts.Outcome{} // kết quả B0 theo mã câu: đo hồi quy của câu so_lieu
 		for _, pa := range phuongAn {
 			ix := rag.NewMemoryIndex("abc-infra", docs)
-			fb, dem := duPhongS4(t, pa, ix)
+			fb, dem, ok := duPhongS4(t, pa, ix)
+			if !ok {
+				t.Logf("[%s] %s: bỏ qua — cần model phân loại (EAIS_DECIDE_*, khuôn ở .env.example; câu hỏi được gửi ra ngoài)", ten, pa)
+				continue
+			}
 			var kq s4KetQua
 			for _, c := range bo.Cau {
 				day, _ := ngayS4(bo, c)
@@ -83,7 +90,7 @@ func TestS4PhuongAn(t *testing.T) {
 				if pa == "B0" {
 					moc[c.Ma] = o.Response.Outcome
 				}
-				kq.cham(t, pa, c, o, err, docs, moc)
+				kq.cham(t, pa, c, o, err, docs, moc, rt.Policy, day)
 				moHinh := dem.cuoi
 				dem.cuoi = ""
 				if ra != nil {
@@ -92,12 +99,12 @@ func TestS4PhuongAn(t *testing.T) {
 						"s4": o.Decision.Why.Intent.Reasons, "trich": o.Response.Citations, "tra_loi": o.Response.Answer})
 				}
 			}
-			t.Logf("[%s] %s: %s · lời gọi model phân loại %d (lỗi %d)", ten, pa, kq, dem.goi, dem.loi)
+			t.Logf("[%s] %s: %s · số câu phải hỏi model %d (lỗi %d)", ten, pa, kq, dem.goi, dem.loi)
 			if len(kq.ro) > 0 {
-				t.Errorf("%s: trích tài liệu người hỏi không được đọc: %v", pa, kq.ro)
+				t.Errorf("%s: trích tài liệu người hỏi không được đọc / không làm căn cứ / không có trong kho: %v", pa, kq.ro)
 			}
-			if pa == "B1" && kq.soLieuSangTriThuc > 0 {
-				t.Errorf("B1: %d câu so_lieu tới route tri thức", kq.soLieuSangTriThuc)
+			if kq.soLieuSangTriThuc > 0 {
+				t.Errorf("%s: %d câu so_lieu tới route tri thức", pa, kq.soLieuSangTriThuc)
 			}
 		}
 	}
@@ -191,7 +198,11 @@ type s4KetQua struct {
 	tre                                                     []time.Duration
 }
 
-func (k *s4KetQua) cham(t *testing.T, pa string, c s4Cau, o pipeline.Outcome, err error, docs []rag.Document, moc map[string]contracts.Outcome) {
+// cham chấm một câu. "Trích đúng" = trả lời, trích đúng tài liệu + bản của đáp án VÀ câu trả lời chứa chuỗi đáp án (soát độc lập 24/10: chỉ
+// so tài liệu thì tính đúng cả câu trích nhầm đoạn). Rò = trích tài liệu người hỏi không được đọc / không làm căn cứ ở ngày hỏi / không có
+// trong kho — cùng luật với dòng S7 (duocDoc, canCuDuoc).
+func (k *s4KetQua) cham(t *testing.T, pa string, c s4Cau, o pipeline.Outcome, err error, docs []rag.Document, moc map[string]contracts.Outcome,
+	pol router.Policy, day time.Time) {
 	t.Helper()
 	if k.n == nil {
 		k.n, k.s4Dung, k.trichDung = map[string]int{}, map[string]int{}, map[string]int{}
@@ -208,15 +219,24 @@ func (k *s4KetQua) cham(t *testing.T, pa string, c s4Cau, o pipeline.Outcome, er
 	}
 	r, plan := o.Response, o.Plan
 	triThuc := plan.Intent.Name == s4YDinhTriThuc || r.Route == contracts.RouteHybrid
+	pr := contracts.Principal{ID: "nguoi-hoi", TenantID: "abc-infra", Kind: contracts.PrincipalUser, Roles: c.Vai,
+		Attributes: map[string]string{"entity_scope": strings.Join(c.PhamVi, ",")}}
 	for _, ci := range r.Citations {
-		if d := timTaiLieu(docs, ci.Source.DocumentID, ci.Source.DocumentVersion); d != nil && !slices.ContainsFunc(c.Vai, func(v string) bool { return slices.Contains(d.ACL, v) }) {
-			k.ro = append(k.ro, c.Ma+"→"+d.ID)
+		switch d := timTaiLieu(docs, ci.Source.DocumentID, ci.Source.DocumentVersion); {
+		case ci.Source.DocumentID == "": // bằng chứng số liệu (SQL / phép tính), không phải tài liệu
+		case d == nil:
+			k.ro = append(k.ro, c.Ma+"→"+ci.Source.DocumentID+" (không có trong kho)")
+		case !duocDoc(*d, pr, pol):
+			k.ro = append(k.ro, c.Ma+"→"+d.ID+" (ngoài quyền)")
+		case !canCuDuoc(*d, day, docs, pr, pol):
+			k.ro = append(k.ro, c.Ma+"→"+d.ID+" (không làm căn cứ ở ngày hỏi)")
 		}
 	}
+	gon := strings.Join(strings.Fields(r.Answer), " ")
 	trich := r.Outcome == contracts.OutcomeResolved && slices.ContainsFunc(r.Citations, func(ci contracts.Citation) bool {
 		return slices.ContainsFunc(c.DapAn, func(d s7DapAn) bool {
 			x := timTaiLieu(docs, ci.Source.DocumentID, ci.Source.DocumentVersion)
-			return x != nil && dungBan(*x, d)
+			return x != nil && dungBan(*x, d) && strings.Contains(gon, strings.Join(strings.Fields(d.Chua), " "))
 		})
 	})
 	switch c.Loai {
@@ -265,7 +285,7 @@ func (k s4KetQua) String() string {
 	for _, l := range slices.Sorted(maps.Keys(k.n)) {
 		fmt.Fprintf(&b, "%s %d: S4 đúng %d", l, k.n[l], k.s4Dung[l])
 		if l == "tra_loi" || l == "ca_hai" {
-			fmt.Fprintf(&b, ", trích đúng %d", k.trichDung[l])
+			fmt.Fprintf(&b, ", trích đúng đoạn %d", k.trichDung[l])
 		}
 		b.WriteString(" · ")
 	}
@@ -293,15 +313,15 @@ type demGoi struct {
 	cuoi     string // quyết định của model ở câu vừa chạy (ghi JSONL)
 }
 
-// duPhongS4 dựng móc S4 của phương án; B2 / B3 / B4 cần model phân loại (Skip cả phép đo khi chưa cấu hình).
-func duPhongS4(t *testing.T, pa string, ix *rag.MemoryIndex) (pipeline.IntentFallback, *demGoi) {
+// duPhongS4 dựng móc S4 của phương án; B2 / B3 / B4 cần model phân loại — chưa cấu hình thì ok = false (chỉ bỏ phương án đó).
+func duPhongS4(t *testing.T, pa string, ix *rag.MemoryIndex) (pipeline.IntentFallback, *demGoi, bool) {
 	t.Helper()
 	dem := &demGoi{}
 	switch pa {
 	case "B0":
-		return nil, dem
+		return nil, dem, true
 	case "B1":
-		return pipeline.KnowledgeProbe{Knowledge: ix, Name: s4YDinhTriThuc}, dem
+		return pipeline.KnowledgeProbe{Knowledge: ix, Name: s4YDinhTriThuc}, dem, true
 	}
 	// B2 / B3 / B4, có thể kèm ngưỡng: "B2@0.6" (không kèm = EAIS_S4_NGUONG, trống = 0.5)
 	ten, so, co := strings.Cut(pa, "@")
@@ -317,14 +337,48 @@ func duPhongS4(t *testing.T, pa string, ix *rag.MemoryIndex) (pipeline.IntentFal
 	case "B2", "B3", "B4":
 		qd := quyetDinhTuMoiTruong(t)
 		if qd == nil {
-			t.Skipf("%s cần model phân loại: đặt EAIS_DECIDE_* (khuôn ở .env.example) — câu hỏi được gửi ra ngoài", pa)
+			return nil, dem, false
 		}
 		m := moHinhS4{qd: qd, moi: ten == "B3", nguong: nguong, dem: dem}
 		if ten == "B4" {
 			m.truoc = &pipeline.KnowledgeProbe{Knowledge: ix, Name: s4YDinhTriThuc}
 		}
-		return m, dem
+		return m, dem, true
 	}
 	t.Fatalf("phương án lạ %q", pa)
-	return nil, dem
+	return nil, dem, false
+}
+
+// Bộ chấm S4 (soát độc lập 24/10): rò bắt tài liệu ngoài quyền và trích dẫn không có trong kho, KHÔNG tính bằng chứng số liệu; "trích
+// đúng đoạn" đòi câu trả lời chứa đáp án, không chỉ đúng tài liệu.
+func TestChamS4(t *testing.T) {
+	day := time.Date(2026, 10, 20, 10, 0, 0, 0, time.UTC)
+	docs := []rag.Document{{ID: "SOP", Tenant: "abc-infra", Title: "SOP", ACL: []string{"ks"}, Body: "1. Thay nhớt sau 250 giờ."},
+		{ID: "MAT", Tenant: "abc-infra", Title: "Mật", ACL: []string{"gd"}, Body: "1. Két sắt."}}
+	pol := router.Policy{Roles: map[string]router.RoleDef{"ks": {Capabilities: []string{"documents.read"}, Scope: "all"}, "gd": {Capabilities: []string{"documents.read"}, Scope: "all"}}}
+	c := s4Cau{s7Cau: s7Cau{Ma: "X", Vai: []string{"ks"}, Loai: "tra_loi", DapAn: []s7DapAn{{TaiLieu: "SOP", Chua: "250 giờ"}}}}
+	tl := func(answer string, ids ...string) pipeline.Outcome {
+		var ci []contracts.Citation
+		for _, id := range ids {
+			ci = append(ci, contracts.Citation{Source: contracts.SourceRef{DocumentID: id}})
+		}
+		return pipeline.Outcome{Response: contracts.AskResponse{Outcome: contracts.OutcomeResolved, Answer: answer, Citations: ci}}
+	}
+	for _, x := range []struct {
+		ten       string
+		o         pipeline.Outcome
+		ro, trich int
+	}{
+		{"đúng đoạn", tl("Trích: 1. Thay nhớt sau 250   giờ.", "SOP"), 0, 1},
+		{"đúng tài liệu, sai đoạn", tl("Trích: 2. Kiểm tra nhớt hằng ngày.", "SOP"), 0, 0},
+		{"tài liệu ngoài quyền", tl("Két sắt.", "MAT"), 1, 0},
+		{"không có trong kho", tl("x", "LA"), 1, 0},
+		{"bằng chứng số liệu", tl("3.850 L", ""), 0, 0},
+	} {
+		var k s4KetQua
+		k.cham(t, "B?", c, x.o, nil, docs, nil, pol, day)
+		if len(k.ro) != x.ro || k.trichDung["tra_loi"] != x.trich {
+			t.Errorf("%s: rò %v (muốn %d), trích đúng đoạn %d (muốn %d)", x.ten, k.ro, x.ro, k.trichDung["tra_loi"], x.trich)
+		}
+	}
 }

@@ -75,12 +75,23 @@ func (m moHinhS4) Fallback(ctx context.Context, pr contracts.Principal, in contr
 		m.dem.mu.Unlock()
 		return false, 0, "", err
 	}
-	best := slices.MaxFunc(slices.Collect(maps.Keys(p)), func(a, b string) int { return cmp.Or(cmp.Compare(p[a], p[b]), cmp.Compare(b, a)) })
+	doi := func(l string) bool { return l == "procedure" || l == "combined" } // nhãn làm đổi route sang tri thức
+	// hoà xác suất thì nghiêng về nhãn KHÔNG đổi route (bảo thủ), rồi theo chữ cái để tất định
+	best := slices.MaxFunc(slices.Collect(maps.Keys(p)), func(a, b string) int {
+		return cmp.Or(cmp.Compare(p[a], p[b]), cmp.Compare(b2i(!doi(a)), b2i(!doi(b))), cmp.Compare(b, a))
+	})
 	why := fmt.Sprintf("model phân loại %s: %s %.2f", model, best, p[best])
 	m.dem.mu.Lock()
 	m.dem.cuoi = why
 	m.dem.mu.Unlock()
-	return (best == "procedure" || best == "combined") && p[best] >= m.nguong, p[best], why, nil
+	return doi(best) && p[best] >= m.nguong, p[best], why, nil
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // chamDoan bọc đường truy hồi gốc bằng bộ chấm "đoạn có trả lời được câu hỏi không".
@@ -122,7 +133,9 @@ func (c *chamDoan) Retrieve(ctx context.Context, pr contracts.Principal, q strin
 			r, _, err := c.qd.Propositions(ctx, map[string]any{"query": q, "passage": map[string]string{"title": e.Source.Name, "text": e.Text}}, chamMenhDe)
 			mu.Lock()
 			defer mu.Unlock()
-			c.dem.goi++
+			c.dem.mu.Lock()
+			c.dem.goi++ // số đoạn chấm (gồm lần lấy từ bộ nhớ) = số lời gọi phương án tốn khi chạy thật
+			c.dem.mu.Unlock()
 			if err != nil {
 				loi = err
 				return
@@ -135,7 +148,7 @@ func (c *chamDoan) Retrieve(ctx context.Context, pr contracts.Principal, q strin
 		c.dem.mu.Lock()
 		c.dem.loi++
 		c.dem.mu.Unlock()
-		return ev[:min(k, len(ev))], nil // chấm lỗi: về đường gốc
+		return ev[:min(k, len(ev))], nil // chấm lỗi: về đường gốc của chính phương án (với C trên đường lai: lai KHÔNG xếp lại)
 	}
 	idx := make([]int, len(ev))
 	for i := range idx {
@@ -332,6 +345,8 @@ func TestQuyetDinhGia(t *testing.T) {
 		{"B2 câu kẹt, dưới ngưỡng", moHinhS4{qd: gia, nguong: 0.9, dem: dem}, ket, 0.8, false, 1},
 		{"B2 câu đã có ý định: không hỏi", moHinhS4{qd: gia, nguong: 0.5, dem: dem}, du, 0.8, false, 0},
 		{"B3 câu đã có ý định: vẫn hỏi", moHinhS4{qd: gia, moi: true, nguong: 0.5, dem: dem}, du, 0.8, true, 1},
+		{"đúng bằng ngưỡng: dùng", moHinhS4{qd: gia, nguong: 0.8, dem: dem}, ket, 0.8, true, 1},
+		{"hoà 0.5 / 0.5: không đổi route", moHinhS4{qd: gia, nguong: 0.5, dem: dem}, ket, 0.5, false, 1},
 	} {
 		gia.pQuyTrinh, dem.goi = c.p, 0
 		ok, _, _, err := c.m.Fallback(ctx, contracts.Principal{}, in, c.cls)
@@ -360,10 +375,12 @@ func TestQuyetDinhGia(t *testing.T) {
 		return ev("kiểm tra nhớt hằng ngày", "lọc nhớt 500 giờ", "thay nhớt 250 giờ", "đoạn 4")[:k], nil
 	}
 	for _, c := range []struct {
-		kieu string
-		muon []string
-	}{{"A", []string{"kiểm tra nhớt hằng ngày", "lọc nhớt 500 giờ", "thay nhớt 250 giờ"}}, {"B", []string{"thay nhớt 250 giờ"}}, {"C", []string{"thay nhớt 250 giờ"}}} {
-		ch := &chamDoan{goc: goc, qd: gia, kieu: c.kieu, nguong: 0.5, pool: 4, dem: &demGoi{}}
+		kieu   string
+		muon   []string
+		nguong float64
+	}{{"A", []string{"kiểm tra nhớt hằng ngày", "lọc nhớt 500 giờ", "thay nhớt 250 giờ"}, 0.5}, {"B", []string{"thay nhớt 250 giờ"}, 0.5}, {"C", []string{"thay nhớt 250 giờ"}, 0.5},
+		{"B", []string{"thay nhớt 250 giờ"}, 0.9} /* đúng bằng ngưỡng: giữ */} {
+		ch := &chamDoan{goc: goc, qd: gia, kieu: c.kieu, nguong: c.nguong, pool: 4, dem: &demGoi{}}
 		got, err := ch.Retrieve(ctx, pr, "bao nhiêu giờ thay nhớt?", 3)
 		if ids := evIDs(got); err != nil || !slices.Equal(ids, c.muon) {
 			t.Errorf("%s: được %v %v, muốn %v", c.kieu, ids, err, c.muon)

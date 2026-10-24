@@ -1,10 +1,20 @@
 # STATUS — trạng thái EAIS
 
-> Cập nhật: 23/10/2026 17:26, giữa ca 23/10 — báo cáo ca `docs/bao-cao/2026-10-23-ca.md` (bản giữa ca); tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`.
+> Cập nhật: **24/10/2026 tối — TÍCH HỢP: mọi nhánh đã vào main (D-RAG-05)**, báo cáo `docs/bao-cao/2026-10-24-tich-hop-main.md`. Phần dưới khối
+> "Tích hợp 24/10" giữ nguyên chữ của 23/10 17:26 (báo cáo ca `docs/bao-cao/2026-10-23-ca.md`); tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
+
+## Tích hợp 24/10 tối (D-RAG-05): main = mọi nhánh + RAG — MVP vẫn CHƯA RA
+
+- Main `4fe8e0b` (rồi các commit tài liệu): gộp nội dung vòng sửa S4 (KHOÁ, kèm nợ S4CS-01…04 — tức D-AI-05 = a), nợ S4 sau H4, vết
+  S8–S10, 5a vòng 5, mã Phase 0a (migration **0009**; R-01 chết khoá PG còn mở), RAG (D-RAG-01, D-RAG-04); 13 nhánh đã vào / bị thay chỉ ghi
+  nhận. Soát độc lập sau gộp: 0 P0, 1 P1 + 6 P2 do giao nhau — đã sửa có test đỏ trước (bảng ở báo cáo tích hợp mục 3).
+- Đo [lệnh ở báo cáo mục 7]: winreport 117/117, H1 **96**/104, H3 **122**/134, H4 **109**/119 (bộ đã công bố), 0 ca xanh → đỏ, bộ nhớ = PG;
+  smoke 21/21; cổng có PG so theo tên: báo cáo mục 4.
+- CHƯA chạy (dùng một lần, chờ chủ dự án): H6, bộ ca 0a. Migration mới tiếp theo: **0010**.
 
 ## MVP (`docs/ROADMAP-DAY-DU.md` §5b): CHƯA RA — M1 vế đọc vết 78,9% (< 90%); M2 bộ ca 0a đã băm, mã đang soát; M3 chờ D-AI-05; M4 đã gộp K1–K4, P1 153 / 157, chờ Q-P1-15
 
@@ -34,7 +44,7 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   0 sống sót, 0 khác; ngoại lệ M5 của §11.2 chờ Q-P1-14.
 - **M2**: giấy Phase 0a KHOÁ ở vòng 6 (luật 23/10: giấy tối đa 3 vòng soát); R6-01, R6-02 thành nợ có mã, chặn bằng test đỏ trong mã Phase 0a.
   **Bộ ca giữ lại độc lập 0a ĐÓNG BĂNG** (`a52eb67`, `docs/g7/holdout-0a/holdout-manifest.json`): 249 ca, 83 / 84 lớp (LC10 = 0), hai người
-  soạn không đọc mã, kiểm nhiễm 0 vi phạm. Mã bước 2–3b + kho PG (nhánh `m2/0a-ma-truoc-dong-bang`, migration 0006, R6-01 chặn bằng test
+  soạn không đọc mã, kiểm nhiễm 0 vi phạm. Mã bước 2–3b + kho PG (nhánh `m2/0a-ma-truoc-dong-bang` — gộp main 24/10 `71c6b45`, migration **0009**, R6-01 chặn bằng test
   đỏ): soát 23/10 KHÔNG ĐẠT hẹp (R-01 chết khoá trên PG; S1 = 0) — đang sửa; bộ 0a chạy MỘT lần sau khi mã đóng băng.
 - **M5 chưa đạt**: S2, S3, S4 KHÔNG ĐẠT; L1 KHÔNG ĐẠT (lỗi đã đo); S5, S6 CHƯA ĐẠT — chưa có bộ ca độc lập / ca âm (số theo tầng ở
   `docs/bao-cao/CONG-TRUOC-AI.md`); S7 NGOÀI MVP — **MVP không gồm câu hỏi quy trình (RAG)** (D-AI-03 = a); S9 chưa có bộ ca độc lập (giấy

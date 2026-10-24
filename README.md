@@ -20,16 +20,20 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 
 ---
 
-## 0. Đọc nhanh — trạng thái 24/10/2026
+## 0. Đọc nhanh — trạng thái 24/10/2026 tối (main = mọi nhánh đã gộp, D-RAG-05)
+
+> **Tích hợp 24/10 tối:** mọi nhánh của team + RAG đã vào main (`4fe8e0b`): vòng sửa S4 (khoá, kèm nợ S4CS-01…04), nợ S4 sau H4, vết
+> S8–S10, che bí mật 5a vòng 5, mã Phase 0a (migration 0009; R-01 còn mở). winreport 117/117, H1 96/104, H3 122/134, H4 109/119 (bộ đã
+> công bố), 0 ca xanh → đỏ. H6 và bộ ca 0a CHƯA chạy (dùng một lần). Chi tiết: `docs/bao-cao/2026-10-24-tich-hop-main.md`.
 
 | Mảng | Trạng thái | Nguồn |
 |---|---|---|
-| **MVP** (5 khối M1–M5, D-MVP-00) | **CHƯA RA.** M1 phần chạy đạt, vế đọc vết 78,9% (< 90%); M2 bộ ca 0a đã băm, mã đang soát; M3 chờ D-AI-05 (vòng sửa S4); M4 bộ giữ lại P1 153/157; M5 các dòng S2–S4, L1 chưa đạt | `docs/STATUS.md` |
-| **Fuel WIN** (7 cổng G1–G7) | **0/7** trên bộ giữ lại độc lập; H1 91/104, H3 112/134, H4 103/119 (winreport 23/10) | `docs/04-core-mvp.md` §6, `docs/STATUS.md` |
+| **MVP** (5 khối M1–M5, D-MVP-00) | **CHƯA RA.** M1: vết S8–S10 + 5a đã ở main, vế đọc vết 78,9% (< 90%, chưa đo lại); M2: mã 0a ở main, sửa R-01 rồi chạy bộ 0a một lần; M3: S4 ở main kèm hồi quy S4CS-02 — sửa hẹp rồi chạy H6 một lần (chủ dự án quyết); M4: P1 153/157; M5: S2–S4, L1 chưa đạt | `docs/STATUS.md`, báo cáo tích hợp |
+| **Fuel WIN** (7 cổng G1–G7) | **0/7** trên bộ giữ lại độc lập; sau tích hợp H1 96/104, H3 122/134, H4 109/119 (bộ ĐÃ công bố, 24/10 tối; trước đó 91 / 112 / 103) | `docs/04-core-mvp.md` §6, `docs/STATUS.md` |
 | **RAG** (luồng L6) | Đã gộp vào main 24/10 (D-RAG-01). Ngoài phạm vi MVP (D-AI-03 = a). App chạy từ khoá + model trích; đường lai (từ khoá + vector + xếp lại) và model thật chỉ ở bộ đo | §5 dưới; `docs/ROADMAP-RAG.md` |
 | **Nút thắt số 1** | Hiểu ý định S4 chỉ bằng luật: tầng sai đầu tiên ở 13/15 ca đỏ H1, 20/25 H3; với câu hỏi quy trình chỉ 7/92 câu tới được RAG | `docs/adr/` ADR-0010; `docs/ROADMAP-RAG.md` §10.2 |
 | **Phụ thuộc số 1** | Chưa có doanh nghiệp / người nghiệp vụ thật (D-RM-03) ⇒ mọi kết luận "trên dữ liệu giả lập" | `docs/ROADMAP-DAY-DU.md` §9 |
-| **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05, Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: D-RAG-02 (12 vai của ACL kho không có trong policy), D-RAG-03 (bật dự phòng S4 B1), mở model thật trong app | `docs/CHO-QUYET-DINH.md` |
+| **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05 (sửa hẹp S4CS-02 + chạy H6), Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: D-RAG-02 (12 vai của ACL kho không có trong policy), D-RAG-03 (bật dự phòng S4 B1 — đo lại trên bộ mới sau tích hợp), mở model thật trong app | `docs/CHO-QUYET-DINH.md` |
 
 Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go). Mọi dữ liệu trong repo là **giả lập**; repo công
 khai không chứa dữ liệu thật của tenant nào.
@@ -351,7 +355,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 - **Mọi lượt đã xác thực để lại vết bền** (kể cả lượt lỗi, lượt bị chính sách chặn, thân sai), gồm usage (extractive: 0 token). Lượt hỏi không lưu được vết thì không giao câu trả lời. Route lệnh làm NGƯỢC LẠI, có chủ ý (HOP-DONG §7.5 "Mất vết"): lệnh có thể đã có tác dụng (phiếu đã commit và đã đọc lại) nên kết quả vẫn được trả, chỉ để `trace_id` rỗng, tăng bộ đếm `trace_save_failed` và ghi log lỗi; lượt lệnh không có usage (không gọi model). Lượt chưa xác thực được tenant (401) không có dòng vết theo tenant; chúng chỉ được đếm trong log tổng kết khi tắt server.
 - Mã lần nạp là băm của (dữ liệu, pack, mã): nạp lại cùng dữ liệu cho cùng mã và không nhân đôi bản ghi cách ly. Mỗi lần nạp thành công thêm một dòng vào sổ nạp `load_records` (kể cả nạp lại cùng dữ liệu): dòng mới nhất là phiên bản mà vết khai.
 - **Phiên bản mã** (`code_version` của vết, và phần "mã" của mã lần nạp) là mã git của cây đã dựng binary: `scripts/chay-thu.sh` nhúng nó bằng `-ldflags` (thêm `+dirty` khi cây có sửa chưa commit; CI đặt `EAIS_CODE_VERSION` = commit đang kiểm) rồi đối chiếu với phiên bản mà server báo lúc khởi động. `go build` tay trong một clone thường tự ghi mã git vào binary; trong git worktree liên kết hay cây không có `.git` thì không có, và khi đó ứng dụng dùng băm sha256 của chính binary với tiền tố `bin-sha256:` — không bao giờ ghi `(devel)`. Băm binary là dấu của BINARY, không phải của mã nguồn: chỉ so được giữa các vết do cùng một binary ghi (cùng commit dựng ở hai thư mục cho hai băm khác nhau, vì Go nhúng đường dẫn nguồn khi không có `-trimpath`). Hai bản sửa khác nhau chưa commit trên cùng một commit vẫn cùng phiên bản `+dirty`.
-- **Migration:** 0001–0006 của team (0006 = sổ nạp), 0007 tài liệu có phiên bản, 0008 vector tài liệu (nhánh RAG, gộp 24/10). Migration mới tiếp theo lấy **0009**; ai gộp main trước giữ số.
+- **Migration:** 0001–0006 của team (0006 = sổ nạp), 0007 tài liệu có phiên bản, 0008 vector tài liệu (RAG), **0009 kho báo cáo ngày** (Phase 0a; số 0006 của nhánh đổi khi gộp 24/10). Migration mới tiếp theo lấy **0010**; ai gộp main trước giữ số; mã tìm migration theo mẫu tên, không theo số.
 
 ## 8. Giới hạn đã biết (ghi thẳng)
 
@@ -363,6 +367,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 - Lượt mà `Handle` trả lỗi (kể cả bị chính sách chặn, vd tenant lạ) chỉ để lại MỘT bước vết `S?` đánh dấu TRỐNG, không chỉ được tầng lỗi, vì `Handle` trả kết quả rỗng khi lỗi (`core/pipeline` ngoài phạm vi của ứng dụng). Chỉ tiêu "người chỉ đọc vết mà chỉ đúng tầng sai đầu tiên ở ≥ 90% ca đỏ" **chưa đo**, và với lượt lỗi cơ chế hiện tại không cho đạt: cần `Handle` trả kết quả một phần khi lỗi.
 - Chưa có vết các bước nạp (`L1.*`) và chưa có chính sách dọn / lưu giữ vết và sổ nạp `load_records` (một dòng mỗi lần nạp; vai ứng dụng không có quyền xoá).
 - CI ở `.github/workflows/ci.yml` chưa chạy trên GitHub (xem ghi chú đầu tệp).
+- **Sau tích hợp 24/10:** S4 mang hồi quy S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) và nợ S4CS-01, -03, -04; mã 0a có lỗi R-01 (chết khoá PG khi nạp chạy cùng quyết định) và chưa nối vào `cmd/eais` (`Ready` chưa biết 4 bảng `report_*`); vết S8–S10 chờ soát vòng 2; 5a vòng 5 chờ soát — xem `docs/bao-cao/2026-10-24-tich-hop-main.md` mục 6.
 - **RAG:** app chạy đường từ khoá + model trích (7/14 câu không có đáp án vẫn nhận đoạn ở đường từ khoá — đường lai 0/14 nhưng chỉ ở bộ đo); việc nhúng hiện gửi cả chữ bản nháp ra nhà cung cấp embedding (§5.7 việc 1); tài liệu và vector chưa công bố nguyên tử; nạp chỉ Markdown ở app.
 
 ## 9. Tài liệu chi tiết
@@ -375,6 +380,9 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 | Việc RAG: hợp đồng, kế hoạch, bàn giao tệp chung, bảng bên thứ ba | [`docs/viec/2-tra-quy-trinh/`](docs/viec/2-tra-quy-trinh/) |
 | Việc Phase 1 (tạo phiếu) | [`docs/viec/1-hanh-dong/`](docs/viec/1-hanh-dong/) |
 | Trạng thái chi tiết, tiến độ từng lần push | [`docs/STATUS.md`](docs/STATUS.md), [`docs/bao-cao/`](docs/bao-cao/) |
+| **Báo cáo tích hợp 24/10** (main có gì, gộp thế nào, soát, số đo, còn mở) | [`docs/bao-cao/2026-10-24-tich-hop-main.md`](docs/bao-cao/2026-10-24-tich-hop-main.md) |
+| Giao nhau RAG ↔ nhánh team (từng khối xung đột) | [`docs/debug-handoff/2026-10-24-01-giao-nhau-rag-voi-nhanh-team.md`](docs/debug-handoff/2026-10-24-01-giao-nhau-rag-voi-nhanh-team.md) |
+| Cách làm của phiên RAG: luồng, cổng, bài học đã trả giá; script cổng | [`docs/viec/2-tra-quy-trinh/CACH-LAM-PHIEN-RAG.md`](docs/viec/2-tra-quy-trinh/CACH-LAM-PHIEN-RAG.md), [`scripts/cong/`](scripts/cong/) |
 | WIN MVP: 7 cổng, phạm vi | [`docs/04-core-mvp.md`](docs/04-core-mvp.md) |
 | G7: hợp đồng benchmark, chi phí, checkpoint | [`docs/g7/`](docs/g7/) |
 | Kiến trúc | [`docs/01-architecture.md`](docs/01-architecture.md) |

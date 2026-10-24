@@ -49,7 +49,7 @@ func TestCauGhepSoLieuVaQuyTrinhNeuThucTheHoacNgayHongThiGiuYDinhSoLieu(t *testi
 	}{
 		{"hai máy, không ngày", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl}}, nil, nil, "q", []string{"subject"}, "", []string{"EX-03", "RL-02"}},
 		{"một máy rõ và một bí danh mơ hồ khác máy đó", contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{alias("máy 03", "equipment", ex, dz)}},
-			nil, nil, "q", []string{"subject"}, "", []string{"RL-02", "EX-03", "DZ-03"}},
+			nil, nil, "q", []string{"subject"}, "", []string{"EX-03", "DZ-03"}}, // D-OP-11 = b: chỉ ứng viên của bí danh
 		{"hai máy và ngày hỏng", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl}}, nil, []string{"31/02"}, "q", []string{"subject", "period"}, "", []string{"EX-03", "RL-02"}},
 		{"không máy, có ngày hỏng", contracts.Resolution{}, nil, []string{"31/02"}, "q", []string{"subject", "period"}, "", nil},
 		// hành vi đã đúng từ trước: có mốc ngày hợp lệ thì hỏi lại; có đúng một máy thì ghép HYBRID; không nêu gì thì là câu hỏi quy trình

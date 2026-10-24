@@ -38,10 +38,11 @@ func (p KnowledgeProbe) Fallback(ctx context.Context, pr contracts.Principal, in
 	return true, 1, fmt.Sprintf("luật không nhận ra ý định; chỉ mục tri thức có %d đoạn người hỏi được đọc qua ngưỡng", len(ev)), nil
 }
 
-// asksQuantity: câu hỏi lượng — mang dấu hiệu hỏi lượng của pack ("bao nhiêu", "định mức"; gõ không dấu vẫn khớp), hoặc nêu một con số
-// thuộc chiều đo nghiệp vụ ("đổ 4 khối dầu đúng không?" — câu xác nhận số, bộ độc lập S4 24/10, S4M-46). Rộng hơn asksFactQuantity
-// (chốt đó đòi CẢ HAI nên để lọt "xuất kho bao nhiêu lít?"): tài liệu không phải nguồn của số (P4), nên dự phòng S4 thà bỏ sót câu
-// quy trình hỏi "trong bao nhiêu giờ" còn hơn trả lời câu số liệu bằng đoạn quy trình.
+// asksQuantity: câu hỏi lượng — mang chữ hỏi lượng của pack ("bao nhiêu", "định mức", "mấy"; gõ không dấu vẫn khớp), hoặc nêu một con số
+// thuộc chiều đo nghiệp vụ ("đổ 4 khối dầu đúng không?" — câu xác nhận số, bộ độc lập S4 24/10, S4M-46). Tài liệu không phải nguồn của
+// số (P4), nên dự phòng S4 thà bỏ sót câu quy trình hỏi thời hạn ("đối soát trong mấy tiếng?" — pack coi "mấy" là chữ hỏi lượng từ vòng
+// sửa S4) còn hơn trả lời câu số liệu bằng đoạn quy trình. Đã thử 24/10 và bỏ: chỉ tính chữ hỏi lượng khi câu nhắc chiều đo nghiệp vụ —
+// lọt "Hôm qua lượng xuất kho lệch bao nhiêu?"; tách "mấy tiếng" khỏi "bao nhiêu" cần danh sách từ thời lượng, không đặt trong lõi chung.
 func (a *Ask) asksQuantity(in contracts.NormalizedInput) bool {
 	if slices.ContainsFunc(a.RT.QuantityMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Text, m) }) {
 		return true

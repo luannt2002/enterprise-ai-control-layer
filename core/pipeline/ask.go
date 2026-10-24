@@ -142,12 +142,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	if err != nil {
 		return Outcome{}, err
 	}
-	// Hỏi lại nghĩa số liệu chỉ kể ý định người hỏi có quyền; không còn ý định nào thì như câu không khớp (từ chối như cũ) — không lộ
-	// nhãn ý định cho người không có capability (CLAUDE.md §21)
-	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, func(n string) bool {
+	// Mọi đường hỏi lại về Ý ĐỊNH (hoà nhau, thiếu thuật ngữ, hỏi lại nghĩa số liệu) chỉ kể ý định người hỏi có quyền; không còn ý định nào thì như câu không khớp (từ chối như cũ) —
+	// không lộ nhãn ý định cho người không có capability (CLAUDE.md §21, S4AS-08)
+	unseen := func(n string) bool {
 		d, _ := a.RT.Intents.Def(n)
 		return d.Capability != "" && !a.RT.Policy.Allows(pr, d.Capability)
-	})
+	}
+	cls.Ambiguous = slices.DeleteFunc(slices.Clone(cls.Ambiguous), unseen)
+	cls.NeedTerm = slices.DeleteFunc(slices.Clone(cls.NeedTerm), unseen)
+	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, unseen)
 	// S5 — route
 	var lineageErr error
 	lineage := func(e contracts.EntityRef) []string {
@@ -222,6 +225,11 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		missing, cands := a.clarificationDetails(plan.Intent, visible, notes)
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
+		var unsupported []string // câu mang nghĩa hệ chưa hỗ trợ: mỗi nghĩa một câu do pack viết (D-OP-18 = c)
+		for _, u := range cls.Unsupported {
+			unsupported = append(unsupported, a.render(u.Template, nil))
+		}
+		vars["unsupported_note"] = strings.Join(unsupported, " ")
 		resp.Answer = a.render(plan.Template, vars)
 		a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}

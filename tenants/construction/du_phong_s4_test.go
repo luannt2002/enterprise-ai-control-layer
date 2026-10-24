@@ -20,8 +20,8 @@ import (
 func TestDuPhongS4DoChiMuc(t *testing.T) {
 	a, _ := newAskPhienBan(t, sopBan(2, rag.StatusApproved, "2026-03-01", "", "48 giờ"))
 	tat := map[string]contracts.Outcome{}
-	cau := []string{"Kế toán đối chiếu hoá đơn lúc nào?", "Tổ trưởng kho cần đối soát trong mấy tiếng?",
-		"Thời tiết mai thế nào?", "lech dau thi to truong kho doi soat trong may tieng",
+	cau := []string{"Kế toán đối chiếu hoá đơn lúc nào?", "Tổ trưởng kho phải đối soát khi nào?",
+		"Thời tiết mai thế nào?", "lech dau thi to truong kho doi soat trong may tieng", "Tổ trưởng kho cần đối soát trong mấy tiếng?",
 		"Hôm qua cấp bao nhiêu dầu?", "EX-03 hôm qua hết bao nhiêu dầu?",
 		"xuất kho bao nhiêu lít?", "tiêu thụ đo được hôm qua bao nhiêu lít?", "Hôm qua lượng xuất kho lệch bao nhiêu?", "xuat kho bao nhieu lit?",
 		"Hôm qua kho xuất mấy lít dầu?", "Tổng dầu đã cấp hôm qua là mấy?", "dau kho xuat hom qua het may lit?", "Lượng dầu tiêu thụ đo được tuần trước?",
@@ -54,7 +54,7 @@ func TestDuPhongS4DoChiMuc(t *testing.T) {
 // coi là lỗi của dự phòng rồi từ chối "ngoài phạm vi" (soát độc lập 24/10).
 func TestDuPhongS4ThongBaoPhienBan(t *testing.T) {
 	a, m := newAskPhienBan(t, sopBan(1, rag.StatusApproved, "2025-01-01", "", "24 giờ"), sopBan(2, rag.StatusApproved, "2026-03-01", "", "48 giờ"))
-	q := "Tổ trưởng kho cần đối soát trong mấy tiếng?"
+	q := "Tổ trưởng kho phải đối soát khi nào?"
 	if r := ask(t, a, user("director", ""), q).Response; r.Outcome != contracts.OutcomeOutOfScope {
 		t.Fatalf("mốc B0: muốn OUT_OF_SCOPE, được %s", r.Outcome)
 	}
@@ -68,7 +68,7 @@ func TestDuPhongS4ThongBaoPhienBan(t *testing.T) {
 // phòng khai ý định không phải tri thức là lỗi cấu hình.
 func TestDuPhongS4Moc(t *testing.T) {
 	a, _ := newAskPhienBan(t, sopBan(2, rag.StatusApproved, "2026-03-01", "", "48 giờ"))
-	q := "Tổ trưởng kho cần đối soát trong mấy tiếng?"
+	q := "Tổ trưởng kho phải đối soát khi nào?"
 	do := &duPhongDem{ten: "sop_question", dung: true}
 	a.Deps.IntentFallback = do
 	if r := ask(t, a, user("accountant", ""), q).Response; do.lan != 0 || r.Outcome != contracts.OutcomeOutOfScope {

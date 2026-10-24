@@ -7,8 +7,16 @@ templates:
   compare_total: "{left_label} của {entity_name} {period} chênh {value} {unit} so với {right_label} ({left_value} {unit} so với {right_value} {unit}).{approx_note}{conflict_note}"
   greeting: "Chào bạn. Bạn cần tra số liệu dầu của máy hay dự án nào?"
   out_of_scope: "Câu hỏi này nằm ngoài phạm vi trợ lý vận hành của ABC Infrastructure."
-  clarify_intent: "Bạn muốn hỏi {options}?"
+  clarify_intent: "Bạn muốn hỏi {options}? {candidates}"
   clarify_missing: "Bạn cho biết thêm {missing}. {candidates}"
+  # Nghĩa hệ chưa hỗ trợ (D-OP-18 = c): nói rõ nghĩa nào chưa có, rồi hỏi lại các nghĩa số liệu hệ trả lời được.
+  unsupported_meaning: "{unsupported_note} Bạn muốn hỏi {options}? {candidates}"
+  unsupported_money: "Trợ lý chưa tra được số tiền, chỉ tra lượng dầu."
+  unsupported_forecast: "Trợ lý chưa dự báo, chỉ tra số liệu đã có."
+  unsupported_quote: "Trợ lý chưa báo giá."
+  unsupported_warning: "Trợ lý chưa đưa cảnh báo."
+  unsupported_write: "Trợ lý chưa ghi số liệu, chỉ tra cứu."
+  unsupported_evaluation: "Trợ lý chưa nhận xét hay đánh giá số liệu, chỉ tra cứu."
   forbidden: "Bạn không có quyền xem dữ liệu này."
   no_data: "Chưa có dữ liệu {metric_label} của {entity_name} {period}.{assumption_note}"
   # Ngang thẩm quyền: KHÔNG đưa con số nào ra như sự thật; chi tiết hai nguồn nằm trong trường

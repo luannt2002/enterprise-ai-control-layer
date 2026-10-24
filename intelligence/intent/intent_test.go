@@ -205,7 +205,7 @@ func TestKheNhieuGiaTriKhacNhauKhongDuocDien(t *testing.T) {
 		{"hai dự án", res(pa, pb), nil, []string{"subject"}, "", "2026-10-19", []string{"PRJ-A", "PRJ-B"}, nil},
 		{"hai máy kèm dự án chứa chúng: dự án chỉ là định ngữ", res(ex, rl, pa), nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "RL-02"}, nil},
 		{"một máy rõ và một bí danh mơ hồ khác máy đó", contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{alias("máy 03", "equipment", ex, dz)}},
-			nil, []string{"subject"}, "", "2026-10-19", []string{"RL-02", "EX-03", "DZ-03"}, nil},
+			nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "DZ-03"}, nil}, // D-OP-11 = b: chỉ ứng viên của bí danh (trước đây gộp cả RL-02)
 		{"hai bí danh mơ hồ khác nhau", contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{alias("máy 03", "equipment", ex, dz), alias("máy 07", "equipment", e7, rl7)}},
 			nil, []string{"subject"}, "", "2026-10-19", []string{"EX-03", "DZ-03", "EX-07", "RL-07"}, nil},
 		{"hai ngày", res(ex), []contracts.Span{today, yesterday}, []string{"period"}, "EX-03", "", nil, []string{"hôm nay", "hôm qua"}},
@@ -234,6 +234,37 @@ func TestKheNhieuGiaTriKhacNhauKhongDuocDien(t *testing.T) {
 		}
 		if len(r.Candidates) > 0 {
 			t.Errorf("%s: thứ người hỏi viết rõ không phải bí danh mơ hồ, không được vào Candidates (router sẽ gỡ bằng quyền xem): %v", c.name, ids(r.Candidates))
+		}
+	}
+}
+
+// D-OP-11 = b (chủ dự án chốt 23/10, đổi hợp đồng có chủ ý so với bản ghim cũ): có bí danh mơ hồ thì câu hỏi lại CHỈ liệt kê ứng viên của
+// bí danh; thực thể đã giải không vào danh sách (vẫn được tính để biết câu có nhiều chủ thể); hai thực thể đều đã giải thì giữ cách cũ.
+// Cặp tối thiểu theo ADR-0010 bất biến (c): một đã giải + một mơ hồ · hai mơ hồ · hai đã giải (đối chứng, không đổi).
+func TestUngVienHoiLaiChiLaUngVienCuaBiDanhMoHo(t *testing.T) {
+	ex, rl, dz := ent("EX-03", "equipment"), ent("RL-02", "equipment"), ent("DZ-03", "equipment")
+	e7, rl7, pa := ent("EX-07", "equipment"), ent("RL-07", "equipment"), ent("PRJ-A", "project")
+	m3, m7 := alias("máy 03", "equipment", ex, dz), alias("máy 07", "equipment", e7, rl7)
+	for _, c := range []struct {
+		name string
+		res  contracts.Resolution
+		want []string // Unclear.Entities; rỗng = câu chỉ có MỘT chủ thể, không hỏi lại
+	}{
+		{"một đã giải + một mơ hồ: chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{ex}, Ambiguous: []contracts.AmbiguousMention{m7}}, []string{"EX-07", "RL-07"}},
+		{"đảo vai: lu 02 đã giải + máy 03 mơ hồ: chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{m3}}, []string{"EX-03", "DZ-03"}},
+		{"hai đã giải + một mơ hồ: vẫn chỉ ứng viên của bí danh", contracts.Resolution{Entities: []contracts.EntityRef{rl, e7}, Ambiguous: []contracts.AmbiguousMention{m3}}, []string{"EX-03", "DZ-03"}},
+		{"hai mơ hồ: liệt kê ứng viên của cả hai bí danh", contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3, m7}}, []string{"EX-03", "DZ-03", "EX-07", "RL-07"}},
+		{"hai đã giải (đối chứng): giữ cách liệt kê cũ", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl}}, []string{"EX-03", "RL-02"}},
+		{"ba đã giải (đối chứng): giữ cách liệt kê cũ", contracts.Resolution{Entities: []contracts.EntityRef{ex, rl, e7}}, []string{"EX-03", "RL-02", "EX-07"}},
+		{"đã giải chứa trong bí danh: một chủ thể, không hỏi lại", contracts.Resolution{Entities: []contracts.EntityRef{ex}, Ambiguous: []contracts.AmbiguousMention{m3}}, nil},
+		{"một dự án + một bí danh máy: khác loại, không tranh khe", contracts.Resolution{Entities: []contracts.EntityRef{pa}, Ambiguous: []contracts.AmbiguousMention{m3}}, nil},
+	} {
+		r := classifyRes(t, c.res)
+		if got := ids(r.Unclear.Entities); !slices.Equal(got, c.want) {
+			t.Errorf("%s: Unclear.Entities = %v, muốn %v", c.name, got, c.want)
+		}
+		if multi := len(c.want) > 0; multi != slices.Contains(r.Intent.Missing, "subject") {
+			t.Errorf("%s: khe chủ thể phải %s, Missing = %v", c.name, map[bool]string{true: "để trống (nhiều chủ thể)", false: "điền được"}[multi], r.Intent.Missing)
 		}
 	}
 }
@@ -309,5 +340,221 @@ func TestYDinhChungKhongChiSoThiHoiLai(t *testing.T) {
 	r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{e}}, testNow)
 	if r.Intent.Name != "" || !slices.Equal(r.NeedMeaning, []string{"q"}) {
 		t.Errorf("muốn hỏi lại nghĩa số liệu [q], được intent=%q needMeaning=%v", r.Intent.Name, r.NeedMeaning)
+	}
+}
+
+// N1 (ADR-0010 bất biến (c)): hai ý định hoà nhau, hoặc ý định khớp từ khoá mà thiếu thuật ngữ, trong khi câu còn một bí danh mơ hồ — kết quả phải
+// mang ứng viên của bí danh để câu hỏi lại hỏi được cả hai điều; không có bí danh thì không có ứng viên.
+func TestHoaYDinhVaThieuThuatNguGiuUngVienCuaBiDanh(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	s, err := Compile([]Def{
+		{Name: "a", Route: "SQL_QUERY", Keywords: []string{"cấp"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ex, dz := ent("EX-03", "equipment"), ent("DZ-03", "equipment")
+	m3 := alias("máy 03", "equipment", ex, dz)
+	fuel := contracts.Span{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}
+	for _, c := range []struct {
+		name   string
+		raw    string
+		spans  []contracts.Span
+		res    contracts.Resolution
+		tie    bool // kết quả là hoà ý định (Ambiguous), không phải thiếu thuật ngữ (NeedTerm)
+		wantID []string
+	}{
+		{"hoà ý định + bí danh mơ hồ", "máy 03 cấp báo dầu", []contracts.Span{fuel}, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3}}, true, []string{"EX-03", "DZ-03"}},
+		{"thiếu thuật ngữ + bí danh mơ hồ", "máy 03 cấp bao nhiêu", nil, contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{m3}}, false, []string{"EX-03", "DZ-03"}},
+		{"hoà ý định, máy đã rõ: không có ứng viên", "EX-03 cấp báo dầu", []contracts.Span{fuel}, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, true, nil},
+		{"thiếu thuật ngữ, máy đã rõ: không có ứng viên", "EX-03 cấp bao nhiêu", nil, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, false, nil},
+	} {
+		r := s.Classify(contracts.NormalizedInput{Raw: c.raw, Spans: c.spans}, c.res, testNow)
+		if c.tie && len(r.Ambiguous) != 2 || !c.tie && len(r.NeedTerm) == 0 {
+			t.Errorf("%s: không phải kết quả muốn thử: Ambiguous = %v, NeedTerm = %v", c.name, r.Ambiguous, r.NeedTerm)
+			continue
+		}
+		if got := ids(r.Candidates); !slices.Equal(got, c.wantID) {
+			t.Errorf("%s: Candidates = %v, muốn %v", c.name, got, c.wantID)
+		}
+	}
+}
+
+// C5 (ADR-0010 bất biến (b), vai mệnh đề): mệnh đề ĐỨNG TRƯỚC mệnh đề hỏi mà nêu một con số là ngữ cảnh — từ khoá của nó (chữ chỉ NGUỒN của con số)
+// không quyết định ý định — khi mệnh đề hỏi có chỉ số riêng. Cặp tối thiểu: đổi đúng một thứ (con số ở mệnh đề trước, chỉ số riêng ở mệnh đề hỏi,
+// mệnh đề hỏi chỉ là cái đuôi) thì kết quả đổi đúng một nghĩa.
+func TestMenhDeNguCanhKhongQuyetDinhYDinh(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	def := func(name string, weak bool, kw ...string) Def {
+		prio := 2
+		if weak {
+			prio = 1
+		}
+		return Def{Name: name, Route: "SQL_QUERY", Weak: weak, Keywords: kw, Terms: []string{"fuel"}, Capability: "metrics.read", Slots: slots,
+			MetricByTerm: map[string]string{"fuel": name}, Priority: prio}
+	}
+	s, err := Compile([]Def{def("dung", false, "dùng"), def("phieu", false, "phiếu kho", "xuất kho"), def("chung", true, "bao nhiêu")}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}, QuantityMarkers: []string{"bao nhiêu"}, NeutralWords: []string{"vậy", "nhưng", "rồi"}})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw, nums string // nums: các con số (chữ) có trong câu, mỗi chữ là một span số trần
+		wantIntent      string // "" = hoà (Ambiguous)
+	}{
+		{"con số ở mệnh đề trước + chỉ số riêng ở mệnh đề hỏi: mệnh đề hỏi quyết định",
+			"phiếu kho ghi 3850 rồi, nhưng hôm nay EX-03 dùng hết bao nhiêu dầu", "3850", "dung"},
+		{"đối chứng: mệnh đề trước KHÔNG có con số — dẫn đề vẫn nói chỉ số, hai chỉ số hoà nhau",
+			"phiếu kho rồi, nhưng hôm nay EX-03 dùng hết bao nhiêu dầu", "", ""},
+		{"đối chứng: mệnh đề hỏi không có chỉ số riêng (chỉ 'bao nhiêu') — chỉ số của mệnh đề trước còn tác dụng",
+			"phiếu kho ghi 3850 rồi, nhưng hôm nay EX-03 hết bao nhiêu dầu", "3850", "phieu"},
+		{"đối chứng: mệnh đề hỏi chỉ là cái đuôi có nhãn ('phiếu số 912', không con số) — câu hỏi nằm ở mệnh đề trước",
+			"EX-03 hôm nay dùng 3850 L dầu, theo phiếu số 912 đúng không", "3850", "dung"},
+		{"mệnh đề hỏi chỉ còn cụm xác nhận: câu hỏi áp cho mệnh đề liền trước nó, mệnh đề xa hơn là ngữ cảnh",
+			"phiếu kho ghi 3850 rồi, vậy EX-03 hôm nay dùng 3850 L dầu, đúng không", "3850 3850", "dung"},
+		{"một mệnh đề: không đổi", "EX-03 hôm nay dùng bao nhiêu dầu, theo phiếu kho", "", ""},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		from := 0
+		for _, n := range strings.Fields(c.nums) {
+			i := from + strings.Index(c.raw[from:], n)
+			in.Spans = append(in.Spans, contracts.Span{Kind: contracts.ValueNumber, Raw: n, Start: i, End: i + len(n), Value: contracts.Value{Kind: contracts.ValueNumber, Number: n}})
+			from = i + len(n)
+		}
+		e := ex
+		e.Start, e.End = strings.Index(c.raw, "EX-03"), strings.Index(c.raw, "EX-03")+5
+		if e.Start < 0 {
+			e.Start, e.End = 0, 0
+		}
+		r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{e}}, testNow)
+		if r.Intent.Name != c.wantIntent {
+			t.Errorf("%s: ý định = %q (hoà %v), muốn %q", c.name, r.Intent.Name, r.Ambiguous, c.wantIntent)
+		}
+	}
+}
+
+// C4 (ADR-0010): câu nêu đúng hai chỉ số khác nhau kèm dấu hiệu so sánh là phép so sánh đúng cặp người hỏi nêu; số cụm khớp và độ ưu tiên của ý định
+// dẫn xuất không quyết định thay họ. Ý định dẫn xuất chỉ trả cặp mặc định khi mọi chỉ số câu nêu nằm trong cặp ấy.
+func TestSoSanhDungCapNguoiHoiNeu(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	metricDef := func(name, metric string, kw ...string) Def {
+		return Def{Name: name, Route: "SQL_QUERY", Keywords: kw, Terms: []string{"fuel"}, MetricByTerm: map[string]string{"fuel": metric},
+			Capability: "metrics.read", Slots: slots, Priority: 20}
+	}
+	s, err := Compile([]Def{
+		metricDef("a", "ma", "cấp"), metricDef("b", "mb", "báo", "cảm biến"), metricDef("c", "mc", "hoá đơn"),
+		{Name: "v", Route: "CALCULATION", Keywords: []string{"chênh"}, Terms: []string{"fuel"}, Derived: "d_ab", Capability: "metrics.read", Slots: slots, Priority: 30},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{ComparisonMarkers: []string{"nhiều hơn"}, DerivedOperands: func(d string) (string, string, bool) { return "ma", "mb", d == "d_ab" }})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw string
+		intent    string // "" = hỏi lại (Ambiguous)
+		compare   string // ý định vế phải của phép so sánh ("" = không phải phép so sánh)
+	}{
+		{"cặp mặc định (đúng thứ tự)", "cấp báo chênh", "v", ""},
+		{"cặp mặc định (ngược thứ tự)", "báo cấp chênh", "v", ""},
+		{"một chỉ số trong cặp mặc định", "báo chênh", "v", ""},
+		{"không nêu chỉ số nào: cặp mặc định", "chênh", "v", ""},
+		{"cặp KHÁC cặp mặc định: so đúng cặp, vế nhắc trước đứng trước", "hoá đơn báo chênh", "c", "b"},
+		{"cặp khác cặp mặc định (một chỉ số trong, một ngoài)", "cấp hoá đơn chênh", "a", "c"},
+		{"một chỉ số ngoài cặp mặc định: không có cặp để trả thay người hỏi", "hoá đơn chênh", "", ""},
+		{"ba chỉ số: không có cặp để trả thay người hỏi", "cấp báo hoá đơn chênh", "", ""},
+		{"cụm so sánh, số cụm khớp không quyết định: 'cảm biến … báo' (2 cụm) không thắng 'cấp' (1 cụm)", "cấp nhiều hơn cảm biến báo", "a", "b"},
+		{"hai chỉ số không dấu hiệu so sánh: hoà, hỏi lại", "cấp báo", "", ""},
+		{"cụm so sánh mà chỉ một chỉ số: như thường", "cấp nhiều hơn", "a", ""},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		r := s.Classify(in, contracts.Resolution{Entities: []contracts.EntityRef{ex}}, testNow)
+		if r.Intent.Name != c.intent || r.Compare != c.compare || (c.intent == "" && len(r.Ambiguous) == 0) {
+			t.Errorf("%s: ý định = %q, so sánh với %q, hỏi lại %v; muốn ý định %q, so sánh với %q", c.name, r.Intent.Name, r.Compare, r.Ambiguous, c.intent, c.compare)
+		}
+	}
+}
+
+// Nghĩa hệ chưa hỗ trợ (D-OP-18 = c): cụm báo nghĩa ("cảnh báo", "ghi nhận") làm câu có thực thể thành câu hỏi lại, không trả theo chỉ số còn lại. Nghĩa
+// NeedsValue (lệnh ghi) còn đòi một con số và không phải câu hỏi. Câu hỏi quy trình, câu không thực thể, và cụm nằm ở mệnh đề ngữ cảnh không bị tính.
+func TestNghiaChuaHoTro(t *testing.T) {
+	yes := func(string) bool { return true }
+	slots := []SlotDef{{Name: "subject", From: "entity", Types: []string{"equipment"}, Required: true}, {Name: "period", From: "period", Default: "today"}}
+	s, err := Compile([]Def{
+		{Name: "q", Route: "SQL_QUERY", Keywords: []string{"nhận"}, Terms: []string{"fuel"}, MetricByTerm: map[string]string{"fuel": "m"}, Capability: "metrics.read", Slots: slots, Priority: 2},
+		{Name: "sop", Route: "RAG", Keywords: []string{"quy trình"}, Capability: "documents.read"},
+	}, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetOptions(Options{FocusMarkers: []string{"đúng không"}, QuantityMarkers: []string{"bao nhiêu"}, Unsupported: []Unsupported{
+		{Name: "warning", Template: "t1", Cues: []string{"cảnh báo"}},
+		{Name: "write", Template: "t2", Cues: []string{"ghi nhận"}, NeedsValue: true},
+	}})
+	ex := ent("EX-03", "equipment")
+	for _, c := range []struct {
+		name, raw string
+		noEntity  bool
+		want      []string // tên các nghĩa chưa hỗ trợ; rỗng = không có
+		intent    string   // ý định khi KHÔNG có nghĩa chưa hỗ trợ
+	}{
+		{"cụm cảnh báo", "cảnh báo nhận dầu", false, []string{"warning"}, ""},
+		{"lệnh ghi: có con số, không phải câu hỏi", "ghi nhận 3850 dầu", false, []string{"write"}, ""},
+		{"ghi nhận không có con số: câu hỏi như thường, 'nhận' của 'ghi nhận' không phải từ khoá", "ghi nhận dầu", false, nil, ""},
+		{"ghi nhận có con số nhưng là câu xác nhận", "ghi nhận 3850 dầu đúng không", false, nil, ""},
+		{"ghi nhận có con số nhưng hỏi lượng", "ghi nhận 3850 bao nhiêu dầu", false, nil, ""},
+		{"câu hỏi quy trình về cảnh báo: tri thức trả lời được", "quy trình cảnh báo nhận dầu", false, nil, "q"},
+		{"không thực thể: không phải nghĩa chưa hỗ trợ, phân loại như cũ (router từ chối vì thiếu chủ thể / ngoài phạm vi)", "cảnh báo nhận dầu", true, nil, "q"},
+		// S4AS-04: cụm ở mệnh đề ngữ cảnh vẫn phải được nói ra (trước đây không tính — im lặng về cảnh báo / lệnh ghi): cụm không cần giá trị tính ở mọi mệnh đề; lệnh ghi đòi
+		// chính mệnh đề đó có con số, không phải câu hỏi, và ở mệnh đề ngữ cảnh thì cụm đứng đầu — "phiếu kho ghi nhận 3850" là nguồn + động từ của con số
+		{"cụm cảnh báo ở mệnh đề ngữ cảnh nêu con số: vẫn tính", "cảnh báo ghi 3850, vậy nhận bao nhiêu dầu", false, []string{"warning"}, ""},
+		{"lệnh ghi đứng đầu mệnh đề ngữ cảnh: vẫn tính", "ghi nhận 3850 dầu, vậy nhận bao nhiêu dầu", false, []string{"write"}, ""},
+		{"nguồn + động từ ở mệnh đề ngữ cảnh: không phải lệnh", "phiếu kho ghi nhận 3850, vậy nhận bao nhiêu dầu", false, nil, "q"},
+		{"cụm đuôi hỏi áp cho mệnh đề trước: câu xác nhận, không phải lệnh", "ghi nhận 3850 dầu, đúng không", false, nil, ""},
+	} {
+		in := contracts.NormalizedInput{Raw: c.raw, Spans: []contracts.Span{{Kind: contracts.ValueTerm, Raw: "dầu", Value: contracts.Value{Kind: contracts.ValueTerm, Text: "fuel"}}}}
+		if i := strings.Index(c.raw, "3850"); i >= 0 {
+			in.Spans = append(in.Spans, contracts.Span{Kind: contracts.ValueNumber, Raw: "3850", Start: i, End: i + 4, Value: contracts.Value{Kind: contracts.ValueNumber, Number: "3850"}})
+		}
+		res := contracts.Resolution{Entities: []contracts.EntityRef{ex}}
+		if c.noEntity {
+			res = contracts.Resolution{}
+		}
+		r := s.Classify(in, res, testNow)
+		var got []string
+		for _, u := range r.Unsupported {
+			got = append(got, u.Name)
+		}
+		if !slices.Equal(got, c.want) {
+			t.Errorf("%s: nghĩa chưa hỗ trợ = %v, muốn %v", c.name, got, c.want)
+		}
+		if len(c.want) > 0 && (r.Intent.Name != "" || len(r.NeedMeaning) == 0) {
+			t.Errorf("%s: muốn hỏi lại (không ý định, có các nghĩa số liệu để hỏi), được ý định %q, NeedMeaning %v", c.name, r.Intent.Name, r.NeedMeaning)
+		}
+		if len(c.want) == 0 && r.Intent.Name != c.intent {
+			t.Errorf("%s: ý định = %q, muốn %q", c.name, r.Intent.Name, c.intent)
+		}
+	}
+}
+
+// aliasCandidates (N1): ứng viên của mọi bí danh mơ hồ, mỗi thực thể MỘT lần theo thứ tự nhắc — hai bí danh cùng có DZ-03 và EX-03 không nhân đôi danh sách hỏi lại, và nguồn (S3) của
+// mỗi ứng viên chỉ ghi một bản.
+func TestAliasCandidatesKhuTrung(t *testing.T) {
+	dz, ex, rl := ent("DZ-03", "equipment"), ent("EX-03", "equipment"), ent("RL-02", "equipment")
+	res := contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{
+		alias("may 3", "equipment", dz, ex), alias("máy 03", "equipment", ex, dz, rl),
+	}}
+	var w Why
+	got := aliasCandidates(res, &w)
+	if want := []string{"DZ-03", "EX-03", "RL-02"}; !slices.Equal(ids(got), want) {
+		t.Errorf("ứng viên = %v, muốn %v (mỗi thực thể một lần, theo thứ tự nhắc)", ids(got), want)
+	}
+	if len(w.Origins) != 3 {
+		t.Errorf("nguồn ứng viên = %+v, muốn đúng 3 bản (mỗi ứng viên một)", w.Origins)
 	}
 }

@@ -209,3 +209,28 @@ func TestLoadPackTriThuc(t *testing.T) {
 		t.Errorf("QuantityMarkers = %v, muốn [bao nhiêu]", rt.QuantityMarkers)
 	}
 }
+
+// unsupported_meanings (D-OP-18 = c, S4AS-06): pack khai nghĩa chưa hỗ trợ thì phải đủ name, template, cues, mẫu chung `unsupported_meaning` và mẫu riêng của TỪNG nghĩa; tín hiệu cấu
+// trúc lạ hay chiều đo không có trong lexicon bị chặn lúc nạp — thiếu một thứ thì câu hỏi lại về nghĩa đó sẽ im hoặc vỡ lúc chạy, nên phải hỏng lúc khởi động.
+func TestLoadPackNghiaChuaHoTro(t *testing.T) {
+	meaning := func(entry string) string { return validIntents + "unsupported_meanings:\n  - " + entry + "\n" }
+	good := meaning("{name: warning, template: unsupported_warning, cues: [cảnh báo]}")
+	tmpl := validTemplates + "  unsupported_meaning: \"{unsupported_note} Bạn muốn hỏi {options}? {candidates}\"\n  unsupported_warning: \"Trợ lý chưa đưa cảnh báo.\"\n"
+	if _, err := Load(writePack(t, fullPack(map[string]string{"intents.yaml": good, "templates.yaml": tmpl}))); err != nil {
+		t.Fatalf("pack có nghĩa chưa hỗ trợ đủ mọi phần phải nạp được: %v", err)
+	}
+	for name, c := range map[string]struct{ intents, templates, want string }{
+		"thiếu cues":      {meaning("{name: warning, template: unsupported_warning}"), tmpl, "cues"},
+		"thiếu template":  {meaning("{name: warning, cues: [cảnh báo]}"), tmpl, "template"},
+		"thiếu name":      {meaning("{template: unsupported_warning, cues: [cảnh báo]}"), tmpl, "name"},
+		"thiếu mẫu chung": {good, validTemplates + "  unsupported_warning: \"Trợ lý chưa đưa cảnh báo.\"\n", "unsupported_meaning"},
+		"thiếu mẫu riêng": {good, validTemplates + "  unsupported_meaning: \"{unsupported_note} {options}\"\n", "unsupported_warning"},
+		"tín hiệu lạ":     {meaning("{name: warning, template: unsupported_warning, cues: [cảnh báo], signals: [span:date]}"), tmpl, "tín hiệu"},
+		"chiều đo lạ":     {meaning("{name: warning, template: unsupported_warning, cues: [cảnh báo], signals: [\"asked_unit:khong-co\"]}"), tmpl, "tín hiệu"},
+	} {
+		_, err := Load(writePack(t, fullPack(map[string]string{"intents.yaml": c.intents, "templates.yaml": c.templates})))
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: Load phải lỗi nhắc %q, được %v", name, c.want, err)
+		}
+	}
+}

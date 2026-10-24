@@ -50,8 +50,20 @@ type intentsFile struct {
 	QuantityMarkers []string `yaml:"quantity_markers"`
 	// ComparisonMarkers: cụm so sánh hai nghĩa số liệu (xem intent.Options). Có khai thì phải có
 	// mẫu compare_total.
-	ComparisonMarkers []string     `yaml:"comparison_markers"`
-	Intents           []intent.Def `yaml:"intents"`
+	ComparisonMarkers []string `yaml:"comparison_markers"`
+	// DismissMarkers: cụm cho biết mệnh đề bị bỏ qua (xem intent.Options.DismissMarkers).
+	DismissMarkers []string `yaml:"dismiss_markers"`
+	// PurposeMarkers: từ nối mở đoạn mục đích (xem intent.Options.PurposeMarkers). NegationMarkers: từ phủ định (xem intent.Options.NegationMarkers).
+	PurposeMarkers  []string `yaml:"purpose_markers"`
+	NegationMarkers []string `yaml:"negation_markers"`
+	// ConditionMarkers: từ nối mở mệnh đề điều kiện (xem intent.Options.ConditionMarkers).
+	ConditionMarkers []string `yaml:"condition_markers"`
+	// SourceVerbs: động từ của nguồn (xem intent.Options.SourceVerbs).
+	SourceVerbs []string     `yaml:"source_verbs"`
+	Intents     []intent.Def `yaml:"intents"`
+	// UnsupportedMeanings: các nghĩa hệ chưa hỗ trợ (tiền, dự báo, báo giá, cảnh báo, lệnh ghi, đánh giá): câu mang nghĩa đó được hỏi lại, nói rõ nghĩa nào
+	// chưa hỗ trợ, thay vì trả theo chỉ số còn lại. Có khai thì phải có mẫu unsupported_meaning và mẫu riêng của từng nghĩa.
+	UnsupportedMeanings []intent.Unsupported `yaml:"unsupported_meanings"`
 }
 
 // confirmTemplates là các mẫu câu cần có khi pack khai confirm_markers.
@@ -77,7 +89,7 @@ var requiredTemplates = []string{
 var AllowedPlaceholders = map[string]bool{
 	"metric_label": true, "entity_name": true, "entity_key": true, "period": true,
 	"value": true, "unit": true, "approx_note": true, "conflict_note": true, "assumption_note": true,
-	"missing": true, "candidates": true, "options": true, "reason": true,
+	"missing": true, "candidates": true, "options": true, "reason": true, "unsupported_note": true,
 	"claimed": true, "others": true, "others_note": true,
 	"conflicts": true, "conflict_more": true, "count": true,
 	"title": true, "procedure": true,
@@ -195,14 +207,52 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					problems = append(problems, fmt.Sprintf("intents.yaml: default_terms %q chưa khai báo trong lexicon", t))
 				}
 			}
+			for _, u := range inf.UnsupportedMeanings {
+				if u.Name == "" || u.Template == "" || len(u.Cues) == 0 {
+					problems = append(problems, fmt.Sprintf("intents.yaml: unsupported_meanings %q cần name, template và ít nhất một cụm (cues)", u.Name))
+				}
+				for _, sig := range u.Signals {
+					if err := intent.ValidSignal(sig, func(dim string) bool { return len(rt.Normalizer.UnitsOf(dim)) > 0 }); err != nil {
+						problems = append(problems, fmt.Sprintf("intents.yaml: unsupported_meanings %q: %v", u.Name, err))
+					}
+				}
+			}
 			set.SetOptions(intent.Options{
+				Unsupported: inf.UnsupportedMeanings,
 				// dấu xác nhận cũng là cụm bỏ qua: "đúng ko" gõ không dấu không phải "dùng"
 				IgnorePhrases:     append(append([]string(nil), inf.IgnorePhrases...), inf.ConfirmMarkers...),
 				DefaultTerms:      inf.DefaultTerms,
 				FocusMarkers:      inf.ConfirmMarkers,
 				QuantityMarkers:   inf.QuantityMarkers,
 				ComparisonMarkers: inf.ComparisonMarkers,
-				NeutralWords:      inf.ClaimNeutralWords,
+				DismissMarkers:    inf.DismissMarkers,
+				PurposeMarkers:    inf.PurposeMarkers,
+				NegationMarkers:   inf.NegationMarkers,
+				ConditionMarkers:  inf.ConditionMarkers,
+				SourceVerbs:       inf.SourceVerbs,
+				// tên nguồn cấp số liệu (nhãn + bí danh ở metrics.yaml) của một chỉ số; metric rỗng = mọi chỉ số
+				SourceNames: func(metric string) []string {
+					if rt.Metrics == nil {
+						return nil
+					}
+					ids := rt.Metrics.MetricIDs()
+					if metric != "" {
+						ids = []string{metric}
+					}
+					var out []string
+					for _, id := range ids {
+						if m, ok := rt.Metrics.Metric(id); ok {
+							for _, src := range m.Sources {
+								if src.Label != "" {
+									out = append(out, src.Label)
+								}
+								out = append(out, src.Aliases...)
+							}
+						}
+					}
+					return out
+				},
+				NeutralWords: inf.ClaimNeutralWords,
 				// lượng đổi được sang đơn vị của chỉ số (đọc danh mục chỉ số lúc phân loại; danh mục nạp sau ý định)
 				QuantityFits: func(metric string, v contracts.Value) bool {
 					def, ok := rt.Metrics.Metric(metric)
@@ -214,6 +264,37 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 					}
 					_, err := rt.Normalizer.Convert(v, def.Unit)
 					return err == nil
+				},
+				// số nằm trong miền một lần đo của chỉ số (số trần coi như đã ở đơn vị của chỉ số): tiền nói tắt "4 củ", "4,1 triệu" không còn bị hiểu là lít
+				ValueInRange: func(metric string, v contracts.Value) bool {
+					def, ok := rt.Metrics.Metric(metric)
+					if !ok {
+						return false
+					}
+					if v.Kind == contracts.ValueQuantity && v.Unit != def.Unit {
+						c, err := rt.Normalizer.Convert(v, def.Unit)
+						if err != nil {
+							return false
+						}
+						v = c
+					}
+					return def.InRange(v.Number) == nil
+				},
+				DerivedOperands: func(id string) (string, string, bool) {
+					d, ok := rt.Metrics.Derived(id)
+					return d.Left, d.Right, ok
+				},
+				UnitAliases: func(dim string) []string {
+					var out []string
+					money := false
+					for _, u := range rt.Normalizer.UnitsOf(dim) {
+						out = append(out, u.Aliases...)
+						money = money || u.Kind == "money"
+					}
+					if money { // "bao nhiêu củ": hậu tố nhân cỡ triệu trở lên là cách nói số tiền
+						out = append(out, rt.Normalizer.MultiplierAliases("1000000")...)
+					}
+					return out
 				},
 				Measurable: func(t string) bool {
 					d, ok := rt.Normalizer.Term(t)
@@ -262,6 +343,12 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 	}
 	if len(inf.ComparisonMarkers) > 0 {
 		needed = append(needed, "compare_total")
+	}
+	if len(inf.UnsupportedMeanings) > 0 {
+		needed = append(needed, "unsupported_meaning")
+		for _, u := range inf.UnsupportedMeanings {
+			needed = append(needed, u.Template)
+		}
 	}
 	for _, name := range needed {
 		if _, ok := tf.Templates[name]; !ok {

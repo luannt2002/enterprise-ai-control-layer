@@ -42,6 +42,22 @@ var builtinMultipliers = []multAlias{
 	{"chục", "10"}, {"tỷ", "1000000000"}, {"tỉ", "1000000000"},
 }
 
+// MultiplierAliases trả các hậu tố nhân của pack ("tr", "củ") có hệ số từ minFactor (số nguyên thập phân) trở lên. Hậu tố cỡ triệu trở lên chỉ thường đi với số tiền ("4 củ"), nên pack dùng chúng làm
+// đơn vị tiền khi người hỏi viết "bao nhiêu củ" (S4BS-04); "k" (nghìn) mơ hồ với "4k lít" nên không lấy.
+func (e *Engine) MultiplierAliases(minFactor string) []string {
+	lo, ok := new(big.Int).SetString(minFactor, 10)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, m := range e.mults {
+		if f, ok := new(big.Int).SetString(m.factor, 10); ok && f.Cmp(lo) >= 0 {
+			out = append(out, m.alias)
+		}
+	}
+	return out
+}
+
 // Normalize chuẩn hoá một văn bản.
 func (e *Engine) Normalize(text string, opt Options) contracts.NormalizedInput {
 	if opt.Now.IsZero() {

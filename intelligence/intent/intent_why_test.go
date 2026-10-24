@@ -61,7 +61,7 @@ func TestClassifyGiaiThichKhopDuVaKhopMotPhan(t *testing.T) {
 		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Priority: 5, Capability: "m"},
 	}, yes, yes)
 	r = tie.Classify(contracts.NormalizedInput{Raw: "cấp và báo"}, contracts.Resolution{}, testNow)
-	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) || !strings.Contains(whyOf(r), "hoà: a, b cùng ưu tiên 5 và cùng 1 cụm từ khoá") {
+	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) || !strings.Contains(whyOf(r), "hoà: a, b cùng ưu tiên 5 — số cụm từ khoá khớp không phải tín hiệu nghĩa nên không phân xử thay người hỏi, hỏi lại") {
 		t.Errorf("hoà: %v\n%s", r.Ambiguous, whyOf(r))
 	}
 
@@ -95,17 +95,30 @@ func TestClassifyNguonUngVienHoiLai(t *testing.T) {
 		t.Errorf("chỉ hai ứng viên, được %+v", only.Why.Origins)
 	}
 
-	// thực thể rõ + cụm mơ hồ cùng loại tranh một khe: ứng viên của cụm mơ hồ vẫn từ S3, thực thể rõ là thứ S4 gộp thêm
+	// D-OP-11 = b: thực thể rõ + cụm mơ hồ cùng loại tranh một khe — danh sách hỏi lại CHỈ gồm ứng viên của cụm mơ hồ (S3); thực thể rõ chỉ góp vào việc đếm
+	// chủ thể nên không vào danh sách và không có bản ghi nguồn (hợp đồng đổi có chủ ý: trước đây S4 gộp cả thực thể rõ, nguồn S4)
 	mix := classifyRes(t, contracts.Resolution{Entities: []contracts.EntityRef{rl}, Ambiguous: []contracts.AmbiguousMention{alias("may 3", "equipment", dz, ex)}})
-	if len(mix.Unclear.Entities) != 3 {
-		t.Fatalf("tiền đề: S4 phải gộp 3 thực thể tranh khe, được %v", ids(mix.Unclear.Entities))
+	if len(mix.Unclear.Entities) != 2 {
+		t.Fatalf("tiền đề: danh sách hỏi lại chỉ gồm 2 ứng viên của cụm mơ hồ, được %v", ids(mix.Unclear.Entities))
 	}
-	if o, ok := originOf(mix, "RL-02"); !ok || o.From != OriginS4 || !strings.Contains(o.Note, "gộp") || !strings.Contains(o.Note, "khe subject") {
-		t.Errorf("RL-02 là thực thể rõ do S4 gộp thêm: %+v (có=%v)", o, ok)
+	if o, ok := originOf(mix, "RL-02"); ok {
+		t.Errorf("RL-02 là thực thể rõ, không vào danh sách hỏi lại nên không có nguồn: %+v", o)
 	}
 	for _, id := range []string{"DZ-03", "EX-03"} {
 		if o, ok := originOf(mix, id); !ok || o.From != OriginS3 {
-			t.Errorf("%s là ứng viên của cụm mơ hồ (S3) dù S4 giữ trong danh sách: %+v (có=%v)", id, o, ok)
+			t.Errorf("%s là ứng viên của cụm mơ hồ (S3): %+v (có=%v)", id, o, ok)
+		}
+	}
+
+	// hai thực thể RÕ cùng loại tranh một khe (giữ cách liệt kê cũ): cả hai vào danh sách và đều là thứ S4 gộp
+	rl.Mention, dz.Mention = "rl 2", "dz 3"
+	two := classifyRes(t, contracts.Resolution{Entities: []contracts.EntityRef{dz, rl}})
+	if len(two.Unclear.Entities) != 2 {
+		t.Fatalf("tiền đề: hai thực thể rõ tranh khe, được %v", ids(two.Unclear.Entities))
+	}
+	for _, id := range []string{"DZ-03", "RL-02"} {
+		if o, ok := originOf(two, id); !ok || o.From != OriginS4 || !strings.Contains(o.Note, "gộp") || !strings.Contains(o.Note, "khe subject") {
+			t.Errorf("%s là thực thể rõ do S4 gộp: %+v (có=%v)", id, o, ok)
 		}
 	}
 
@@ -183,7 +196,8 @@ func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
 		}
 	}
 
-	// cùng ưu tiên, khác số cụm từ khoá: ý định nhiều cụm hơn thắng, và ý định kia bị loại KÈM hai con số đúng chỗ
+	// cùng ưu tiên, khác số cụm từ khoá: HOÀ ⇒ hỏi lại (S4AS-03, C4 — số cụm khớp không phải tín hiệu nghĩa; trước đây ý định nhiều cụm hơn thắng và ý định kia bị loại kèm hai
+	// con số: hợp đồng đổi có chủ ý theo ADR-0010)
 	set, err := Compile([]Def{
 		{Name: "a", Route: "SQL_QUERY", Keywords: []string{"cấp", "nhận"}, Priority: 5, Capability: "m"},
 		{Name: "b", Route: "SQL_QUERY", Keywords: []string{"báo"}, Priority: 5, Capability: "m"},
@@ -192,14 +206,14 @@ func TestClassifyGiaiThichSoLuongYDinhYeuVaCumTuKhoa(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := set.Classify(contracts.NormalizedInput{Raw: "cấp nhận báo"}, contracts.Resolution{}, testNow)
-	if r.Intent.Name != "a" {
-		t.Fatalf("tiền đề: ý định %q", r.Intent.Name)
+	if !slices.Equal(r.Ambiguous, []string{"a", "b"}) {
+		t.Fatalf("tiền đề: hai ý định cùng ưu tiên phải hoà, được %q / %q", r.Intent.Name, r.Ambiguous)
 	}
-	if want := "chọn a: cùng ưu tiên 5 nhưng nhiều cụm từ khoá hơn (2)"; !slices.Contains(r.Why.Reasons, want) {
+	if want := "hoà: a, b cùng ưu tiên 5 — số cụm từ khoá khớp không phải tín hiệu nghĩa nên không phân xử thay người hỏi, hỏi lại"; !slices.Contains(r.Why.Reasons, want) {
 		t.Errorf("thiếu %q trong:\n%s", want, strings.Join(r.Why.Reasons, "\n"))
 	}
-	if want := []string{"b: khớp đủ nhưng bị loại — 1 cụm từ khoá, ít hơn a (2) cùng ưu tiên 5"}; !slices.Equal(r.Why.Rejected, want) {
-		t.Errorf("ý định bị loại: %q, muốn %q", r.Why.Rejected, want)
+	if len(r.Why.Rejected) != 0 {
+		t.Errorf("hoà thì không ý định nào bị loại, được %q", r.Why.Rejected)
 	}
 }
 

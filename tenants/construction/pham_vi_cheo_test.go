@@ -1,0 +1,115 @@
+package construction_test
+
+import (
+	"context"
+	"fmt"
+	"maps"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
+	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
+)
+
+// Test chéo ranh giới quyền (F-031, lát L4) trên policy THẬT của pack.
+
+// taiLieuPhamVi là tài liệu quy trình chỉ mở cho các vai acl, phạm vi scope; thân trả lời được cauQuyTrinh.
+func taiLieuPhamVi(acl, scope []string) rag.Document {
+	return rag.Document{ID: "SOP-PV-01", Tenant: "abc-infra", Title: "Quy trình xử lý chênh lệch nhiên liệu", ACL: acl, Scope: scope,
+		Body: "1. Khi lượng xuất kho và lượng tiêu thụ đo được lệch quá dung sai, tổ trưởng kho lập biên bản đối soát trong vòng 24 giờ.\n" +
+			"2. Kế toán chỉ đối chiếu hoá đơn sau khi biên bản đối soát được ký."}
+}
+
+// Hai chỗ cùng quyết "người hỏi được xem tài liệu có phạm vi này không": Policy.InScope (core/policy — S5 và lệnh ghi dùng) và nhánh
+// dự phòng của chỉ mục tri thức khi không ai đưa luật phạm vi (MemoryIndex.InScope = nil: tự đọc thuộc tính entity_scope). Với mỗi vai
+// của pack × entity_scope × phạm vi tài liệu (tài liệu chỉ mở cho đúng vai đó), nhánh dự phòng phải thấy tài liệu ĐÚNG KHI
+// Policy.InScope nói có. Lệch theo hướng dự phòng RỘNG hơn là lọt (đỏ); lệch theo hướng HẸP hơn được ghi lại bằng Skip có lý do.
+func TestPhamViDuPhongRAGBangPolicy(t *testing.T) {
+	rt, err := tenant.Load("pack")
+	if err != nil {
+		t.Fatalf("nạp pack: %v", err)
+	}
+	pol := rt.Policy
+	roles := slices.Sorted(maps.Keys(pol.Roles))
+	roles = append(roles, "site_supervisor") // vai không có trong policy: không phạm vi nào mặc định mở
+	thay := func(t *testing.T, ix *rag.MemoryIndex, pr contracts.Principal) bool {
+		t.Helper()
+		ev, err := ix.Retrieve(context.Background(), pr, cauQuyTrinh, 3)
+		if err != nil {
+			t.Fatalf("truy xuất: %v", err)
+		}
+		return len(ev) > 0
+	}
+	n := 0
+	for _, role := range roles {
+		t.Run(role, func(t *testing.T) {
+			var hep []string
+			for _, attr := range []string{"", "PRJ-A", "PRJ-B", "PRJ-A, PRJ-B", " , PRJ-B "} {
+				for _, scope := range [][]string{{"PRJ-A"}, {"PRJ-B"}, {"PRJ-A", "PRJ-B"}} {
+					pr := user(role, attr)
+					docs := []rag.Document{taiLieuPhamVi([]string{role}, scope)}
+					duPhong := rag.NewMemoryIndex("abc-infra", docs)
+					theoLuat := rag.NewMemoryIndex("abc-infra", docs)
+					theoLuat.InScope = pol.InScope
+					want, got, gotLuat := pol.InScope(pr, scope), thay(t, duPhong, pr), thay(t, theoLuat, pr)
+					n++
+					ca := fmt.Sprintf("entity_scope %q / tài liệu %s", attr, strings.Join(scope, ","))
+					switch {
+					case gotLuat != want:
+						t.Errorf("%s: chỉ mục có InScope = Policy.InScope thấy = %v, Policy.InScope = %v", ca, gotLuat, want)
+					case got && !want:
+						t.Errorf("%s: nhánh dự phòng THẤY tài liệu mà Policy.InScope từ chối (lọt)", ca)
+					case !got && want:
+						hep = append(hep, ca)
+					}
+				}
+			}
+			if len(hep) > 0 {
+				t.Skipf("F-031: nhánh dự phòng của chỉ mục (InScope = nil) HẸP hơn Policy.InScope cho vai %s (scope %q) ở %d ca: %s — "+
+					"dự phòng không biết scope của vai; sửa ở intelligence/rag, ngoài lát L4, chờ điều phối", role, pol.Roles[role].Scope, len(hep), strings.Join(hep, "; "))
+			}
+		})
+	}
+	if n == 0 {
+		t.Fatal("không ca nào được so")
+	}
+}
+
+// Q-P1-10 (người nhiều vai): capability documents.read (router, S5) và ACL tài liệu (chỉ mục tri thức) được thoả bởi HAI VAI KHÁC NHAU của
+// cùng một người hỏi. Vai A có documents.read nhưng không trong ACL; vai B trong ACL nhưng không có documents.read. Từng vai một mình không
+// đọc được tài liệu (đối chứng); câu hỏi là hai vai cùng nhau có đọc được không. Hợp đồng chưa quyết (CHO mục 5): đo thấy lọt thì Skip có
+// lý do + mã câu hỏi, KHÔNG sửa trước khi chủ dự án quyết.
+func TestHaiVaiTachQuyenDocVaACL(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		roles []string // [vai A có documents.read, vai B trong ACL]
+		attr  string
+		scope []string
+	}{
+		{"tài liệu không khai phạm vi", []string{"site_engineer", "accountant"}, "", nil},
+		{"tài liệu PRJ-B, vai có quyền đọc chỉ được giao PRJ-A", []string{"project_manager", "accountant"}, "PRJ-A", []string{"PRJ-B"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			a, m := newAsk(t), &models.Extractive{}
+			doc := taiLieuPhamVi([]string{c.roles[1]}, c.scope)
+			a.Deps.Knowledge, a.Deps.Model = rag.NewMemoryIndex("abc-infra", []rag.Document{doc}), m
+			doc24 := func(r contracts.AskResponse) bool {
+				return strings.Contains(r.Answer, "24 giờ") || citesDocument(r, doc.ID)
+			}
+			for _, role := range c.roles {
+				if r := ask(t, a, user(role, c.attr), cauQuyTrinh).Response; doc24(r) {
+					t.Fatalf("đối chứng: vai %s một mình đã đọc được tài liệu (%s → %q)", role, r.Outcome, r.Answer)
+				}
+			}
+			pr := user(c.roles[0], c.attr)
+			pr.Roles = c.roles
+			if r := ask(t, a, pr, cauQuyTrinh).Response; doc24(r) {
+				t.Skipf("Q-P1-10 chưa quyết: vai %v cùng nhau đọc được %s (route %s, outcome %s, %d lời gọi model) dù không vai nào một mình "+
+					"đọc được — documents.read lấy từ %s, ACL / phạm vi từ %s; khuyến nghị đang ghi: cùng một vai", c.roles, doc.ID, r.Route, r.Outcome, m.Calls(), c.roles[0], c.roles[1])
+			}
+		})
+	}
+}

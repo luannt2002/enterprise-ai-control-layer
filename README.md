@@ -38,6 +38,8 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go). Mọi dữ liệu trong repo là **giả lập**; repo công
 khai không chứa dữ liệu thật của tenant nào.
 
+Giấy phép: **MIT** — [`LICENSE`](LICENSE) (`SPDX-License-Identifier: MIT`), chủ dự án chọn 24/10/2026 (`docs/CHO-QUYET-DINH.md`, D-OP-3).
+
 ---
 
 ## 1. EAIS là gì, không là gì

@@ -237,6 +237,10 @@ func TestChamDoan(t *testing.T) {
 		t.Skip("đặt EAIS_DECIDE_* (khuôn ở .env.example) để đo bộ chấm đoạn với model thật (gửi dữ liệu ra ngoài)")
 	}
 	bo, docs, rt := napS7Do(t)
+	if os.Getenv("EAIS_S4_BO") != "" { // bộ của thí nghiệm S4: dùng phần có đáp án / không có đáp án
+		b4, d4, _ := napBoS4(t)
+		bo, docs = boTruyHoiTuS4(b4, d4), d4
+	}
 	pool, _ := strconv.Atoi(cmp.Or(os.Getenv("EAIS_CHAM_POOL"), "10"))
 	duong := cmp.Or(os.Getenv("EAIS_CHAM_DUONG"), "tu_khoa")
 	goc := map[string]s7Truy{}
@@ -283,6 +287,29 @@ func TestChamDoan(t *testing.T) {
 			}
 		}
 	}
+}
+
+// boTruyHoiTuS4 lấy phần đo truy hồi của bộ S4: tra_loi và ca_hai thành câu có đáp án, khong_co giữ, so_lieu bỏ; đáp án ghi ban 1 cho tài
+// liệu không phiên bản đổi về 0 (quy ước khai trước lần chạy, dungBan).
+func boTruyHoiTuS4(b s4Bo, docs []rag.Document) s7Bo {
+	out := s7Bo{NgayMacDinh: b.NgayMacDinh, K: b.K}
+	for _, c := range b.Cau {
+		switch c.Loai {
+		case "so_lieu":
+			continue
+		case "ca_hai":
+			c.Loai = "tra_loi"
+		}
+		x := c.s7Cau
+		x.DapAn = slices.Clone(x.DapAn)
+		for i, d := range x.DapAn {
+			if d.Ban == 1 && slices.ContainsFunc(docs, func(r rag.Document) bool { return r.ID == d.TaiLieu && r.Version == 0 }) {
+				x.DapAn[i].Ban = 0
+			}
+		}
+		out.Cau = append(out.Cau, x)
+	}
+	return out
 }
 
 // Logic của B2 / B3 / B4 và A / B / C với model GIẢ (trên máy, không gọi ra ngoài).

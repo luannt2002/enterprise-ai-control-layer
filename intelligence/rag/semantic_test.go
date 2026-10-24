@@ -134,6 +134,7 @@ func TestLaiTimDuocChuKhacTaiLieu(t *testing.T) {
 // Phạm vi trên đường lai: kỹ sư PRJ-B không thấy biện pháp của PRJ-A dù vector khớp tuyệt đối; kỹ sư PRJ-A thấy.
 func TestLaiPhamVi(t *testing.T) {
 	ix := chiMucLai(t, khoLai(), &nhungGia{khaiNiem: khaiNiemThu})
+	ix.InScope = theoThuocTinh
 	const cau = "Đổ vữa thế nào?"
 	// Không đặt ngưỡng: câu lạc đề với PRJ-B vẫn có đoạn đứng đầu (có thể là thông báo phiên bản của tài liệu khác) — bất biến là BT
 	// không lọt, cả trong đoạn lẫn trong thông báo.

@@ -7,7 +7,12 @@ import (
 	"testing"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 )
+
+// theoThuocTinh là luật phạm vi chỉ theo thuộc tính entity_scope (policy không vai nào scope "all"). Chỉ mục không tự đoán luật phạm
+// vi (không luật = tài liệu có phạm vi đóng), nên test cần phạm vi theo thuộc tính phải tự đưa luật này.
+var theoThuocTinh = policy.Policy{}.InScope
 
 func testDocs() []Document {
 	return []Document{

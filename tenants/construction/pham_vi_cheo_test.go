@@ -24,10 +24,12 @@ func taiLieuPhamVi(acl, scope []string) rag.Document {
 			"2. Kế toán chỉ đối chiếu hoá đơn sau khi biên bản đối soát được ký."}
 }
 
-// Hai chỗ cùng quyết "người hỏi được xem tài liệu có phạm vi này không": Policy.InScope (core/policy — S5 và lệnh ghi dùng) và nhánh
-// dự phòng của chỉ mục tri thức khi không ai đưa luật phạm vi (MemoryIndex.InScope = nil: tự đọc thuộc tính entity_scope). Với mỗi vai
-// của pack × entity_scope × phạm vi tài liệu (tài liệu chỉ mở cho đúng vai đó), nhánh dự phòng phải thấy tài liệu ĐÚNG KHI
-// Policy.InScope nói có. Lệch theo hướng dự phòng RỘNG hơn là lọt (đỏ); lệch theo hướng HẸP hơn được ghi lại bằng Skip có lý do.
+// Một chỗ quyết "người hỏi được xem tài liệu có phạm vi này không": Policy.InScope (core/policy — S5, lệnh ghi, và lượt tri thức qua
+// KnowledgeQuery.InScope). Chỉ mục tri thức không tự đoán luật phạm vi: không ai đưa luật (MemoryIndex.InScope = nil, ngữ cảnh không mang
+// luật) thì tài liệu có phạm vi ĐÓNG với mọi vai. Trước đây nhánh dự phòng tự đọc thuộc tính entity_scope và HẸP hơn Policy.InScope cho
+// vai scope "all" (director, accountant: 6 ca mỗi vai) — bỏ hẳn nhánh đó (F-031, Q11). Với mỗi vai của pack × entity_scope × phạm vi
+// tài liệu (tài liệu chỉ mở cho đúng vai đó): chỉ mục có luật Policy.InScope thấy tài liệu ĐÚNG KHI Policy.InScope nói có; chỉ mục không
+// luật không thấy gì.
 func TestPhamViDuPhongRAGBangPolicy(t *testing.T) {
 	rt, err := tenant.Load("pack")
 	if err != nil {
@@ -44,38 +46,31 @@ func TestPhamViDuPhongRAGBangPolicy(t *testing.T) {
 		}
 		return len(ev) > 0
 	}
-	n := 0
+	mo := map[bool]int{} // số ca Policy mở / đóng: phép so phải gặp cả hai
 	for _, role := range roles {
 		t.Run(role, func(t *testing.T) {
-			var hep []string
 			for _, attr := range []string{"", "PRJ-A", "PRJ-B", "PRJ-A, PRJ-B", " , PRJ-B "} {
 				for _, scope := range [][]string{{"PRJ-A"}, {"PRJ-B"}, {"PRJ-A", "PRJ-B"}} {
 					pr := user(role, attr)
 					docs := []rag.Document{taiLieuPhamVi([]string{role}, scope)}
-					duPhong := rag.NewMemoryIndex("abc-infra", docs)
+					khongLuat := rag.NewMemoryIndex("abc-infra", docs)
 					theoLuat := rag.NewMemoryIndex("abc-infra", docs)
 					theoLuat.InScope = pol.InScope
-					want, got, gotLuat := pol.InScope(pr, scope), thay(t, duPhong, pr), thay(t, theoLuat, pr)
-					n++
+					want := pol.InScope(pr, scope)
+					mo[want]++
 					ca := fmt.Sprintf("entity_scope %q / tài liệu %s", attr, strings.Join(scope, ","))
-					switch {
-					case gotLuat != want:
-						t.Errorf("%s: chỉ mục có InScope = Policy.InScope thấy = %v, Policy.InScope = %v", ca, gotLuat, want)
-					case got && !want:
-						t.Errorf("%s: nhánh dự phòng THẤY tài liệu mà Policy.InScope từ chối (lọt)", ca)
-					case !got && want:
-						hep = append(hep, ca)
+					if got := thay(t, theoLuat, pr); got != want {
+						t.Errorf("%s: chỉ mục có InScope = Policy.InScope thấy = %v, Policy.InScope = %v", ca, got, want)
+					}
+					if thay(t, khongLuat, pr) {
+						t.Errorf("%s: chỉ mục không có luật phạm vi vẫn thấy tài liệu có phạm vi (tự đoán luật của policy)", ca)
 					}
 				}
 			}
-			if len(hep) > 0 {
-				t.Skipf("F-031: nhánh dự phòng của chỉ mục (InScope = nil) HẸP hơn Policy.InScope cho vai %s (scope %q) ở %d ca: %s — "+
-					"dự phòng không biết scope của vai; sửa ở intelligence/rag, ngoài lát L4, chờ điều phối", role, pol.Roles[role].Scope, len(hep), strings.Join(hep, "; "))
-			}
 		})
 	}
-	if n == 0 {
-		t.Fatal("không ca nào được so")
+	if mo[true] == 0 || mo[false] == 0 {
+		t.Fatalf("phép so phải gặp cả ca Policy mở lẫn ca đóng: %v", mo)
 	}
 }
 

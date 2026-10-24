@@ -14,7 +14,8 @@ import (
 	"unicode/utf8"
 )
 
-// Cổng danh tính: repo chỉ có MỘT danh tính sản phẩm hiện hành là EAIS (Enterprise AI Systems, D-RM-02). Tên dùng từ chiều
+// Cổng danh tính: repo chỉ có MỘT danh tính sản phẩm hiện hành là EAIS (viết tắt từ D-RM-02; tên hiển thị Enterprise AI
+// Integration Reference Architecture, ADR-0013). Tên dùng từ chiều
 // 20/10 (kế hoạch V3) tới tối 21/10/2026 (mẫu dưới đây) chỉ được xuất hiện ở các tệp có lý do ghi trong legacyAllowed, đúng bằng
 // số lần đã cho phép: bằng chứng đóng băng không được sửa cho đẹp tên, còn tài liệu / mã hiện hành không được để tên cũ quay lại.
 // Tên viết tắt: mọi kiểu hoa thường. Tên dài: dò trên bản chỉ giữ chữ cái / chữ số (legacyLongName), nên mọi cách nối từ đều bị

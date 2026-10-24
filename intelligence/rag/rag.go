@@ -629,6 +629,22 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 			}
 		}
 	}
+	rep := report(ctx)
+	*rep = contracts.RetrievalReport{Path: "từ khoá", Chunks: seen}
+	if ix.Semantic != nil {
+		rep.Path = "lai, cosine"
+		if ix.Semantic.Reranker != nil {
+			rep.Path = "lai, xếp lại"
+		}
+	}
+	for d, v := range vis {
+		if v {
+			rep.Docs++
+			if !servable(d, today) {
+				rep.NotServable++
+			}
+		}
+	}
 	if ix.Semantic != nil && ix.Semantic.MinScore > 0 {
 		return ix.hybrid(ctx, pr, query, k, today, vis, serving, live, df, seen)
 	}
@@ -643,6 +659,7 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 			}
 		}
 		if 2*unknown >= len(tq) {
+			rep.Silence = fmt.Sprintf("chủ đề ngoài kho: %d / %d từ của chủ đề không có trong đoạn nào người hỏi thấy", unknown, len(tq))
 			return []contracts.Evidence{}, nil
 		}
 	}
@@ -690,14 +707,25 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 		}
 		return nil, ix.notice(noticeID, kind, pr)
 	}
+	if len(hits) == 0 {
+		rep.Silence = fmt.Sprintf("không đoạn nào đạt ngưỡng từ khoá %.3f", ix.MinScore)
+	}
 	if len(hits) > k {
-		hits = hits[:k]
+		rep.Beyond, hits = len(hits)-k, hits[:k]
 	}
 	out := make([]contracts.Evidence, 0, len(hits))
 	for _, h := range hits {
 		out = append(out, evidenceOf(h.c, h.s))
 	}
 	return out, nil
+}
+
+// report trả nơi ghi vết truy xuất của lượt (KnowledgeQuery.Report); lượt không xin vết thì ghi vào một bản bỏ đi.
+func report(ctx context.Context) *contracts.RetrievalReport {
+	if kq, ok := contracts.KnowledgeQueryFrom(ctx); ok && kq.Report != nil {
+		return kq.Report
+	}
+	return &contracts.RetrievalReport{}
 }
 
 // idfScore là điểm từ khoá của đoạn: tổng IDF các từ của câu hỏi có trong đoạn (q đã sắp xếp — thứ tự cộng cố định).

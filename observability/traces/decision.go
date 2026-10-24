@@ -70,6 +70,7 @@ type Why struct {
 	Resolve   Notes `json:"resolve,omitzero"`   // S3: thực thể rõ, cụm mơ hồ, ứng viên trước / sau lọc phạm vi
 	Intent    Notes `json:"intent,omitzero"`    // S4: ý định khớp đủ / một phần, ý định chung, lý do hỏi lại, nguồn ứng viên
 	Route     Notes `json:"route,omitzero"`     // S5: các bậc kiểm của router, route đã loại, ghi đè của luồng hỏi
+	Execute   Notes `json:"execute,omitzero"`   // S6: route tri thức — đường truy xuất, số tài liệu / đoạn thấy, điểm + hạng, lý do im
 	Context   Notes `json:"context,omitzero"`   // S7: bằng chứng được dùng / bị loại (thẩm quyền, quyền đọc tài liệu)
 	Validate  Notes `json:"validate,omitzero"`  // S9: cổng phán quyết của câu xác nhận
 }
@@ -125,7 +126,7 @@ func (w Why) Compact(limit, maxRunes int) Why {
 }
 
 func (w Why) apply(f func([]string) []string) Why {
-	for _, n := range []*Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Context, &w.Validate} {
+	for _, n := range []*Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Execute, &w.Context, &w.Validate} {
 		n.Reasons, n.Rejected = f(n.Reasons), f(n.Rejected)
 	}
 	return w

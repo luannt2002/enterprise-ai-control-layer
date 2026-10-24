@@ -32,6 +32,18 @@ type KnowledgeQuery struct {
 	// Topic là phần câu hỏi nói về chủ đề (câu gốc bỏ con số / ngày / mã đã chuẩn hoá ở S2): chỉ mục dùng nó để biết kho có nói
 	// tới điều được hỏi không. Rỗng = không xét.
 	Topic string
+	// Report, nếu khác nil, được chỉ mục điền vết của chặng truy xuất (ROADMAP-RAG §6.7).
+	Report *RetrievalReport
+}
+
+// RetrievalReport là vết của một lần truy xuất tri thức. Chỉ đếm trong tài liệu người hỏi ĐƯỢC thấy: người hỏi đọc được vết của chính
+// mình, nên tài liệu ngoài vai / phạm vi không được đếm ở đâu ("không có" = "không được xem", ROADMAP-RAG §6.2).
+type RetrievalReport struct {
+	Path         string // đường truy xuất: "từ khoá" / "lai, xếp lại" / "lai, cosine"
+	Docs, Chunks int    // số bản tài liệu / số đoạn người hỏi thấy
+	NotServable  int    // bản thấy được mà không làm căn cứ được ở ngày hỏi (chưa duyệt, hết hiệu lực, bị thay, đang giữ lại)
+	Beyond       int    // đoạn khớp, làm căn cứ được, nhưng xếp sau hạng k — không đưa vào ngữ cảnh
+	Silence      string // rỗng = có trả đoạn; còn lại = luật đã chặn và vì sao ("im")
 }
 
 // WithKnowledgeQuery gắn điều kiện truy xuất tri thức của lượt vào ngữ cảnh.

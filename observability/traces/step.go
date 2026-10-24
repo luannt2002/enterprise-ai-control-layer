@@ -276,10 +276,14 @@ func BuildSteps(t Turn) []Step {
 		}
 		s.Input = []string{"route=" + d.Route}
 		s.Decision = "đã truy vấn nguồn"
-		if len(resp.Conflicts) == 0 {
+		kn := d.Why.Execute // vết truy xuất tri thức (route RAG / HYBRID)
+		switch {
+		case len(resp.Conflicts) == 0 && kn.Recorded() && route == contracts.RouteRAG: // tri thức thuần: S6 chỉ là truy xuất
+			s.Reason, s.Rejected = joinReasons(kn), slices.Clone(kn.Rejected)
+		case len(resp.Conflicts) == 0:
 			s.Reason = notRecorded("kết quả truy vấn (sourceoftruth.Result) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("nguồn / bằng chứng bị loại lúc truy vấn chưa xuất khỏi Handle")}
-		} else {
+		default:
 			s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
 			var reasons []string
 			for _, c := range resp.Conflicts {
@@ -299,6 +303,12 @@ func BuildSteps(t Turn) []Step {
 				}
 			}
 			s.Reason = strings.Join(reasons, "; ")
+		}
+		// HYBRID: phần số liệu (xung đột, hoặc ô chưa ghi của kết quả truy vấn — dấu khoảng trống của bảng giữ nguyên) GIỮ nguyên, vết
+		// truy xuất của phần tri thức nối thêm; không phần nào đè phần kia.
+		if route == contracts.RouteHybrid && kn.Recorded() {
+			s.Reason += "; " + joinReasons(kn)
+			s.Rejected = append(s.Rejected, kn.Rejected...)
 		}
 		// Truy vấn chạy xong mà không đủ dữ liệu để trả lời: nguyên nhân của outcome INSUFFICIENT_EVIDENCE nằm Ở ĐÂY, S10 chỉ là hệ
 		// quả — bước lệch đầu tiên của vết phải là chặng đã gây ra nó (R1-03). Khi luồng hỏi xuất sourceoftruth.Result thì ghi hẳn

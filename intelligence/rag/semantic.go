@@ -101,6 +101,7 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 		}
 	}
 	if len(cs) == 0 {
+		report(ctx).Silence = "không đoạn nào làm căn cứ được trong tài liệu người hỏi thấy"
 		return []contracts.Evidence{}, nil
 	}
 	// Kiểm vector TRƯỚC khi nhúng câu hỏi: kho chưa nhúng xong thì không gửi câu hỏi ra ngoài vô ích.
@@ -183,6 +184,11 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 		gate = pool[0].score
 	}
 	if gate < sem.MinScore {
+		name := "cosine"
+		if sem.Reranker != nil {
+			name = "điểm xếp lại"
+		}
+		report(ctx).Silence = fmt.Sprintf("%s của đoạn đầu %.3f < ngưỡng %.3f", name, gate, sem.MinScore)
 		return []contracts.Evidence{}, nil
 	}
 	if id := pool[0].c.doc.ID; serving[id] != 1 {
@@ -192,13 +198,14 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 		}
 		return nil, ix.notice(id, kind, pr)
 	}
-	out := []contracts.Evidence{}
+	out, rep := []contracts.Evidence{}, report(ctx)
 	for _, x := range pool {
-		if len(out) == k {
-			break
-		}
-		if serving[x.c.doc.ID] == 1 && servable(x.c.doc, today) {
+		switch {
+		case serving[x.c.doc.ID] != 1 || !servable(x.c.doc, today):
+		case len(out) < k:
 			out = append(out, evidenceOf(x.c, x.score))
+		case x.score >= sem.MinScore: // cùng nghĩa với đường từ khoá: chỉ đếm đoạn đạt ngưỡng
+			rep.Beyond++
 		}
 	}
 	return out, nil

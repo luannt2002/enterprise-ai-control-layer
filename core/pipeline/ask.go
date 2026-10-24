@@ -575,14 +575,21 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		return contracts.Errorf(contracts.FaultCode, "route tri thức cần chỉ mục tài liệu và gateway model")
 	}
 	// S6 — truy xuất (tenant + ACL tài liệu do capability tri thức kiểm)
+	var rep contracts.RetrievalReport
 	ev, err := traces.Measure(tr, "retrieve", func() ([]contracts.Evidence, error) {
-		kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in)})
+		kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in), Report: &rep})
 		return a.Deps.Knowledge.Retrieve(kctx, pr, in.Raw, knowledgeK)
 	})
+	prefix := ""
+	if hybrid {
+		prefix = "tri thức: "
+	}
 	if err != nil {
 		var n *contracts.KnowledgeNotice
 		switch {
 		case errors.As(err, &n): // không phải lỗi hệ thống: nói rõ cho người hỏi (BR-DOC-01)
+			noteExecute(why, prefix, rep, nil, knowledgeK)
+			why.Execute.Reason("%sdừng ở thông báo phiên bản của tài liệu %s: không trả đoạn nào (các bản ở S7)", prefix, n.DocumentID)
 			noteNotice(why, hybrid, n)
 			a.versionNotice(n, resp, hybrid)
 			return nil
@@ -593,10 +600,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		}
 		return err
 	}
-	prefix := ""
-	if hybrid {
-		prefix = "tri thức: "
-	}
+	noteExecute(why, prefix, rep, ev, knowledgeK)
 	noteRetrieved(why, prefix, ev, knowledgeK)
 	if len(ev) == 0 {
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)

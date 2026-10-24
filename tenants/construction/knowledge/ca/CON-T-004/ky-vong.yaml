@@ -1,0 +1,19 @@
+ca: CON-T-004
+nguon: >-
+  cases.yaml CON-T-004 (+ cùng bảng định mức như CON-T-005). Chỉ kiểm phần TRUY HỒI của ca HYBRID;
+  số liệu 142 L / 7 giờ và phép tính 17 x 7 là việc của pipeline, không thuộc bộ này.
+hoi: "Máy xúc EX-01 hôm nay tiêu thụ dầu có vượt định mức không?"
+ngay_hoi: "2026-10-19"
+nguoi_hoi:
+  vai: [equipment_manager]
+  pham_vi: [PRJ-A]
+k: 3
+ket_qua: bang_chung
+kiem:
+  - doan_dau_chua: "Máy xúc bánh xích 1,2 m³"
+  - chi_ban: ["SOP-NL-ĐM-01@v3"]
+  - khong_doan_nao_chua: "Xe lu" # header không cộng điểm cho mọi hàng (soát U3, T1)
+  - khong_doan_nao_chua: "Máy ủi"
+    do_biet_truoc: >-
+      must_not_do của ca: không đưa định mức máy ủi / xe lu vào ngữ cảnh. Truy hồi theo dòng không biết
+      EX-01 là máy xúc 1,2 m³; cần tra định mức theo loại máy như dữ liệu có cấu trúc (phương án b).

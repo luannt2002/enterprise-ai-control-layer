@@ -8,6 +8,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"runtime/debug"
@@ -574,16 +575,32 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		return contracts.Errorf(contracts.FaultCode, "route tri thức cần chỉ mục tài liệu và gateway model")
 	}
 	// S6 — truy xuất (tenant + ACL tài liệu do capability tri thức kiểm)
+	var rep contracts.RetrievalReport
 	ev, err := traces.Measure(tr, "retrieve", func() ([]contracts.Evidence, error) {
-		return a.Deps.Knowledge.Retrieve(ctx, pr, in.Raw, knowledgeK)
+		kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in), Report: &rep})
+		return a.Deps.Knowledge.Retrieve(kctx, pr, in.Raw, knowledgeK)
 	})
-	if err != nil {
-		return err
-	}
 	prefix := ""
 	if hybrid {
 		prefix = "tri thức: "
 	}
+	if err != nil {
+		var n *contracts.KnowledgeNotice
+		switch {
+		case errors.As(err, &n): // không phải lỗi hệ thống: nói rõ cho người hỏi (BR-DOC-01)
+			noteExecute(why, prefix, rep, nil, knowledgeK)
+			why.Execute.Reason("%sdừng ở thông báo phiên bản của tài liệu %s: không trả đoạn nào (các bản ở S7)", prefix, n.DocumentID)
+			noteNotice(why, hybrid, n)
+			a.versionNotice(n, resp, hybrid)
+			return nil
+		case hybrid: // phần số liệu đã kiểm vẫn giao; lỗi nằm trong vết của bước retrieve
+			why.Context.Reason("tri thức: truy xuất lỗi (%s) — bỏ phần quy trình, giữ phần số liệu đã kiểm", contracts.FaultOf(err))
+			resp.Answer += a.fragment("hybrid_knowledge_error", nil)
+			return nil
+		}
+		return err
+	}
+	noteExecute(why, prefix, rep, ev, knowledgeK)
 	noteRetrieved(why, prefix, ev, knowledgeK)
 	if len(ev) == 0 {
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
@@ -598,7 +615,18 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		return a.Deps.Model.Generate(ctx, models.Request{Question: in.Raw, Evidence: ev})
 	})
 	if err != nil {
+		if hybrid {
+			resp.Answer += a.fragment("hybrid_knowledge_error", nil)
+			return nil
+		}
 		return err
+	}
+	// Model nói rõ bằng chứng không trả lời được (Draft.Refused): "không có" như khi không đoạn nào khớp — không phải lỗi, không trích
+	// dẫn (ROADMAP-RAG §6.5). Bản nháp rỗng / văn xuôi KHÔNG mang cờ là đầu ra hỏng: vẫn qua S9 và bị chặn.
+	if draft.Refused {
+		why.Context.Reason("%smodel: bằng chứng đã truy hồi không trả lời được câu hỏi — không trích đoạn nào", prefix)
+		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
+		return nil
 	}
 	// S9 — kiểm
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
@@ -623,6 +651,43 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	resp.Answer, resp.Outcome = a.render(tmpl, vars), contracts.OutcomeResolved
 	resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	return nil
+}
+
+// noteNotice ghi S7 khi chỉ mục trả thông báo phiên bản thay cho đoạn: không đoạn nào được trích, kèm các bản người hỏi thấy.
+func noteNotice(why *traces.Why, hybrid bool, n *contracts.KnowledgeNotice) {
+	prefix := ""
+	if hybrid {
+		prefix = "tri thức: "
+	}
+	vs := make([]string, len(n.Versions))
+	for i, v := range n.Versions {
+		vs[i] = fmt.Sprintf("v%d %s [%s, %s)", v.Version, v.Status, v.EffectiveFrom, v.EffectiveTo)
+		if v.Hold != "" {
+			vs[i] += " giữ lại: " + v.Hold
+		}
+	}
+	why.Context.Reason("%s%s %q: thông báo %s — các bản người hỏi thấy: %s; không trích đoạn nào, không gọi model (BR-DOC-01)",
+		prefix, n.DocumentID, n.Title, n.Kind, strings.Join(vs, "; "))
+}
+
+// versionNotice nói rõ cho người hỏi khi tài liệu khớp nhất không có đúng một bản làm căn cứ: không chọn bản ngầm,
+// không gọi model, không dùng bản cũ (BR-DOC-01, docs/viec/2-tra-quy-trinh/HOP-DONG.md §4).
+func (a *Ask) versionNotice(n *contracts.KnowledgeNotice, resp *contracts.AskResponse, hybrid bool) {
+	vs := make([]string, len(n.Versions))
+	for i, v := range n.Versions {
+		vs[i] = fmt.Sprintf("v%d", v.Version)
+	}
+	vars := map[string]string{"title": n.Title, "reason": strings.Join(vs, ", ")}
+	name, outcome := "knowledge_no_effective", contracts.OutcomeInsufficientEvidence
+	if n.Kind == contracts.NoticeVersionConflict {
+		name, outcome = "knowledge_version_conflict", contracts.OutcomeSourceConflict
+	}
+	if hybrid {
+		resp.Answer += a.fragment("hybrid_"+name, vars)
+		return
+	}
+	resp.Answer, resp.Outcome = a.render(name, vars), outcome
+	resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 }
 
 // asksFactQuantity báo câu hỏi đòi một LƯỢNG thuộc chiều đo của chỉ số nghiệp vụ ("bao nhiêu lít

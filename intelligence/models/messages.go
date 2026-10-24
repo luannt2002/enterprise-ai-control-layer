@@ -318,8 +318,8 @@ func (m *Messages) Reset() {
 
 // Config là cấu hình gateway model của một lần chạy — đọc ở tầng khởi động, không hard code.
 type Config struct {
-	Provider    string // "" hoặc "extractive" = model giả tất định; "anthropic" = API kiểu Messages
-	BaseURL     string // trống với "anthropic" = endpoint chính thức của nhà cung cấp
+	Provider    string // "" hoặc "extractive" = model giả tất định; "anthropic" = API kiểu Messages; ProtocolChat = API kiểu chat completions
+	BaseURL     string // trống với "anthropic" = endpoint chính thức của nhà cung cấp; ProtocolChat bắt buộc
 	APIKey      string
 	Model       string // bắt buộc với model thật — không có model mặc định
 	MaxTokens   int    // trống = 1024
@@ -460,6 +460,35 @@ func New(c Config) (Gateway, error) {
 		}
 		if c.MaxRetries < 0 || c.MaxRetries > MaxRetriesLimit {
 			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_MAX_RETRIES phải là số trong [0, %d]", MaxRetriesLimit))
+		}
+		return m, nil
+	case ProtocolChat:
+		// Không có endpoint mặc định: cùng giao thức này có API trả tiền lẫn proxy / server nội bộ — chọn là việc của người chạy.
+		if c.Model == "" || c.APIKey == "" || c.BaseURL == "" {
+			return nil, contracts.Errorf(contracts.FaultCode, "provider "+ProtocolChat+" cần EAIS_MODEL, EAIS_MODEL_API_KEY và EAIS_MODEL_BASE_URL")
+		}
+		if c.Thinking != "" || c.Effort != "" {
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_THINKING / EAIS_MODEL_EFFORT chỉ dùng cho giao thức Messages")
+		}
+		if !secureEndpoint(c.BaseURL) {
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback, không kèm thông tin xác thực trong URL", EndpointForLog(c.BaseURL)))
+		}
+		if c.MaxTokens < 0 {
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_MAX_TOKENS phải là số nguyên dương")
+		}
+		if c.MaxRetries < 0 || c.MaxRetries > MaxRetriesLimit {
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_MAX_RETRIES phải là số trong [0, %d]", MaxRetriesLimit))
+		}
+		m := &Chat{caller: caller{Provider: c.Provider, MaxRetries: c.MaxRetries}, BaseURL: c.BaseURL, APIKey: c.APIKey, Model: c.Model, MaxTokens: c.MaxTokens}
+		if m.MaxTokens == 0 {
+			m.MaxTokens = 1024
+		}
+		if c.Temperature != "" {
+			t, err := strconv.ParseFloat(c.Temperature, 64)
+			if err != nil {
+				return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_TEMPERATURE %q không phải số", c.Temperature))
+			}
+			m.Temperature = &t
 		}
 		return m, nil
 	}

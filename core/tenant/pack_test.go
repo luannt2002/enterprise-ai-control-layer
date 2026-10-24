@@ -178,16 +178,32 @@ const ragIntent = `  - name: sop_question
     capability: documents.read
 `
 
+// mauPhienBan là 5 mẫu câu cho thông báo phiên bản tài liệu (docs/viec/2-tra-quy-trinh/HOP-DONG.md §4).
+const mauPhienBan = "  knowledge_version_conflict: \"Tài liệu {title} có nhiều bản cùng hiệu lực ({reason}).\"\n" +
+	"  knowledge_no_effective: \"Tài liệu {title} chưa có bản hiệu lực ({reason}).\"\n" +
+	"  hybrid_knowledge_version_conflict: \" Phần quy trình: {title} có nhiều bản cùng hiệu lực.\"\n" +
+	"  hybrid_knowledge_no_effective: \" Phần quy trình: {title} chưa có bản hiệu lực.\"\n" +
+	"  hybrid_knowledge_error: \" Phần quy trình tạm thời chưa tra được.\"\n"
+
 // Pack có ý định RAG: đủ mẫu câu tri thức thì nạp được, và cụm hỏi lượng được nạp vào runtime.
 func TestLoadPackTriThuc(t *testing.T) {
 	dir := writePack(t, fullPack(map[string]string{
 		"intents.yaml": validIntents + ragIntent + "quantity_markers: [bao nhiêu]\n",
 		"templates.yaml": validTemplates + "  knowledge_answer: \" Theo {title}: {procedure}\"\n" +
-			"  no_knowledge: \"Chưa có tài liệu.\"\n  hybrid_no_knowledge: \" Chưa có tài liệu cho phần quy trình.\"\n",
+			"  no_knowledge: \"Chưa có tài liệu.\"\n  hybrid_no_knowledge: \" Chưa có tài liệu cho phần quy trình.\"\n" + mauPhienBan,
 	}))
 	rt, err := Load(dir)
 	if err != nil {
 		t.Fatalf("pack tri thức hợp lệ phải nạp được: %v", err)
+	}
+	// Mẫu câu cho tài liệu có phiên bản (nhánh RAG U7a) là bắt buộc: thiếu thì câu trả lời rỗng mà không ai biết.
+	thieu := writePack(t, fullPack(map[string]string{
+		"intents.yaml": validIntents + ragIntent,
+		"templates.yaml": validTemplates + "  knowledge_answer: \" Theo {title}: {procedure}\"\n" +
+			"  no_knowledge: \"Chưa có tài liệu.\"\n  hybrid_no_knowledge: \" Chưa có.\"\n" + strings.Replace(mauPhienBan, "  knowledge_version_conflict:", "  x_knowledge_version_conflict:", 1),
+	}))
+	if _, err := Load(thieu); err == nil || !strings.Contains(err.Error(), "knowledge_version_conflict") {
+		t.Errorf("thiếu mẫu knowledge_version_conflict: Load phải lỗi nêu tên mẫu, được %v", err)
 	}
 	if len(rt.QuantityMarkers) != 1 || rt.QuantityMarkers[0] != "bao nhiêu" {
 		t.Errorf("QuantityMarkers = %v, muốn [bao nhiêu]", rt.QuantityMarkers)

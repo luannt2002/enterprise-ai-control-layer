@@ -1,0 +1,268 @@
+# Bộ câu hỏi PHÁT TRIỂN cho dòng S7 của CỔNG TRƯỚC AI (docs/bao-cao/CONG-TRUOC-AI.md): "đoạn chứa đáp án nằm trong top-3
+# ≥ 90%; 0 đoạn ngoài quyền; 100% bằng chứng có nguồn gốc". Người soạn = người làm RAG ⇒ số đo trên bộ này là số PHÁT TRIỂN,
+# không phải số của cổng; số của cổng chỉ lấy trên bộ do người khác soạn và đóng băng bằng băm trước khi chạy
+# (docs/viec/2-tra-quy-trinh/S7-BO-CA-DOC-LAP.md).
+#
+# Luật của bộ này: câu hỏi và kho (kho/) được viết XONG trước lần chạy đầu; băm của cả hai ghi ở S7-BO-CA-DOC-LAP.md §1. Sau
+# lần chạy đầu KHÔNG sửa câu hỏi hay kho để ca trượt thành trúng — ca trượt được ghi `truot_biet_truoc` kèm lý do (ratchet:
+# trúng lại thì phải gỡ cờ).
+#
+# Trường của một câu:
+#   ma            mã câu
+#   hoi           câu hỏi, viết như người ở công trường hỏi (không chép chữ của tài liệu)
+#   vai, pham_vi  người hỏi: vai và thuộc tính entity_scope (phạm vi dự án)
+#   ngay          ngày hỏi (mặc định ngay_mac_dinh)
+#   loai          tra_loi (có đáp án người hỏi được đọc) | khong_co (không có tài liệu trả lời, hoặc có mà người hỏi không được đọc)
+#   dap_an        đoạn chứa đáp án: tai_lieu, ban (0 = tài liệu không phiên bản), chua (chuỗi con của đoạn)
+#   bay           với khong_co: ngoai_quyen | ngoai_pham_vi | khong_co_tai_lieu
+#   truot_biet_truoc  ca tra_loi đang trượt có chủ đích: lý do + nấc sẽ sửa
+ngay_mac_dinh: "2026-10-20"
+k: 3
+cau:
+  # Nhiên liệu
+  - ma: S7D-01
+    hoi: "lệch dầu giữa kho xuất với máy dùng thì mấy tiếng phải có biên bản?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-01, ban: 2, chua: "trong vòng 48 giờ"}]
+  - ma: S7D-02
+    hoi: "lệch dầu giữa kho xuất với máy dùng thì mấy tiếng phải có biên bản?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    ngay: "2025-06-01"
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-01, ban: 1, chua: "trong vòng 24 giờ"}]
+  - ma: S7D-03
+    hoi: "khi nào kế toán mới được đối chiếu hoá đơn dầu?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-01, ban: 2, chua: "sau khi biên bản đối soát đã được ký"}]
+  - ma: S7D-04
+    hoi: "chenh lech nhien lieu bao nhieu phan tram thi phai gan co"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-01, ban: 2, chua: "lệch quá 1%"}]
+  - ma: S7D-05
+    hoi: "đi lấy dầu ở kho cho máy thì cần giấy tờ gì?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-02, chua: "phiếu xuất kho (PXK)"}]
+  - ma: S7D-06
+    hoi: "kho hết dầu thì có được xuất trước rồi bù sau không?"
+    vai: [warehouse_keeper]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-02, chua: "không xuất âm kho"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('hết dầu', 'bù sau' ≠ 'không đủ', 'xuất âm kho'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  - ma: S7D-07
+    hoi: "đổ dầu vào bồn phụ chứ không đổ vào máy thì ghi phiếu thế nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-02, chua: "vào bồn"}]
+  - ma: S7D-08
+    hoi: "máy khoan cọc nhồi định mức mấy lít một giờ?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an: [{tai_lieu: QD-NL-03, ban: 1, chua: "Máy khoan cọc nhồi"}]
+  - ma: S7D-09
+    hoi: "xe lu rung được phép vượt định mức dầu bao nhiêu phần trăm?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: QD-NL-03, ban: 1, chua: "Xe lu rung 12 tấn"}]
+  - ma: S7D-10
+    hoi: "lượng dầu hợp lý của một máy tính ra sao?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an: [{tai_lieu: QD-NL-03, ban: 1, chua: "nhân giờ máy theo đồng hồ"}]
+  # Báo cáo ngày
+  - ma: S7D-11
+    hoi: "báo cáo hằng ngày cần ghi những phần nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-BC-01, chua: "năm mục"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('phần' ≠ 'mục'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  - ma: S7D-12
+    hoi: "mấy giờ là hạn chót gửi báo cáo ngày?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-BC-01, chua: "18:00"}]
+  - ma: S7D-13
+    hoi: "làm ca đêm qua 12 giờ thì báo cáo tính cho ngày nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-BC-01, chua: "ca đêm tính vào ngày bắt đầu ca"}]
+  - ma: S7D-14
+    hoi: "số công với số người có mặt khác nhau thế nào khi ghi báo cáo?"
+    vai: [project_manager]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-BC-01, chua: "số công (người nhân ngày)"}]
+  # Bảo dưỡng máy
+  - ma: S7D-15
+    hoi: "chạy bao nhiêu giờ thì phải thay nhớt máy?"
+    vai: [maintenance_technician]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-MM-01, chua: "mỗi 250 giờ máy"}]
+  - ma: S7D-16
+    hoi: "ai được đóng phiếu bảo dưỡng?"
+    vai: [maintenance_technician]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-MM-01, chua: "Chỉ kỹ thuật viên được gán"}]
+  - ma: S7D-17
+    hoi: "máy trễ lịch bảo dưỡng thì có được chạy tiếp không?"
+    vai: [equipment_manager]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-MM-01, chua: "quá hạn bảo dưỡng trên 50 giờ máy"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('trễ lịch', 'chạy tiếp' ≠ 'quá hạn', 'dừng vận hành'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  # Vật tư
+  - ma: S7D-18
+    hoi: "đề nghị mua vật tư 120 triệu thì những ai phải duyệt?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-VT-01, chua: "đến 300 triệu đồng thêm kế toán"}]
+  - ma: S7D-19
+    hoi: "tôi lập phiếu đề nghị thì tôi tự duyệt luôn được không?"
+    vai: [procurement_officer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-VT-01, chua: "không được tự duyệt"}]
+  - ma: S7D-20
+    hoi: "phiếu đề nghị chưa có báo giá thì sao?"
+    vai: [procurement_officer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-VT-01, chua: "thiếu báo giá thì không chuyển sang bước duyệt"}]
+  - ma: S7D-21
+    hoi: "tạo PO trên ERP bị lỗi thì làm gì?"
+    vai: [procurement_officer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-VT-01, chua: "báo người xử lý tay"}]
+  # Thanh toán
+  - ma: S7D-22
+    hoi: "muốn duyệt trả tiền cho nhà cung cấp thì cần đủ giấy tờ gì?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-TT-01, chua: "khớp ba chứng từ"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('trả tiền', 'giấy tờ' ≠ 'thanh toán', 'chứng từ'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  - ma: S7D-23
+    hoi: "hoá đơn lệch đơn giá với PO thì xử lý thế nào?"
+    vai: [accountant]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-TT-01, chua: "trả hồ sơ cho phòng vật tư"}]
+  # Nghiệm thu
+  - ma: S7D-24
+    hoi: "khi nào khối lượng được coi là đã nghiệm thu?"
+    vai: [technical_engineer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NT-01, chua: "chỉ được chốt là đã nghiệm thu"}]
+  - ma: S7D-25
+    hoi: "TVGS ký xác nhận rồi thì ai nhập vào hệ thống?"
+    vai: [records_clerk]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NT-01, chua: "nhân viên hồ sơ ghi nhận thay"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('nhập vào hệ thống' ≠ 'ghi nhận thay'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  # An toàn
+  - ma: S7D-26
+    hoi: "có tai nạn nặng ngoài công trường thì việc đầu tiên phải làm là gì?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-C]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-AT-01, chua: "cho dừng thi công, khoanh vùng"}]
+    truot_biet_truoc: "diễn đạt khác tài liệu ('tai nạn nặng' ≠ 'sự cố nghiêm trọng'); bộ tìm từ khoá không biết đồng nghĩa — nấc sửa: đồng nghĩa của pack hoặc embedding có cổng (CLAUDE.md §19)"
+  - ma: S7D-27
+    hoi: "biên bản sự cố phải xong trong bao lâu?"
+    vai: [safety_officer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-AT-01, chua: "Biên bản sự cố lập trong vòng 24 giờ"}]
+  # Phát sinh, kho
+  - ma: S7D-28
+    hoi: "đào đất phát sinh thì tính khối lượng theo nguyên khối hay tơi xốp?"
+    vai: [technical_engineer]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-PS-01, chua: "nguyên khối hay tơi xốp"}]
+  - ma: S7D-29
+    hoi: "hồ sơ phát sinh phải gửi chủ đầu tư trong mấy ngày?"
+    vai: [project_manager]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-PS-01, chua: "trong vòng 7 ngày"}]
+  - ma: S7D-30
+    hoi: "lỡ nhập sai phiếu xuất đã vào sổ rồi thì xoá đi được không?"
+    vai: [warehouse_keeper]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-KHO-02, chua: "không được xoá"}]
+  # Biện pháp theo dự án (phạm vi)
+  - ma: S7D-31
+    hoi: "đổ bê tông trụ mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: BP-BT-A, ban: 1, chua: "không quá 50 cm"}]
+  - ma: S7D-32
+    hoi: "đổ xong trụ bao lâu thì được tháo cốp pha?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: BP-BT-A, ban: 1, chua: "trước 48 giờ"}]
+  - ma: S7D-33
+    hoi: "lớp móng đá dăm lu xong được dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    loai: tra_loi
+    dap_an: [{tai_lieu: BP-MD-B, ban: 1, chua: "không quá 18 cm"}]
+  - ma: S7D-34
+    hoi: "độ chặt lớp móng đường cần đạt bao nhiêu?"
+    vai: [director]
+    loai: tra_loi
+    dap_an: [{tai_lieu: BP-MD-B, ban: 1, chua: "K ≥ 0,98"}]
+  # Quản lý tài liệu
+  - ma: S7D-35
+    hoi: "có hai bản quy trình cùng hiệu lực thì dùng bản nào?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-TL-01, chua: "Hai phiên bản cùng có hiệu lực là xung đột"}]
+  # Bản nháp có ngày hiệu lực đã tới: vẫn phải trả bản 2 đã duyệt, không bản nháp
+  - ma: S7D-36
+    hoi: "lệch dầu giữa kho xuất với máy dùng thì mấy tiếng phải có biên bản?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    ngay: "2026-12-01"
+    loai: tra_loi
+    dap_an: [{tai_lieu: SOP-NL-01, ban: 2, chua: "trong vòng 48 giờ"}]
+  # Bẫy: không có đáp án người hỏi được đọc
+  - ma: S7D-37
+    hoi: "đổ bê tông trụ mỗi lớp dày tối đa bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-B]
+    loai: khong_co
+    bay: ngoai_pham_vi
+  - ma: S7D-38
+    hoi: "đội không bị tai nạn cả quý thì được thưởng bao nhiêu?"
+    vai: [site_engineer]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7D-39
+    hoi: "duyệt thanh toán nhà cung cấp cần khớp những chứng từ nào?"
+    vai: [site_supervisor]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: ngoai_quyen
+  - ma: S7D-40
+    hoi: "thủ tục xin giấy phép xây dựng gồm những gì?"
+    vai: [project_manager]
+    pham_vi: [PRJ-A]
+    loai: khong_co
+    bay: khong_co_tai_lieu
+  - ma: S7D-41
+    hoi: "thuê cẩu 25 tấn một ca hết bao nhiêu tiền?"
+    vai: [equipment_manager]
+    loai: khong_co
+    bay: khong_co_tai_lieu

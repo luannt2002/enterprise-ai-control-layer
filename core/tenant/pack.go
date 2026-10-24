@@ -59,7 +59,8 @@ var confirmTemplates = []string{"confirm_yes", "confirm_no", "others_note", "app
 
 // knowledgeTemplates là các mẫu câu cần có khi pack có ý định route RAG (tài liệu không trả lời
 // được: câu hỏi thuần tài liệu, và phần quy trình của câu HYBRID).
-var knowledgeTemplates = []string{"no_knowledge", "hybrid_no_knowledge"}
+var knowledgeTemplates = []string{"no_knowledge", "hybrid_no_knowledge", "knowledge_version_conflict", "knowledge_no_effective",
+	"hybrid_knowledge_version_conflict", "hybrid_knowledge_no_effective", "hybrid_knowledge_error"}
 
 type templatesFile struct {
 	Templates map[string]string `yaml:"templates"`

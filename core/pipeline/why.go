@@ -373,6 +373,30 @@ func noteRetrieved(why *traces.Why, prefix string, ev []contracts.Evidence, k in
 	n.Reason("%squyền: ACL tài liệu do chặng truy xuất kiểm, chỉ đoạn người hỏi được đọc được trả về (số đoạn bị loại vì quyền không xuất khỏi chặng truy xuất)", prefix)
 }
 
+// noteExecute ghi S6 của route tri thức từ vết của chỉ mục (ROADMAP-RAG §6.7). Chỉ mục chỉ đếm tài liệu người hỏi thấy, nên dòng này
+// không lộ tài liệu ngoài quyền (§6.2).
+func noteExecute(why *traces.Why, prefix string, rep contracts.RetrievalReport, ev []contracts.Evidence, k int) {
+	n := &why.Execute
+	if rep.Path == "" { // hiện thực KnowledgeRetriever khác không ghi vết: nói rõ, không bịa số
+		n.Reason("%schỉ mục tri thức không ghi vết truy xuất", prefix)
+		return
+	}
+	n.Reason("%sđường truy xuất: %s; xét %d bản tài liệu / %d đoạn người hỏi thấy, %d bản trong đó không làm căn cứ được ở ngày hỏi",
+		prefix, rep.Path, rep.Docs, rep.Chunks, rep.NotServable)
+	if rep.Restored != "" { // chữ của người hỏi: bọc Quote để bộ che (WithholdQuoted) che được khi câu mang bí mật
+		n.Reason("%scâu hỏi không dấu: đường lai dùng câu đã khôi phục dấu theo cặp từ của tài liệu người hỏi thấy, đổi %s", prefix, contracts.Quote(rep.Restored))
+	}
+	for i, e := range ev {
+		n.Reason("%s%s (%s): hạng %d, điểm %.3f", prefix, e.ID, e.Source.Name, i+1, e.Confidence)
+	}
+	if rep.Silence != "" {
+		n.Reason("%skhông trả đoạn nào: %s", prefix, rep.Silence)
+	}
+	if rep.Beyond > 0 {
+		n.Reject("%s%d đoạn khớp khác xếp sau hạng %d: không đưa vào ngữ cảnh (tối đa %d đoạn mỗi lượt)", prefix, rep.Beyond, k, k)
+	}
+}
+
 // noteCited ghi S7 của route tri thức sau khi kiểm đạt: đoạn nào được claim của bản nháp dẫn, đoạn nào đã truy xuất mà không được dẫn.
 func noteCited(why *traces.Why, prefix string, ev []contracts.Evidence, cited []contracts.Citation) {
 	n := &why.Context

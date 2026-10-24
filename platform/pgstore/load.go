@@ -111,8 +111,9 @@ func (s *Store) load(ctx context.Context, info LoadInfo, entities []entityresolu
 			}
 		}
 		for _, d := range docs {
-			if _, err := tx.Exec(ctx, `INSERT INTO documents (tenant_id, id, title, body, acl)
-				VALUES (current_setting('eais.tenant_id'), $1, $2, $3, $4)`, d.ID, d.Title, d.Body, d.ACL); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO documents (tenant_id, id, title, body, acl, version, status, effective_from,
+				effective_to, scope, hold) VALUES (current_setting('eais.tenant_id'), $1, $2, $3, COALESCE($4::text[], '{}'), $5, $6, $7, $8, COALESCE($9::text[], '{}'), $10)`,
+				d.ID, d.Title, d.Body, d.ACL, d.Version, d.Status, d.EffectiveFrom, d.EffectiveTo, d.Scope, d.Hold); err != nil {
 				return err
 			}
 		}

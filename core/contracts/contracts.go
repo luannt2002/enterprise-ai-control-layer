@@ -360,6 +360,33 @@ type SourceRef struct {
 	URI             string `json:"uri,omitempty"`
 }
 
+// KnowledgeNoticeKind là lý do capability tri thức không trả đoạn dù có tài liệu khớp câu hỏi.
+type KnowledgeNoticeKind string
+
+const (
+	NoticeVersionConflict    KnowledgeNoticeKind = "version_conflict"     // ≥ 2 bản cùng đang hiệu lực (BR-DOC-01)
+	NoticeNoEffectiveVersion KnowledgeNoticeKind = "no_effective_version" // không bản nào đã duyệt và đang hiệu lực
+)
+
+// DocumentVersionInfo là một bản của tài liệu nêu trong thông báo.
+type DocumentVersionInfo struct {
+	Version                                  int
+	Status, EffectiveFrom, EffectiveTo, Hold string
+}
+
+// KnowledgeNotice: tài liệu khớp câu hỏi nhất không có ĐÚNG MỘT bản làm căn cứ. KnowledgeRetriever trả nó dưới dạng
+// error, nhưng đây KHÔNG phải lỗi hệ thống: pipeline nói rõ cho người hỏi, không chọn bản ngầm. Chỉ nêu các bản
+// người hỏi được thấy.
+type KnowledgeNotice struct {
+	Kind              KnowledgeNoticeKind
+	DocumentID, Title string
+	Versions          []DocumentVersionInfo // theo thứ tự bản
+}
+
+func (n *KnowledgeNotice) Error() string {
+	return "tài liệu " + n.DocumentID + ": " + string(n.Kind)
+}
+
 // Evidence là đơn vị duy nhất đi vào ngữ cảnh, và là thứ duy nhất một câu trả lời
 // được phép dựa vào.
 type Evidence struct {
@@ -460,6 +487,9 @@ type Draft struct {
 	Usage  Usage   `json:"usage"`
 	// FromTemplate = câu dựng bằng mẫu câu của tenant, không qua model.
 	FromTemplate bool `json:"from_template"`
+	// Refused = model trả ĐÚNG khuôn và nói bằng chứng không trả lời được (answer rỗng). Bản nháp rỗng KHÔNG có cờ này là đầu ra hỏng
+	// (sai khuôn, khoảng trắng, null) — đi qua S9 và bị chặn, không được hiểu là "không có" (soát độc lập 23/10, như C2 F-04).
+	Refused bool `json:"refused,omitempty"`
 }
 
 // Severity là mức nghiêm trọng (docs/CONVENTIONS.md §4.4).

@@ -16,7 +16,7 @@
 ## 0. Đọc nhanh: 8 luật cứng
 
 1. **MVP trước.** Không mở mã RAG mới trước khi MVP ra (D-MVP-00), trừ khi chủ dự án ghi khác vào `CHO`.
-2. **RAG không trả số liệu.** Câu hỏi "bao nhiêu" đi SQL / CALC. RAG chỉ trả lời "theo quy định / quy trình thì sao". S9 phải chặn lượng lấy từ tài liệu (đã có [CODE] `reliability/validation/knowledge.go`).
+2. **Số vận hành không lấy từ văn bản.** Lượng kho xuất, máy đốt, đội báo… đi SQL / CALC; S9 chặn lượng lấy từ tài liệu (đã có [CODE] `reliability/validation/knowledge.go`). Số do văn bản quy định (định mức, dung sai, hạn) là sự thật của văn bản (P4): chỉ lấy từ bản đã duyệt, đang hiệu lực, qua bước trích có kiểm thành dữ liệu có cấu trúc kèm nguồn (`docs/viec/2-tra-quy-trinh/KE-HOACH.md` U4, chờ chốt). Model không tự mang số.
 3. **Quyền là bộ lọc phần mềm, chạy TRƯỚC khi tìm.** Model không bao giờ được thấy đoạn mà người hỏi không có quyền đọc. Không lọc quyền bằng prompt.
 4. **Phiên bản là sự thật nghiệp vụ.** Chỉ tài liệu **đã duyệt và đang hiệu lực** mới được làm căn cứ. Bản cũ giữ lại để truy vết, không dùng để trả lời.
 5. **Không gọi model khi không có gì để nói.** Không có đoạn nào qua lọc thì trả mẫu câu, 0 lời gọi model.
@@ -49,7 +49,7 @@ RAG trong EAIS là **một năng lực** (`CLAUDE.md` §12), không phải sản
 |---|---|---|---|
 | L0 Đưa AI vào một việc | không | — (đây là nơi hỏi "việc này có cần RAG không") | — |
 | L1 Dữ liệu | không | — | lấy số từ tài liệu (P4) |
-| L2 Hỏi (S0–S10) | **chạy trong** | route RAG (hỏi quy trình) và HYBRID (số + quy trình), ở S6–S7 | trả số liệu |
+| L2 Hỏi (S0–S10) | **chạy trong** | route RAG (hỏi quy trình) và HYBRID (số + quy trình), ở S6–S7 | trả số vận hành |
 | L3 Làm (COMMAND) | **chạy trong**, gián tiếp | đưa căn cứ kèm trích dẫn vào phiếu, ví dụ "theo SOP-FUEL-01 bước 1: lập biên bản trong 24 giờ" | quyết định có tạo phiếu hay không; đó là việc của luật và quyền |
 | L4 Quy trình | **chạy trong**, gián tiếp | giải thích bước hiện tại theo quy trình đang hiệu lực | **điều khiển** máy trạng thái. SOP do người dịch thành luật có phiên bản |
 | L5 Sự kiện | không | — | — |
@@ -300,12 +300,23 @@ Luật không lộ, khớp `docs/viec/1-hanh-dong/HOP-DONG.md` §4.4: người h
 
 **Vì sao chưa ai chứng minh được cắt thích ứng tốt hơn:** cả B, C, D đều **không cố định ngân sách ngữ cảnh** khi so. Ở B, đoạn cắt cố định dài 512 từ, đoạn của các chiến lược khác chỉ dài trung bình khoảng 190–280 [NGOÀI]. Cái được đo thật ra là "ai được nhồi nhiều ngữ cảnh hơn".
 
-**Hiện trạng EAIS:** mỗi dòng là một đoạn ([CODE] `rag.go`). Đủ cho SOP 4 dòng; sẽ gãy khi một bước dài nhiều dòng hoặc có bảng.
+**Hiện trạng EAIS (U3b, 23/10):** điểm 1 và 4 ở mức tối thiểu ([CODE] `rag.go`, `source.go`). Dòng tiêu đề markdown trong thân thành
+đường dẫn mục ("Chương II › Mục 3 › Điều 18. …") đứng đầu và được chấm điểm cùng mọi đoạn bên dưới; bản thân nó không còn là đoạn,
+trừ tiêu đề không có nội dung bên dưới ("Điều 10. (Đã bãi bỏ)") hoặc chỉ có bảng (hàng bảng không chấm đường dẫn) — khi đó nó vẫn là
+một đoạn, không biến mất khỏi chỉ mục. Câu dẫn kết thúc bằng ":" gom với các mục con ngay sau (a), b)…, kể cả mục lồng sâu hơn) thành
+một đoạn; quá 1.200 ký tự thì tách giữa hai mục cấp đầu, đoạn nào cũng mở bằng câu dẫn. Tài liệu không có tiêu đề markdown dùng luật
+`tieu_de` của nguồn (mẫu → cấp, không chạm hàng bảng; nguồn postgres chưa hỗ trợ — khai là lỗi) để đánh dấu Chương / Mục / Điều. Còn
+thiếu: điểm 2 (cắt theo token thật), 5–8.
+
+**Đổi cách cắt thì phải chọn lại ngưỡng "biết im"** [ĐO 23/10, bộ chặt văn bản pháp quy công khai]: trước U3b, dòng "Điều 5. …"
+đứng riêng là một đoạn, rerank chấm nó cao khi câu hỏi nhắc "Điều 5", và ngưỡng 0.175 được chọn với cách cắt đó. Sau U3b đoạn dài
+hơn nên điểm rerank thấp hơn: 10 câu rơi xuống dưới 0.175 (6 câu trước đó có đoạn đầu là dòng "Điều N. …" trơn), 5 câu trong số đó
+top-3 đã có đáp án. Ngưỡng chọn lại trên bộ phát triển rồi kiểm một lần trên bộ giữ lại (bảng ở §10.1, RAG-2).
 
 ### 6.4 Truy hồi
 
 - **Từ khoá:**
-  - tiếng Việt: NFC, thêm dạng bỏ dấu, tách từ;
+  - tiếng Việt: NFC, thêm dạng bỏ dấu. Tách từ KHÔNG mặc định: một hệ đã đo thấy nó bẻ mã số (truy vấn mã khớp 0/2 so với 2/2) và tốn 826–896 ms mỗi lần nạp [NGOÀI]; chỉ thêm khi đo trên câu văn tiếng Việt thấy hơn;
   - giỏi mã số, "Điều 17", mã phiếu.
   - EAIS hiện có: chấm IDF, bỏ dấu, trong bộ nhớ hoặc Postgres [CODE].
 - **Vector (khi có cổng):** dùng `pgvector` trong cùng Postgres, có RLS.
@@ -338,7 +349,9 @@ Luật không lộ, khớp `docs/viec/1-hanh-dong/HOP-DONG.md` §4.4: người h
 ### 6.7 Vết của RAG (đi theo làn 0, brief §9.4)
 
 Mỗi lượt RAG ghi thêm vào vết:
-- số tài liệu bị loại vì tenant / vai / phạm vi / phiên bản / trạng thái (chỉ số đếm, không ghi nội dung của thứ bị cấm);
+- số tài liệu bị loại vì phiên bản / trạng thái TRONG tài liệu người hỏi thấy. Số đếm theo tenant / vai / phạm vi KHÔNG vào vết của lượt:
+  người hỏi đọc được vết của chính mình (`GET /v1/trace`), đếm tài liệu bị cấm là cho biết có tài liệu họ không được xem — phá "không có"
+  = "không được xem" (§6.2). Nếu cần số đó thì chỉ ở nhật ký kiểm toán vai quản trị;
 - các đoạn được tìm thấy, điểm, hạng;
 - đoạn được chọn, đoạn bị loại và lý do (ngân sách, trùng);
 - trạng thái ở §6.2;
@@ -525,26 +538,72 @@ Mỗi món là một cổng năng lực riêng. Mở bằng một lỗi đo đư
 
 ## 10. EAIS đang ở đâu, và việc đầu tiên sau MVP
 
-### 10.1 Hiện trạng theo nấc [CODE ở `2b80a38`]
+### 10.1 Hiện trạng theo nấc [CODE ở nhánh `rag/0-viec`, 23/10/2026; số đo có lệnh ở `docs/viec/2-tra-quy-trinh/`]
 
-| Nấc | Đã có | Thiếu |
+| Nấc | Đã có (đo được) | Còn thiếu |
 |---|---|---|
-| RAG-0 | việc dầu; các ca phiên bản trong `cases.yaml` | ca chưa chạy qua pipeline; thiếu tài liệu SOP-NL-ĐM-01 trong kho; chưa có người nghiệp vụ |
-| RAG-1 | nạp markdown (`rag.LoadMarkdown`); tenant + ACL theo vai | phiên bản, hiệu lực, trạng thái; độ phủ; xoá |
-| RAG-2 | mỗi dòng một đoạn | cắt theo cấu trúc; bảng |
-| RAG-3 | hợp đồng `KnowledgeRetriever` (`core/pipeline/ask.go:43`); từ khoá IDF, bỏ dấu; ACL lọc trong SQL trước khi chấm (`platform/pgstore/pgstore.go`); canary `SOP-B` | lọc theo phạm vi; lọc theo phiên bản / hiệu lực |
-| RAG-4 | model giả trích nguyên văn; S9 chặn lượng nhiên liệu lấy từ tài liệu; ca `SOP-INJ` | các trạng thái ở §6.2; HYBRID giữ phần số khi truy hồi lỗi; vết RAG (§6.7) |
-| RAG-5…8 | — | sau |
+| RAG-0 | việc "tra quy trình đang hiệu lực"; `CONG-QUANIT.md`, `HOP-DONG.md`; ca CON-T-004/005/032/061/071 chạy thật; bộ S7 phát triển (41 câu) + bộ độc lập (106 câu, băm trước, chạy một lần); 2 baseline (nạp thẳng, RAG thường) | **người nghiệp vụ duyệt** (D-RM-03); CON-T-081 |
+| RAG-1 | phiên bản / trạng thái / hiệu lực / phạm vi; cổng chất lượng đọc (CON-T-032); ID tất định `mã@vN#vị-trí`; nạp lại không nhân đôi; trên PG (migration riêng của nhánh) | **chỉ Markdown** — PDF / DOCX / scan cần tài liệu thật (U5); độ phủ chữ; chủ sở hữu / nguồn / băm nội dung (§6.1) |
+| RAG-2 | bước đánh số = một đoạn; bảng lặp header mỗi hàng; **U3b (23/10)**: đường dẫn mục + gom câu dẫn với mục con + luật tiêu đề của nguồn (§6.3). Bộ chặt văn bản pháp quy công khai, động cơ thật, chấm ở tầng truy hồi (top-3 chứa đủ chuỗi bắt buộc) và từ chối đúng: **bộ phát triển** 94 + 12 câu — trước 33 · 10/12 (ngưỡng 0.175), U3b 58 · 11/12 (ngưỡng chọn lại 0.19); **bộ giữ lại** 55 + 5 câu, băm trước, ngưỡng đăng ký trước — trước 34 (61%) · 3/5, U3b **39 (70%)** · 3/5; trả lời với model trích trên máy 30 → 37. Số đã chấm lại một lần sau khi soát độc lập bắt bộ chấm khớp sai (cùng mã, cùng ngưỡng; kết luận không đổi); chạy lại cùng mã lệch ±1 câu vì điểm rerank lệch. Các sửa sau soát (danh sách lồng, tiêu đề trống / chỉ có bảng) chỉ đo trên bộ phát triển: 57 · 11/12 + 1 câu lỗi rerank 429 — ngang trong nhiễu | cắt recursive theo token cho bước dài; gom nhóm hàng cho bảng dài; cổng SC; lý do cắt vào vết; ngưỡng một mình không tách được câu phải từ chối (điểm trùng vùng câu trúng, 2/5 câu bộ giữ lại vẫn nhận đoạn) |
+| RAG-3 | lọc tenant / vai / phạm vi (cùng một vai) / bản hiệu lực **tại ngày hỏi** trước khi chấm; 0 rò trên mọi ca âm; IDF chỉ trên đoạn người hỏi thấy; chỉ mục giữ sẵn: 22 ms/câu ở ~1.000 tài liệu | CON-T-004 (chờ quyết định (b)); ngưỡng Recall do người nghiệp vụ chốt |
+| RAG-4 | §6.2 đủ (thông báo phiên bản, "không có" = "ngoài quyền", lỗi ≠ "không có", HYBRID giữ phần số); "biết im" khi chủ đề ngoài kho; S9 chặn lượng nhiên liệu từ tài liệu; **gateway chat completions (23/10 tối)**: §6.5 bọc bằng chứng trong thẻ mang mã + vô hiệu thẻ trong nội dung (đột biến bắt được); model từ chối đúng khuôn (`Draft.Refused`) = INSUFFICIENT_EVIDENCE, sai khuôn vẫn qua S9; đo thật qua `evals/rag/dong_co_that_test.go` | app (`cmd/eais`) vẫn gắn model giả — mở là quyết định §9.3 của chủ dự án; luồng trọn chỉ 7/92 câu S7 độc lập tới được S8 (xem 10.2 mục 1) |
+| RAG-5 | dòng S7 trên bộ độc lập: top-3 87/92, 0 ngoài quyền, 0 không căn cứ ⇒ ĐẠT; so baseline: RAG thường lọt 20 + 37, nạp thẳng 100 + 222. Đường lai với động cơ thật (23/10 tối, qua PG): 83/92, 0 ngoài quyền, **0/14 câu không có đáp án nhận đoạn** (từ khoá: 7/14) ⇒ ĐẠT | **người nghiệp vụ nghiệm thu**; bộ đã công bố — lần đo cổng sau cần bộ MỚI |
+| RAG-6 | **đường lai (23/10 tối)**: lọc quyền / phiên bản TRƯỚC → RRF (từ khoá đạt ngưỡng + cosine) → rerank nhóm đầu → "biết im" theo điểm rerank (chưa đặt ngưỡng thì dùng luật chủ đề); vector ở bảng `document_vectors` (0008, RLS) theo (tenant, model / số chiều / kiểu nhiệm vụ, băm chữ), thiếu vector = lỗi dữ liệu nêu "nhúng lại"; bằng chứng mở: từ khoá trượt 6/36 vì đồng nghĩa, lọt 7/14 câu bẫy | 9/92 câu độc lập bị ngưỡng chặn nhầm — 7 câu gõ không dấu, 2 câu viết tắt (KL, PXK); **24/10:** câu không dấu nay nhúng + xếp lại bằng câu khôi phục dấu theo cặp từ — bộ S7 phát triển 34 → 35/36 (S7D-04), bộ phát triển Thông tư nhóm không dấu 0/8 → 4/8, 0 đoạn ngoài quyền; viết tắt chưa làm; ngưỡng chọn với nhóm ứng viên khác — chọn lại trên bộ phát triển rồi kiểm trên bộ MỚI |
+| RAG-7 | quy mô đo được (`evals/rag/quy_mo_test.go`); RLS, xác thực của M1; thử lại theo Retry-After / retryDelay, nhãn lỗi `third_party:<giao thức>`; đổi nhà cung cấp chỉ đổi `.env` (đã làm 1 lần: embedding thứ nhất bị chặn hạn mức → thứ hai, 0 dòng code) | dự phòng tự động giữa hai nhà cung cấp, chi phí mỗi lượt, thử tải; lượt nhúng chờ hạn mức không báo tiến độ |
+| RAG-8 | — | chỉ khi việc đòi |
 
-### 10.2 Thứ tự đề xuất [ĐỀ XUẤT]
+Vết RAG (§6.7): đã có đoạn truy xuất / được dẫn / bị loại và lý do khi trả thông báo (R2-03 + nhánh RAG). **24/10:** chặng S6 của
+route tri thức ghi đường truy xuất, số bản tài liệu / đoạn người hỏi thấy, số bản không làm căn cứ được ở ngày hỏi, hạng + điểm từng đoạn
+giữ lại, số đoạn xếp sau hạng k, lý do "im" (luật chủ đề / ngưỡng từ khoá / điểm đầu < ngưỡng lai), dừng ở thông báo phiên bản; HYBRID
+nối thêm vào phần số liệu của S6, không đè. Cố ý KHÔNG đếm tài liệu ngoài vai / phạm vi (§6.7). **Còn thiếu:** trích dẫn / số đã kiểm
+gom vào một dòng, phương án dự phòng đã dùng.
 
-1. **Trước khi MVP ra:** không mở mã RAG. Làn giấy, nếu còn chỗ, được làm giấy RAG-0 (§9 bước 1–4). Không lấy người hay máy của M1–M5.
-2. **Ngay sau MVP:** 4 mảnh nhỏ, đều tận dụng ca đã có:
-   1. nạp SOP-NL-ĐM-01 v2 / v3 vào kho, cho các ca RAG có sẵn chạy thật qua pipeline;
-   2. thêm phiên bản, trạng thái, hiệu lực, phạm vi vào `Document`; lọc theo chúng (RAG-1 / RAG-3 tối thiểu);
-   3. các trạng thái ở §6.2 + sửa HYBRID (RAG-4 tối thiểu);
-   4. vết RAG (§6.7) trên hạ tầng vết của làn 0.
-3. Sau đó: RAG-1 → RAG-5 đủ; RAG-6 trở đi chỉ khi có lỗi đo được.
+### 10.2 Việc tiếp theo [ĐỀ XUẤT, 23/10]
+
+**Đã làm 23/10 tối:** §6.5 (bọc bằng chứng), gateway chat completions, embedding / rerank theo giao thức, đường lai + bảng vector,
+lệnh đo động cơ thật. Bỏ: "nối cấu hình model vào app" — vướng luật chi tiền §9.3, để chủ dự án quyết.
+
+**Tầng sai đầu tiên của luồng trọn là ROUTER (S4/S5), không phải truy hồi hay model** — đo qua `evals/rag/dong_co_that_test.go`:
+
+| Bộ | Truy hồi top-3 (đường lai) | Tới được S8 | Bị chặn trước RAG |
+|---|---|---|---|
+| S7 phát triển | 34/36 | 3/36 | OUT_OF_SCOPE / CLARIFICATION / PERMISSION_DENIED: 32 |
+| S7 độc lập | 83/92 | 7/92 | OUT_OF_SCOPE 39 · CLARIFICATION_REQUIRED 26 · PERMISSION_DENIED 19 |
+| Văn bản pháp quy | 14/19 | 6/19 | 13 |
+
+Route tri thức của pack chỉ bắt từ khoá (`intents.yaml`: quy trình, quy định, thủ tục, làm gì, bao lâu…); câu hỏi quy trình nói kiểu
+khác ("chạy bao nhiêu giờ thì phải thay nhớt máy?") rơi vào OUT_OF_SCOPE trước khi RAG được hỏi.
+
+**Cần chủ dự án quyết:**
+1. Cách đưa câu hỏi tri thức tới route RAG (S4 — phần của team, đổi ranh giới pipeline, CLAUDE.md §34): (a) thêm từ khoá vào pack —
+   rẻ, giòn, chỉnh trên bộ đã công bố là tự chấm bài; (b) **khi S4 không khớp ý định nào, hỏi chỉ mục tri thức với ngưỡng "biết im" rồi
+   mới kết luận OUT_OF_SCOPE** — tất định, có số đo của ngưỡng (0/14 câu bẫy nhận đoạn); (c) model phân loại ý định — vướng §9.3.
+   Đề xuất (b). Còn phải soát riêng 19 ca PERMISSION_DENIED và 26 ca CLARIFICATION_REQUIRED (chưa đọc vết).
+2. Mở động cơ thật trong app (§9.3, ghi `CHO`).
+3. Tài liệu thật (D-RM-03): U5 (PDF / DOCX / scan), U3b trên tài liệu thật (đã đo trên văn bản pháp quy công khai, xem 10.1), ngưỡng
+   Recall, nghiệm thu RAG-5.
+
+**Làm tiếp được, không cần quyết:** ~~§6.7 vết RAG đủ~~ (xong 24/10, xem 10.1); ~~câu gõ không dấu bị ngưỡng chặn nhầm~~ (xong 24/10:
+tầng sai đầu tiên là điểm XẾP LẠI của câu không dấu, không phải truy hồi — bộ phát triển Thông tư: 6/8 câu đã có đáp án trong top-3 mà
+0/8 qua ngưỡng; đường lai nay nhúng + xếp lại bằng câu đã khôi phục dấu theo CẶP từ của tài liệu người hỏi thấy ⇒ 4/8 qua, cả bộ 58 →
+62–63 / 94, từ chối đúng không giảm. Chỉ cặp từ: từ đơn đoán sai nghĩa ("do" → "đo"). Không cứu: lỗi gõ Telex, cặp không có trong kho).
+
+**"Biết im" bằng ngưỡng một mình — đo 24/10, bộ phát triển Thông tư (12 câu phải từ chối) [ĐỀ XUẤT]:** ngưỡng điểm xếp lại 0.19 chặn
+tốt câu NGOÀI CHỦ ĐỀ (7/12: phí, tỷ giá, lãi suất, khuyến mãi, hack — điểm ≤ 0.137). Luật chủ đề theo từ khoá không thêm gì khi đã có
+rerank (chặn 2 câu đã dưới ngưỡng, chặn oan 2 câu có đáp án). Phần nguy hiểm còn lại: 5/12 câu hỏi MỤC KHÔNG TỒN TẠI ("Điều 999",
+"Chương XX", "Phụ lục Z", "Khoản 555 Điều 5") — rerank chấm 0.02–0.21 vì chữ "Điều / Chương" trùng mọi đoạn, và lệch giữa hai lần chạy
+cùng mã (trap-003 0.212 ↔ 0.179: một lượt đã trả lời về chương không có). **Đã làm (24/10, `missingSections`):** câu nhắc mục đánh số
+("<từ> <số>", hoặc la mã / chữ cái VIẾT HOA đúng như gõ) với tiền tố của hệ đánh số trong kho (từ đầu của ≥ 2 tiêu đề trong thân của tài
+liệu người hỏi thấy — không ghi cứng "Điều / Chương"), mà KHÔNG mục nào được nhắc xuất hiện ở đâu trong các tài liệu đó (kể cả dẫn chiếu
+trong thân) ⇒ im ngay, nêu lý do. So GIỮ DẤU ("mục" ≠ "mức"), la mã ↔ số, bỏ số 0 đầu; mục chỉ có ở tài liệu ngoài quyền = không có
+(§6.2); kho không có tiêu đề (kho xây dựng) không đổi. Soát độc lập: bản đầu chặn oan nhiều cách hỏi thật ("Chương 2" ↔ "Chương II",
+"mức 5" ↔ "mục 5", "những điều vi phạm", tiêu đề "Lưu ý" lặp) → làm hẹp, các ca đó thành test không-được-im. Đo trên bộ phát triển:
+chặn đúng 3/5 câu loại này ("Điều 999", "Điều 99", "Chương XX"), 0/94 câu có đáp án bị chặn oan. **Chưa phủ:** "Phụ lục Z" (tiền tố hai
+từ), "Khoản 555 Điều 5" (khoản là mục danh sách, và "Điều 5" có thật) — hai câu này vẫn do ngưỡng chặn (0.065, 0.085).
+
+**Không làm khi chưa có bằng chứng:** gom nhóm hàng cho bảng dài theo ngân sách (phần còn lại của U3b) — chưa có ca trượt nào đòi;
+LLM chọn cách cắt (con số "cắt theo heading tốt nhất 11/11 tài liệu" của C-1 là metric vòng tròn — chọn và chấm cùng một metric; đo đầu–cuối trên cùng bộ thì cắt theo heading thắng 0/12, cắt cố định 512 thắng 8/12), semantic / proposition
+chunking, kho vector riêng (vector đang ở cùng PG, cosine trong Go trên đoạn người hỏi được đọc), LLM chấm làm bằng chứng duy nhất.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)
 

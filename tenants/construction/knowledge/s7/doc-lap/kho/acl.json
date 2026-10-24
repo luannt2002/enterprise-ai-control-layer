@@ -1,0 +1,21 @@
+{
+  "SOP-NL-01": ["director", "project_manager", "site_engineer", "site_supervisor", "warehouse_keeper", "accountant", "equipment_manager"],
+  "SOP-NL-02": ["director", "project_manager", "site_engineer", "site_supervisor", "warehouse_keeper"],
+  "QD-NL-03": ["director", "project_manager", "site_engineer", "equipment_manager"],
+  "SOP-BC-01": ["director", "project_manager", "site_engineer", "site_supervisor"],
+  "SOP-MM-01": ["director", "equipment_manager", "maintenance_technician", "site_engineer"],
+  "SOP-VT-01": ["director", "project_manager", "procurement_officer", "accountant"],
+  "SOP-TT-01": ["director", "accountant", "finance_manager"],
+  "SOP-NT-01": ["director", "project_manager", "technical_engineer", "qa_qc_engineer", "records_clerk", "site_engineer"],
+  "SOP-AT-01": ["director", "project_manager", "site_engineer", "site_supervisor", "safety_officer"],
+  "SOP-PS-01": ["director", "project_manager", "technical_engineer"],
+  "SOP-KHO-02": ["director", "project_manager", "warehouse_keeper", "accountant"],
+  "BP-BT-A": ["director", "project_manager", "site_engineer", "site_supervisor"],
+  "BP-MD-B": ["director", "project_manager", "site_engineer", "site_supervisor"],
+  "QD-LT-01": ["director", "hr_officer"],
+  "SOP-TL-01": ["director", "project_manager", "site_engineer", "site_supervisor", "legal_officer"],
+  "BP-ON-C": ["director", "project_manager", "site_engineer", "site_supervisor", "qa_qc_engineer"],
+  "QD-AT-02": ["director", "project_manager", "site_engineer", "site_supervisor", "safety_officer"],
+  "SOP-NL-04": ["director", "project_manager", "warehouse_keeper", "accountant"],
+  "SOP-MM-02": ["director", "project_manager", "equipment_manager"]
+}

@@ -375,7 +375,8 @@ func columnName(c string) string { return strings.Join(strings.Fields(normalizat
 // phạm vi bản mới (không phạm vi = mọi người): người đọc được bản mới thì đọc được mốc, nên lý do giữ không lộ gì.
 // Nới rộng phạm vi mà không có mốc bao trùm thì không so được (giới hạn đã biết). Nháp, tài liệu không phiên bản: bỏ.
 // shortcut: cổng chạy lại mỗi lần nạp, không nhớ bản nào đã công bố; nhập một bản cũ hơn, sửa một bản cũ, hay làm
-// luật cổng chặt hơn đều có thể hạ một bản đang công bố. Khi nạp vào Postgres (U6) phải lưu trạng thái công bố.
+// luật cổng chặt hơn đều có thể hạ một bản đang công bố. Kho PG bù cho bản không đổi nội dung (KeepPublished, F-018); bản đang
+// công bố mà bị SỬA thành không đạt thì vẫn bị thay bằng bản chờ soát.
 func qualityGate(docs []Document) {
 	idx := make([]int, len(docs))
 	for i := range idx {
@@ -459,6 +460,26 @@ func qualityGate(docs []Document) {
 			d.Status, d.Hold = StatusNeedsReview, strings.Join(why, "; ")
 		}
 		// Bản đã thay thế không đạt kiểm: không giữ (đã không còn phục vụ) nhưng không làm mốc.
+	}
+}
+
+// KeepPublished bù chỗ cổng chất lượng không nhớ trạng thái (F-018): thêm một bản cũ hơn làm mốc, hay luật cổng chặt hơn, sẽ hạ một bản
+// ĐANG phục vụ xuống chờ soát mà nội dung bản đó không đổi. Bản cổng vừa giữ (chờ soát, Hold khác rỗng) trở lại đã duyệt khi published —
+// các bản kho đang có — chứa ĐÚNG bản đó (cùng mã, bản, tiêu đề, thân) đã duyệt và không bị giữ. Sửa docs tại chỗ. Nội dung đổi mà không
+// đạt thì vẫn bị giữ: bản mới không đạt không được công bố.
+// shortcut: bản bị giữ thay chỗ bản cũ cùng mã@bản (kho giữ một dòng mỗi mã@bản) — "giữ bản cũ phục vụ" khi sửa nội dung cần lưu hai dòng.
+func KeepPublished(docs, published []Document) {
+	key := func(d *Document) string { return fmt.Sprintf("%s@%d\x00%s\x00%s", d.ID, d.Version, d.Title, d.Body) }
+	live := map[string]bool{}
+	for i := range published {
+		if p := &published[i]; p.Status == StatusApproved && p.Hold == "" {
+			live[key(p)] = true
+		}
+	}
+	for i := range docs {
+		if d := &docs[i]; d.Status == StatusNeedsReview && d.Hold != "" && live[key(d)] {
+			d.Status, d.Hold = StatusApproved, ""
+		}
 	}
 }
 

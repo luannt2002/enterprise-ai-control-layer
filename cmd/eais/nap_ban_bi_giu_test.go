@@ -54,3 +54,50 @@ func TestIngestBaoBanBiGiu(t *testing.T) {
 		t.Errorf("log phải cảnh báo bản bị giữ: %s", l)
 	}
 }
+
+// Nạp lại không hạ âm thầm bản ĐANG công bố (F-018, đúng kịch bản của phiếu): v3 đã duyệt (cột A, B) được công bố; thêm v2 đã thay thế
+// (A, B, C) rồi nạp lại — cổng (không nhớ trạng thái) thấy v3 "mất cột C" so với mốc v2. Kho đang công bố đúng nội dung v3 nên v3 giữ
+// nguyên đã duyệt, báo cáo nêu cảnh báo; còn khi nội dung v3 ĐỔI mà vẫn không đạt thì v3 bị giữ lại như cũ, nạp lại vẫn bị giữ.
+func TestNapLaiKhongHaBanDaCongBo(t *testing.T) {
+	st, admin := openPG(t)
+	tn := uniqTenant("nap-lai-cong-bo")
+	packDir, dataRoot := tenantFixtures(t, tn)
+	docs := filepath.Join(dataRoot, tn, "docs")
+	ap, err := newApp(config{Pack: packDir, Data: dataRoot, Now: clockForTest}, st, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const v3 = "| A | B |\n|---|---|\n| Đào móng | 2 |\n"
+	trangThai := func() string {
+		t.Helper()
+		for _, s := range []string{"approved", "needs_review"} {
+			if countRows(t, admin, "documents", tn, "id = 'BANG-02' AND version = 3 AND status = $2", s) == 1 {
+				return s
+			}
+		}
+		return "?"
+	}
+	banTaiLieu(t, docs, "bang-v3.md", "BANG-02", "3", "approved", v3)
+	if rep, err := ap.ingest(context.Background()); err != nil || rep.Held != 0 || trangThai() != "approved" {
+		t.Fatalf("lần nạp đầu: v3 phải được công bố, được %s, held=%d %v", trangThai(), rep.Held, err)
+	}
+	banTaiLieu(t, docs, "bang-v2.md", "BANG-02", "2", "superseded", "| A | B | C |\n|---|---|---|\n| Đào móng | 2 | 1 |\n")
+	rep, err := ap.ingest(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := trangThai(); got != "approved" || rep.Held != 0 {
+		t.Errorf("nạp lại cùng nội dung v3: muốn v3 vẫn approved, held=0; được %s, held=%d %q", got, rep.Held, rep.Holds)
+	}
+	if len(rep.KeptPublished) != 1 || !strings.HasPrefix(rep.KeptPublished[0], "BANG-02@v3: ") || !strings.Contains(rep.KeptPublished[0], "mất cột") {
+		t.Errorf("báo cáo phải cảnh báo bản được giữ nguyên công bố (lý do của cổng): %q", rep.KeptPublished)
+	}
+	banTaiLieu(t, docs, "bang-v3.md", "BANG-02", "3", "approved", v3+"| Lấp đất | 3 |\n")
+	if rep, err := ap.ingest(context.Background()); err != nil || trangThai() != "needs_review" || rep.Held != 1 || len(rep.KeptPublished) != 0 {
+		t.Errorf("v3 đổi nội dung mà vẫn mất cột: muốn bị giữ (needs_review, held=1); được %s, held=%d, giữ nguyên %q, %v", trangThai(), rep.Held, rep.KeptPublished, err)
+	}
+	// Bản đang BỊ GIỮ trong kho không phải bản đã công bố: nạp lại y nguyên thì vẫn bị giữ.
+	if rep, err := ap.ingest(context.Background()); err != nil || trangThai() != "needs_review" || rep.Held != 1 {
+		t.Errorf("nạp lại bản đang bị giữ: muốn vẫn needs_review, held=1; được %s, held=%d, %v", trangThai(), rep.Held, err)
+	}
+}

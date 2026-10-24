@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -109,6 +110,9 @@ func (s *Store) LatestLoad(ctx context.Context) (LoadRecord, error) {
 // ở READ COMMITTED không tự loại trừ nhau — hai giao dịch cùng xoá cái cũ rồi cùng ghi cái mới, giao dịch sau đụng khoá chính và bị
 // huỷ nguyên khối. Khoá này chặn cả hai tiến trình khác nhau (server đang nạp, `eais ingest` chạy cùng lúc), điều mà khoá trong bộ nhớ
 // của server không làm được. Tenant khác nhau không chờ nhau.
+//
+// docs có thể bị sửa TẠI CHỖ: bản cổng chất lượng giữ lại mà kho đang công bố đúng nội dung đó trở lại đã duyệt (rag.KeepPublished) —
+// nơi gọi đọc lại docs sau khi nạp để biết bản nào thực sự bị giữ.
 func (s *Store) load(ctx context.Context, info LoadInfo, docsOnly bool, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
 	tenant, err := tenantOf(ctx)
 	if err != nil {
@@ -121,6 +125,15 @@ func (s *Store) load(ctx context.Context, info LoadInfo, docsOnly bool, entities
 	return s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", loadLockKey(tenant)); err != nil {
 			return err
+		}
+		// Cổng chất lượng không nhớ bản nào đã công bố: bản nó vừa giữ mà kho ĐANG công bố đúng nội dung đó thì giữ nguyên công bố
+		// (F-018). Đọc dưới khoá nạp nên "đang công bố" là của lần nạp đã commit ngay trước lần này.
+		if slices.ContainsFunc(docs, func(d rag.Document) bool { return d.Hold != "" }) {
+			prev, err := readDocuments(ctx, tx, tenant, nil)
+			if err != nil {
+				return err
+			}
+			rag.KeepPublished(docs, prev)
 		}
 		for _, table := range tables {
 			// RLS đã giới hạn trong tenant này; lọc tenant_id lần nữa để vai vượt RLS (hay RLS bị tắt) không xoá dòng của tenant khác (F-037).

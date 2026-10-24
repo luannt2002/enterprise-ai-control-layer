@@ -10,7 +10,8 @@ import (
 )
 
 // EmbedKnowledge đồng bộ vector của kho tri thức tenant với không gian vector hiện tại (Semantic.Embedder.Name(), migration 0008):
-// nhúng chữ của đoạn chưa có vector — chữ đó được GỬI RA embedder đã cấu hình — và xoá vector của chữ không còn trong kho. Chạy lại
+// nhúng chữ của đoạn chưa có vector — chữ đó được GỬI RA embedder đã cấu hình; chỉ đoạn của bản đã duyệt (rag EmbedTexts, F-017) — và
+// xoá vector của chữ không còn trong kho (kể cả vector cũ của bản chưa duyệt). Chạy lại
 // được: chữ không đổi thì không nhúng lại. Gọi sau mỗi lần nạp tài liệu; chưa gọi thì lượt hỏi báo thiếu vector (rag.Semantic).
 func (s *Store) EmbedKnowledge(ctx context.Context, tenant contracts.TenantID) (added, removed int, err error) {
 	if s.Semantic == nil || s.Semantic.Embedder == nil {

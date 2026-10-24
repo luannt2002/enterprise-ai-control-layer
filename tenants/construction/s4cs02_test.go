@@ -11,7 +11,7 @@ func TestS4CS02CumBaoNghiaKhongBiMienTruOan(t *testing.T) {
 		// "thì" (condition_close_markers của pack) đóng vế điều kiện: cụm đứng sau "thì" là điều đang hỏi
 		"Nếu mưa to thì EX-03 dự báo dùng bao nhiêu dầu?": notForecast,
 		"Nếu mưa to thì dự báo EX-03 dùng bao nhiêu dầu?": notForecast,
-		// từ phủ định thuộc đoạn điều kiện đứng SAU cụm, không phủ nhận cụm
+		// từ phủ định đứng SAU cụm mà phần sau có nội dung số liệu (vế "nếu EX-03 chưa được cấp dầu") không phủ nhận cụm
 		"Cảnh báo giúp em nếu EX-03 chưa được cấp dầu.": notWarning,
 		// từ phủ định / dấu bỏ qua đứng sau cụm và mở vị ngữ khác ("không dùng hết dầu", "không cần chính xác")
 		"Dự báo EX-03 không dùng hết dầu hôm nay phải không":                 notForecast,
@@ -41,12 +41,13 @@ func TestS4CS02LuatViTriPhuDinhDieuKien(t *testing.T) {
 	// X4: từ nối điều kiện GIỮA mệnh đề không biến cả mệnh đề thành giả thiết (cũng là câu (3) của người soát)
 	askBack(t, "Cảnh báo giúp em nếu EX-03 được cấp dầu.", notWarning)
 	askBack(t, "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu, em cảm ơn.", notWarning) // còn mệnh đề khác: "nếu" giữa mệnh đề vẫn không mở vế điều kiện
-	// từ phủ định đứng trước cụm mà tên thực thể chen giữa thì thuộc vị ngữ khác
+	// từ phủ định không đứng LIỀN trước cụm thì thuộc vị ngữ khác
 	askBack(t, "Không biết EX-03 hôm nay dự báo dùng bao nhiêu dầu?", notForecast)
 	// từ phủ định / dấu bỏ qua đứng sau cụm mà phần sau có chữ của từ khoá chỉ số, cụm hỏi hay con số
 	askBack(t, "EX-03 hôm nay dự báo không dùng hết dầu", notForecast)
 	askBack(t, "EX-03 dự báo không cần chính xác bao nhiêu dầu hôm nay?", notForecast)
 	askBack(t, "EX-03 hôm nay dự báo không quá 4000 L dầu", notForecast)
+	askBack(t, "Dự báo nhanh không cần chính xác cho EX-03 hôm nay", notForecast) // chỉ tên thực thể ở phần sau
 	// mệnh đề nêu sẵn giá trị: cụm xác nhận vẫn là câu hỏi; mệnh đề nêu tên nguồn là lời của nguồn, cụm hỏi hỏi chỉ số khác
 	answered(t, "Ghi nhận EX-03 hôm nay dùng 3782 L dầu đúng không?")
 	answered(t, "Phiếu kho ghi nhận 3850 L dầu cho EX-03 hôm nay thì cảm biến đo bao nhiêu?")
@@ -72,4 +73,16 @@ func TestS4CS02Vong2VeDieuKienDongOThi(t *testing.T) {
 	// cụm TRƯỚC "thì" nằm trong vế điều kiện; vế điều kiện không "thì" là một mệnh đề riêng (trước hay sau câu hỏi): giả thiết, câu hỏi số liệu như thường
 	answersIntent(t, "Nếu dự báo mưa thì EX-03 hôm nay dùng bao nhiêu dầu?", "fuel_consumed", "3.782")
 	answersIntent(t, "EX-03 hôm nay dùng bao nhiêu dầu, nếu dự báo mưa?", "fuel_consumed", "3.782")
+}
+
+// S4CS-02 vòng 2 (F1a): từ phủ định / dấu bỏ qua đứng TRƯỚC cụm chỉ phủ nhận cụm khi đứng LIỀN trước ("Không tính tiền"); chữ chen giữa ("Không biết dự báo …",
+// "Em không rõ dự báo …") nghĩa là nó thuộc vị ngữ khác.
+func TestS4CS02Vong2PhuDinhLienTruoc(t *testing.T) {
+	for _, q := range []string{
+		"Không biết dự báo EX-03 hôm qua dùng bao nhiêu dầu?",
+		"Em không rõ dự báo dầu EX-03 hôm qua là bao nhiêu?",
+		"Không biết dự báo EX-03 hôm nay dùng bao nhiêu dầu?",
+	} {
+		askBack(t, q, notForecast)
+	}
 }

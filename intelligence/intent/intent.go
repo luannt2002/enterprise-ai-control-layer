@@ -1340,10 +1340,11 @@ func (s *Set) contentEnd(text string) int {
 	return end
 }
 
-// denied báo cụm báo nghĩa ở byte at của mệnh đề c bị PHỦ NHẬN hay BỎ QUA (S4BS-05): một từ phủ định hay một dấu bỏ qua của pack đứng TRƯỚC cụm mà đoạn chen giữa không có nội dung
-// số liệu ("Không tính tiền, …", "Chưa tính chi phí, …"), hoặc đứng SAU cụm mà từ cụm tới hết mệnh đề không có nội dung số liệu ("Chi phí em lo sau, …", "Trị giá hợp đồng không đổi, …"). Có
-// nội dung số liệu chen giữa hay theo sau thì từ ấy thuộc một vị ngữ khác, không phủ nhận cụm (S4CS-02: "Dự báo EX-03 không dùng hết dầu …", "Dự báo nhanh không cần chính xác EX-03 … bao
-// nhiêu dầu?", "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu"). Từ phủ định cuối mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định trong cụm hỏi ("đúng không") không tính.
+// denied báo cụm báo nghĩa ở byte at của mệnh đề c bị PHỦ NHẬN hay BỎ QUA (S4BS-05, S4CS-02): một từ phủ định hay một dấu bỏ qua của pack đứng LIỀN trước cụm ("Không tính tiền, …",
+// "Chưa tính chi phí, …" — "không tính" / "chưa tính" là dấu bỏ qua của pack), hoặc đứng SAU cụm mà từ cụm tới hết mệnh đề không có nội dung số liệu — nó khép vị ngữ của chính cụm ("Chi
+// phí em lo sau, …", "Trị giá hợp đồng không đổi, …"). Chữ chen giữa ("Không biết dự báo …", "Em không rõ dự báo …") hay nội dung số liệu theo sau ("Dự báo EX-03 không dùng hết dầu …",
+// "Dự báo nhanh không cần chính xác EX-03 … bao nhiêu dầu?") nghĩa là từ ấy thuộc một vị ngữ khác. Từ phủ định cuối mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định trong
+// cụm hỏi ("đúng không") không tính.
 func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, c [2]int, at int) bool {
 	clause := rawBG[c[0]:c[1]]
 	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))
@@ -1356,7 +1357,7 @@ func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, raw
 	}
 	return slices.ContainsFunc(marks, func(m [2]int) bool {
 		if m[1] <= at {
-			return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)
+			return strings.TrimSpace(clause[m[1]:at]) == ""
 		}
 		return !s.dataIn(in, res, rawBG, c[0]+at, c[1])
 	})

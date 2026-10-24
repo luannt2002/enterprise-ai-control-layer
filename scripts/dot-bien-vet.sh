@@ -180,7 +180,7 @@ m $W 'if o.ID != c.ID {' 'if false {' 'WV13 mọi ứng viên bị gán nguồn 
 m $W 'if ci.suppressed != "" {' 'if false && ci.suppressed != "" {' 'WV14 không nói vì sao câu hỏi lại không kể ứng viên'
 m $RT 'defer func() { plan.Checked, plan.Narrowed = checked, narrowed }()' 'defer func() { plan.Narrowed = narrowed }()' 'RV1 các bậc kiểm của router không được ghi'
 m $RT 'nar.Chosen = ref.Key' 'nar.Chosen = ""' 'RV2 thực thể được chọn khi gỡ mơ hồ không được ghi'
-m $RT 'nar.By = contracts.NarrowByScope' 'nar.By = contracts.NarrowByProject' 'RV3 cách gỡ mơ hồ (phạm vi / dự án) ghi sai'
+m $RT 'nar.By = contracts.NarrowByScope' 'nar.By = "x"' 'RV3 cách gỡ mơ hồ ghi sai: gỡ theo phạm vi ghi thành gỡ theo kiểu cha (hằng NarrowByProject đã gỡ ở L5)'
 m $RT 'check("route khai của ý định", plan.Route, true, def.Name+" → "+def.Route)' 'check("route khai của ý định", plan.Route, false, def.Name+" → "+def.Route)' 'RV4 bậc chọn route không được đánh dấu là bậc đã chọn'
 m $RT 's.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi"' 's.Entity.Key+": trong phạm vi của người hỏi"' 'RV5 dữ kiện phạm vi luôn nói "trong phạm vi"'
 m $IN 'w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot, clashMentioned)' 'w.Origins = originsOf(res, nil, nil, clashSlot, clashMentioned)' 'IV1 nguồn của ứng viên hỏi lại không được ghi'

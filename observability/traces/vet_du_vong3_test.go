@@ -2,6 +2,7 @@ package traces_test
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -28,10 +29,29 @@ func squash(s string) string {
 	return b.String()
 }
 
-// whyLines gom mọi dòng giải thích (lý do và phương án bị loại) của sáu chặng.
+// moiChang trả MỌI chặng (trường kiểu traces.Notes) của Why bằng phản chiếu: danh sách viết tay từng thiếu S6 / S8 / S10 khi các nhánh
+// thêm chặng (soát độc lập đợt gộp 24/10) — bước kiểm "bí mật vào giải thích TRƯỚC khi làm sạch" mù với chúng.
+func moiChang(w traces.Why) []traces.Notes {
+	v := reflect.ValueOf(w)
+	var out []traces.Notes
+	for i := range v.NumField() {
+		if n, ok := v.Field(i).Interface().(traces.Notes); ok {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+func TestMoiChangPhuDuChangCuaWhy(t *testing.T) {
+	if n := len(moiChang(traces.Why{})); n != 9 { // S2–S10 trừ S0, S1: đổi số chặng thì đổi số này cùng lúc
+		t.Errorf("Why có %d chặng, muốn 9", n)
+	}
+}
+
+// whyLines gom mọi dòng giải thích (lý do và phương án bị loại) của mọi chặng.
 func whyLines(w traces.Why) []string {
 	var out []string
-	for _, n := range []traces.Notes{w.Normalize, w.Resolve, w.Intent, w.Route, w.Context, w.Validate} {
+	for _, n := range moiChang(w) {
 		out = append(out, n.Reasons...)
 		out = append(out, n.Rejected...)
 	}

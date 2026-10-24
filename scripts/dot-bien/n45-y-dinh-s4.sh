@@ -264,7 +264,7 @@ m $I '	if len(s.opt.PurposeMarkers) == 0 {
 		return nil
 	}' 'S148 không nhận đoạn mục đích: "để em báo cáo" lại ngang hàng "được cấp"'
 m $I '		if r := contracts.RouteKind(d.Route); r != contracts.RouteSQLQuery && r != contracts.RouteCalculation {' '		if r := contracts.RouteKind(d.Route); false && r != contracts.RouteSQLQuery {' 'S149 đoạn mục đích che cả từ khoá quy trình ("dùng để làm gì theo quy trình" mất route RAG)'
-m tenants/construction/pack/intents.yaml 'ignore_phrases: [người dùng, người sử dụng, xác nhận]' 'ignore_phrases: [người dùng, người sử dụng]' 'S150 "xác nhận" lại là chữ "nhận" của kho xuất (nhờ xác nhận làm hoà với đội báo)'
+m tenants/construction/pack/intents.yaml 'ignore_phrases: [người dùng, người sử dụng, xác nhận, ghi nhận, nhận xét, cấp bách]' 'ignore_phrases: [người dùng, người sử dụng, ghi nhận, nhận xét, cấp bách]' 'S150 "xác nhận" lại là chữ "nhận" của kho xuất (nhờ xác nhận làm hoà với đội báo)'
 m tenants/construction/pack/intents.yaml 'purpose_markers: [để, nhằm]' 'purpose_markers: [để]' 'S151 từ nối "nhằm" không mở đoạn mục đích'
 m $I '			ct := rawBG[c[0]:c[1]]' '			ct := in.Raw[c[0]:c[1]]' 'S152 cụm báo nghĩa trong đoạn mục đích ("để tính chi phí") vẫn kích hoạt'
 

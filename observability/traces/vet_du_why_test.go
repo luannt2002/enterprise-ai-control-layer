@@ -64,7 +64,7 @@ func TestVetDuBanGhiBenKhongGiuWhyHaiLan(t *testing.T) {
 		t.Fatal("tiền đề: lượt thật phải mang Why")
 	}
 	rec := traces.NewRecord(turn)
-	if got := rec.Decision.Why; len(got.Normalize.Reasons)+len(got.Resolve.Reasons)+len(got.Intent.Reasons)+len(got.Route.Reasons)+len(got.Context.Reasons)+len(got.Validate.Reasons)+len(got.Generate.Reasons)+len(got.Respond.Reasons) != 0 {
+	if got := rec.Decision.Why; len(whyLines(got)) != 0 {
 		t.Errorf("bản ghi bền không được giữ Why: %+v", got)
 	}
 	if len(turn.Decision.Why.Route.Reasons) == 0 {

@@ -183,11 +183,13 @@ m $RT 'nar.Chosen = ref.Key' 'nar.Chosen = ""' 'RV2 thực thể được chọn
 m $RT 'nar.By = contracts.NarrowByScope' 'nar.By = contracts.NarrowByProject' 'RV3 cách gỡ mơ hồ (phạm vi / dự án) ghi sai'
 m $RT 'check("route khai của ý định", plan.Route, true, def.Name+" → "+def.Route)' 'check("route khai của ý định", plan.Route, false, def.Name+" → "+def.Route)' 'RV4 bậc chọn route không được đánh dấu là bậc đã chọn'
 m $RT 's.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi"' 's.Entity.Key+": trong phạm vi của người hỏi"' 'RV5 dữ kiện phạm vi luôn nói "trong phạm vi"'
-m $IN 'w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot)' 'w.Origins = originsOf(res, nil, nil, clashSlot)' 'IV1 nguồn của ứng viên hỏi lại không được ghi'
+m $IN 'w.Origins = originsOf(res, candidates, unclear.Entities, clashSlot, clashMentioned)' 'w.Origins = originsOf(res, nil, nil, clashSlot, clashMentioned)' 'IV1 nguồn của ứng viên hỏi lại không được ghi'
 m $IN 'w.reason("khớp đủ: %s (ưu tiên %d, từ khoá %s, %s)", d.Name, d.Priority, kw, via)' 'w.reason("khớp đủ: %s (ưu tiên %d, từ khoá %s, %s)", d.Name, d.Priority+1, kw, via)' 'IV2 ưu tiên của ý định khớp đủ ghi sai'
 m $IN 'w.reject("%s: khớp một phần — từ khoá %s khớp nhưng câu thiếu thuật ngữ %s", d.Name, kw, strings.Join(d.Terms, "|"))' 'w.reject("%s: khớp một phần — từ khoá %s khớp nhưng câu thiếu thuật ngữ %s", d.Name, kw, "")' 'IV3 khớp một phần không nói thiếu thuật ngữ nào'
 m $IN 'case d.Weak:' 'case false:' 'IV4 ý định yếu bị loại mà không nói là ý định yếu'
-m $IN 'case d.Priority != top.Priority:' 'case d.Priority == top.Priority:' 'IV5 ý định bị loại vì ưu tiên thấp hơn lại bị kể là ít cụm từ khoá hơn'
+m $IN '		if d.Priority == top.Priority {
+			ambiguous = append(ambiguous, d.Name)' '		if d.Priority != top.Priority {
+			ambiguous = append(ambiguous, d.Name)' 'IV5 ý định ưu tiên thấp hơn bị kể là hoà, ý định cùng ưu tiên bị kể là loại (vòng sửa S4: hoà ⇒ hỏi lại)'
 m $IN 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority)' 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority+1)' 'IV6 lý do chọn ý định ghi sai ưu tiên'
 m observability/traces/step.go 'if n := d.Why.Route; n.Recorded() {' 'if n := d.Why.Route; false && n.Recorded() {' 'TV28 giải thích của S5 do luồng hỏi ghi bị bỏ, quay về chỗ trống'
 m observability/traces/step.go 's.Reason += "; " + joinReasons(n)' 's.Reason += ""' 'TV29 cổng phán quyết không được nối vào lý do của S9'
@@ -205,7 +207,13 @@ m $W 'if sp.Confidence > 0 && sp.Confidence < 1 {' 'if false && sp.Confidence > 
 m $ASK 'prefix := ""
 	if plan.Route == contracts.RouteHybrid {' 'prefix := ""
 	if false && plan.Route == contracts.RouteHybrid {' 'AV3 [MQ] HYBRID không gắn tiền tố "số liệu:" (neo mở rộng: Handle có thêm nhánh else if HYBRID, V8a)'
-m $ASK 'prefix = "tri thức: "' 'prefix = ""' 'AV4 [MR] HYBRID không gắn tiền tố "tri thức:"'
+m $ASK '	})
+	prefix := ""
+	if hybrid {
+		prefix = "tri thức: "' '	})
+	prefix := ""
+	if hybrid {
+		prefix = ""' 'AV4 [MR] HYBRID không gắn tiền tố "tri thức:"'
 m $W 'prefix, subject, entities)' 'prefix, subject, entities+1)' 'WV19 [MS] dòng quyền của S7 nói sai số thực thể truy vấn'
 m $W 'by, dropWhy = "dự án đã nêu trong câu", "không thuộc dự án đã nêu trong câu"' 'by, dropWhy = "dự án đã nêu trong câu", "ngoài phạm vi dữ liệu của người hỏi"' 'WV20 [MT] lý do dự án luôn nói "ngoài phạm vi"'
 m $IN 'w.reason("thuật ngữ hiểu ngầm %s (câu nhắc thực thể mà không nói vật tư và không có đại lượng đo được nào khác — chính sách của pack)", implicit)' '_ = implicit' 'IV7 [MU] không kể thuật ngữ hiểu ngầm'
@@ -287,7 +295,7 @@ m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req
 m $ASK 'if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {' 'if traces.Sanitize(in.Raw) != in.Raw || in.Raw != req.Text {' 'XV44 [soát vòng 3] cổng che mọi câu có ký tự bị gấp, không chỉ câu mang bí mật nhận ra được (che oan)'
 m $IN 'sd.Name, len(ps), len(in.InvalidDates))' 'sd.Name, len(in.InvalidDates), len(ps))' 'XV23 [soát vòng 2] số mốc và số ngày hỏng đảo chỗ'
 m $IN 'fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen))' 'fmt.Sprintf("không có đúng một ý định yếu đòi thuật ngữ của câu (có %d)", len(gen)+1)' 'XV24 [soát vòng 2] số ý định yếu ghi sai'
-m $IN 'w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name])' 'w.reason("chọn %s: cùng ưu tiên %d nhưng nhiều cụm từ khoá hơn (%d)", top.Name, top.Priority, score[top.Name]+1)' 'XV26 [soát vòng 2] số cụm từ khoá của ý định thắng ghi sai'
+m $IN 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority)' 'w.reason("chọn %s: ưu tiên cao nhất (%d)", top.Name, top.Priority+1)' 'XV26 lý do chọn ý định ghi sai số ưu tiên (vòng sửa S4 bỏ phân xử theo số cụm từ khoá)'
 m $RT 'check("capability của vế so sánh", contracts.RouteReject, !ok, cdef.Capability+": "+pick(ok, "có", "thiếu")) {' 'check("capability của vế so sánh", contracts.RouteReject, !ok, cdef.Capability+": "+pick(ok, "thiếu", "có")) {' 'XV27 [soát vòng 2] capability của vế so sánh nói ngược có / thiếu'
 m $RT 'e.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi"))' 'e.Key+": "+pick(out, "trong phạm vi", "ngoài phạm vi"))' 'XV28 [soát vòng 2] phạm vi của câu hỏi nghĩa số liệu nói ngược'
 m $RT 'orNone(cls.Compare, "không có vế so sánh"))' 'orNone("", "không có vế so sánh"))' 'XV29 [soát vòng 2] bậc câu so sánh không nêu tên vế'

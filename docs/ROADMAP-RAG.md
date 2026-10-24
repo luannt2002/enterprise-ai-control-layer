@@ -602,7 +602,7 @@ chặn đúng 3/5 câu loại này ("Điều 999", "Điều 99", "Chương XX"),
 từ), "Khoản 555 Điều 5" (khoản là mục danh sách, và "Điều 5" có thật) — hai câu này vẫn do ngưỡng chặn (0.065, 0.085).
 
 **Không làm khi chưa có bằng chứng:** gom nhóm hàng cho bảng dài theo ngân sách (phần còn lại của U3b) — chưa có ca trượt nào đòi;
-LLM chọn cách cắt (C-1 tự đo: cắt theo heading tốt nhất 11/11 tài liệu), semantic / proposition
+LLM chọn cách cắt (con số "cắt theo heading tốt nhất 11/11 tài liệu" của C-1 là metric vòng tròn — chọn và chấm cùng một metric; đo đầu–cuối trên cùng bộ thì cắt theo heading thắng 0/12, cắt cố định 512 thắng 8/12), semantic / proposition
 chunking, kho vector riêng (vector đang ở cùng PG, cosine trong Go trên đoạn người hỏi được đọc), LLM chấm làm bằng chứng duy nhất.
 
 ### 10.3 Go hay Python (`CLAUDE.md` §18)

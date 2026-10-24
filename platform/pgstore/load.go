@@ -123,7 +123,8 @@ func (s *Store) load(ctx context.Context, info LoadInfo, docsOnly bool, entities
 			return err
 		}
 		for _, table := range tables {
-			if _, err := tx.Exec(ctx, "DELETE FROM "+table); err != nil { // RLS: chỉ dòng của tenant này
+			// RLS đã giới hạn trong tenant này; lọc tenant_id lần nữa để vai vượt RLS (hay RLS bị tắt) không xoá dòng của tenant khác (F-037).
+			if _, err := tx.Exec(ctx, "DELETE FROM "+table+" WHERE tenant_id = $1", string(tenant)); err != nil {
 				return err
 			}
 		}

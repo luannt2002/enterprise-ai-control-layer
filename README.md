@@ -35,8 +35,8 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 | **Phụ thuộc số 1** | Chưa có doanh nghiệp / người nghiệp vụ thật (D-RM-03) ⇒ mọi kết luận "trên dữ liệu giả lập" | `docs/ROADMAP-DAY-DU.md` §9 |
 | **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05 (sửa hẹp S4CS-02 + chạy H6), Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: D-RAG-02 (12 vai của ACL kho không có trong policy), D-RAG-03 (bật dự phòng S4 B1 — đo lại trên bộ mới sau tích hợp), mở model thật trong app | `docs/CHO-QUYET-DINH.md` |
 
-Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go). Mọi dữ liệu trong repo là **giả lập**; repo công
-khai không chứa dữ liệu thật của tenant nào.
+Repo: `github.com/luannt2002/enterprise-ai-control-layer` (cũng là đường dẫn module Go). Dữ liệu trong repo là **giả lập hoặc văn bản công khai**; **không có dữ liệu khách** —
+repo công khai không chứa dữ liệu thật của tenant nào.
 
 Giấy phép: **MIT** — [`LICENSE`](LICENSE) (`SPDX-License-Identifier: MIT`), chủ dự án chọn 24/10/2026 (`docs/CHO-QUYET-DINH.md`, D-OP-3).
 

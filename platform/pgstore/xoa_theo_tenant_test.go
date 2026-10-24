@@ -73,3 +73,61 @@ func TestXoaChiDongCuaTenantKhiVuotRLS(t *testing.T) {
 		t.Errorf("nạp tenant A bằng vai vượt RLS đã xoá dòng của tenant B: trước %v, sau %v", truoc, sau)
 	}
 }
+
+// Như trên cho lệnh xoá vector của EmbedKnowledge (soát độc lập cuối, S4): nhúng tenant A bằng vai vượt RLS không được xoá vector của
+// tenant B — kể cả vector cũ mà B chưa dọn (B nạp tài liệu mới, chưa nhúng lại: việc dọn là của lần nhúng của chính B). Không gian vector
+// riêng cho mỗi lần chạy, để bản lỗi (xoá theo không gian, mọi tenant) không chạm dữ liệu của test khác.
+func TestNhungChiXoaVectorCuaTenantKhiVuotRLS(t *testing.T) {
+	admin, app := EnvDSN()
+	if admin == "" || app == "" {
+		t.Skip("chưa có EAIS_PG_ADMIN_DSN / EAIS_PG_DSN — xem deploy/docker-compose.yml")
+	}
+	ctx := context.Background()
+	if err := Migrate(ctx, admin); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, admin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	n := time.Now().UnixNano()
+	su := &Store{pool: pool, Semantic: &rag.Semantic{Embedder: &nhungDem{ten: fmt.Sprintf("xoa-vec-%d/3", n)}}}
+	a, b := contracts.TenantID(fmt.Sprintf("xoa-vec-a-%d", n)), contracts.TenantID(fmt.Sprintf("xoa-vec-b-%d", n))
+	actx, bctx := contracts.WithTenant(ctx, a), contracts.WithTenant(ctx, b)
+	t.Cleanup(func() { // xoá tài liệu của CẢ hai trước khi nhúng: vai vượt RLS đọc tài liệu của mọi tenant
+		_ = su.Load(actx, nil, nil, nil)
+		_ = su.Load(bctx, nil, nil, nil)
+		_, _, _ = su.EmbedKnowledge(ctx, a)
+		_, _, _ = su.EmbedKnowledge(ctx, b)
+	})
+	tl := func(body string) []rag.Document {
+		return []rag.Document{{ID: "QT", Title: "Quy trình", ACL: []string{"r"}, Body: body}}
+	}
+	if err := su.Load(bctx, nil, nil, tl("1. Bước một.\n2. Bước hai.")); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := su.EmbedKnowledge(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	if err := su.Load(bctx, nil, nil, tl("1. Bước ba.")); err != nil {
+		t.Fatal(err)
+	}
+	dem := func() int {
+		var c int
+		if err := pool.QueryRow(ctx, "SELECT count(*) FROM document_vectors WHERE tenant_id = $1", string(b)).Scan(&c); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	truoc := dem()
+	if truoc == 0 {
+		t.Fatal("tiền đề: tenant B phải có vector")
+	}
+	if _, _, err := su.EmbedKnowledge(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	if sau := dem(); sau != truoc {
+		t.Errorf("nhúng tenant A bằng vai vượt RLS đã xoá vector của tenant B: trước %d, sau %d", truoc, sau)
+	}
+}

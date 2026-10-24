@@ -7,8 +7,10 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -44,11 +46,23 @@ func baseCfg(data string) config {
 		tenant: "abc-infra", grade: gradeContent, k: 1, topK: 10, systems: sysB2Plus, budget: 15}
 }
 
-// modelHopDong, endpointChinhThuc: giá trị GIẢ trung tính của hợp đồng G7 trong test — giá trị thật chỉ ở .env.
-const (
-	modelHopDong      = "model-hop-dong"
-	endpointChinhThuc = "https://api.example.com"
-)
+// modelHopDong, endpointChinhThuc: giá trị THẬT của hợp đồng G7, đọc từ docs/g7/HOP-DONG-G7.md lúc chạy test (mã ghim băm của chúng,
+// nên giá trị giả không còn là "chính thức"); test không chứa tên hãng / model (F-015). Không đọc được thì rỗng: TestMocHopDongKhongDoiBangCauHinh đỏ.
+var modelHopDong, endpointChinhThuc = hopDongTuTaiLieu()
+
+// hopDongTuTaiLieu lấy model ở dòng "Model" của bảng §4 và endpoint (scheme://tên máy) ở URL https đầu tiên của hợp đồng.
+func hopDongTuTaiLieu() (model, endpoint string) {
+	b, _ := os.ReadFile("../../../../docs/g7/HOP-DONG-G7.md")
+	if m := regexp.MustCompile("\\| Model \\| \\*\\*`([^`]+)`").FindSubmatch(b); m != nil {
+		model = string(m[1])
+	}
+	if m := regexp.MustCompile("`(https://[^`]+)`").FindSubmatch(b); m != nil {
+		if u, err := url.Parse(string(m[1])); err == nil {
+			endpoint = u.Scheme + "://" + u.Hostname()
+		}
+	}
+	return model, endpoint
+}
 
 // clearModelEnv đảm bảo test chạy bằng model giả bất kể môi trường của người chạy; hợp đồng G7 (model, endpoint chính thức, giá
 // 2 / 10 USD mỗi triệu token của model hợp đồng) đặt giá trị giả ở trên.

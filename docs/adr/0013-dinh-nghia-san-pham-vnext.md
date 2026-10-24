@@ -22,7 +22,10 @@
 - Phần chín nhất của repo là **lõi kiểm soát**: tenant từ danh tính, quyền đóng mặc định, RLS FORCE, kiểm đầu ra, vết bền, lệnh có đọc lại
   (UNKNOWN thật), bộ giữ lại băm trước. Các kiểu của lõi đã có sẵn (báo cáo §11.4), không phải phát minh.
 - Tên hướng sản phẩm đã đổi bốn lần trong bốn ngày (`docs/history/NAME-EVOLUTION.md`). Đổi đường dẫn module lần nữa chạm 227 tệp `.go`
-  / 583 dòng import và mọi URL clone (báo cáo §07.1).
+  / 578 dòng mang chuỗi import của module (576 dòng import thật, 2 dòng là chuỗi trong test) và mọi URL clone. Đo 24/10 trên `3f1bf7e`:
+  `git grep -l '"github.com/luannt2002/enterprise-ai-control-layer' 3f1bf7e -- '*.go' | wc -l` → 227;
+  `git grep -h '"github.com/luannt2002/enterprise-ai-control-layer' 3f1bf7e -- '*.go' | wc -l` → 578 (bỏ dấu nháy mở: 580).
+  Báo cáo §07.1 ghi 583 là số dòng chứa tên repo ở mọi dạng, không phải số dòng import.
 
 ## Quyết định
 

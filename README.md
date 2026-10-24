@@ -31,7 +31,7 @@ Business Reality → Trusted Context → Useful Intelligence → Controlled Acti
 | **MVP** (5 khối M1–M5, D-MVP-00) | **CHƯA RA.** M1: vết S8–S10 + 5a đã ở main, vế đọc vết 78,9% (< 90%, chưa đo lại); M2: mã 0a ở main, sửa R-01 rồi chạy bộ 0a một lần; M3: S4 ở main kèm hồi quy S4CS-02 — sửa hẹp rồi chạy H6 một lần (chủ dự án quyết); M4: P1 153/157; M5: S2–S4, L1 chưa đạt | `docs/STATUS.md`, báo cáo tích hợp |
 | **Fuel WIN** (7 cổng G1–G7) | **0/7** trên bộ giữ lại độc lập; sau tích hợp H1 96/104, H3 122/134, H4 109/119 (bộ ĐÃ công bố, 24/10 tối; trước đó 91 / 112 / 103) | `docs/04-core-mvp.md` §6, `docs/STATUS.md` |
 | **RAG** (luồng L6) | Đã gộp vào main 24/10 (D-RAG-01). Ngoài phạm vi MVP (D-AI-03 = a). App chạy từ khoá + model trích; đường lai (từ khoá + vector + xếp lại) và model thật chỉ ở bộ đo | §5 dưới; `docs/ROADMAP-RAG.md` |
-| **Nút thắt số 1** | Hiểu ý định S4 chỉ bằng luật: tầng sai đầu tiên ở 13/15 ca đỏ H1, 20/25 H3; với câu hỏi quy trình chỉ 7/92 câu tới được RAG | `docs/adr/` ADR-0010; `docs/ROADMAP-RAG.md` §10.2 |
+| **Nút thắt số 1** | Hiểu ý định S4 chỉ bằng luật: tầng sai đầu tiên ở 13/15 ca đỏ H1, 20/25 H3; với câu hỏi quy trình chỉ 7/92 câu tới được RAG [đo: lai] | `docs/adr/` ADR-0010; `docs/ROADMAP-RAG.md` §10.2 |
 | **Phụ thuộc số 1** | Chưa có doanh nghiệp / người nghiệp vụ thật (D-RM-03) ⇒ mọi kết luận "trên dữ liệu giả lập" | `docs/ROADMAP-DAY-DU.md` §9 |
 | **Câu đang chờ chủ dự án** | D-AI-04, D-AI-05 (sửa hẹp S4CS-02 + chạy H6), Q-P1-9…15, Q-0A-13…16, D-RM-03; phía RAG: D-RAG-02 (12 vai của ACL kho không có trong policy), D-RAG-03 (bật dự phòng S4 B1 — đo lại trên bộ mới sau tích hợp), mở model thật trong app | `docs/CHO-QUYET-DINH.md` |
 
@@ -234,19 +234,25 @@ hết hiệu lực ⇒ nói rõ, không dùng làm căn cứ · hai bản cùng 
 
 ### 5.5 Hiện trạng và số đo (bằng chứng ở `docs/ROADMAP-RAG.md` §10.1)
 
+> **Nhãn đường đo (F-020).** Ứng dụng `cmd/eais` chỉ chạy **đường từ khoá + model trích** (không vector, không xếp lại, không model
+> thật, dự phòng S4 tắt). Mọi số dưới đây là của **bộ đo** `evals/rag` (`go test`), không phải số của app chạy:
+> **[đo: từ khoá]** cùng bộ truy hồi với app · **[đo: lai]** từ khoá + vector + RRF + xếp lại, động cơ thật cấu hình ở `.env` — app
+> KHÔNG có đường này · **[đo: B1]** dự phòng S4 (`evals/rag/s4_test.go`), app để tắt · **[đo: model QĐ]** model quyết định có kiểu
+> (10.2b), app không gọi · **[test]** test của repo, phủ cả đường app.
+
 | Nấc | Đã có | Còn thiếu |
 |---|---|---|
 | RAG-0 việc + bộ ca | việc "tra quy trình đang hiệu lực"; hợp đồng; bộ S7 phát triển 41 câu + độc lập 106 câu (băm trước, chạy một lần); 2 baseline | người nghiệp vụ duyệt (D-RM-03) |
 | RAG-1 nạp | phiên bản / trạng thái / hiệu lực / phạm vi; cổng chất lượng; ID tất định; nguồn theo chiến lược (markdown, files, postgres) | PDF / DOCX / scan thật (U5); độ phủ chữ; băm nội dung, nguồn, chủ sở hữu |
-| RAG-2 cắt | theo cấu trúc (U3b) — bộ giữ lại văn bản pháp quy công khai: top-3 chứa đủ đáp án **34 → 39 / 55** | cắt theo token cho bước dài; cổng SC / BI; lý do cắt vào vết |
-| RAG-3 truy hồi + quyền | lọc trước khi chấm; **0 rò** trên mọi ca âm; 22 ms / câu ở ~1.000 tài liệu (chỉ mục giữ sẵn) | ngưỡng Recall do người nghiệp vụ chốt |
+| RAG-2 cắt | theo cấu trúc (U3b) — bộ giữ lại văn bản pháp quy công khai: top-3 chứa đủ đáp án **34 → 39 / 55** [đo: lai] | cắt theo token cho bước dài; cổng SC / BI; lý do cắt vào vết |
+| RAG-3 truy hồi + quyền | lọc trước khi chấm; **0 rò** trên mọi ca âm [test]; 22 ms / câu ở ~1.000 tài liệu (chỉ mục giữ sẵn) [đo: từ khoá] | ngưỡng Recall do người nghiệp vụ chốt |
 | RAG-4 sinh có kiểm | §6.2 đủ; gateway chat completions (bộ đo); `Draft.Refused` ⇒ INSUFFICIENT_EVIDENCE | app vẫn model giả (quyết định chi tiền §9.3) |
-| RAG-5 nghiệm thu | S7 bộ độc lập: top-3 **87/92**, 0 ngoài quyền, 0 không căn cứ (RAG thường lọt 20 + 37, nạp thẳng 100 + 222); đường lai 83/92, 0/14 câu bẫy nhận đoạn | người nghiệp vụ nghiệm thu; bộ giữ lại MỚI |
-| RAG-6 nâng cấp có bằng chứng | đường lai + xếp lại; câu không dấu 0/8 → 4/8 qua ngưỡng; luật mục không tồn tại (0/94 chặn oan) | viết tắt (KL, PXK); BM25 thật; cue cấu trúc làm feature |
+| RAG-5 nghiệm thu | S7 bộ độc lập: top-3 **87/92**, 0 ngoài quyền, 0 không căn cứ [đo: từ khoá] (baseline RAG thường lọt 20 + 37, nạp thẳng 100 + 222); đường lai 83/92, 0/14 câu bẫy nhận đoạn [đo: lai] | người nghiệp vụ nghiệm thu; bộ giữ lại MỚI |
+| RAG-6 nâng cấp có bằng chứng | đường lai + xếp lại; câu không dấu 0/8 → 4/8 qua ngưỡng [đo: lai]; luật mục không tồn tại (0/94 chặn oan; số của bộ đo, luật có ở cả đường app) | viết tắt (KL, PXK); BM25 thật; cue cấu trúc làm feature |
 | RAG-7 vận hành | thử lại theo Retry-After, nhãn lỗi theo giao thức; đổi nhà cung cấp chỉ đổi `.env` | dự phòng tự động giữa nhà cung cấp; chi phí mỗi lượt; thử tải |
 | RAG-8 nâng cao | — | chỉ khi việc đòi |
 
-**Bài học đã đo:** tầng sai đầu tiên của luồng trọn là **router S4**, không phải truy hồi hay model (S7 độc lập: truy hồi 83/92 nhưng chỉ 7/92
+**Bài học đã đo:** tầng sai đầu tiên của luồng trọn là **router S4**, không phải truy hồi hay model (S7 độc lập [đo: lai]: truy hồi 83/92 nhưng chỉ 7/92
 tới S8); đổi cách cắt ⇒ phải chọn lại ngưỡng "biết im"; ngưỡng một mình không tách được câu hỏi về mục không tồn tại (điểm lệch qua lại giữa
 hai lần chạy) ⇒ thêm luật tất định; câu không dấu sai ở điểm xếp lại chứ không ở truy hồi.
 
@@ -254,17 +260,17 @@ hai lần chạy) ⇒ thêm luật tất định; câu không dấu sai ở đi�
 
 | Nguồn | Học (ý tưởng, không chép mã) | Không học |
 |---|---|---|
-| Adaptive Chunking (Ekimetrics, MIT) | thuật toán **split-then-merge** theo ranh giới mạnh nhất + đếm token thật (port sang Go: không gộp qua Chương / Điều, trả offset trực tiếp); **SC + BI** làm cổng mỗi lần nạp | chọn cách cắt theo trung bình metric nội tại (chọn = chấm; chỉ hơn cách cắt cố định tốt nhất **+0,39 điểm**); RC / coref (chỉ tiếng Anh, giấy phép phi thương mại) |
+| Adaptive Chunking (Ekimetrics, MIT) | thuật toán **split-then-merge** theo ranh giới mạnh nhất + đếm token thật (port sang Go: không gộp qua Chương / Điều, trả offset trực tiếp); **SC + BI** làm cổng mỗi lần nạp | chọn cách cắt theo trung bình metric nội tại (chọn = chấm; chỉ hơn cách cắt cố định tốt nhất **+0,39 điểm**, số của dự án ngoài); RC / coref (chỉ tiếng Anh, giấy phép phi thương mại) |
 | AdapChunk-App (không có LICENSE ⇒ chỉ học ý) | policy chọn cách cắt **tất định**, ghi lý do theo từng đoạn; bảng tính "mỗi dòng một bản ghi, lặp header"; header bảng theo sang phần tách | LLM chọn / viết lại nội dung; nhúng bản tóm tắt thay chữ gốc; luôn trả top-k (không biết im); fallback âm thầm; ACL hậu kiểm; secret trong mã |
-| Model quyết định có kiểu, bên thứ ba (đã ĐO 24/10, `docs/ROADMAP-RAG.md` 10.2b) | đầu ra đóng có xác suất; nhiều câu hỏi độc lập trên một state; ngưỡng + tổ hợp nằm trong code; ghim mã phiên bản; vị trí đúng: S4 và chấm "đoạn có trả lời được không" | "không bịa" chỉ là đúng kiểu; xác suất ≠ chắc chắn, không tất định; không giao quyền / sự thật / giao dịch / phiên bản. Bộ độc lập: S4 không thắng B1 tất định đủ cổng; chấm đoạn chặn 8/8 câu lọt của đường từ khoá nhưng loại oan đoạn của câu hai ý; thay xếp lại thua xếp lại (27 so với 31) |
+| Model quyết định có kiểu, bên thứ ba (đã ĐO 24/10, `docs/ROADMAP-RAG.md` 10.2b) | đầu ra đóng có xác suất; nhiều câu hỏi độc lập trên một state; ngưỡng + tổ hợp nằm trong code; ghim mã phiên bản; vị trí đúng: S4 và chấm "đoạn có trả lời được không" | "không bịa" chỉ là đúng kiểu; xác suất ≠ chắc chắn, không tất định; không giao quyền / sự thật / giao dịch / phiên bản. Bộ độc lập: S4 không thắng B1 tất định đủ cổng; chấm đoạn chặn 8/8 câu lọt của đường từ khoá nhưng loại oan đoạn của câu hai ý; thay xếp lại thua xếp lại (27 so với 31) [đo: model QĐ] |
 
 ### 5.7 Việc tiếp (gắn vào RAG-0…RAG-8)
 
 | Thứ tự | Việc | Loại |
 |---|---|---|
 | 1 | Chỉ nhúng bản làm căn cứ được (không gửi chữ bản nháp / chờ duyệt ra nhà cung cấp) | sửa an toàn (RAG-1) |
-| 2 | **S4 B1** (đã có mã, mặc định tắt: luật không ra kế hoạch trả lời ⇒ dò chỉ mục bằng đúng quyền + ngày hỏi; chốt câu hỏi lượng + capability trong pipeline). Bộ độc lập: 4 → 23/30 câu tri thức tới đúng route khi vai có quyền đọc (bản đã chạy); soát độc lập bắt B1 đẩy câu số liệu không có "bao nhiêu" sang tài liệu ⇒ đã thu hẹp, cần đo lại trên bộ MỚI | **chủ dự án quyết** D-RAG-02 (vai) rồi D-RAG-03 (bật) |
-| 3 | Đã so B0 / B1 / B2 / B3 / B4 trên bộ độc lập mới (64 câu, băm trước): model phân loại +1 câu so với B1, không qua cổng 30% ⇒ chưa đưa vào luồng. Vòng sau của chấm đoạn: chấm theo PHẦN tri thức của câu, chế độ bóng, bộ độc lập MỚI; không thay xếp lại | đo xong 24/10 (10.2b) |
+| 2 | **S4 B1** (đã có mã, mặc định tắt: luật không ra kế hoạch trả lời ⇒ dò chỉ mục bằng đúng quyền + ngày hỏi; chốt câu hỏi lượng + capability trong pipeline). Bộ độc lập [đo: B1]: 4 → 23/30 câu tri thức tới đúng route khi vai có quyền đọc (bản đã chạy); soát độc lập bắt B1 đẩy câu số liệu không có "bao nhiêu" sang tài liệu ⇒ đã thu hẹp, cần đo lại trên bộ MỚI | **chủ dự án quyết** D-RAG-02 (vai) rồi D-RAG-03 (bật) |
+| 3 | Đã so B0 / B1 / B2 / B3 / B4 trên bộ độc lập mới (64 câu, băm trước): model phân loại +1 câu so với B1 [đo: model QĐ], không qua cổng 30% ⇒ chưa đưa vào luồng. Vòng sau của chấm đoạn: chấm theo PHẦN tri thức của câu, chế độ bóng, bộ độc lập MỚI; không thay xếp lại | đo xong 24/10 (10.2b) |
 | 4 | Split-then-merge theo token + cổng SC / BI / phủ hết | RAG-2 |
 | 5 | Công bố nguyên tử tài liệu + vector; tự nhúng sau nạp; GC; cổng xoá hàng loạt | RAG-7 |
 | 6 | BM25 thật, cue cấu trúc làm feature, viết tắt; bộ giữ lại MỚI | RAG-3 / RAG-6 |
@@ -370,7 +376,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
 - Chưa có vết các bước nạp (`L1.*`) và chưa có chính sách dọn / lưu giữ vết và sổ nạp `load_records` (một dòng mỗi lần nạp; vai ứng dụng không có quyền xoá).
 - CI ở `.github/workflows/ci.yml` chưa chạy trên GitHub (xem ghi chú đầu tệp).
 - **Sau tích hợp 24/10:** S4 mang hồi quy S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) và nợ S4CS-01, -03, -04; mã 0a có lỗi R-01 (chết khoá PG khi nạp chạy cùng quyết định) và chưa nối vào `cmd/eais` (`Ready` chưa biết 4 bảng `report_*`); vết S8–S10 chờ soát vòng 2; 5a vòng 5 chờ soát — xem `docs/bao-cao/2026-10-24-tich-hop-main.md` mục 6.
-- **RAG:** app chạy đường từ khoá + model trích (7/14 câu không có đáp án vẫn nhận đoạn ở đường từ khoá — đường lai 0/14 nhưng chỉ ở bộ đo); việc nhúng hiện gửi cả chữ bản nháp ra nhà cung cấp embedding (§5.7 việc 1); tài liệu và vector chưa công bố nguyên tử; nạp chỉ Markdown ở app.
+- **RAG:** app chạy đường từ khoá + model trích (7/14 câu không có đáp án vẫn nhận đoạn ở đường từ khoá [đo: từ khoá] — đường lai 0/14 [đo: lai] nhưng chỉ ở bộ đo); việc nhúng hiện gửi cả chữ bản nháp ra nhà cung cấp embedding (§5.7 việc 1); tài liệu và vector chưa công bố nguyên tử; nạp chỉ Markdown ở app.
 
 ## 9. Tài liệu chi tiết
 

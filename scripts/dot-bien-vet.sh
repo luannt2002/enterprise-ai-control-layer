@@ -109,7 +109,7 @@ m $V 'if !stable(u.TraceID) {' 'if false && !stable(u.TraceID) {' 'SV15 usage v�
 
 export PKGS=./observability/traces/
 S=observability/traces/sanitize.go R=observability/traces/record.go T=observability/traces/step.go
-m $S 's = m.re.ReplaceAllString(s, m.repl)' '_ = m' 'TV1 Sanitize không che gì'
+m $S 's = secretMasks[i].re.ReplaceAllString(s, secretMasks[i].repl)' '_ = secretMasks[i]' 'TV1 Sanitize không che gì'
 m $S 'case reflect.Slice, reflect.Array:' 'case reflect.Array:' 'TV2 làm sạch bỏ sót phần tử slice'
 m $S 'if Sanitize(key+"="+val) != key+"="+val && clean == val {' 'if false {' 'TV3 không che giá trị map theo khoá'
 m $S 's = strings.ReplaceAll(s, "\x00", "")' '_ = s' 'TV4 không bỏ byte NUL'
@@ -133,9 +133,30 @@ m $T 'if d.Outcome == string(contracts.OutcomeInsufficientEvidence) {' 'if false
 m $T 'if route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'if false && route == contracts.RouteHybrid && has("retrieve") && !has("generate") {' 'TV22 HYBRID phần tri thức rỗng mà S6 không nói'
 m $T 'StageExecute: {"execute", "retrieve"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'StageExecute: {"execute"}, StageGenerate: {"generate"}, StageValidate: {"validate"},' 'TV23 span retrieve không gắn vào bước nào (R1-05)'
 m $T 'StageValidate: {"validate"},' 'StageValidate: {"validate", "generate"},' 'TV24 span generate gắn vào hai bước (thời gian đếm đôi)'
-RX_Q=$'(?:(")[^"]*"?|(\')[^\']*\'?|[^\\s"\',;&]+)'
-m $S "$RX_Q" $'(?:(")[^\\s"\',;&]+|(\')[^\\s"\',;&]+|[^\\s"\',;&]+)' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
-m $S "$RX_Q" $'(?:(")[^"]*"|(\')[^\']*\'|[^\\s"\',;&]+)' 'TV27 nháy không đóng không được che'
+# Giá trị trong nháy đọc theo hai cách rồi che hợp (sanitize.go: quotedEscaped / quotedRaw, valueMask) — đột biến từng cách đọc và
+# phép gộp; mỗi dòng có ca phân biệt trong sanitize_test.go (TestSanitizeDauRaChinhXac, TestSanitizeGiaTriKetThucBangGachCheo).
+QE_DQ='"(?:[^"\\]|\\[\s\S])*"?|'
+QE_SQ=$'\'(?:[^\'\\\\]|\\\\[\\s\\S])*\'?'
+m $S "$QE_DQ" '"(?:[^"\\\s]|\\[\s\S])*"?|' 'TV25 giá trị trong nháy dừng ở khoảng trắng (lọt đuôi, R1-04)'
+m $S "$QE_DQ" '"(?:[^"\\]|\\[\s\S])*"|' 'TV27 nháy không đóng không được che'
+m $S "$QE_DQ" '"[^"]*"?|' 'TV37 nháy kép không đọc nháy thoát (lọt đuôi JSON, 5a(2))'
+m $S "$QE_DQ" '"(?:[^"\\]|\\.)*"?|' 'TV39 nháy thoát ngay trước xuống dòng không được đọc'
+m $S "$QE_SQ" $'\'[^\']*\'?' 'TV38 nháy đơn không đọc nháy thoát (khoá = giá trị và Cookie)'
+m $S 'for _, re := range []*regexp.Regexp{m.escaped, m.raw} {' 'for _, re := range []*regexp.Regexp{m.escaped} {' 'TV33 chỉ đọc theo nháy thoát (lọt bí mật kế tiếp, 5a-1)'
+m $S 'for _, re := range []*regexp.Regexp{m.escaped, m.raw} {' 'for _, re := range []*regexp.Regexp{m.raw} {' 'TV34 chỉ đọc thô (lọt đuôi sau nháy thoát)'
+m $S 'for ; i < len(secretMasks) && secretMasks[i].value != nil; i++ {' 'for ; i < len(secretMasks) && secretMasks[i].value != nil && len(ms) == 0; i++ {' 'TV40 che lần lượt từng mẫu tên + giá trị (lọt Cookie sau giá trị kết thúc bằng \\, soát lại 5abc 5a-R1)'
+m $S 'return spans[i].start < spans[j].start' 'return false' 'TV41 không sắp vùng trước khi gộp (lọt khi ≥ 3 cặp mà hai cách đọc nháy bất đồng, soát lại 5abc 5a-R2)'
+m $S 'if cur.line {' 'if false && cur.line {' 'TV45 vùng gộp chứa giá trị Cookie trần không kéo tới hết dòng (lọt phần sau nháy qua xuống dòng, soát 5a vòng 3 5a3-1)'
+m $S 'strings.IndexAny(s[cur.end:], "\r\n")' 'strings.IndexAny(s[cur.end:], "\n")' 'TV49 kéo tới hết dòng không coi CR đơn là xuống dòng (nuốt dòng sau, soát 5a vòng 4 5a4-3)'
+m $S '`[^\r\n]+`, true)}' '`[^\r\n]+`, false)}' 'TV46 mẫu Cookie không đánh dấu là mẫu dòng (5a3-1)'
+m $S 'cur.line = cur.line || spans[i].line' 'cur.line = cur.line' 'TV48 cờ dòng không lan khi vùng gộp bắt đầu ở cặp trước Cookie (hình lai 5a-R1 + 5a3-1)'
+m $S 'spans := sequentialSpans(s, ms)' 'var spans []span' 'TV50 không hợp vùng của che tuần tự (che ít hơn main, soát 5a vòng 4 5a4-1)'
+m $S 'olo, ohi = min(olo, lo[p]), max(ohi, hi[p])' 'olo, ohi = lo[p], hi[p]' 'TV51 ánh xạ vùng của che tuần tự về chữ gốc chỉ theo byte cuối (5a4-1)'
+m $S $'} else {\n\t\t\tb.WriteString(Masked)' $'} else {\n\t\t\tb.WriteString(Masked + Masked)' 'TV42 giá trị trần nhân đôi dấu che (vỡ luỹ đẳng)'
+m $S '[^\r\n]+' '[^\r\n;]+' 'TV43 Cookie trần dừng ở ";" (từ 5a3-1 vùng Cookie trần kéo tới hết dòng: chỉ còn lọt khi giá trị bắt đầu bằng ";")'
+m $S "[^\\s\"',;&]+" "[^\\s\"',;]+" 'TV44 giá trị trần không dừng ở "&" (nuốt cặp kế tiếp)'
+m $S 'cur.end = max(cur.end, spans[i].end)' 'cur.end = max(cur.end, cur.end)' 'TV35 gộp vùng chồng nhau mà không nới vùng'
+m $S $'if q := s[cur.start]; q == \'"\' || q == \'\\\'\' {' 'if q := s[cur.start]; false {' 'TV36 dấu che bỏ nháy bao quanh (phá cấu trúc JSON)'
 m $S '(?:set-)?cookies?' '(?:set-)?cookyes?' 'TV26 không che tiêu đề Cookie / Set-Cookie'
 
 # ---- R2-03: giải thích của vết (đầu vào quyết định, phương án đã xét, lý do bị loại). Test bắt đột biến nằm ở observability/traces (vết

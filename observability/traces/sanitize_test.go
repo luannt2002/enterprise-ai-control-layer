@@ -3,7 +3,9 @@ package traces_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -252,5 +254,294 @@ func TestSanitizeKhongCheOanNhayVaCookie(t *testing.T) {
 		if got := traces.Sanitize(in); got != in {
 			t.Errorf("che oan: %q → %q", in, got)
 		}
+	}
+}
+
+// Dạng lọt do soát độc lập 23/10 tìm ra: URL có người dùng RỖNG ("postgres://:mật-khẩu@máy", dạng hay gặp của Redis) — mẫu cũ đòi tên
+// người dùng ít nhất một ký tự nên cả mật khẩu lọt.
+func TestSanitizeCheURLNguoiDungRong(t *testing.T) {
+	for _, c := range []struct{ name, in, secret, keep string }{
+		{"DSN người dùng rỗng", "lỗi kết nối postgres://:hunter2pw@127.0.0.1:5432/eais", "hunter2pw", "127.0.0.1:5432/eais"},
+		{"Redis người dùng rỗng", "dial redis://:hunter2pw@cache:6379/0 thất bại", "hunter2pw", "cache:6379/0 thất bại"},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, c.secret) {
+			t.Errorf("%s: bí mật còn trong %q", c.name, got)
+		}
+		if !strings.Contains(got, c.keep) {
+			t.Errorf("%s: mất cả ngữ cảnh %q, được %q", c.name, c.keep, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+	// ca âm: URL không có thông tin đăng nhập thì giữ nguyên
+	for _, s := range []string{"gọi http://example.com:8080/path thất bại", "postgres://db:5432/eais không trả lời"} {
+		if got := traces.Sanitize(s); got != s {
+			t.Errorf("che oan: %q → %q", s, got)
+		}
+	}
+}
+
+// Dạng lọt do soát độc lập 23/10 tìm ra: giá trị trong nháy có NHÁY THOÁT ("password":"ab\"pw") — mẫu cũ dừng ở nháy thoát đầu tiên nên
+// đuôi sau nó lọt. Áp cho "khoá = giá trị" (nháy kép, nháy đơn) và tiêu đề Cookie.
+func TestSanitizeCheGiaTriCoNhayThoat(t *testing.T) {
+	for _, c := range []struct{ name, in, secret, keep string }{
+		{"JSON nháy thoát", `{"password":"ab\"hunter2pw","model":"m1"}`, "hunter2pw", `"model":"m1"`},
+		{"JSON hai nháy thoát", `{"token":"a\"b\"SECRETVALUE99","n":1}`, "SECRETVALUE99", `"n":1`},
+		{"JSON gạch chéo thoát rồi nháy", `{"api_key":"x\\\"QWERTY123456","n":2}`, "QWERTY123456", `"n":2`},
+		{"nháy đơn thoát", `password='ab\'hunter2pw' host=db`, "hunter2pw", "host=db"},
+		{"Cookie trong nháy có nháy thoát", `Cookie: "sid=abc\"hunter2pw"; next`, "hunter2pw", "Cookie"},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, c.secret) {
+			t.Errorf("%s: bí mật còn trong %q", c.name, got)
+		}
+		if !strings.Contains(got, c.keep) {
+			t.Errorf("%s: mất cả ngữ cảnh %q, được %q", c.name, c.keep, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+	// ca âm: nháy thoát ở khoá KHÔNG phải bí mật thì giữ nguyên
+	if s := `{"note":"anh ấy nói \"chào\"","model":"m1"}`; traces.Sanitize(s) != s {
+		t.Errorf("che oan: %q → %q", s, traces.Sanitize(s))
+	}
+}
+
+// Hồi quy do bản đọc nháy thoát gây ra (soát độc lập 5a-1): chữ KHÔNG phải JSON có giá trị trong nháy kết thúc bằng \ (đường dẫn
+// Windows, chữ chép tay) — đọc theo nháy thoát thì "\"" không đóng giá trị, nháy mở của bí mật KẾ TIẾP bị nuốt làm nháy đóng và
+// bí mật đó lọt. Đọc thô (nháy kế là nháy đóng) che được ca này nhưng lại lọt ca JSON ở test trên, nên phải che HỢP hai cách đọc.
+func TestSanitizeGiaTriKetThucBangGachCheo(t *testing.T) {
+	for _, c := range []struct{ name, in string }{
+		{"nháy kép rồi khoá kế", `ghi: password="ab\" token="ZQX77pw" xong`},
+		{"dạng phẩy", `ghi: password="ab\", api_key="ZQX77pw" xong`},
+		{"nháy đơn", `ghi: password='ab\' token='ZQX77pw' xong`},
+		{"đường dẫn Windows", `ghi: secret="C:\share\" owner=bob token="ZQX77pw" xong`},
+	} {
+		got := traces.Sanitize(c.in)
+		if strings.Contains(got, "ZQX77pw") {
+			t.Errorf("%s: bí mật kế tiếp còn trong %q", c.name, got)
+		}
+		if !strings.HasPrefix(got, "ghi: ") || !strings.HasSuffix(got, " xong") {
+			t.Errorf("%s: mất ngữ cảnh ngoài vùng bí mật: %q", c.name, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+}
+
+// Đầu ra ĐÚNG TỪNG KÝ TỰ cho các dạng mà test theo chuỗi con không khoá được (soát độc lập 5a-3: đột biến bỏ "@" khỏi dấu che, đòi mật
+// khẩu URL từ 2 ký tự, bỏ xử lý nháy thoát ở Cookie nháy đơn, "\." thay "\[\s\S]" đều sống sót) và các dạng phân biệt hai cách đọc nháy.
+func TestSanitizeDauRaChinhXac(t *testing.T) {
+	for _, c := range []struct{ name, in, want string }{
+		{"URL người dùng rỗng", "lỗi kết nối postgres://:hunter2pw@127.0.0.1:5432/eais", "lỗi kết nối postgres://:" + traces.Masked + "@127.0.0.1:5432/eais"},
+		{"URL mật khẩu 1 ký tự", "dial redis://:p@cache:6379/0 thất bại", "dial redis://:" + traces.Masked + "@cache:6379/0 thất bại"},
+		{"Cookie nháy đơn có nháy thoát", `Cookie: 'sid=abc\'hunter2pw'; next`, `Cookie: '` + traces.Masked + `'; next`},
+		{"nháy thoát sau xuống dòng thật", "{\"password\":\"ab\\\ncd\\\"hunter2pw\",\"n\":1}", `{"password":"` + traces.Masked + `","n":1}`},
+		{"nháy thoát rồi khoảng trắng", `{"password":"ab\" hunter2pw","n":1}`, `{"password":"` + traces.Masked + `","n":1}`},
+		{"nháy không đóng sau nháy thoát", `password="ab\" hunter two`, `password="` + traces.Masked + `"`},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("%s: %q → %q, muốn %q", c.name, c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: Sanitize không idempotent: %q → %q", c.name, got, again)
+		}
+	}
+}
+
+// Soát lại 5abc (5a-R1, S1): giá trị trong nháy kết thúc bằng \ rồi một tiêu đề Cookie / Set-Cookie có nháy ở sau (cùng dòng hay dòng sau). Che
+// lần lượt từng mẫu thì đọc theo nháy thoát của mẫu "khoá = giá trị" nuốt tiền tố "Cookie:" của chữ, mẫu Cookie chạy sau không còn khớp và giá trị
+// Cookie lọt nguyên văn (main che đúng; bản 5a trước lọt). Mọi mẫu "tên + giá trị" phải tính vùng trên CÙNG chữ gốc rồi gộp một lần.
+func TestSanitizeCookieSauGiaTriKetThucBangGachCheo(t *testing.T) {
+	for _, in := range []string{
+		"password=\"C:\\secret\\\"\nCookie: sid=\"ZQX77pw\"",
+		`ghi: password="ab\" Cookie: "sid=ZQX77pw" xong`,
+		`ghi: password='ab\' Set-Cookie: 'sid=ZQX77pw' xong`,
+		"password=\"C:\\x\\\"\nCookie: theme=dark; sid=\"ZQX77pw\"; lang=vi",
+	} {
+		if got := traces.Sanitize(in); strings.Contains(got, "ZQX") {
+			t.Errorf("bí mật Cookie lọt: %q → %q", in, got)
+		}
+	}
+}
+
+// Soát lại 5abc (5a-R2): đầu ra đúng từng ký tự cho phép gộp vùng (≥ 3 cặp mà hai cách đọc nháy bất đồng — bỏ sắp xếp vùng thì lọt), giá trị trần
+// (không nhân đôi dấu che, giữ cặp kế tiếp, dừng ở "&"), Cookie trần có ";" (che cả dòng); và Sanitize là luỹ đẳng trên các đầu ra đó.
+func TestSanitizeGopVungVaGiaTriTran(t *testing.T) {
+	for _, c := range []struct{ name, in, want string }{
+		{"ba cặp, hai cách đọc bất đồng", `password="a\" secret="bZQX1\" token="ZQX2" end`, `password="` + traces.Masked + `" token="` + traces.Masked + `" end`},
+		{"giá trị trần", "password=abc user=bob", "password=" + traces.Masked + " user=bob"},
+		{"giá trị trần dừng ở &", "password=abc&user=bob", "password=" + traces.Masked + "&user=bob"},
+		{"Cookie trần có ;", "Cookie: a=1; sid=ZQX3", "Cookie: " + traces.Masked},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("%s: Sanitize(%q) = %q, muốn %q", c.name, c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("%s: không luỹ đẳng: %q → %q", c.name, got, again)
+		}
+	}
+}
+
+// Soát 5a vòng 3 (5a3-1, S1; 5a3-2, S2): dòng Cookie / Set-Cookie có cặp tên-bí-mật mà giá trị trong nháy kéo qua xuống dòng. Giá trị trần
+// của Cookie dừng ở xuống dòng ĐẦU TIÊN (kể cả xuống dòng nằm trong nháy), nên tính vùng một lần trên chữ gốc thì phần sau nháy đóng ở dòng
+// kế tiếp lọt và Sanitize mất luỹ đẳng; main (che tuần tự) che cả dòng. Đầu ra phải đúng từng ký tự như main và luỹ đẳng.
+func TestSanitizeCookieCoNhayQuaXuongDong(t *testing.T) {
+	for _, c := range []struct{ in, want string }{
+		{"Cookie: auth_token=\"abc\ndef\"; sid=ZQX1", "Cookie: " + traces.Masked},
+		{"Set-Cookie: session_token='abc\ndef'; sid=ZQX1; Path=/", "Set-Cookie: " + traces.Masked},
+		{"Cookie: auth_token=\"abc\r\ndef\"; sid=ZQX1", "Cookie: " + traces.Masked},
+		{"GET / HTTP/1.1\nCookie: auth_token=\"abc\ndef\"; sid=ZQX1\nAccept: */*", "GET / HTTP/1.1\nCookie: " + traces.Masked + "\nAccept: */*"},
+		{"Cookie=apikey=\"\n\"ZQX", "Cookie=" + traces.Masked},
+		// giá trị trần bắt đầu bằng ";": vẫn là cả dòng (sau khi có kéo tới hết dòng, chỉ hình này phân biệt Cookie trần dừng ở ";")
+		{"Cookie: ;sid=ZQX5", "Cookie: " + traces.Masked},
+		// xuống dòng chỉ CR (soát 5a vòng 4, 5a4-3): kéo tới hết dòng dừng ở CR, không nuốt dòng sau
+		{"Cookie: auth_token=\"abc\rdef\"; sid=ZQX1\rAccept: KEEP", "Cookie: " + traces.Masked + "\rAccept: KEEP"},
+	} {
+		got := traces.Sanitize(c.in)
+		if got != c.want {
+			t.Errorf("Sanitize(%q) = %q, muốn %q", c.in, got, c.want)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("không luỹ đẳng: %q → %q", got, again)
+		}
+	}
+	// hình lai: giá trị kết thúc bằng \ (5a-R1) rồi dòng Cookie có cặp nháy qua xuống dòng — vùng gộp bắt đầu ở cặp TRƯỚC Cookie vẫn phải kéo
+	// tới hết dòng (chỉ khẳng định không lọt và luỹ đẳng: tên "Cookie:" bị nuốt là che thừa đã ghi ở chú thích của Sanitize)
+	for _, in := range []string{"x password=\"a\\\" Cookie: auth_token=\"b\nc\"; sid=ZQX1", "password='a\\' Set-Cookie: session_token='b\r\nc'; sid=ZQX1; Path=/",
+		// giá trị có nháy thoát qua xuống dòng ở dòng Cookie: che tuần tự (main) cũng lọt phần sau — chỉ kéo vùng gộp tới hết dòng che được
+		"Cookie: x=1; token=\"a\\\"b\nc\"; sid=ZQX1", "password=\"a\\\" Cookie: tok=1\nx\"; sid=ZQX1"} {
+		got := traces.Sanitize(in)
+		if strings.Contains(got, "ZQX") {
+			t.Errorf("bí mật Cookie lọt: %q → %q", in, got)
+		}
+		if again := traces.Sanitize(got); again != got {
+			t.Errorf("không luỹ đẳng: %q → %q", got, again)
+		}
+	}
+}
+
+// Soát 5a vòng 3 (5a3-3): quét tổ hợp nhỏ của họ lọt 5a3-1 — khoá bí mật × nháy kép / đơn × tiêu đề Cookie / Set-Cookie × dấu nối trong
+// nháy (LF, CRLF, khoảng trắng) × vị trí cặp bí mật trong dòng × dòng đứng riêng / giữa khối HTTP: không marker nào lọt, Sanitize luỹ đẳng.
+func TestSanitizeQuetCookieCapBiMatQuaDong(t *testing.T) {
+	n := 0
+	for _, key := range []string{"password", "auth_token", "api_key", "secret"} {
+		for _, q := range []string{`"`, `'`} {
+			for _, hdr := range []string{"Cookie: ", "Set-Cookie: ", "cookie=", "Set-Cookie:"} {
+				for _, nl := range []string{"\n", "\r\n", " "} {
+					pair := key + "=" + q + "ZQX2" + nl + "ZQX3" + q
+					for _, line := range []string{hdr + pair + "; sid=ZQX1; Path=/", hdr + "theme=dark; " + pair + "; sid=ZQX1"} {
+						for _, in := range []string{line, "GET / HTTP/1.1\n" + line + "\nAccept: */*"} {
+							n++
+							got := traces.Sanitize(in)
+							if strings.Contains(got, "ZQX") {
+								t.Errorf("bí mật lọt: %q → %q", in, got)
+							}
+							if again := traces.Sanitize(got); again != got {
+								t.Errorf("không luỹ đẳng: %q → %q → %q", in, got, again)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if n != 384 {
+		t.Fatalf("số tổ hợp = %d, muốn 384", n)
+	}
+}
+
+// sanitizeTuanTu là che TUẦN TỰ của main trước 5a cho hai mẫu mà 5a đổi ("tên + giá trị" rồi Cookie / Set-Cookie, mẫu sau chạy trên chữ đã
+// thay) — trọng tài của TestSanitizeKhongCheItHonCheTuanTu.
+func sanitizeTuanTu(s string) string {
+	for _, m := range []struct {
+		re   *regexp.Regexp
+		repl string
+	}{
+		{regexp.MustCompile(`(?i)\b([a-z0-9_.\-]*(?:password|passwd|pwd|secret|token|api[_\-]?key|apikey|access[_\-]?key|private[_\-]?key|credential|mật khẩu|mat khau)[a-z0-9_.\-]*)(["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\s"',;&]+)`), "${1}${2}${3}${4}" + traces.Masked + "${3}${4}"},
+		{regexp.MustCompile(`(?i)\b((?:set-)?cookies?["']?\s*[:=]\s*)(?:(")[^"]*"?|(')[^']*'?|[^\r\n]+)`), "${1}${2}${3}" + traces.Masked + "${2}${3}"},
+	} {
+		s = m.re.ReplaceAllString(s, m.repl)
+	}
+	return s
+}
+
+// Soát 5a vòng 4 (5a4-1, S1): gộp vùng một lần không mô phỏng được mọi hiệu ứng của che tuần tự — (A) giá trị Cookie mở bằng nháy chứa cặp
+// bí mật có nháy khác loại / không đóng; (B / C) "Cookie:" nằm trong giá trị của khoá bí mật rồi còn một tiêu đề Cookie nữa (kể cả ở dòng
+// sau). Che tuần tự che các marker đó; Sanitize không được che ÍT hơn. Phần quét: mọi chuỗi tới 5 mảnh của bảng dưới, marker nào che tuần tự
+// che thì Sanitize cũng phải che.
+func TestSanitizeKhongCheItHonCheTuanTu(t *testing.T) {
+	for _, in := range []string{
+		"Cookie: 'sid=QZ1X; token=\"a ' QZ2X\"; tail=QZ3X'",
+		"Cookie: \"sid=QZ1X; token='a \" QZ2X'; tail=QZ3X\"",
+		"password:Cookie: cookie:\nQZ4X",
+		"credential=COOKIE:\"COOKIE:\"QZ5X",
+		"COOKIE = \"credential='QZ1X\"&passwd:'QZ2X, x",
+		"Cookie:\"token='\"'QZ", "Cookie:'token=\"'\"QZ", "token=Cookie:\nCookie:\nQZ", "Set-Cookie: \"password='\"'QZ",
+		"password=Set-Cookie: Set-Cookie: \nQZ",
+	} {
+		if got := traces.Sanitize(in); strings.Contains(got, "QZ") {
+			t.Errorf("che ít hơn che tuần tự: %q → %q (tuần tự: %q)", in, got, sanitizeTuanTu(in))
+		}
+	}
+	frags := []string{"Cookie:", "Cookie:\n", `Cookie:"`, "token=", "token='", `"`, `'`, "QZ", " "}
+	marker := regexp.MustCompile(`QZ\d+X`)
+	n, bad := 0, 0
+	var walk func(parts []string)
+	walk = func(parts []string) {
+		if len(parts) > 0 {
+			var b strings.Builder
+			k := 0
+			for _, p := range parts {
+				if p == "QZ" {
+					fmt.Fprintf(&b, "QZ%dX", k)
+					k++
+					continue
+				}
+				b.WriteString(p)
+			}
+			in := b.String()
+			n++
+			left := map[string]bool{}
+			for _, m := range marker.FindAllString(sanitizeTuanTu(in), -1) {
+				left[m] = true
+			}
+			for _, m := range marker.FindAllString(traces.Sanitize(in), -1) {
+				if !left[m] {
+					if bad++; bad <= 5 {
+						t.Errorf("che ít hơn che tuần tự: %q → %q (tuần tự: %q)", in, traces.Sanitize(in), sanitizeTuanTu(in))
+					}
+					break
+				}
+			}
+		}
+		if len(parts) == 5 {
+			return
+		}
+		for _, f := range frags {
+			walk(append(parts, f))
+		}
+	}
+	walk(nil)
+	if n != 66429 || bad > 0 {
+		t.Errorf("quét %d chuỗi (muốn 66429), %d chuỗi che ít hơn che tuần tự", n, bad)
+	}
+}
+
+// Soát 5a vòng 4 (5a4-2, S3): ghim đầu ra hiện tại của chuỗi ngắn có vùng khoá và vùng Cookie kề nhau — không lọt, nhưng chưa luỹ đẳng
+// (lần hai gộp hai dấu che); đổi cách gộp vùng kề thì phải đo lại luỹ đẳng trên các bộ fuzz (người soát đo: gộp vùng kề làm xấu bộ mix / doc).
+func TestSanitizeVungKheKeNhauChuaLuyDang(t *testing.T) {
+	got := traces.Sanitize("token=Cookie: ")
+	if want := "token=" + traces.Masked + traces.Masked; got != want {
+		t.Fatalf("Sanitize = %q, muốn %q", got, want)
+	}
+	if again := traces.Sanitize(got); again != "token="+traces.Masked {
+		t.Fatalf("lần hai = %q, muốn %q", again, "token="+traces.Masked)
 	}
 }

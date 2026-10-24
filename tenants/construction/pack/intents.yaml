@@ -56,8 +56,9 @@ purpose_markers: [để, nhằm]
 negation_markers: [không, chưa, hông, ko]
 
 # Từ nối mở vế ĐIỀU KIỆN ở đầu mệnh đề ("Nếu dự báo mưa, EX-03 hôm nay dùng bao nhiêu dầu?"): giả thiết, không phải điều đang hỏi nên cụm báo nghĩa trong vế đó không kích hoạt (S4BS-05). Vế
-# điều kiện chạy tới từ đóng vế (condition_close_markers: "Nếu dự báo mưa thì …"); không có từ đóng vế thì tới hết mệnh đề, và chỉ khi sau nó còn mệnh đề khác — mệnh đề cuối câu mở bằng "nếu"
-# mà không có từ đóng vế thì vế kết quả nằm ngay trong nó ("Nếu mưa to dự báo EX-03 …"), cụm không phải giả thiết (S4CS-02).
+# điều kiện chạy tới từ đóng vế (condition_close_markers: "Nếu dự báo mưa thì …", "Hễ … là nhắc tôi"); không có từ đóng vế thì tới hết mệnh đề, và chỉ khi vế kết quả là
+# một mệnh đề khác có tên thực thể, con số, cụm hỏi hay cụm báo nghĩa ("Nếu dự báo mưa, EX-03 …") — câu một mệnh đề, hay chỉ thêm mệnh đề lịch sự ("…, cảm ơn em."), thì
+# vế kết quả nằm ngay trong mệnh đề điều kiện ("Nếu mưa to dự báo EX-03 …"), cụm không phải giả thiết (S4CS-02).
 condition_markers: [nếu, giả sử, hễ]
 # Từ đóng vế điều kiện (lớp đóng của ngữ pháp): cụm báo nghĩa đứng SAU nó là điều đang hỏi / nhờ làm ("Nếu mưa to thì dự báo …", "Hễ EX-03 dùng hết dầu là nhắc tôi") — S4CS-02.
 # Cũng là ranh giới vế của mệnh đề có cụm ghi / đánh giá: cụm hỏi ở vế sau ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?") là câu hỏi của vế đó.

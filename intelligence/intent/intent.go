@@ -1179,14 +1179,16 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if at < 0 {
 				continue
 			}
-			if slices.ContainsFunc(s.opt.DismissMarkers, func(m string) bool { return normalization.ContainsPhrase(in.Raw[c[0]:c[1]], m) }) || s.negated(ct) || s.conditional(ct) { // câu gốc: "để sau" vừa là cụm bỏ qua vừa mở một đoạn "mục đích"
+			if s.denied(in, res, rawBG, c, at) || s.conditional(ct) {
 				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau, phủ định hay nêu điều kiện (S4BS-05)", u.Name, contracts.Quote(ct))
 				continue
 			}
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				askedAt := func(j int) bool {
-					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {
+					// lệnh nêu sẵn giá trị ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm xác nhận làm nó thành câu hỏi
+					// (S4CS-02). Mệnh đề nêu tên nguồn là lời của nguồn ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?"): cụm hỏi trong đó hỏi chỉ số khác.
+					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (s.confirming(cj) || s.hasSourceName(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
 						return true
 					}
 					next := ""
@@ -1243,12 +1245,18 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 // khác như giờ họp "7h30", "20 tấn", và không nằm trong tên thực thể: "03" của "máy 03" đứng cạnh "dầu" bị bộ chuẩn hoá gắn đơn vị lít) và không có dấu hiệu hỏi nào (xem questioned). Thực thể do
 // bên gọi kiểm. Số tiền do tín hiệu tiền xét trước.
 func (s *Set) statedValue(in contracts.NormalizedInput, res contracts.Resolution) bool {
+	return s.statedFigure(in, res, 0, len(in.Raw)) && !s.questioned(maskRanges(in.Raw, nameRanges(res)))
+}
+
+// statedFigure báo khoảng [start, end) của câu có một lượng kèm đơn vị cùng chiều đo với một chỉ số của pack, không nằm trong tên thực thể (giá trị cụ thể, xem statedValue).
+func (s *Set) statedFigure(in contracts.NormalizedInput, res contracts.Resolution, start, end int) bool {
 	inName := func(sp contracts.Span) bool {
 		return slices.ContainsFunc(res.Entities, func(e contracts.EntityRef) bool { return e.Start <= sp.Start && sp.End <= e.End }) ||
 			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
 	}
-	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })
-	return figure && !s.questioned(maskRanges(in.Raw, nameRanges(res)))
+	return slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool {
+		return sp.Start >= start && sp.End <= end && !inName(sp) && s.fitsAnyMetric(sp.Value)
+	})
 }
 
 // fitsAnyMetric báo một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo).
@@ -1328,21 +1336,40 @@ func (s *Set) contentEnd(text string) int {
 	return end
 }
 
-// negated báo mệnh đề có từ phủ định KHÔNG đứng cuối ("Không tính tiền", "Chưa tính chi phí", "Trị giá hợp đồng không đổi"): cụm báo nghĩa trong đó đang bị phủ nhận, không phải điều được hỏi. Từ phủ định cuối
-// mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định nằm trong cụm hỏi của pack ("đúng không") không tính — câu hỏi tiền kèm "không?" vẫn là câu hỏi tiền (S4BS-05).
-func (s *Set) negated(clause string) bool {
-	if len(s.opt.NegationMarkers) == 0 {
-		return false
-	}
+// denied báo cụm báo nghĩa ở byte at của mệnh đề c bị PHỦ NHẬN hay BỎ QUA (S4BS-05): một từ phủ định hay một dấu bỏ qua của pack đứng TRƯỚC cụm mà đoạn chen giữa không có nội dung
+// số liệu ("Không tính tiền, …", "Chưa tính chi phí, …"), hoặc đứng SAU cụm mà từ cụm tới hết mệnh đề không có nội dung số liệu ("Chi phí em lo sau, …", "Trị giá hợp đồng không đổi, …"). Có
+// nội dung số liệu chen giữa hay theo sau thì từ ấy thuộc một vị ngữ khác, không phủ nhận cụm (S4CS-02: "Dự báo EX-03 không dùng hết dầu …", "Dự báo nhanh không cần chính xác EX-03 … bao
+// nhiêu dầu?", "Cảnh báo giúp em nếu EX-03 chưa được cấp dầu"). Từ phủ định cuối mệnh đề là đuôi hỏi có / không ("… có cao không?") và từ phủ định trong cụm hỏi ("đúng không") không tính.
+func (s *Set) denied(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, c [2]int, at int) bool {
+	clause := rawBG[c[0]:c[1]]
 	masked := maskRanges(clause, spansOf(clause, slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers)))
 	end := s.contentEnd(masked)
-	return slices.ContainsFunc(spansOf(masked, s.opt.NegationMarkers), func(sp [2]int) bool { return sp[1] < end })
+	marks := spansOf(in.Raw[c[0]:c[1]], s.opt.DismissMarkers) // câu gốc: "để sau" vừa là cụm bỏ qua vừa mở một đoạn "mục đích"
+	for _, sp := range spansOf(masked, s.opt.NegationMarkers) {
+		if sp[1] < end {
+			marks = append(marks, sp)
+		}
+	}
+	return slices.ContainsFunc(marks, func(m [2]int) bool {
+		if m[1] <= at {
+			return !s.dataIn(in, res, rawBG, c[0]+m[1], c[0]+at)
+		}
+		return !s.dataIn(in, res, rawBG, c[0]+at, c[1])
+	})
 }
 
-// conditional báo mệnh đề BẮT ĐẦU bằng từ nối điều kiện của pack ("Nếu dự báo mưa, …").
+// dataIn báo khoảng [start, end) của câu có nội dung SỐ LIỆU: tên thực thể, con số, cụm hỏi hay chữ của từ khoá chỉ số (chữ của cụm báo nghĩa không tính).
+func (s *Set) dataIn(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, start, end int) bool {
+	text := s.withoutCues(rawBG[start:end])
+	return slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return r[0] < end && start < r[1] }) ||
+		hasFigure(in, res, start, end) || s.asking(text) || s.metricWord(text)
+}
+
+// conditional báo mệnh đề là GIẢ THIẾT: bắt đầu bằng từ nối điều kiện của pack ("Nếu dự báo mưa, …") và không mang cụm hỏi. Mệnh đề điều kiện có cụm hỏi ("Nếu mưa to thì dự báo EX-03
+// dùng bao nhiêu dầu?") gộp cả vế hỏi vì không có dấu ngắt — pack chưa khai từ đóng vế điều kiện ("thì") — nên cụm báo nghĩa trong đó không được coi là giả thiết (S4CS-02).
 func (s *Set) conditional(clause string) bool {
 	trimmed := len(clause) - len(strings.TrimLeft(clause, " "))
-	return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers), func(sp [2]int) bool { return sp[0] == trimmed })
+	return !s.asking(clause) && slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers), func(sp [2]int) bool { return sp[0] == trimmed })
 }
 
 // ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "stated_value" (câu nêu giá trị, không dấu hiệu hỏi), "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều

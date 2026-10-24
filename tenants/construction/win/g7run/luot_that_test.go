@@ -16,7 +16,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/models"
 )
 
-// fakeOfficial cho mọi kết nối HTTP (kể cả tới api.anthropic.com:443) vào một máy chủ TLS cục bộ, nên run() đi đúng
+// fakeOfficial cho mọi kết nối HTTP (kể cả tới endpoint chính thức :443) vào một máy chủ TLS cục bộ, nên run() đi đúng
 // đường endpoint CHÍNH THỨC (không chạy khô) mà không cần mạng hay khoá thật. Trước đây đường này bị coi là "không
 // tới được trong test", nên các chỗ nối quyết định trong run() có thể bị phá mà không test nào đỏ (soát C2, F-05).
 func fakeOfficial(t *testing.T) *atomic.Int64 {
@@ -37,8 +37,8 @@ func fakeOfficial(t *testing.T) *atomic.Int64 {
 	}
 	t.Cleanup(func() { http.DefaultTransport = old })
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "khoa-gia-khong-that",
-		"EAIS_MODEL_BASE_URL": officialEndpoint, "EAIS_MODEL_THINKING": contractThinking, "EAIS_MODEL_EFFORT": contractEffort} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "khoa-gia-khong-that",
+		"EAIS_MODEL_BASE_URL": endpointChinhThuc, "EAIS_MODEL_THINKING": contractThinking, "EAIS_MODEL_EFFORT": contractEffort} {
 		t.Setenv(k, v)
 	}
 	return &n
@@ -93,12 +93,12 @@ func TestLuotThatTuChoiTruocLoiGoiModel(t *testing.T) {
 
 // Mọi cách viết khác của CÙNG máy chủ chính thức (cổng :443, chữ hoa, dấu chấm cuối tên máy) và mọi endpoint không phải
 // loopback (proxy có thể chuyển tiếp và tính tiền) là lượt CÓ THỂ TỐN TIỀN: phải qua kiểm trước lời gọi model như endpoint
-// chính thức, không được rơi vào nhánh chạy khô rồi gọi hết các ca (soát C3, C3-04: "https://api.anthropic.com:443" ở lượt
+// chính thức, không được rơi vào nhánh chạy khô rồi gọi hết các ca (soát C3, C3-04: endpoint chính thức viết kèm ":443" ở lượt
 // chính k = 3 từng gọi 372 lần, bằng chứng ghi dry_run=true nên vô dụng).
 func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 	data := genData(t)
-	for _, u := range []string{"https://api.anthropic.com:443", "https://API.ANTHROPIC.COM", "HTTPS://api.anthropic.com",
-		"https://api.anthropic.com.", "https://Api.Anthropic.Com.:443/", "https://gateway.example.com"} {
+	for _, u := range []string{"https://api.example.com:443", "https://API.EXAMPLE.COM", "HTTPS://api.example.com",
+		"https://api.example.com.", "https://Api.Example.Com.:443/", "https://gateway.example.com"} {
 		t.Run(u, func(t *testing.T) {
 			calls := fakeOfficial(t)
 			t.Setenv("EAIS_MODEL_BASE_URL", u)
@@ -111,8 +111,8 @@ func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 	}
 	// Đối chứng dương: cách viết khác của endpoint chính thức là endpoint CHÍNH THỨC (thử khói đạt ra mã 0, không phải mã 2
 	// của chạy khô), còn proxy thì vẫn là chạy khô theo hợp đồng §4 (mã 2) dù đã qua kiểm trước.
-	for u, want := range map[string]int{"https://api.anthropic.com:443": 0, "https://API.ANTHROPIC.COM.": 0, "https://gateway.example.com": 2,
-		"https://api.anthropic.com:8443": 2} {
+	for u, want := range map[string]int{"https://api.example.com:443": 0, "https://API.EXAMPLE.COM.": 0, "https://gateway.example.com": 2,
+		"https://api.example.com:8443": 2} {
 		t.Run("thử khói "+u, func(t *testing.T) {
 			calls := fakeOfficial(t)
 			t.Setenv("EAIS_MODEL_BASE_URL", u)
@@ -203,7 +203,7 @@ func TestBangChungKhongGhiBiMatTrongURL(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL + "/BIMATPATH/?api_key=BIMATQUERY"} {
 		t.Setenv(k, v)
 	}

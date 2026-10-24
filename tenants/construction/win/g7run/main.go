@@ -15,7 +15,8 @@
 // EAIS_MODEL_API_KEY, EAIS_MODEL_BASE_URL, EAIS_MODEL_THINKING, EAIS_MODEL_EFFORT…); cờ -provider ghi
 // đè EAIS_MODEL_PROVIDER. Thiếu model hay khoá là lỗi cấu hình, thoát ngay. Mọi hệ dùng CHUNG một
 // gateway; không gửi temperature (ADR-0005 §1). -smoke N chạy N ca đầu một lượt mỗi hệ để kiểm
-// provider nhận tham số, trước khi chi tiền cho lượt chạy thật.
+// provider nhận tham số, trước khi chi tiền cho lượt chạy thật. Giá trị của hợp đồng — model, endpoint chính thức, bảng giá —
+// đọc từ EAIS_G7_MODEL, EAIS_G7_ENDPOINT, EAIS_G7_PRICES (.env); chưa đặt thì không lượt nào thành bằng chứng G7.
 //
 // Cách chấm từng ca (-grade): mặc định "content" chấm lại câu trả lời của MỌI hệ chỉ theo NỘI DUNG
 // (evals.G7ContentReport). "full" dùng nguyên kết quả RunWin, tức chấm cả route / outcome / model_calls /
@@ -35,11 +36,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -66,9 +69,8 @@ const blockedLine = "G7: CHẶN — chưa có model thật; đây là chạy th�
 // CHỈ bật khi bộ chấm v2 đủ điều kiện đóng băng của ADR-0007 (hiện thực, hiệu chỉnh trên pilot thật, ngưỡng ngoài mẫu).
 const scorerFrozen = false
 
-// Model và tham số duy nhất hợp đồng G7 §4 cho ra kết luận (D-G7-2).
+// Model và tham số duy nhất hợp đồng G7 §4 cho ra kết luận (D-G7-2). Tên model ở .env (contractModel), không trong mã.
 const (
-	contractModel    = "claude-sonnet-5-5"
 	contractThinking = "between_tools"
 	contractEffort   = "medium"
 	// contractBudgetUSD là trần chi tiêu của TOÀN BỘ G7 (hợp đồng §9, D-G7-3).
@@ -80,11 +82,44 @@ const (
 	contractSmoke = 3
 )
 
+// Giá trị cụ thể của hợp đồng G7 — model (§4), endpoint chính thức (§4), bảng giá (§9) — chỉ ở .env, không trong mã (luật cấm hard
+// code nhà cung cấp, F-015). Thiếu biến thì đóng mặc định: mọi model lệch hợp đồng, không endpoint nào chính thức (mọi lượt là chạy
+// khô), không model nào có giá (lượt tốn tiền bị từ chối) — không lượt nào thành bằng chứng G7.
+
+// contractModel là model hợp đồng G7 §4 (EAIS_G7_MODEL); rỗng = chưa đặt.
+func contractModel() string { return os.Getenv("EAIS_G7_MODEL") }
+
+// officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4, EAIS_G7_ENDPOINT), so theo nghĩa (isOfficialEndpoint). Endpoint
+// khác (máy chủ giả, proxy) là CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
+func officialEndpoint() string { return os.Getenv("EAIS_G7_ENDPOINT") }
+
+// priceTable là giá USD / triệu token (vào, ra) từ EAIS_G7_PRICES: các mục "model=vào/ra" cách nhau bằng ";" (giá tra trang Pricing
+// chính thức, docs/g7/CHI-PHI-G7.md mục 5). Model không có trong bảng thì chi phí ghi "CHƯA CÓ GIÁ"; mục viết sai là lỗi cấu hình.
+func priceTable() (map[string][2]float64, error) {
+	out := map[string][2]float64{}
+	for i, part := range strings.Split(os.Getenv("EAIS_G7_PRICES"), ";") {
+		if strings.TrimSpace(part) == "" {
+			continue
+		}
+		model, prices, ok := strings.Cut(part, "=")
+		in, outp, ok2 := strings.Cut(prices, "/")
+		model = strings.TrimSpace(model)
+		a, errA := strconv.ParseFloat(strings.TrimSpace(in), 64)
+		b, errB := strconv.ParseFloat(strings.TrimSpace(outp), 64)
+		_, dup := out[model]
+		// !(x >= 0) chặn cả NaN (mọi phép so với NaN đều sai)
+		if !ok || !ok2 || model == "" || dup || errA != nil || errB != nil || !(a >= 0) || !(b >= 0) || math.IsInf(a, 0) || math.IsInf(b, 0) {
+			return nil, fmt.Errorf("EAIS_G7_PRICES mục thứ %d: phải là model=giá vào/giá ra (USD / triệu token, số không âm), model không trùng", i+1)
+		}
+		out[model] = [2]float64{a, b}
+	}
+	return out, nil
+}
+
 // Dòng kết luận khi luật D5 có thể đã tính xong nhưng KHÔNG được rút kết luận G7.
 const (
 	unfrozenLine  = "G7: CHẶN — bộ chấm nội dung chưa đóng băng (ADR-0007; bộ chấm v1 đã bị phá); KHÔNG phải bằng chứng G7"
 	fullGradeLine = "G7: CHẶN — -grade full chấm cả nhãn kiến trúc của EAIS, chỉ để chẩn đoán; KHÔNG phải tiêu chí G7"
-	paramsLine    = "G7: CHẶN — model / tham số khác hợp đồng §4 (" + contractModel + ", thinking " + contractThinking + ", effort " + contractEffort + "); KHÔNG phải bằng chứng G7"
 )
 
 // verdictInput gom các điều kiện của kết luận G7.
@@ -105,24 +140,26 @@ func verdict(rule string, in verdictInput) (string, int) {
 	case !in.contentGrade:
 		return "phán quyết theo luật: " + rule + "\n" + fullGradeLine, 2
 	case !in.contractParams:
-		return "phán quyết theo luật: " + rule + "\n" + paramsLine, 2
+		return "phán quyết theo luật: " + rule + "\n" + paramsLine(), 2
 	case in.pass:
 		return "G7: " + rule, 0
 	}
 	return "G7: " + rule, 1
 }
 
-// officialEndpoint là endpoint duy nhất hợp đồng G7 công nhận (§4), so theo nghĩa (isOfficialEndpoint). Endpoint khác
-// (máy chủ giả, proxy) là CHẠY KHÔ: không phải bằng chứng G7, kể cả khi model và tham số y hệt lượt thật.
-const officialEndpoint = "https://api.anthropic.com"
+// paramsLine là dòng kết luận khi model / tham số khác hợp đồng §4.
+func paramsLine() string {
+	return "G7: CHẶN — model / tham số khác hợp đồng §4 (" + contractModel() + ", thinking " + contractThinking + ", effort " + contractEffort + "); KHÔNG phải bằng chứng G7"
+}
 
 // isOfficialEndpoint so endpoint với officialEndpoint theo NGHĨA, không theo chuỗi: scheme và tên máy không phân biệt hoa
 // thường, bỏ dấu chấm cuối tên máy, cổng 443 là cổng mặc định của https, path bất kỳ. Cách viết khác của chính máy chủ
-// chính thức vẫn tốn tiền thật nên không được rơi vào nhánh chạy khô (soát C3, C3-04).
+// chính thức vẫn tốn tiền thật nên không được rơi vào nhánh chạy khô (soát C3, C3-04). Chưa đặt endpoint chính thức thì không
+// endpoint nào khớp (url rỗng so với url rỗng sẽ "khớp").
 func isOfficialEndpoint(raw string) bool {
 	u, err := url.Parse(raw)
-	o, _ := url.Parse(officialEndpoint)
-	if err != nil || u.Scheme != o.Scheme || (u.Port() != "" && u.Port() != "443") {
+	o, oerr := url.Parse(officialEndpoint())
+	if err != nil || oerr != nil || o.Hostname() == "" || u.Scheme != o.Scheme || (u.Port() != "" && u.Port() != "443") {
 		return false
 	}
 	return strings.EqualFold(strings.TrimSuffix(u.Hostname(), "."), o.Hostname())
@@ -193,8 +230,11 @@ func contractDeviations(cfg config, gw models.Gateway) []string {
 		return []string{"không phải client model thật"}
 	}
 	var out []string
-	if g.Model != contractModel || g.Thinking != contractThinking || g.Effort != contractEffort {
-		out = append(out, fmt.Sprintf("model %q / thinking %q / effort %q, hợp đồng %q / %q / %q", g.Model, g.Thinking, g.Effort, contractModel, contractThinking, contractEffort))
+	if contractModel() == "" {
+		out = append(out, "chưa đặt EAIS_G7_MODEL (model của hợp đồng §4)")
+	}
+	if g.Model != contractModel() || g.Thinking != contractThinking || g.Effort != contractEffort {
+		out = append(out, fmt.Sprintf("model %q / thinking %q / effort %q, hợp đồng %q / %q / %q", g.Model, g.Thinking, g.Effort, contractModel(), contractThinking, contractEffort))
 	}
 	if g.MaxTokens != contractMaxTokens {
 		out = append(out, fmt.Sprintf("max_tokens %d, hợp đồng %d", g.MaxTokens, contractMaxTokens))
@@ -292,6 +332,11 @@ func run(cfg config) int {
 		fmt.Fprintln(os.Stderr, "LỖI:", err)
 		return 2
 	}
+	prices, err := priceTable()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "LỖI:", err)
+		return 2
+	}
 	mc := models.ConfigFromEnv()
 	if cfg.provider != "" {
 		mc.Provider = cfg.provider
@@ -313,7 +358,7 @@ func run(cfg config) int {
 		// tiền (cả cách viết khác của endpoint chính thức lẫn proxy), nên phải giữ được trần ngân sách và qua kiểm trước
 		// lời gọi model (soát C3, C3-04).
 		dry, costly = !isOfficialEndpoint(m.BaseURL), !models.LoopbackEndpoint(m.BaseURL)
-		price, priced := priceTable[m.Model]
+		price, priced := prices[m.Model]
 		if !priced && costly {
 			fmt.Fprintf(os.Stderr, "LỖI: model %q không có trong bảng giá: không giữ được trần ngân sách\n", m.Model)
 			return 2

@@ -97,8 +97,17 @@ func TestLuotThatTuChoiTruocLoiGoiModel(t *testing.T) {
 // chính k = 3 từng gọi 372 lần, bằng chứng ghi dry_run=true nên vô dụng).
 func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 	data := genData(t)
-	for _, u := range []string{"https://api.example.com:443", "https://API.EXAMPLE.COM", "HTTPS://api.example.com",
-		"https://api.example.com.", "https://Api.Example.Com.:443/", "https://gateway.example.com"} {
+	// Cách viết khác dựng từ endpoint THẬT của hợp đồng (mã ghim băm: giá trị giả không còn là chính thức).
+	ep, host := endpointChinhThuc, strings.TrimPrefix(endpointChinhThuc, "https://")
+	if host == ep || host == "" {
+		t.Fatalf("không đọc được endpoint chính thức từ hợp đồng: %q", ep)
+	}
+	nhan := strings.Split(host, ".")
+	for i, p := range nhan {
+		nhan[i] = strings.ToUpper(p[:1]) + p[1:]
+	}
+	hoa, hoaDau := "https://"+strings.ToUpper(host), "https://"+strings.Join(nhan, ".")
+	for _, u := range []string{ep + ":443", hoa, "HTTPS://" + host, ep + ".", hoaDau + ".:443/", "https://gateway.example.com"} {
 		t.Run(u, func(t *testing.T) {
 			calls := fakeOfficial(t)
 			t.Setenv("EAIS_MODEL_BASE_URL", u)
@@ -111,8 +120,8 @@ func TestEndpointTonTienVietKhacVanBiKiemTruoc(t *testing.T) {
 	}
 	// Đối chứng dương: cách viết khác của endpoint chính thức là endpoint CHÍNH THỨC (thử khói đạt ra mã 0, không phải mã 2
 	// của chạy khô), còn proxy thì vẫn là chạy khô theo hợp đồng §4 (mã 2) dù đã qua kiểm trước.
-	for u, want := range map[string]int{"https://api.example.com:443": 0, "https://API.EXAMPLE.COM.": 0, "https://gateway.example.com": 2,
-		"https://api.example.com:8443": 2} {
+	for u, want := range map[string]int{ep + ":443": 0, hoa + ".": 0, "https://gateway.example.com": 2,
+		ep + ":8443": 2} {
 		t.Run("thử khói "+u, func(t *testing.T) {
 			calls := fakeOfficial(t)
 			t.Setenv("EAIS_MODEL_BASE_URL", u)

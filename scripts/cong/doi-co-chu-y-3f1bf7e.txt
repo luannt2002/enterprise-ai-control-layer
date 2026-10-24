@@ -13,7 +13,6 @@ TestBangChungKhongGhiBiMatTrongURL bỏ tên hãng khỏi test, thay 1:1 theo gi
 TestBudgetCapStopsCalls bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestConfigFromEnvTienToTuongThich bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestDryRunIsNotEvidence bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
-TestEndpointTonTienVietKhacVanBiKiemTruoc bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestKhongTheoChuyenHuong bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestLoiEndpointChiInSchemeVaHost bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
 TestLoiEndpointKhongInMatKhau bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
@@ -56,3 +55,5 @@ testLexicon thêm label_nouns [khối, lít, l] và count_nouns [máy, xe, chuy�
 # Lát L5b (F-008): migration mới 0011_ghi_chu_suy_luan.sql; dòng dưới thay lý do của hai mục 0010 ở trên (mục sau cùng tên thắng).
 TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008
 TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql và 0011_ghi_chu_suy_luan.sql (migration mới, không đổi số tệp cũ) — F-037, F-008
+# Sửa theo soát độc lập cuối (S2): mã GHIM băm endpoint chính thức / model hợp đồng G7, nên giá trị giả trong test không còn là chính thức.
+TestEndpointTonTienVietKhacVanBiKiemTruoc cách viết khác của endpoint dựng từ endpoint THẬT của hợp đồng (đọc docs/g7/HOP-DONG-G7.md lúc chạy, không viết trong test) thay api.example.com; cùng các cách viết và kỳ vọng như mốc — F-015 lát L4, S2

@@ -313,3 +313,10 @@ Mã ghi chú do người soát đặt; nội dung đầy đủ nằm ở báo c�
 | R5-01 | S3 | bản `REJECTED` bởi `MARK_DUPLICATE` rơi khỏi tổng khi bản được giữ của nó cũng đang `REJECTED` bởi `MARK_DUPLICATE` rồi bị thu hồi hoặc sửa tin (người `APPLY`): mục 4 (c) chỉ chạy khi bản được giữ "rời nhóm" từ `ACCEPTED` hoặc `HELD` (U15, nợ 25) | `HOP-DONG.md` §5.6 mục 4 (c), §3.1, BB7, §6.2, §7.4 (c), LC84 (vii), DB36, U15; ADR D5, mục J, nợ 25 |
 | R5-02 | S4 | bằng chứng và câu "0 chuỗi rơi" chỉ đúng dưới giả định không viết ra (bản `REJECTED` bất động, phiên bản chờ của bản không còn ở nhóm bị bỏ im lặng) | `HOP-DONG.md` §5.6 ("Phương án đã bỏ ở vòng 5 và vòng 6", đo lại), U8, U15; ADR mục J, nợ 25 |
 | R5-03 | S4 | §3.8 nói khác nhau cho bản `REJECTED` bởi `MARK_DUPLICATE`: hàng "chạm bản ghi đã có quyết định của người" (phiên bản chờ) và ví dụ "thu hồi bản ghi đã `REJECTED`" (tổ hợp không có hàng) | `HOP-DONG.md` §3.8 |
+
+## Ghi chú trạng thái 24/10/2026 (thêm sau, không sửa lời trên)
+
+Câu "chưa có dòng mã nào trên main" ở dòng trạng thái đã lỗi thời. Mã Phase 0a bước 2–3 + kho PG (migration `0009_kho_bao_cao_ngay.sql`)
+**đã ở main**: gộp `71c6b45` (24/10, D-RAG-05). Giấy vẫn KHOÁ ở vòng 6. Mã chưa nối vào binary (không gói nào ngoài `execution/reports`
+import nó), R-01 (chết khoá PG) còn mở (F-002 của báo cáo audit `docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md`), bộ ca giữ lại 0a
+**chưa chạy**.

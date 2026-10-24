@@ -94,6 +94,7 @@ var legacyAllowed = map[string]allowance{
 	"docs/g7/holdout/ket-qua-h1/phan-tich.md":      {3, "HISTORICAL_EVIDENCE: phân tích lần chạy H1 duy nhất"},
 	"docs/g7/holdout/kho-soat.md":                  {3, "HISTORICAL_EVIDENCE: bản soát kho ca"},
 	"docs/g7/holdout/loai-truoc-dong-bang.txt":     {9, "IMMUTABLE_HASHED_ARTIFACT: danh sách loại trước đóng băng (băm trong manifest)"},
+	"docs/history/NAME-EVOLUTION.md":               {6, "HISTORICAL_EVIDENCE: dòng thời gian tên (ADR-0013), nêu tên cũ để giải thích lịch sử git"},
 	"docs/ops/README.md":                           {9, "COMPATIBILITY_ALIAS: ghi bí danh EACL_*, cách gỡ container tên cũ; tên tệp báo cáo lịch sử (EXTERNAL_REFERENCE)"},
 	"docs/study/CLAUDE-EACL-DRAFT.md":              {15, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10, câu gắn danh tính lúc đó"},
 	"docs/study/README.md":                         {7, "HISTORICAL_EVIDENCE: tài liệu học phiên sáng 21/10"},
@@ -119,6 +120,10 @@ var legacyAllowed = map[string]allowance{
 	"scripts/du-toan-g7.py":                        {2, "COMPATIBILITY_ALIAS: đọc mã hệ \"eacl\" trong bằng chứng thô đã lưu trước D-RM-02"},
 	"scripts/kiem-ke-doi-ten.py":                   {24, "FALSE_POSITIVE: mẫu đếm và luật xếp nhóm của công cụ kiểm kê đổi tên (PROMPT-DOI-TEN §2.1)"},
 	"tenants/construction/win/d5probe/main.go":     {2, "HISTORICAL_EVIDENCE: chương trình đo của bản soát D5 (20/10), giữ nguyên văn nhãn in ra"},
+
+	// Báo cáo audit vNext chép vào repo (24/10): khối riêng vì khoá dài.
+	"docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md":                      {22, "HISTORICAL_EVIDENCE: báo cáo audit vNext, kiểm kê đổi tên (§07) và dòng thời gian tên"},
+	"docs/bao-cao/2026-10-24-vnext-audit/artifacts/commit-categories.tsv": {11, "HISTORICAL_EVIDENCE: phân loại commit của báo cáo audit vNext, chép chủ đề commit lúc đó"},
 }
 
 // skipped: thư mục / tệp không thuộc nội dung repo. Git không bao giờ theo dõi mục tên .git (thư mục hay tệp); nguồn riêng của chủ

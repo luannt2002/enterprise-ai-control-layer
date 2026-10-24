@@ -4,6 +4,10 @@
 >
 > **Thứ tự ưu tiên:** MVP trước (D-MVP-00). Tài liệu này **không thêm việc vào M1–M5**. Trước khi MVP ra, BUILD chỉ được làm phần giấy của RAG-0 (§9), và chỉ khi làn giấy còn chỗ.
 >
+> **Ghi chú 24/10/2026 (D8, báo cáo audit vNext):** phần THỨ TỰ ở dòng trên và ở luật 1 của §0 ("không mở mã RAG trước khi MVP ra") **đã bị
+> D-RAG-01 / D-RAG-04 / D-RAG-05 thay**: mã RAG đã gộp vào main ngày 24/10. RAG vẫn ngoài MVP (D-AI-03 = a); app chỉ chạy đường từ khoá +
+> model trích, đường lai và model thật chỉ ở bộ đo `evals/rag`. Lời cũ giữ làm lịch sử.
+>
 > **Đọc cho ai:** BUILD và chủ dự án. Tệp này **tự đủ**: mindset, luồng, bài học và cổng đều viết ra bằng lời. Không cần đọc mã của các nguồn bên ngoài. Mã cần đọc chỉ là mã EAIS, có chỉ chỗ.
 >
 > **Ký hiệu:**

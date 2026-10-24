@@ -1,0 +1,677 @@
+sha	date	areas	category	deep_reviewed	note
+d70ebc845cba76841f01f683d39999673d5a6d4e	2026-10-20T10:43:10+07:00	config,docs,docs/adr	architecture	yes	Nền EAIS (Enterprise AI Systems): ADR-0001 WIN chỉ QUERY/Fuel, 7 cổng G1–G7, roadmap Phase 0–10; đọc README/ADR-0001/05; E1; 29f +13042/-0
+977168cb8fc01f9d4a67a4cc027b8bd91f20bb91	2026-10-20T10:43:24+07:00	build,core/contracts,core/decimal,core/pipeline,core/tenant,data/entityresolution,data/ingestion,data/normalization,data/sourceoftruth,db,db/migrations,deploy,evals,evals/baseline,intelligence/intent,intelligence/models,intelligence/rag,intelligence/router,observability/traces,platform/pgstore,reliability/validation,root-tests,scripts,scripts/mutation,simulations/fixtures,tenants/construction,tenants/construction/evals,tenants/construction/pack,tenants/construction/seed,tenants/construction/win,tenants/sports	architecture	yes	Nhập trọn mã WIN MVP 1 commit (+24.544): S0–S10, RLS 0001 GUC eais.tenant_id, vai eais_app, architecture_test; lịch sử trước git KHÔNG có; module enterprise-ai-systems; E1; 101f +24544/-0
+85108c41d90eed795539fed65635435cb4e270c3	2026-10-20T10:43:33+07:00	docs,scripts/mutation	test	no	E1; 15f +949/-0
+f4118f1b3ee1c659797519d1013f47eabc860f35	2026-10-20T18:58:22+07:00	docs	architecture	yes	Kế hoạch V3 EACL = Enterprise AI Control Layer (chế độ A: app khách giữ sự thật); nguồn hội thoại 7.293 dòng ở docs/sources gitignore; đọc trích docs/v3/00; E2; 10f +1570/-0
+b882172967a380fb6262ea7483e474518421a78d	2026-10-20T18:58:43+07:00	docs,docs/CHO,docs/adr,scripts	eval	no	E2; 12f +575/-7
+94bbaaebcd6033008c53f2f94ffb5e412e838583	2026-10-20T19:26:20+07:00	docs,docs/CHO,docs/adr	eval	yes	REVIEW-D5: 3 kỳ vọng ca 083/107/108 do người viết mã trọng tài SAU lần đo đầu, trước băm ⇒ WIN 6/7 hạ còn 3/7 vô điều kiện; E2; 13f +532/-23
+c5ce51e3bc6d4e44586949911fff6f2d15cb7264	2026-10-20T19:46:43+07:00	docs/CHO	eval	no	E2; 1f +47/-44
+6f7b4f4abb7a4d11554a3f31cb14c4357bdf56b8	2026-10-20T19:57:06+07:00	docs/adr	architecture	no	ADR-0005 (G7 D5 sửa đổi) + ADR-0006 (bộ giữ lại độc lập, chạy 1 lần); E2; 2f +283/-40
+750307a5b2572808f6faa4cb8b8d2308fd146a30	2026-10-20T20:02:23+07:00	intelligence/models,scripts/mutation	behavior	no	E2; 4f +368/-53
+a1a5b6b2009a40becfc8b8312cfef0d60f04a677	2026-10-20T20:22:36+07:00	evals/baseline,intelligence/models,scripts/mutation,tenants/construction/win	eval	no	E2; 8f +1697/-78
+fdb3a185a6c971e335b2a0ecb874f8fb6e886265	2026-10-20T20:24:50+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 4f +101/-3
+a507e814cdb9840e33132a7f2b492e8e17578f66	2026-10-20T20:34:37+07:00	evals,scripts/mutation	eval	no	E2; 3f +419/-89
+a135c909e09fb8c18b88d9e61c13102d0b5aef32	2026-10-20T20:36:55+07:00	docs,docs/CHO,docs/adr	eval	no	E2; 3f +580/-2
+a4649b86fa7243a74cf345478a51556b66f45578	2026-10-20T20:41:56+07:00	docs	eval	no	E2; 1f +150/-152
+ed790bbcc0c87d9d02701d4d53be147ddc09fc27	2026-10-20T20:42:56+07:00	scripts	eval	no	E2; 1f +136/-0
+dfa51744e89c682996897b96c85928cacf9c6cd5	2026-10-20T20:44:14+07:00	docs	docs	no	E2; 1f +30/-1
+78d6456fcf29934c25c22f7dfe4daa26c3d8b787	2026-10-20T20:45:47+07:00	scripts	eval	no	E2; 1f +72/-0
+ce9b64d414e30d7782e40d7eda68e93df456a6ed	2026-10-20T20:46:53+07:00	docs	docs	no	E2; 3f +5/-0
+b132c2e28e6e875789406e327dfc9a24e0a623f4	2026-10-20T20:47:51+07:00	docs	docs	no	E2; 1f +29/-0
+825b90e67ee2e60c6961b97804d1203b5761e0ad	2026-10-20T20:49:46+07:00	docs	docs	no	E2; 1f +101/-0
+82baa7193c37d32c774205bad32d6e15cfdce9fe	2026-10-20T20:51:50+07:00	evals,evals/testdata	eval	no	E2; 3f +1752/-0
+0eb2531a6ac396595cc2137c39fdafb006f5214c	2026-10-20T20:57:40+07:00	docs,docs/adr	architecture	no	E2; 2f +49/-1
+58d294deb861da7d314b66b0c84355509fc3d691	2026-10-20T20:57:58+07:00	docs/CHO	docs	no	E2; 1f +1/-1
+cbba5c54a9763f813d0b1f95241224c548515052	2026-10-20T21:08:33+07:00	scripts	eval	no	E2; 2f +89/-1
+a94b5fbd16e6937fb131ae0d383d15e190e991eb	2026-10-20T21:29:59+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 5f +441/-68
+fe22e2adb26314dd901222d50476f87ed7bcd993	2026-10-20T21:35:17+07:00	evals,intelligence/models,intelligence/rag,scripts/mutation	test	no	5f +125/-6; E2
+9264aa6d305f52a03d6cdc73bdf8d4babc972da0	2026-10-20T21:45:47+07:00	evals,scripts/mutation,tenants/construction/win	eval	no	E2; 6f +280/-29
+7f6711cad2877d4d1a44c951aaadf3494d68c6c5	2026-10-20T21:49:01+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 3f +116/-1
+d03f962fed8446953ddb110ab0868633f6aa16be	2026-10-20T21:52:23+07:00	docs,tenants/construction/win	eval	no	E2; 2f +619/-0
+15cb1a81e7c9a86cfcce2bb496cf5ffceb02f0e8	2026-10-20T21:57:24+07:00	docs,scripts,scripts/mutation,tenants/construction/win	eval	no	E2; 8f +336/-61
+5ce22ecf5ddd9abb67f9126cc15a09b4c3f807f2	2026-10-20T22:09:30+07:00	core/contracts,core/pipeline,data/normalization,reliability/validation,scripts/mutation,tenants/construction	data-semantics	no	E2; 11f +913/-34
+799f28a1bd9454dbecfe3e5798a75666d3acae22	2026-10-20T22:16:33+07:00	scripts/mutation	test	no	E2; 1f +1/-1
+af4054ab1b63b82cbbfa02906fdeaac0b6fead82	2026-10-20T22:16:46+07:00	docs,docs/adr,scripts	eval	no	E2; 5f +81/-12
+525932192fbeede38009f3fc3209b103165991cd	2026-10-20T22:17:27+07:00	docs	docs	no	E2; 1f +34/-6
+24462acf9d08b93f56c6a0f825092847ac35e096	2026-10-20T22:21:19+07:00	docs/CHO	eval	no	E2; 1f +3/-1
+4e81fb5b07a724ee06837644a1fb491675ae52e3	2026-10-20T22:28:54+07:00	docs/adr,scripts	eval	no	E2; 2f +60/-0
+16a61405de47cfdba7efbbc86122e42c3500adcc	2026-10-20T22:51:44+07:00	docs	eval	no	Đóng băng bộ giữ lại H1 (189 ca, chia sha256 có muối eacl-holdout-2026-10-20); E2; 8f +18233/-0
+59ee5567199e339b3bc4588ed4a4292fd517f3fa	2026-10-20T22:54:24+07:00	docs,docs/adr,scripts	eval	no	E2; 3f +43/-1
+3d730eab08c4912046cb904baad950ae8588c184	2026-10-20T22:48:39+07:00	core/contracts,core/pipeline,data/normalization,docs,intelligence/intent,intelligence/router,scripts/mutation,tenants/construction	data-semantics	no	E2; 12f +897/-29
+9ce55bc919eab4d13fef46f827a14634439b971a	2026-10-20T23:01:35+07:00	docs	eval	no	E2; 2f +13/-4
+ba83265405178f9e00e65c5b2c5c7eef9fe5e070	2026-10-20T23:07:31+07:00	docs/CHO	docs	no	E2; 1f +1/-1
+6b7d963268cbaecc7956b9ae4fe0fa931243745b	2026-10-20T23:20:02+07:00	evals,evals/testdata,scripts/mutation	eval	no	E2; 6f +109/-16
+051dc8ee5b24ccc0eb7715a8d05c31704d053413	2026-10-20T23:28:26+07:00	docs	eval	no	E2; 1f +1/-1
+820dc44965ce4415e408d038f56fa924cf38c475	2026-10-20T23:29:31+07:00	docs	eval	no	E2; 1f +21/-0
+47da7aba1cf89200180cae06d7bfc53896ba6f5d	2026-10-20T23:37:15+07:00	docs	eval	no	E2; 1f +14/-11
+291d9bfc2e7e4ba536649932c48f821de056d6c5	2026-10-21T00:04:43+07:00	docs/adr,scripts,scripts/mutation	eval	no	E2; 6f +668/-99
+b5df4c81d62221d72a3984808ae568a825d2636a	2026-10-21T00:16:34+07:00	docs,docs/CHO,docs/adr	eval	no	E2; 4f +410/-2
+9e26e62f197ff3067a2d307352814deb1969a8bf	2026-10-21T00:25:34+07:00	docs	docs	no	E2; 1f +135/-121
+d4b80beac62e96b87a7c11a34c8219584199cb60	2026-10-21T01:06:21+07:00	intelligence/models,scripts/mutation,tenants/construction/win	eval	no	E2; 5f +189/-18
+8551464cc18035fc2b6ebe8c0115217defd856cc	2026-10-21T01:15:33+07:00	evals,scripts/mutation,tenants/construction/win	eval	no	E2; 6f +134/-2
+94f937995cacddf3280cdc3e303058e668cd733a	2026-10-21T01:20:26+07:00	intelligence/models,scripts/mutation	behavior	no	E2; 3f +22/-5
+cd16a91a115a8932464f20cb682772918bf4b0be	2026-10-21T01:28:54+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 3f +12/-4
+1276b5feb75641a2bf43030de32e72f22f853f1b	2026-10-21T01:31:12+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 3f +70/-6
+6f23ff34f2d9a2152546a8496b46ec3eb07c947c	2026-10-21T01:28:30+07:00	core/contracts,core/pipeline,data/entityresolution,data/normalization,docs,intelligence/intent,reliability/validation,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	Sửa A-01…A-13 (soát lượt 2) — sinh hồi quy R-xx (sửa ở a8b0858); E2; 19f +1837/-133
+5c1c973c414d505ed02b3c5690ce740e3b0479cf	2026-10-21T01:33:03+07:00	scripts/mutation	test	no	E2; 3f +4/-5
+7be1593edaa63bfae6d968b76d4f15a716b02d88	2026-10-21T01:34:58+07:00	data/normalization,reliability/validation,tenants/construction	test	no	E2; 3f +4/-4
+3e96c35ccb99dac1b360b86794e0133c32e52f65	2026-10-21T01:38:19+07:00	docs,docs/adr	eval	no	E2; 3f +22/-2
+9de63d258650f16f0d01a354b54d13afef7f31db	2026-10-21T01:40:14+07:00	docs,scripts/mutation,tenants/construction/win	eval	no	E2; 5f +67/-2
+56101be11d57d7c95292510a5c124de4678b106d	2026-10-21T01:42:58+07:00	docs	eval	no	H1 chạy 1 lần: 89/104 hai đường; routing 7/13; E2; 4f +502/-0
+d17144ff31b604a216015984e339c2c0a65e6a0e	2026-10-21T01:48:29+07:00	docs	eval	no	E2; 1f +93/-0
+40667a6ac2ffc7a2c3ace5259f848775bd3d945c	2026-10-21T01:51:39+07:00	docs,docs/CHO	docs	no	E2; 3f +51/-12
+bc6735055fe6c93d70a189196eb4a784624982cd	2026-10-21T01:56:02+07:00	docs,docs/CHO,scripts	eval	no	E2; 5f +96/-9
+50b1499a700dbe55f8f79207d3b60d5105466bff	2026-10-21T01:58:05+07:00	docs,scripts/mutation,tenants/construction/win	eval	no	E2; 5f +55/-1
+47e3f4fa0cb09e048f29a378aae15509aa4857da	2026-10-21T02:10:37+07:00	docs	docs	no	E2; 1f +60/-2
+963bbb7b0065f43f7044a2e8510520885741fc63	2026-10-21T02:12:24+07:00	docs	eval	no	E2; 1f +20/-1
+a9d43de30273bc3459e32e3dd420406d91f738e9	2026-10-21T02:15:57+07:00	data/entityresolution,scripts/mutation,tenants/construction/win	eval	no	E2; 3f +112/-0
+a581a8fd4d05ee9b69c09b158cc52ecec12c55bb	2026-10-21T02:16:57+07:00	docs	docs	no	E2; 1f +6/-2
+a928747846280e07c51dccb280ab8ea245e522e9	2026-10-21T02:49:58+07:00	docs,scripts/mutation,tenants/construction/win	eval	no	E2; 7f +132/-47
+2547739ba4660643691639a387f76e4c484a4f42	2026-10-21T02:49:58+07:00	intelligence/models,scripts/mutation	behavior	no	E2; 5f +69/-8
+a0536956d7eca7698765a933506bd278a2840976	2026-10-21T02:49:58+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 2f +14/-2
+b72542ab3b2026812eac27cfd03f301d5d13e780	2026-10-21T02:49:58+07:00	docs,docs/CHO,scripts	eval	no	E2; 4f +15/-14
+fbea42e01d0c751a66108d411ee6251cfe4b075f	2026-10-21T02:54:19+07:00	docs,scripts/mutation,tenants/construction/win	eval	no	E2; 5f +218/-2
+2304d9396669f9b2c964fc1fd85d58c2c67ca623	2026-10-21T02:57:40+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 2f +18/-1
+a8b0858405d89b40f93f5a78ae3edbb23b3db6dd	2026-10-21T03:09:26+07:00	core/pipeline,core/tenant,data/normalization,docs,intelligence/intent,reliability/validation,scripts/mutation,tenants/construction	behavior	no	Sửa hồi quy R-xx của 6f23ff3 (không sửa test cũ); E2; 16f +1912/-77
+3c4f6539cb44495f0030df50ad620b1e3232fe81	2026-10-21T03:24:22+07:00	docs/CHO	docs	no	E2; 1f +1/-0
+8ff3db53443b5db9b95e8e0038f44049708d0dfa	2026-10-21T03:36:10+07:00	data/normalization,scripts/mutation,tenants/construction	data-semantics	no	Gộp nhóm nghìn "3 850 lít" SAU H1 — gốc chuỗi hồi quy C3-02; E2; 4f +139/-1
+3765e067e7d162ac70af812f48ba66e211ca32fd	2026-10-21T03:38:43+07:00	docs	docs	no	E2; 3f +67/-22
+d1a764b7956b2e4a231ecc503cf44366a616f136	2026-10-21T03:40:38+07:00	data/normalization,scripts/mutation	data-semantics	no	E2; 3f +35/-3
+9b54b6f4e1fb2e77fdabf911872e61467265a432	2026-10-21T03:41:22+07:00	data/normalization	test	no	E2; 1f +2/-0
+130b8fc48a0d3631cabf49848447686e156ff304	2026-10-21T03:43:55+07:00	docs	docs	no	E2; 1f +18/-2
+37e8a08ab1e75e37c28f3acbc7585309c4f196c4	2026-10-21T04:10:41+07:00	core/pipeline,data/normalization,reliability/validation,scripts/mutation,tenants/construction	behavior	no	Bỏ luật A-02, ≥2 con số ⇒ hỏi lại; đổi kỳ vọng có chủ ý TestCauXacNhanTuNoiKhongBienNhanThanhConSo; E2; 7f +188/-17
+f5f4a5a3c1d32a2255809f93642fce0e0d9f2cda	2026-10-21T04:27:14+07:00	core/pipeline,scripts/mutation	behavior	no	E2; 3f +13/-20
+246eabbaaf26b7a693acc84451d723e411317199	2026-10-21T04:27:57+07:00	docs,intelligence/models,scripts/mutation,tenants/construction/win	eval	no	E2; 11f +261/-39
+9d3013046cad87aa1b80799cec731e9f1e47476b	2026-10-21T04:32:05+07:00	reliability/validation,scripts/mutation,tenants/construction	test	no	E2; 4f +28/-4
+fd4d19c976ca6663b68c7c2d6dac133e4607c8bd	2026-10-21T04:39:47+07:00	core/pipeline,data/ingestion,data/normalization,docs,docs/CHO,scripts/mutation,tenants/construction	data-semantics	yes	Nhóm nghìn không gộp khi có chữ trước; đổi kỳ vọng có chủ ý; BỊ REVERT ở 2a87e63 (đọc qua patch nghịch); E2; 8f +94/-50
+64daad048d5321fe07746dd9fa11176e46066be0	2026-10-21T04:47:59+07:00	data/normalization,reliability/validation,scripts/mutation,tenants/construction	behavior	no	Sửa 2 hồi quy của 37e8a08 (lớp kiểm tài liệu lọt "**5** khối"; "phiếu 15-9"); E2; 6f +47/-22
+3929c07dc115d49210049372d3afca2e0f36ce5b	2026-10-21T04:52:27+07:00	docs	docs	no	E2; 3f +65/-12
+2a87e63e5b308e16725c319343a1ab766be1e484	2026-10-21T05:05:26+07:00	core/pipeline,data/ingestion,data/normalization,docs,docs/CHO,scripts/mutation,tenants/construction	revert	yes	Revert fd4d19c: số mồ côi (S1/S2) do soát độc lập; đưa main về 9d30130; E2; 8f +50/-94
+15ed135515e7aa39a762a727cb9020c9d91c7437	2026-10-21T05:08:46+07:00	intelligence/models,scripts/mutation,tenants/construction/win	eval	no	E2; 4f +63/-2
+016422eca5e6b3ef0e11211fe6dbf115c2276eda	2026-10-21T06:04:00+07:00	docs,docs/CHO,docs/adr	eval	no	E2; 10f +180/-213
+e28f8d5bb2f1b75cdeafa88827f6b5417956b872	2026-10-21T08:58:25+07:00	scripts/mutation,tenants/construction/win	eval	no	E2; 3f +210/-0
+5ee31c8cd5264730c0f25463473ae52a0f1c6ab3	2026-10-21T09:00:36+07:00	docs/adr	eval	no	E2; 1f +51/-0
+096fc1bcb522b27b6a2dfed28ada5267a4c28f35	2026-10-21T09:24:23+07:00	scripts,scripts/mutation	eval	no	E2; 4f +347/-0
+88f4dcc3623959c9654e76e91fad5fa265c60c86	2026-10-21T09:29:28+07:00	build,core/contracts,core/decimal,core/pipeline,core/tenant,data/entityresolution,data/ingestion,data/normalization,data/sourceoftruth,db,db/migrations,deploy,evals,evals/baseline,evals/testdata,intelligence/intent,intelligence/models,intelligence/rag,intelligence/router,platform/pgstore,reliability/validation,root-tests,scripts,scripts/mutation,simulations/fixtures,tenants/construction,tenants/construction/win	rename	yes	Đổi danh tính EAIS→EACL: module enterprise-ai-systems→enterprise-ai-control-layer, env EACL_*, GUC eacl.tenant_id, SỬA TẠI CHỖ 0001 (đọc 0001 trước/sau); E3; 96f +505/-464
+35c8e614fbcf0d3388da19d79054399a0a4ff2ed	2026-10-21T09:33:11+07:00	docs,docs/CHO,docs/adr	rename	no	Tài liệu hiện hành theo EACL (Enterprise AI Control Layer); E3; 34f +187/-163
+3c51bb0ae0d00921625e2fbfc0fd737deeba465c	2026-10-21T09:33:19+07:00	docs	rename	no	E3; 1f +32/-19
+fb5319e7b22fa35858ab65fdbb05d5c1dee4d39b	2026-10-21T09:35:15+07:00	root-tests,scripts/mutation	rename	no	Cổng danh tính lần 1 (bắt tên cũ trước 21/10); E3; 2f +159/-0
+d2e8f09a5b792d49ba64633376624224dba6138d	2026-10-21T09:43:04+07:00	docs/adr	docs	no	E3; 1f +1/-0
+9dede5497ea054cefd92a78c43353609e134effe	2026-10-21T09:50:00+07:00	scripts/mutation	test	no	E3; 1f +1/-1
+507d7827ed51b16b2fa8ee9ddcd39d987bdaf04c	2026-10-21T10:45:16+07:00	docs,docs/CHO,root-tests	rename	no	E3; 13f +145/-25
+259d38de523781e5e626f7a2bb9eb77be6c33d8d	2026-10-21T11:04:12+07:00	docs	eval	no	H3 cam kết băm trước ADR-0009 vào mã; E3; 1f +139/-0
+aa0e8d4daba5b47ff123bb18f548c350a294d28a	2026-10-21T11:28:48+07:00	core/pipeline,core/tenant,data/normalization,docs,docs/CHO,docs/adr,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	yes	ADR-0009 cổng phán quyết fail-closed: 55 dòng kỳ vọng "Đúng."/"Không." ⇒ "" (không phán quyết), 0 đổi chiều (đọc diff test); E3; 23f +639/-71
+1c8005b535efa588da9f4df788cf912c87a9fc16	2026-10-21T11:28:48+07:00	docs	eval	no	E3; 1f +2/-0
+e0a33798416a9a0a4c5fe021adf30ff29637d71c	2026-10-21T12:16:45+07:00	core/pipeline,data/normalization,data/sourceoftruth,docs,docs/adr,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack,tenants/construction/seed	behavior	no	20f +364/-73; E3
+003ffa183f4d5f24604c327d283d5e285831f70b	2026-10-21T12:22:46+07:00	docs,docs/adr,scripts,scripts/mutation	eval	no	E3; 5f +117/-8
+a1595f043c3f4a00fbc15f8d08397ddeedcbee63	2026-10-21T13:07:02+07:00	core/pipeline,docs,docs/adr,scripts/mutation,tenants/construction,tenants/construction/seed	behavior	no	E3; 8f +99/-10
+9091c8449cea3b1e436928ffa2c3710625aafaac	2026-10-21T13:07:53+07:00	docs	eval	no	E3; 1f +1804/-0
+69d568cf3247346372bfc800262f4b79e04a5a8c	2026-10-21T13:10:06+07:00	docs	eval	no	H3 chạy 1 lần: 109/134 vs mốc 113/134 — cổng phán quyết giữ lại 4 "Không." đúng (hồi quy có chủ ý); E3; 9f +1231/-0
+8280f400fef0e9e7cc1ad1710d109e54a8fd713d	2026-10-21T13:12:00+07:00	docs	docs	no	E3; 3f +10/-2
+f85ee7f5893583936c9747704c143807f7c07176	2026-10-21T13:59:47+07:00	docs	docs	no	E3; 1f +121/-0
+fe2cb3f18bb3e9964782c5466abc2a4c020b6718	2026-10-21T14:01:35+07:00	docs	docs	no	E3; 1f +2205/-0
+79987511f36cbe422a14c007fca848f7b2a15416	2026-10-21T14:05:43+07:00	docs/CHO	docs	no	E3; 1f +3/-1
+a34ab814cd25b6478c1275f27b0b9f91aa9b8df4	2026-10-21T14:07:22+07:00	docs	docs	no	3f +676/-0; E3
+e62edebb40a8ecb411f2fc52d38bf8de98f4c30d	2026-10-21T14:07:22+07:00	docs	docs	no	E3; 2f +122/-1
+ac98cf4cbee2f44fffb4e11c16b09dcd1ecafeb0	2026-10-21T14:19:47+07:00	docs/CHO	eval	no	E3; 1f +1/-0
+70652164fa70381b772d5eb489538f62de6ccbb2	2026-10-21T14:40:05+07:00	docs	docs	no	E3; 1f +131/-0
+acd09c81dede701fc1fa57f99c7efb31d7b5fb18	2026-10-21T14:40:05+07:00	docs	docs	no	E3; 2f +44/-0
+f38b4eb53c6094c5c87c2b279c9a3ec58b2d9330	2026-10-21T14:44:11+07:00	docs	docs	no	E3; 1f +110/-0
+a299f069b58cc75a217380206e482fb249a04b87	2026-10-21T14:44:11+07:00	docs,docs/CHO	docs	no	E3; 3f +12/-2
+3185eb818379cae4870f9a11318598648754be47	2026-10-21T14:45:10+07:00	docs	docs	no	E3; 1f +43/-0
+15f04f9837ee18cfd5ccdd0fd534e8ee9dbd35b5	2026-10-21T14:49:37+07:00	docs	eval	no	E3; 2f +155/-17
+c3660361b71938a72b2f07bc86a6f345f73769ea	2026-10-21T14:54:52+07:00	config,root-tests,scripts/mutation	rename	no	E3; 3f +25/-7
+cc84b83cb81c7153dcdeee74c11f945e265e1494	2026-10-21T14:58:39+07:00	platform/pgstore,scripts/mutation	security	yes	pgstore.Open từ chối vai superuser/BYPASSRLS (Load DELETE FROM dựa RLS); E3; 3f +68/-1
+49c841ab33ad2d1a824e253b6116160e0842e081	2026-10-21T15:00:22+07:00	docs/adr	architecture	no	ADR-0010 ĐỀ XUẤT: S4 theo bất biến; E3; 1f +106/-0
+2f1b8c204339ce98c9f6772dccea0931d1414cf8	2026-10-21T15:00:47+07:00	docs	docs	no	1f +22/-15; E3
+01d4348a8093b1ea8abca39b107df4f13cd792b6	2026-10-21T15:16:12+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E3; 4f +74/-6
+87b07fac19cac5112dbf5f7928c211c6ca80b892	2026-10-21T15:18:56+07:00	root-tests,scripts/mutation	rename	no	E3; 2f +21/-17
+1973d2bcf81ff7dc31b294a24662871aec13691c	2026-10-21T15:19:38+07:00	docs	docs	no	1f +19/-13; E3
+8a506b87d3f1961e38f5e03894f01c28ed8d2aa9	2026-10-21T15:21:00+07:00	docs/adr	docs	no	E3; 1f +26/-3
+a853e96196c41a9236af0324d7a9d8599da78954	2026-10-21T15:26:16+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E3; 3f +25/-1
+87b304d8fcd9ab88b9a2cf84dcbf223a2adfd996	2026-10-21T15:31:42+07:00	docs,platform/pgstore,scripts/mutation	security	no	E3; 3f +30/-16
+9a1d8b0ad5531aa1c6318f086478a6d6de8719a8	2026-10-21T15:47:35+07:00	docs,docs/adr	docs	no	E3; 5f +144/-38
+936d09020b37653014afea6f820d8c42c49f89e4	2026-10-21T15:53:52+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E3; 4f +29/-8
+2e4897b51190fc04e6d526d6b635fb705fc95db4	2026-10-21T15:57:39+07:00	docs,docs/adr	docs	no	E3; 5f +64/-31
+d6afad70c9d0b6f4ac3e2b764b3bd4594ebd8062	2026-10-21T16:44:08+07:00	docs	docs	no	E3; 2f +35/-23
+2692d14ebb6746126c8980ac38ec9c96cdbae518	2026-10-21T18:03:20+07:00	docs/CHO	architecture	yes	CHO: D-RM-01 roadmap đầy đủ 2 chế độ; D-RM-02 đổi tên lại, giữ link git (đọc dòng CHO); E4; 1f +12/-1
+c5d94cdd7e10742194f7b92cb47299124c55ca95	2026-10-21T18:03:29+07:00	docs	architecture	yes	ROADMAP-DAY-DU: hai chế độ A/B, cổng QuânIT 9 câu, phase 0a/0b..10 (đọc đầu tệp); E4; 2f +424/-0
+65467ebc9ca7c4c24522ede0c3749eef9029fe07	2026-10-21T18:03:29+07:00	docs	rename	no	E4; 1f +94/-22
+32c8cfe7d24a6510dd03ec95d5a6a0cd0aa44dba	2026-10-21T18:06:27+07:00	docs	rename	no	E4; 2f +166/-1
+ca627605799f42bc4eb241e6bbb8baaed45bf337	2026-10-21T18:09:25+07:00	docs	rename	no	E4; 1f +17/-22
+945777cdf13fbf182649235d3d6d1b1829025190	2026-10-21T18:27:37+07:00	root-tests,scripts/mutation	rename	no	Cổng danh tính đảo chiều: bắt EACL, giữ chuỗi link git; PENDING_RENAME 72 mục; E4; 2f +145/-42
+423e4d34f30628f3bc31ac1653c729f7f3cae613	2026-10-21T18:41:58+07:00	core/contracts,core/decimal,core/pipeline,data/normalization,db,db/migrations,deploy,evals,evals/baseline,evals/testdata,intelligence/models,platform/pgstore,root-tests,scripts,scripts/mutation,tenants/construction/win	rename	yes	Đổi lại EAIS: migration MỚI 0002 (ALTER POLICY sang eais.tenant_id, REVOKE eacl_app), env EACL_ còn đọc làm bí danh (đọc 0002); E4; 47f +597/-483
+730926f1c6d0c559ad51461ffe8f68c8335fd531	2026-10-21T18:43:15+07:00	docs,docs/adr,root-tests	rename	no	E4; 33f +262/-270
+dbdf7ca61b782b9604d8738f9dd820cda30cc120	2026-10-21T19:17:05+07:00	db/migrations,docs,platform/pgstore,root-tests,scripts,scripts/mutation,tenants/construction/win	rename	no	E4; 8f +214/-54
+7738a3d89602dfb2491a918617d426a2d6051881	2026-10-21T19:17:05+07:00	docs	rename	no	E4; 2f +2/-2
+cdf7d84dc361e14793dd49aff42cd4f4048f96b7	2026-10-21T19:18:24+07:00	docs	rename	no	E4; 2f +4/-2
+52c9399d0cb9e861d155414dac6448e8df2d2d99	2026-10-21T19:19:06+07:00	docs	rename	no	E4; 4f +25/-15
+34240a933d5d67f69fd9ff075db470ff608b1c92	2026-10-21T19:19:44+07:00	docs	docs	no	E4; 1f +22/-5
+bff56c46ad8b7aaa516fdd79a2d4140781bf811e	2026-10-21T19:19:54+07:00	docs	docs	no	E4; 1f +7/-5
+9da639c30288c90d353ea2e4af102caeb2b718f7	2026-10-21T19:33:21+07:00	docs	architecture	no	01-architecture viết lại: 7 mặt phẳng, luồng L0–L10; E4; 1f +325/-91
+93649babef9259c71b061b557a876f9ad23a922b	2026-10-21T19:34:52+07:00	docs/CHO	docs	no	E4; 1f +1/-0
+efc2cadaa7e2215af7c555518b705ca6e7383a52	2026-10-21T19:44:44+07:00	docs	docs	no	E4; 6f +16/-10
+2b8fb94a477f4d992e9f81f76ca020bbb721d814	2026-10-21T19:53:26+07:00	platform/pgstore,root-tests,scripts,scripts/mutation	rename	no	5f +92/-28; E4
+903623d15bc76435de0d65f2935c5a58f4ef9f8b	2026-10-21T19:53:26+07:00	docs	docs	no	E4; 1f +18/-17
+2efed6ab70a8addf1d05ff816677e23d532b0196	2026-10-21T19:54:15+07:00	docs	rename	no	E4; 1f +15/-11
+1ccac763efdf1f5d4abc6623f00ae3d7e0a94d98	2026-10-21T19:57:21+07:00	docs,root-tests	rename	no	E4; 2f +210/-0
+4e18680501abb571b32baafce5a22e573f0f59c2	2026-10-21T20:00:27+07:00	core/pipeline,evals	eval	no	E4; 2f +3/-3
+7cad584ceb3be09bc3c8ca23724336b5d3c77ffe	2026-10-21T20:23:30+07:00	docs	docs	no	E4; 1f +4/-2
+d5048b9aa915c762e33645135e0c3b45077c5240	2026-10-21T21:11:41+07:00	docs	docs	no	E4; 1f +15/-13
+23b957f1f29c35915c97c5e2f3b61a2cd0185dee	2026-10-21T21:24:05+07:00	docs	docs	no	E4; 1f +9/-8
+767060f50a6b3548f9356a8ecb0b0a4756d483e8	2026-10-21T21:32:38+07:00	docs	docs	no	E4; 2f +101/-11
+25a73bfb90e2787242bb97fe64cc0e9397b1037c	2026-10-21T21:35:18+07:00	docs,docs/CHO	eval	no	E4; 2f +4/-1
+ffb1efbddd03f50167dbb1a18ae1ac183ba94e84	2026-10-21T22:04:36+07:00	docs	docs	no	E4; 3f +31/-21
+17ad8ae18f250456bde3e4534fcb1887d1917b87	2026-10-22T09:04:31+07:00	docs	docs	no	E5; 1f +3/-2
+03c2c543148829088b58cd579f6f4d56fa23ae2e	2026-10-22T09:17:05+07:00	core/pipeline,data/normalization,intelligence/intent,tenants/construction	behavior	no	6f +421/-2; E5
+489c98a423ae2e0db69a0e1f1952c58f917152be	2026-10-22T10:52:45+07:00	core/pipeline,data/normalization,scripts/mutation,tenants/construction	behavior	no	6f +542/-39; E5
+c086fe78056032dfeb61f74384fd634cc4dc2d84	2026-10-22T10:58:04+07:00	docs,docs/CHO,docs/adr	docs	no	E5; 5f +89/-24
+f49aa6d5d111c042c78f0cde2ce82d23e659d7bb	2026-10-22T11:31:15+07:00	docs/CHO	docs	no	E5; 1f +4/-1
+93527107a6cf2fe92cb0b9715c64eb8bb6b42fc0	2026-10-22T11:31:15+07:00	docs	docs	no	E5; 1f +32/-1
+018a0294390131a087ee51c5a96f605c7e34743e	2026-10-22T11:31:15+07:00	docs	docs	no	E5; 1f +128/-2
+962ae9c7f3f2a62ded2d67585ac349c8337b88e1	2026-10-22T11:39:25+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E5; 4f +64/-22
+16660996341b9352d1b554782e62545f7bdcd524	2026-10-22T11:40:29+07:00	docs/CHO	eval	no	E5; 1f +12/-6
+297a93487ffcac4f006031ac632b6555a499677d	2026-10-22T11:40:29+07:00	docs/adr	docs	no	E5; 1f +10/-5
+1e5457b07f97dfeaa41022faf5888ec6060c9137	2026-10-22T11:40:43+07:00	docs	docs	no	E5; 1f +1/-0
+6e670daec2a8e4864b16043202f9a137297f53c4	2026-10-22T11:27:53+07:00	tenants/construction/win	eval	no	E5; 4f +138/-3
+57365eab9b2c38034cba84cfefbc01a3ca908767	2026-10-22T11:34:33+07:00	docs,tenants/construction/win	eval	no	E5; 5f +663/-1
+0e098ad49cc88d06ac80d612de5ed9867cc6717f	2026-10-22T12:37:26+07:00	tenants/construction/win	eval	no	E5; 3f +31/-7
+5e7570a7346ac1218d758baf1b398b9356e5f03d	2026-10-22T12:37:39+07:00	tenants/construction/win	eval	no	E5; 2f +128/-44
+5e7a174c7b48a009c2dde56d18efcd5cfbf0d3ac	2026-10-22T12:40:31+07:00	scripts	eval	no	1f +75/-6; E5
+3fa0abe07fb9a034d870967d1b92752144477148	2026-10-22T12:41:45+07:00	docs	docs	no	E5; 1f +24/-8
+649f5b7c7c06c6f7d2d6feb2703c7ca46faa83d1	2026-10-22T12:43:29+07:00	docs	docs	no	E5; 1f +3/-1
+7d72e33078d73ae0b31aea4b63adcc9064172f6d	2026-10-22T13:09:59+07:00	docs	docs	no	E5; 3f +3/-2
+9c5b14f0f1a99e1a3c94370b1cf5bd3d2595d083	2026-10-22T12:59:11+07:00	core/pipeline,data/normalization,scripts/mutation	data-semantics	no	E5; 4f +95/-17
+f0e1e935d4b16c4e199f76a8fd52ef0e112f7f96	2026-10-22T12:59:11+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	Cổng phán quyết KHOÁ; đổi kỳ vọng có chủ ý (CHO ghi f0e1e93); E5; 4f +67/-177
+723a5705548667489af8df490cf3503b02df59c8	2026-10-22T12:59:11+07:00	core/pipeline,core/tenant,intelligence/intent,intelligence/router,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	S4 a2 (ADR-0010 bất biến a); đổi kỳ vọng có chủ ý (CHO ghi 723a570); H1/H3 tăng KHÔNG là bằng chứng (đã đọc ca H3); E5; 9f +439/-8
+5d690e13460fbd270c319655cc853280297fb7c8	2026-10-22T12:59:21+07:00	docs/CHO	docs	no	E5; 1f +3/-1
+925c5c13a1c4ef95ada3fc4d3e613a583ed3ba68	2026-10-22T12:24:32+07:00	docs	docs	no	E5; 12f +24/-0
+017495ccca625e43b0f8f6e77a1b944f89abeb55	2026-10-22T13:29:43+07:00	core/pipeline,data/normalization,scripts/mutation,tenants/construction	data-semantics	no	E5; 7f +109/-66
+32771ff42b0a4abc5288168c6ef2857166bb192a	2026-10-22T13:29:43+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E5; 6f +101/-19
+7e1d8ca1e07caea2fd9adc3a6518b31ce8fd5efa	2026-10-22T13:29:43+07:00	core/pipeline,data/normalization,scripts/mutation,tenants/construction	data-semantics	no	E5; 6f +87/-24
+a665298b7e63db4bc4833860d8cc18bfe6351c14	2026-10-22T13:48:08+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E5; 4f +107/-16
+56d2f08d48d01905d055a2296d5e91ba97a27f71	2026-10-22T13:51:17+07:00	docs,docs/adr	docs	no	E5; 6f +234/-25
+2b80a384eda63ef7277f286dadb91d1105e5ec09	2026-10-22T13:55:37+07:00	docs,docs/adr	architecture	no	ADR-0011 Phase 1 COMMAND (giấy); E5; 5f +1065/-2
+be91cd062996024f1b93f4a037c8834f095a6006	2026-10-22T14:35:00+07:00	core/pipeline,data/normalization,scripts/mutation,tenants/construction	behavior	no	7f +122/-14; E5
+f8b295e63c9b602e9a1172ec76e3a8a1b3dc0d2b	2026-10-22T14:35:00+07:00	intelligence/intent,scripts/mutation	test	no	E9; 2f +27/-3
+a56e60827e20705f5c5375425f0ed45eae2949cd	2026-10-22T14:36:47+07:00	docs,docs/adr	eval	no	E5; 6f +73/-30
+ecdcc992749a814049fada65ddc62da338cf1d58	2026-10-22T14:39:47+07:00	docs,docs/CHO	rag	no	ROADMAP-RAG + D-RAG-00 (MVP trước); E8; 4f +570/-0
+5d69d24ef51ab5b5ac5cbbe15dfa9101882f5b85	2026-10-22T14:53:51+07:00	docs,docs/adr	architecture	no	ADR-0012 Phase 0a (giấy); E10; 5f +1279/-3
+59557c2c7d066871eabf04650d02a9932e5451c7	2026-10-22T14:59:02+07:00	docs,docs/adr	docs	no	E5; 3f +13/-4
+57409f2965d46c4c4575b77681cccea6ab59e27c	2026-10-22T14:59:02+07:00	docs	eval	no	E5; 1f +1760/-0
+fe48bda9efa4228f2bb1d6e849767c31e40a2a94	2026-10-22T14:59:59+07:00	docs	eval	no	H4 chạy 1 lần: 104/119; E5; 4f +568/-0
+dc07e1baea3b1c2f947689a4ef42ab2dbf23be8b	2026-10-22T15:00:59+07:00	docs	eval	no	E5; 3f +531/-0
+32130f76a5292c1b128b11d091314568167950ff	2026-10-22T15:02:09+07:00	docs	docs	no	E5; 3f +6/-3
+c935d0f8d07cbe7eb45bb2eca2bf9ae4c76f198c	2026-10-22T11:59:02+07:00	observability/traces	architecture	no	traces: bước S0–S10, Sanitize (che bí mật bằng mẫu); E5; 7f +1432/-0
+911607dc7412bd13fbe746afbb11be1c1699fdb8	2026-10-22T11:59:02+07:00	db/migrations,platform/pgstore	architecture	no	0003 kho vết bền + RLS; E5; 3f +1072/-0
+1671bcd5e30154b9b36094cddbc034ff62518bd9	2026-10-22T12:05:25+07:00	observability/traces,platform/pgstore,scripts/mutation	test	no	E5; 4f +235/-19
+f1cc055ca8baff9cd0ffcd98acca82c5196e4e20	2026-10-22T12:38:55+07:00	observability/traces	behavior	no	E5; 5f +336/-60
+ee1d1f9272af8b92cbc9258d509208308a3af63d	2026-10-22T12:38:55+07:00	observability/traces	security	no	E5; 2f +75/-2
+4d74ae419f2e8c8af537d1177ae519faa406afab	2026-10-22T12:38:55+07:00	platform/pgstore	behavior	no	E5; 3f +130/-3
+530d71746f239580fa6241d79fdabf9293aa0ef7	2026-10-22T12:38:55+07:00	scripts/mutation	test	no	E5; 1f +33/-4
+269fc5e2612ed96117257541f0ea804fc52000bf	2026-10-22T13:22:30+07:00	observability/traces,platform/pgstore	behavior	no	E5; 4f +391/-0
+ec12af4fc736d7a1a0217a4ea16292a765f04e58	2026-10-22T13:22:30+07:00	cmd/eais	architecture	yes	cmd/eais: serve CHỈ -dev, token dev công khai từ world.yaml, chỉ loopback; chưa có xác thực thật (auth.go không đổi tới HEAD); E5; 9f +2997/-0
+3693fda2c3b5c14dfa9fb8911c038f4f65d586f2	2026-10-22T13:25:19+07:00	ci,deploy,scripts	ops	no	chay-thu.sh + smoke + CI có PG cấm SKIP; E5; 5f +396/-2
+59afacfa07b9105c824fcb8facfa88daad8db7ca	2026-10-22T13:26:30+07:00	docs	docs	no	E5; 1f +54/-0
+297f64a0007e08811e4f45a8a8faa7bb6f5069b4	2026-10-22T13:29:56+07:00	cmd/eais	behavior	no	E5; 7f +276/-15
+32ef122f4c6d6e248ab29ecdf4d5145bc3fa4c1a	2026-10-22T13:36:29+07:00	platform/pgstore	behavior	no	E5; 2f +61/-0
+f3bbb6ca2af759d779e5ec8cdf6a0c414ea201ed	2026-10-22T13:36:29+07:00	cmd/eais,docs,scripts,scripts/mutation	behavior	no	E5; 6f +183/-6
+14b3fef2df3978c922cede1d262573f5aa3dc98f	2026-10-22T13:39:04+07:00	cmd/eais,scripts/mutation	test	no	E5; 2f +58/-0
+d24e84f9351774a28f80280fe6c5e80a8446adba	2026-10-22T14:28:41+07:00	ci,cmd/eais,scripts,scripts/mutation	ops	no	E5; 4f +164/-33
+84e24ea10dbd387365d969b152764af1209ab049	2026-10-22T14:32:02+07:00	cmd/eais,platform/pgstore,scripts/mutation	behavior	no	E5; 5f +135/-0
+d4c2d9a1b97a703f6665a3237adab0df194f2e20	2026-10-22T14:38:48+07:00	cmd/eais,docs,scripts,scripts/mutation	behavior	no	E5; 5f +191/-31
+e430e4f32484f9e9ad7161bf36d581d4ab98a665	2026-10-22T14:41:04+07:00	cmd/eais	behavior	no	E5; 1f +2/-0
+7dc11eabf4bf131b44b6bd55f58c2e341128b5c9	2026-10-22T14:42:29+07:00	docs	docs	no	E5; 1f +1/-1
+7c86d2d3a099e35163500c19e896355d225b9f6a	2026-10-22T14:45:18+07:00	cmd/eais,scripts/mutation	test	no	E5; 2f +99/-8
+9ed7a6a6386a58734950e4fa1922aa05f3407f9b	2026-10-22T14:59:02+07:00	ci,scripts,scripts/mutation	ops	no	E5; 3f +31/-5
+41bc3cf6e1fe8dba0e9c97ba80c08525345a7543	2026-10-22T15:44:58+07:00	docs	docs	no	E5; 2f +8/-4
+e698e30efc7245a157a421ff21685cbb2ac08d44	2026-10-22T15:47:23+07:00	docs,docs/CHO,docs/adr	docs	no	E5; 5f +41/-3
+f28ce060166b3ea10b0e747566fa22f1d6b11b30	2026-10-22T15:48:26+07:00	docs	docs	no	E5; 2f +8/-4
+f1022382bd6ab64b67e83f8d66ad7c9b94cbb2d0	2026-10-22T16:11:46+07:00	docs,docs/adr	docs	no	E5; 5f +293/-96
+47a4a15aa2d80d518787559bce17a713af78929e	2026-10-22T16:23:54+07:00	docs,docs/CHO,docs/adr	docs	no	E5; 3f +23/-2
+269a539ffbf1e5be09b01c9286008e26f406de8b	2026-10-22T16:59:38+07:00	docs,docs/CHO	docs	no	E5; 5f +148/-75
+1b2efe8f59f56a03a1d08fc1dd43ef19e71a7ad9	2026-10-22T17:06:58+07:00	docs	docs	no	E5; 2f +19/-0
+a4daffdec170fc21dc97328ebdaf801826e23b94	2026-10-22T17:11:58+07:00	docs	docs	no	E5; 1f +31/-0
+b7f62fbd113771557370ab7667ba2984439a7201	2026-10-22T17:29:00+07:00	docs,docs/CHO	docs	no	E8; 4f +70/-4
+36e2005e8073b745aebad0ed4ed99e894502addc	2026-10-22T17:30:23+07:00	scripts	eval	no	E5; 1f +113/-0
+e6dba248cad7a74eff6c05bf3f703f134036902c	2026-10-22T17:55:28+07:00	docs	docs	no	E5; 4f +62/-3
+fd4f652e15448221cc2aabf6cd9e3d51e1ca231d	2026-10-22T17:57:42+07:00	docs,scripts	eval	no	E5; 3f +57/-1
+af48da8261eca711f681b6fc59181bcd395d793a	2026-10-22T17:59:03+07:00	docs	docs	no	E5; 1f +1/-1
+ce6bd0e8618680c1154ca7d7e4da4ad575742d7c	2026-10-22T18:19:20+07:00	docs,docs/adr	docs	no	E5; 4f +240/-80
+9618d6cb0d0a309308844a94e49c2aa869b4b0c5	2026-10-22T18:20:28+07:00	scripts	eval	no	E5; 1f +13/-3
+a2f6c02a4b76f3349c702786470d490345871577	2026-10-22T19:10:54+07:00	ci,cmd/eais,docs,scripts,scripts/mutation	behavior	no	E5; 16f +824/-54
+790d82136c937431f171d1a10f5d5ccf49a8471e	2026-10-22T19:48:29+07:00	cmd/eais,docs,scripts/mutation	test	no	E5; 5f +120/-11
+1ddd10bd1d6ae1cbb7154697c8998a37757b3acc	2026-10-22T20:20:07+07:00	docs,docs/adr	eval	no	Đóng băng bộ giữ lại P1 (157 ca) trước dòng mã M4 đầu; E6; 4f +62/-3
+7101b6aa2a8c42eca8f54d0a45277a11350a585f	2026-10-22T20:32:37+07:00	cmd/eais,docs,scripts,scripts/mutation	ops	no	E5; 6f +271/-52
+5553f410afc7dd161ba636c510fb793cc23bec25	2026-10-22T20:41:20+07:00	docs	docs	no	E5; 4f +669/-1
+76a79e217a6b92c424a2a7e2a770d7f4d4d781cb	2026-10-22T20:42:26+07:00	docs,docs/CHO	docs	no	E5; 2f +26/-2
+f344f50e7c3c3ae041cced9ad69f17580d4037ff	2026-10-22T21:38:12+07:00	docs	docs	no	E7; 5f +142/-48
+a9ce6eddc429cb57f0efb91af884a53a4431304e	2026-10-23T09:42:01+07:00	docs,docs/CHO	docs	no	E7; 3f +11/-4
+cb54bc855d6671a18a61d15ffc9604b28c0992a0	2026-10-23T09:58:58+07:00	docs,docs/CHO	docs	no	E7; 2f +62/-44
+51eb3932962c2ddd2971d1c5b43de537b0847766	2026-10-23T09:59:27+07:00	docs	docs	no	E7; 1f +12/-0
+8fabf33d057350d145249911b33b56429121b38d	2026-10-23T10:02:17+07:00	docs	docs	no	E8; 4f +75/-68
+146c2b0ba254f4ec128feda66c355e8fd006ed74	2026-10-23T10:03:18+07:00	docs,docs/adr	docs	no	E10; 3f +455/-166
+7ce6095b101159d83d15004ce3a4dd49a3925ac7	2026-10-22T20:49:59+07:00	cmd/eais,docs,scripts,scripts/mutation	ops	no	E5; 4f +308/-21
+f4565d0d95fb51d661c2051851e4c499dcc13ddd	2026-10-23T09:36:18+07:00	cmd/eais,docs,scripts,scripts/mutation	ops	no	4f +388/-45; E7
+d4557208cd367e3676240921a1bbe4900d5d9776	2026-10-23T10:07:07+07:00	scripts/mutation	test	no	E7; 1f +3/-0
+c97a989cd1b742f307437e3d7e1142dd2c82a816	2026-10-23T10:07:07+07:00	docs	docs	no	E7; 1f +1/-1
+1bcd8eb9ea256014c0c5fe7d1233047d37d6380b	2026-10-23T10:08:10+07:00	docs	docs	no	E7; 4f +8/-6
+07d66651084c51702368de2a58de22c8d7053dc2	2026-10-22T18:32:52+07:00	core/contracts,core/pipeline,intelligence/intent,intelligence/router,observability/traces,scripts/mutation	behavior	no	E8; 14f +1591/-80
+00536bba359bf7103e26e7c094d222c82af0acd8	2026-10-22T19:26:53+07:00	cmd/eais,core/contracts,core/pipeline,intelligence/intent,observability/traces,scripts/mutation	behavior	no	E5; 14f +1063/-71
+4307d9b841a056f9a2b33b2a803c89b6295b95fe	2026-10-22T20:31:25+07:00	cmd/eais,core/pipeline,intelligence/intent,intelligence/router,observability/traces,scripts/mutation	behavior	no	E5; 15f +1364/-47
+d03f2b5adbc925c044a80ed56860c6714d3c4591	2026-10-23T09:28:35+07:00	cmd/eais,core/pipeline,observability/traces,scripts/mutation	behavior	no	E7; 4f +345/-4
+5fd463feb2f87348b444317d5eddfa49b9c2302c	2026-10-23T10:12:52+07:00	observability/traces	security	no	E7; 1f +2/-1
+2758ce92e5bcc397e1425216605f4c785899b414	2026-10-23T10:13:41+07:00	docs	docs	no	E7; 3f +8/-6
+ef9c97250d46876170738435190b0e5b7f9ccbae	2026-10-23T10:15:43+07:00	docs,scripts	eval	no	E7; 3f +71/-1
+e3d708cdaea0448d42daee4e133f86a0a2248ba8	2026-10-22T20:56:20+07:00	execution/commands	architecture	no	E6; 2f +290/-0
+63bf1d7f5c146706148b539a23490fcfedff50af	2026-10-22T20:56:21+07:00	execution/commands	behavior	no	E6; 5f +337/-0
+077e3c81258a5f7af81094e328e7b365fb268af0	2026-10-22T20:56:21+07:00	execution/commands	architecture	yes	execution/commands pipeline C0–C7 tất định, 0 model, kho giả (đọc khung hàm); E6; 3f +2593/-0
+e1ce95011b84336f62b768df7b64ef5fc7d22a14	2026-10-23T10:03:27+07:00	execution/commands	behavior	no	E6; 6f +1282/-39
+d09f730f2f772b83b794b47a4483db522fe79244	2026-10-23T10:32:33+07:00	docs	docs	no	E7; 2f +7/-5
+d000a665f1dff6393e8cb52c195c16b1b28c8445	2026-10-23T09:54:14+07:00	db/migrations,platform/pgstore	architecture	yes	0004 phiếu/sổ lệnh/audit + BeginTenantTx (đọc tenanttx.go); E6; 5f +309/-2
+e5e13f086f751bf7d8c9d762cd1562578a896e20	2026-10-23T09:54:27+07:00	execution/commands	behavior	no	E6; 5f +1949/-0
+66ff64991e53caf898cf6ec28cb926c66e8b16ec	2026-10-23T09:54:27+07:00	docs,execution/commands	test	no	E6; 2f +761/-1
+45b644a106b322640a0178b3c4076d7b4ee6d6de	2026-10-23T10:01:48+07:00	execution/commands,platform/pgstore	test	no	E6; 4f +176/-34
+01b1b3f6b2c63375b77649180efd10cec0e2fdd6	2026-10-23T10:07:34+07:00	execution/commands	test	no	E6; 1f +3/-3
+862aa1f65ae68c6af8b4682359a63f761910a2db	2026-10-23T10:09:11+07:00	docs	docs	no	E6; 1f +1/-1
+1738c1d2885f2d29ecd56d7e75d9dfe0d9e8e149	2026-10-23T10:36:08+07:00	docs	docs	no	E6; 1f +3/-1
+20f1f99cfb6ef86a75ad677f52a3bf4c6be2e017	2026-10-23T10:36:08+07:00	docs/adr	docs	no	E6; 1f +1/-0
+d919ebfba2f946c3b362c4c13191b68ca22bb0d9	2026-10-23T10:36:08+07:00	db/migrations	docs	no	1f +1/-1; E6
+baaf83415d32eaec88adcb8d033ff730774e8928	2026-10-23T10:38:43+07:00	docs	docs	no	E7; 2f +7/-5
+1da80a1c64726fa942220fc1be711a721bf1e01c	2026-10-23T11:56:35+07:00	core/contracts	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +55/-1
+04684116283e0475457f09e0622b0abaf0e86f62	2026-10-23T11:56:35+07:00	intelligence/rag	rag	no	RAG nền: tài liệu phiên bản, cắt bảng, cổng chất lượng, ACL lọc trước IDF; E8; nhánh phụ (gộp bằng merge thường); 5f +1217/-25
+4c9b0268da7219cde3be2621dafa667e8ad43190	2026-10-23T11:56:35+07:00	tenants/construction/knowledge	rag	no	E8; nhánh phụ (gộp bằng merge thường); 38f +604/-0
+9157e381f23d7f890495f7fb35bced066df66bdd	2026-10-23T11:56:35+07:00	db/migrations,platform/pgstore	architecture	no	E7; nhánh phụ (gộp bằng merge thường); 7f +137/-7
+153bc552901986b09f4269951c5f09d025eaf92e	2026-10-23T11:56:35+07:00	core/pipeline,core/tenant,tenants/construction,tenants/construction/pack	behavior	no	E8; nhánh phụ (gộp bằng merge thường); 8f +357/-4
+a829da3b7bca1d992f4a0cc1be089ab199d58f80	2026-10-23T11:56:35+07:00	evals/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 5f +927/-0
+7ec12a78411bba294320c9da7aed731ddd22bacd	2026-10-23T11:56:35+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 7f +504/-6
+5dd13e7aff9dd87a58e85afca01c2e1474ff5b6c	2026-10-23T11:56:35+07:00	docs	eval	no	E8; nhánh phụ (gộp bằng merge thường); 1f +31/-0
+7a61d76ffc518be0135e8074f93a0f2ad17be81c	2026-10-23T11:59:29+07:00	tenants/construction/knowledge	eval	no	S7 bộ độc lập chạy 1 lần: top-3 87/92, 0 ngoài quyền; E8; nhánh phụ (gộp bằng merge thường); 26f +1046/-0
+120cf1b0a8106f2d3dee4f4eaf98290bd2f0a3a8	2026-10-23T11:59:29+07:00	docs	eval	no	E8; nhánh phụ (gộp bằng merge thường); 3f +23/-3
+55bcf6c1ce5642c729ebe4ed4f000387cf290068	2026-10-23T12:39:10+07:00	evals/rag,platform/pgstore	rag	no	E8; nhánh phụ (gộp bằng merge thường); 3f +202/-10
+d32b3a20b39b0a6da1fb9386c4dd641425f66e67	2026-10-23T12:39:10+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 2f +3/-1
+f6f5cd2785978fff04e1dc775d55fd9f23113d1c	2026-10-23T12:45:31+07:00	cmd/eais,docs	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +142/-0
+6734cff7f5033f317aa7e3c2d0e89775eff3b417	2026-10-23T11:21:06+07:00	docs	eval	no	E7; 2f +145/-4
+f4f20647b7fa85458b79c6a7ef480a6190824c43	2026-10-23T11:28:10+07:00	docs,docs/CHO	docs	no	E8; 3f +31/-3
+221d82d90bb6109af03070168492c4e7b8fe98dd	2026-10-23T11:29:50+07:00	docs,docs/adr	docs	no	E7; 3f +17/-9
+404aa11c30bd5d3d47452b8bf107138774134a1c	2026-10-23T11:50:26+07:00	docs	docs	no	E7; 9f +728/-0
+5392833766cb26ead746a98746495ae268c5e8c9	2026-10-23T10:54:45+07:00	data/normalization	data-semantics	no	D-OP-9 (a'): cờ nhóm nghìn chưa phân định; E7; 2f +129/-1
+dab8d09966c02ce899888da8f6833c38085dc4fd	2026-10-23T10:56:48+07:00	data/ingestion,data/normalization	data-semantics	no	E7; 4f +106/-6
+36c8fa24e5e74a60ec80a64a433bfa6d76007600	2026-10-23T11:00:18+07:00	core/pipeline,tenants/construction	data-semantics	no	E7; 2f +124/-8
+1952d22b769817e47b847948fc7e986e65e7746d	2026-10-23T11:02:07+07:00	data/ingestion,data/normalization,tenants/construction	data-semantics	yes	D-OP-9 (a'): nhóm nghìn hợp lệ LUÔN gộp, bỏ danh sách identifierBefore; đổi kỳ vọng có chủ ý TestNhomNghinNganBangDauCach; E7; 4f +63/-32
+386a1234b3216bb8eb4ff4a3aa3230008363b23b	2026-10-23T11:09:24+07:00	scripts/mutation	test	no	E7; 1f +37/-12
+41febd9c24df0a9381d968a00ae4cdd29fc9de1a	2026-10-23T11:14:44+07:00	data/ingestion	data-semantics	no	E7; 2f +8/-4
+5744d65f4a5a56c1f10a7f369fec34466054cfc4	2026-10-23T11:15:20+07:00	docs	docs	no	E7; 1f +1/-1
+a83724b84d9ddf5c7524f77ce9d36d9679cd4183	2026-10-23T12:04:26+07:00	docs	docs	no	E7; 1f +1/-1
+93438154f5bd8653c50e2d0ccc0dad059ce3fa27	2026-10-23T12:04:26+07:00	docs	docs	no	E7; 1f +1/-1
+9126270a6772fed6802603baa6c6e2369e5adf60	2026-10-23T12:05:03+07:00	docs,docs/CHO	docs	no	E7; 4f +26/-16
+90b456080f6ffa2cb4eb5be3a7cf7207d4d4d233	2026-10-23T12:05:16+07:00	docs	docs	no	E7; 1f +1/-0
+1233600476d07e58ff2e73fce7a1c2b8c734a878	2026-10-23T12:05:37+07:00	docs	docs	no	E7; 3f +105/-0
+4238123c1d6fb86371c1ffe67b8c3c49a8fafd04	2026-10-23T12:26:54+07:00	docs,docs/CHO	docs	no	E8; 3f +14/-4
+d581899f7bb58cd38833dec0be1e14047691c47f	2026-10-23T12:28:31+07:00	scripts	eval	no	E10; 1f +139/-0
+59ac0d7bbb16a1344f3b1a0ceeacea80c7a0c629	2026-10-23T12:36:04+07:00	docs,docs/CHO	docs	no	E7; 2f +5/-2
+21c772304de9d1cb50fc31a7641ef9b7b8923ef4	2026-10-23T12:45:58+07:00	(none)	merge	no	E8; 2 parents; 0f +0/-0
+49ce4ef4cf2015bc831bb0833a03211c341017f4	2026-10-23T13:38:31+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +34/-0
+36d48cd6c3448fb5d5eb8770d0e4be995b0a2957	2026-10-23T13:45:23+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +27/-18
+9d78cc6e9fbec12b2954583d518ece99d994441b	2026-10-23T15:06:31+07:00	intelligence/models	architecture	no	models: gateway chat completions + /embeddings /rerank theo cấu hình; E8; nhánh phụ (gộp bằng merge thường); 6f +757/-2
+9f3c32b37520e7d53c664c2218cccbe830f04b31	2026-10-23T13:03:55+07:00	scripts	eval	no	E7; 1f +5/-4
+03d0a24010eae14d86e000f43c3198d52624a7be	2026-10-23T13:27:07+07:00	docs	docs	no	E7; 1f +39/-32
+ab2e45f14775f12509619eb483a0d45bf1a3e8c4	2026-10-23T13:27:32+07:00	docs	docs	no	E7; 1f +1/-1
+4bc54c4c7a14dd08cb070f38e8019b1fcde6f6d8	2026-10-23T13:28:35+07:00	docs	docs	no	E7; 5f +356/-0
+cd20f25f84e66af277bdf8a078f52f9ac5a9a012	2026-10-23T11:35:33+07:00	execution/commands	behavior	no	E6; 2f +12/-6
+ef7d69c95a3db596fb29ba43f9e0422b2dcfcc44	2026-10-23T11:37:24+07:00	docs,execution/commands	behavior	no	E6; 3f +71/-7
+9ee91cde244bc5d4224bd9d95d406e669ce7145b	2026-10-23T11:39:56+07:00	execution/commands	behavior	no	E6; 4f +73/-4
+7ac18a349e8422b6d9bbd4819d4519129f5b06fe	2026-10-23T11:43:10+07:00	db/migrations,execution/commands,platform/pgstore	security	no	0005: thu SELECT reason_detail của eais_app; đổi kỳ vọng test quyền có chủ ý; E6; 5f +72/-9
+0fe4e8d310ff3f1fc16812d414d9c0fad2ded69d	2026-10-23T11:44:41+07:00	db/migrations,execution/commands	security	yes	0005: CHECK tenant_id<>'' CHỈ cho 3 bảng 0004; nợ 0001/0003 ghi lại; E6; 2f +68/-0
+bd7f3c176a885fd195796a3fe0c1f437401c8526	2026-10-23T11:45:52+07:00	execution/commands	test	no	E6; 1f +96/-0
+d347f5542c9c2310d070a48849998f5872569eaa	2026-10-23T11:47:43+07:00	execution/commands	behavior	no	E6; 2f +19/-3
+d780f64348141d874d337154ce1e5491aa9669d2	2026-10-23T12:31:41+07:00	execution/commands	behavior	no	E6; 3f +13/-3
+6583533fcad5686c5faf0e3982e34cba0d67cddc	2026-10-23T12:32:33+07:00	execution/commands	test	no	E6; 3f +17/-3
+4b544caa8c70d17198fc0df0a2ad57ebda550edf	2026-10-23T12:33:21+07:00	execution/commands	behavior	no	E6; 2f +43/-1
+beb98f6f7d19625b5a8f642e8dab04d9002bc4a4	2026-10-23T12:33:50+07:00	execution/commands	test	no	E6; 1f +3/-0
+d0204a13313be2eadb38d46102b2069d0f393860	2026-10-23T12:34:21+07:00	db/migrations	security	no	E6; 2f +7/-2
+303c6386c08fe8e0fc8e1cab5cd6dcdf84134bf5	2026-10-23T12:34:21+07:00	db/migrations	security	no	E6; 1f +7/-0
+d46562e6ab2370f58a932355d73d6d5001f4570e	2026-10-23T12:39:09+07:00	docs,execution/commands	behavior	no	E6; 3f +13/-6
+ea30c3cf023eeb428775de7a52702445ed13ea69	2026-10-23T12:39:29+07:00	docs	docs	no	E6; 1f +2/-2
+ae59a3705eabc6379474de9b945a50734c4d30a7	2026-10-23T11:28:48+07:00	cmd/eais,tenants/construction/pack	behavior	no	E6; 4f +205/-3
+d9dbfafcdb8faa401fb2546de6704cde8206db62	2026-10-23T11:31:05+07:00	execution/commands,observability/traces	behavior	no	E6; 4f +379/-2
+2ec293dd8d45abf868176ecc321190ffc6ef3047	2026-10-23T11:36:26+07:00	cmd/eais	behavior	no	E6; 2f +749/-0
+cd5134ee7a7b667a978447208dbcdf1d692b5637	2026-10-23T11:37:36+07:00	cmd/eais,docs,docs/adr	behavior	no	E6; 4f +61/-3
+003b825668a76af35a2abaf827af78fa4438840b	2026-10-23T11:38:07+07:00	platform/pgstore	behavior	no	E6; 2f +72/-1
+25f7b643b3e1ac8e3161aa16f76b96847014d8d2	2026-10-23T11:42:48+07:00	docs,docs/adr	docs	no	E6; 2f +4/-2
+a0824433df77059f441b3e4cb4408960fe13cb33	2026-10-23T11:43:27+07:00	execution/commands	test	no	E6; 1f +12/-0
+0380da61b697beb1069de692046fc32be0b4a33a	2026-10-23T12:42:04+07:00	platform/pgstore	security	no	E6; 2f +55/-12
+aa8f9ac81a0efa390d30c79911e01184ffa226d8	2026-10-23T12:43:28+07:00	execution/commands	behavior	no	E6; 2f +23/-2
+e14d239aa85fedc2d7074577e8426ed26b91d43c	2026-10-23T12:44:22+07:00	cmd/eais	behavior	no	E7; 2f +51/-0
+2f44b4411ba0c904f2cef3ad73fc4e3499836baa	2026-10-23T12:47:37+07:00	cmd/eais	test	no	E7; 2f +44/-0
+54187534bb04bd4c77bc072ae8d894f17cf759c5	2026-10-23T12:51:10+07:00	cmd/eais	test	no	E7; 1f +6/-4
+938c51bdbb68b69718612fb2c2ced5cd86a0d0f8	2026-10-23T12:52:21+07:00	docs	docs	no	E7; 2f +4/-3
+5460c8c6585600eb232caa3c792ca9aef7d19ce8	2026-10-23T13:44:36+07:00	execution/commands	behavior	no	E6; 2f +9/-2
+9936f761e2e04f0d7c13f3869f369e9b1c93c4b1	2026-10-23T13:45:05+07:00	execution/commands	test	no	E6; 1f +6/-0
+ebd692287d6df39bdb17ac615fb4549ef713fc8b	2026-10-23T13:45:56+07:00	execution/commands	test	no	E6; 1f +56/-0
+074cd8dffe7544cefab682493b375b41bb77a8f2	2026-10-23T13:47:14+07:00	cmd/eais	test	no	E7; 1f +40/-0
+77eebbe66e08a02f650ed62d2faa0972df9266b2	2026-10-23T13:48:02+07:00	platform/pgstore	test	no	E7; 1f +31/-3
+ac5f4c6a14eae98e943b843e75f7920904ac44d7	2026-10-23T13:48:28+07:00	docs,platform/pgstore	security	no	E6; 2f +4/-1
+5d1467fd4c87ba82b830e695e9021395077b602c	2026-10-23T13:48:46+07:00	execution/commands	behavior	no	E6; 1f +2/-2
+3892be262284839d5f913ecbf37ef422c5b9255f	2026-10-23T13:48:46+07:00	docs/adr	docs	no	E6; 1f +2/-2
+f3e4c7258c4fd25abd0258ece00952dbbeb4899f	2026-10-23T13:51:57+07:00	docs	docs	no	E7; 5f +121/-21
+1dbee7f564d8384efe162b5ef88ab49741f1490c	2026-10-23T14:10:21+07:00	docs,docs/CHO	docs	no	S4 KHOÁ sau vòng 3 KHÔNG ĐẠT: hồi quy S1 mới S4CS-02; D-AI-05 mở; E7; 5f +102/-4
+973726aa3036c0f0dd0c6097041326b7f6b90b42	2026-10-23T11:54:57+07:00	core/pipeline,tenants/construction	behavior	no	E7; 2f +26/-0
+9cbbc2a791294a51a23c61f172bb22632a64b518	2026-10-23T11:56:31+07:00	core/pipeline,observability/traces,tenants/construction	security	no	E7; 4f +33/-3
+b865a4c72cb5096d7310d6f4d43278cea7f9d036	2026-10-23T11:58:06+07:00	docs/adr,intelligence/router	test	no	E7; 2f +35/-0
+ff2802db36b7513edbf1c7f1d3f499bca940a87b	2026-10-23T13:23:31+07:00	core/pipeline	behavior	no	E7; 2f +114/-10
+494512f997081ed939db57c4beab83edfb9f575e	2026-10-23T13:16:57+07:00	core/pipeline,observability/traces,scripts/mutation,tenants/construction	security	no	E7; 9f +505/-9
+c63df4b01fbcd9bf109f4cef3f3857933b6edbb0	2026-10-23T13:21:03+07:00	core/pipeline,scripts/mutation	test	no	E7; 2f +27/-12
+93804f252a4997ac07a80ce74db9f5311bc1a3b6	2026-10-23T13:22:49+07:00	core/pipeline,docs/adr	behavior	no	E7; 3f +43/-6
+5fb5c8ccbc8adc6b71539e3554c27387f6bb5829	2026-10-23T13:23:18+07:00	docs,docs/adr	docs	no	E7; 2f +6/-1
+c18c399190a3d27214e5d77c4ddd1bdf86d27814	2026-10-23T14:21:41+07:00	core/pipeline	behavior	no	E7; 2f +52/-12
+43d442edec26113db8b6936a476221dd9aeee38f	2026-10-23T14:23:11+07:00	core/pipeline	behavior	no	E7; 2f +59/-7
+08d7888fd4e65c35a0da0848f2813c0317ad3856	2026-10-23T14:23:46+07:00	core/pipeline	behavior	no	E7; 3f +17/-2
+3aaaf09bfa92be0312c36cb892bca6591dabe693	2026-10-23T14:24:11+07:00	core/pipeline,docs	behavior	no	E7; 2f +15/-9
+2e27957d4511e5722dc916176ae547538bac20ca	2026-10-23T14:25:54+07:00	docs	docs	no	E7; 4f +97/-16
+a07c613fc0cc895232effdf99f91e6aabbaca775	2026-10-23T14:27:10+07:00	docs,docs/CHO	docs	no	E7; 2f +2/-0
+c7f0291e053a2feebac5f334505901c544c35a81	2026-10-23T12:55:40+07:00	execution/commands	test	no	E6; 1f +568/-0
+0a504f196572e5c5f0d1a984becea6de50bc876f	2026-10-23T12:55:40+07:00	execution/commands	test	no	E6; 5f +703/-0
+d4c62df33ab25f40f38fb5b71e9c2ed5f35d535f	2026-10-23T12:55:40+07:00	execution/commands	test	no	E6; 4f +2024/-0
+b7b81bb0233b1b8afbb2b8bcba9b29024b610214	2026-10-23T13:01:45+07:00	execution/commands	test	no	E6; 2f +94/-11
+b4fe27b9de5269381f8a6991b0ccb0d34e4ba1c2	2026-10-23T13:01:45+07:00	execution/commands	test	no	E6; 2f +109/-0
+32970b9426951ef988ea08a0d432c2dd9432a952	2026-10-23T13:05:25+07:00	scripts	ops	no	E6; 1f +138/-0
+aa41a94f73c436837a8eaa9d995838fd02565a5d	2026-10-23T13:14:01+07:00	scripts/mutation	test	no	E6; 1f +278/-0
+37e59c9ab1c6052dc18630067e4274ae9412b3af	2026-10-23T13:19:32+07:00	scripts,scripts/mutation	ops	no	E6; 2f +13/-9
+e6349d0994610da1f95cbffdaf43fdc6be9eed5f	2026-10-23T13:20:52+07:00	execution/commands	test	no	E6; 2f +64/-10
+2a28e33a0cd2f01c19fb5c82213b7d4983cbb790	2026-10-23T14:10:56+07:00	execution/commands	test	no	E6; 2f +18/-1
+384929029873966e500321455a4b4691dafd5274	2026-10-23T14:11:13+07:00	execution/commands	test	no	E6; 2f +27/-1
+ffea5ab1baceb650846987f4a2b4c9bab5f4cdca	2026-10-23T14:12:26+07:00	execution/commands	test	no	E6; 2f +81/-14
+cdce89f6a7370840fc77f22179ecf3729dd6eb09	2026-10-23T14:14:04+07:00	scripts/mutation	test	no	E7; 1f +14/-15
+59a18f92694a62fb7a2e06c0af22cad786f24145	2026-10-23T14:15:34+07:00	execution/commands	test	no	E6; 1f +16/-0
+b22e1e664d591bbaa9eb27a88769a023a04d3a43	2026-10-23T14:16:33+07:00	execution/commands	test	no	E6; 3f +12/-6
+18fb206a6ee724f213decbf0b4269d139bf9794d	2026-10-23T14:29:13+07:00	docs	eval	no	E6; 2f +8688/-0
+d614395ce87bd6592534a08f03b34ce1ecba3989	2026-10-23T14:34:15+07:00	docs,docs/CHO	eval	no	P1 chạy 1 lần: 153/157, 4 đỏ do "≈"; E6; 14f +10183/-5
+6e4acc644bca83ea9094e9218b764f150e352dd5	2026-10-23T11:04:55+07:00	scripts/mutation	test	no	E7; 4f +212/-5
+b0ed763a50a87dbc803a3f9611785262dfc6b4d8	2026-10-23T10:19:21+07:00	platform/pgstore	behavior	no	Phân loại lỗi PG theo SQLSTATE (503/409/500); E7; 3f +135/-4
+9db1bcc26a00734ad13a7efdf1843ee774f5a474	2026-10-23T11:14:44+07:00	platform/pgstore	behavior	no	E7; 2f +11/-2
+db5bb02f8d779549afbc44e067533f4ceadc8bf3	2026-10-23T11:16:35+07:00	platform/pgstore	behavior	no	E7; 2f +31/-3
+edd0f78b56f8f2da84e2f87c048900458d78bc73	2026-10-23T11:22:52+07:00	cmd/eais,platform/pgstore	behavior	no	E7; 4f +42/-1
+88bda32f2f1b1626b24976fc2043830ec464031d	2026-10-23T11:23:50+07:00	cmd/eais,platform/pgstore	test	no	E7; 2f +28/-0
+6fea37a3e0f484232faf299913d86cc25335a914	2026-10-23T11:23:50+07:00	platform/pgstore	behavior	no	E7; 1f +3/-2
+c14fe6c7439ab1f9440db604f1aafb586b82f1a9	2026-10-23T11:24:40+07:00	scripts/mutation	test	no	E7; 1f +13/-4
+ec9a62e6ed6c938faba13d518648d5498c00c3d7	2026-10-23T11:31:10+07:00	scripts/mutation	test	no	E7; 1f +3/-1
+31db01d4d2bc4313786cd23b2dc4b96b4ffdba23	2026-10-23T11:31:26+07:00	docs	docs	no	E7; 1f +2/-2
+9cc4b789bfa396e464a8bd19fd084b6969365670	2026-10-23T11:32:04+07:00	scripts/mutation	test	no	E7; 1f +28/-1
+f61eedd37722e5393a6f1a45955f2e68969bbed8	2026-10-23T14:47:48+07:00	execution/commands	behavior	no	E6; 2f +45/-0
+a3fe5715ca5d2064100cc0658caa7aefea7f8f88	2026-10-23T14:48:11+07:00	platform/pgstore	behavior	no	E7; 1f +5/-5
+31423c71f10f6b563f9aabb0b8ad2d88457abab1	2026-10-23T14:48:48+07:00	scripts/mutation	test	no	E7; 1f +1/-1
+32f49309155995ba51b42b3e7fd8a3ff7b9fc356	2026-10-23T14:48:48+07:00	scripts/mutation	test	no	E7; 1f +3/-0
+aabf70d2a27cf0105c900d19964346315c45b38e	2026-10-23T14:50:35+07:00	docs	docs	no	E7; 5f +113/-10
+98e0168cf63d1d46db3a7f0f65883b013cef175e	2026-10-23T14:55:25+07:00	scripts/mutation	test	no	E7; 1f +5/-5
+086fff99025cfde4f9aed06b911180bb35235566	2026-10-23T14:55:53+07:00	docs	docs	no	E7; 1f +1/-0
+521867f231242de7f5f478468fd44f15df1af02f	2026-10-23T15:15:24+07:00	(none)	merge	no	Đổi số migration RAG 0005→0006 (lần 1); E8; 2 parents; 0f +0/-0
+fbb5250d451fcb14dbf8efc5c2696f79a3df51ce	2026-10-23T15:54:40+07:00	db/migrations,intelligence/rag,platform/pgstore	rag	no	Truy hồi lai (từ khoá+vector+rerank) mặc định TẮT; migration vector (sau đổi số 0008); E8; nhánh phụ (gộp bằng merge thường); 9f +920/-36
+b430e6f8e54c398cf034a3ba900b874eb78df4e6	2026-10-23T15:54:40+07:00	core/contracts,core/pipeline,intelligence/models,tenants/construction	behavior	no	E8; nhánh phụ (gộp bằng merge thường); 8f +141/-34
+d987238b3408ea524dd0c392c01ec7668b3de10d	2026-10-23T15:54:40+07:00	evals/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +172/-2
+621cac34f84ff56d0c3fa3c461ccd808ecc49acf	2026-10-23T15:54:40+07:00	config,docs	rag	no	E8; nhánh phụ (gộp bằng merge thường); 4f +127/-35
+7603663bed8df3559153d14b02e7cba969002d61	2026-10-23T16:46:56+07:00	intelligence/rag,platform/pgstore	rag	no	E8; nhánh phụ (gộp bằng merge thường); 5f +745/-25
+39fbfa2b6981cb1e7b505691265636d166bba1f9	2026-10-23T16:46:56+07:00	evals/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +800/-0
+a8085fbcd75416937353107dbbedefbd769942a8	2026-10-23T14:38:37+07:00	data/normalization,tenants/construction/win	data-semantics	yes	Sửa "≈" theo approx_markers pack sau P1; lỗi đã nằm trong ratchet g1-approx-known từ 22/10; E7; 5f +74/-4
+19a309091632a3a2205c7ff26f93557f4ad8f524	2026-10-23T15:08:48+07:00	data/normalization	data-semantics	no	E7; 2f +7/-3
+d43a1bf6a073003ce73283923f87446a12ac4a68	2026-10-23T15:09:05+07:00	data/ingestion	test	no	E7; 1f +13/-1
+248e8ac2a7032752bfbf1ecb841dd3a976eec331	2026-10-23T15:12:10+07:00	docs	docs	no	E7; 5f +102/-27
+a52eb67982a05e0a7e45c8beed50f68e13da2ba0	2026-10-23T15:30:13+07:00	docs	eval	no	E10; 2f +134/-3
+7333d48701065cbbf39cfe78e3b9b2215aa5f5af	2026-10-23T15:56:42+07:00	docs	eval	no	E7; 3f +70/-4
+4f829abff38c0e6a7193bb1ce827901b82ed9a4a	2026-10-23T16:08:36+07:00	docs	docs	no	E7; 82f +9926/-0
+7f8eee1f2a93ed4a6cc09d3bd216994a98b4d3d7	2026-10-23T16:09:05+07:00	docs	eval	no	E7; 3f +6/-3
+48491f7f49b722c0440c25f950a9ae5f8c14cce4	2026-10-23T16:52:00+07:00	scripts/mutation	test	no	E7; 1f +9/-7
+0044b9ea3cf23db22335a856aa324c831bc9aa70	2026-10-23T16:53:58+07:00	docs	docs	no	E7; 1f +1/-0
+17213ceac2640b11756591b0a44c89e27caf3c5f	2026-10-23T17:19:07+07:00	(none)	merge	no	E8; 2 parents; 0f +0/-0
+5febdd88ed4769a01088ff48c0cc53d6e2d50f12	2026-10-23T23:34:54+07:00	evals/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +101/-2
+cd0b813ae33ac4edf102332f7a524441dfb8c51e	2026-10-23T23:34:54+07:00	intelligence/rag,platform/pgstore	rag	no	E8; nhánh phụ (gộp bằng merge thường); 5f +405/-14
+ef728a04cb70d9bf2afde87de63bf59feca96edb	2026-10-23T23:34:54+07:00	config,docs	rag	no	E8; nhánh phụ (gộp bằng merge thường); 4f +32/-6
+8575c47b5f37e6a0c4e8c1407bd7fa863a6ba758	2026-10-23T17:28:32+07:00	docs	docs	no	E7; 4f +97/-18
+ab2bc384c75b4bb79a3f5f76aff4da51b9426eee	2026-10-23T17:28:58+07:00	docs	docs	no	E7; 5f +333/-0
+cf46a8f843c9ad8f0c5bb59fa6c7ceeca4c35ce4	2026-10-23T17:30:54+07:00	docs,docs/CHO	docs	no	E7; 2f +2/-0
+b4da74da9cd9412e3b5361996cb3134238fd2cad	2026-10-23T15:39:14+07:00	db/migrations,platform/pgstore	data-semantics	no	E7; 6f +561/-11
+0dfaaa4fd8142373a5489005163607f915235ce6	2026-10-23T15:41:08+07:00	cmd/eais	behavior	no	E7; 6f +449/-24
+fb025c9fde560d8fd95b61d6210ebca0f107d592	2026-10-23T15:56:50+07:00	docs,scripts/mutation	data-semantics	no	E7; 2f +78/-2
+eb88544545de7494fd522a5dca81ef39c1ad6d35	2026-10-23T16:00:25+07:00	docs	docs	no	E7; 1f +2/-2
+df799fdf13253d0bee75805f28d3b1a46a6e8870	2026-10-23T16:54:54+07:00	cmd/eais,scripts/mutation	test	no	E7; 2f +22/-0
+9543849b9cf41ad0fb26aea202b8dc50bd718e15	2026-10-23T16:56:08+07:00	platform/pgstore,scripts/mutation	test	no	E7; 3f +76/-0
+4179100eb3944edd20f93c3e4363cde51d14c200	2026-10-23T16:58:25+07:00	docs	docs	no	E7; 1f +1/-0
+b16e29e079d8db22254f5e47cbb8351abb63d83d	2026-10-23T16:58:34+07:00	docs	docs	no	E7; 1f +2/-2
+6fa6ec60f0254f6538b8f9c5f78117de3a981c51	2026-10-23T16:58:57+07:00	cmd/eais	behavior	no	E7; 1f +4/-0
+d6c463d62f78f585d53756e575e72bafede3845c	2026-10-23T17:51:33+07:00	docs	docs	no	E7; 5f +77/-5
+8c72fe2a7d6fb6c8876564f0fed296e55a9369ba	2026-10-23T23:45:02+07:00	(none)	merge	yes	Đổi số migration RAG 0006→0007, 0007→0008; schema_migrations theo TÊN tệp ⇒ dòng tên cũ ở lại (đọc --cc migrate_test); E8; 2 parents; 0f +0/-0
+422f5ea50d31b476be3e705a50d38788c4ff7925	2026-10-24T09:30:43+07:00	core/contracts,core/pipeline,intelligence/rag,observability/traces	rag	no	E8; nhánh phụ (gộp bằng merge thường); 10f +303/-14
+11115146505f4eb154b4f1cae5ac639d1650dbca	2026-10-24T09:30:43+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 2f +20/-2
+089b7090bdc8689b76ff2b96bec67ec59006d403	2026-10-24T10:09:19+07:00	core/contracts,core/pipeline,intelligence/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 6f +310/-1
+0c4b5d2dd774771a498c3ff5a0406b753984bbcc	2026-10-24T10:09:19+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 2f +6/-3
+833fae7a1f3e84bad367e1b03849937e20f8928b	2026-10-24T10:36:04+07:00	intelligence/rag	rag	no	E8; nhánh phụ (gộp bằng merge thường); 2f +205/-2
+3733fe1848c0c9b07d29fd2ccbe5cb397162b5f2	2026-10-24T10:36:04+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +15/-1
+cf0de8fb67aed02c3e472712ef95d52c87c13542	2026-10-24T11:09:28+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +1/-1
+ed7d0eed86d0eb1e6dc5593d6103622031c179c5	2026-10-24T11:09:28+07:00	docs/CHO	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +1/-0
+056f5d2fea153343c48ac3b8df308d5a713c8db4	2026-10-24T11:09:28+07:00	docs	docs	no	E8; nhánh phụ (gộp bằng merge thường); 1f +293/-28
+5ea3ae3e9cb4396e3e3fbefbb8506f9f0bfa1576	2026-10-24T11:10:25+07:00	(none)	merge	yes	Gộp rag/0-viec (D-RAG-01): --cc rỗng (không giải xung đột tay); E8; 2 parents; 0f +0/-0
+28ec0f8a61a86f4cce50e714d634d06fda0b7e81	2026-10-24T11:28:25+07:00	core/pipeline,tenants/construction	behavior	yes	Móc IntentFallback S4 (nil = tắt) + KnowledgeProbe B1 (đọc diff ask.go); E7; 3f +165/-0
+b746b5440c8ca474c36b21d0ade725b26d5f96e8	2026-10-24T11:28:25+07:00	evals/rag	rag	no	E8; 1f +300/-0
+cfe190f7697793109d4d5941b2cd1cf673eafa2a	2026-10-24T11:42:23+07:00	config,intelligence/models	behavior	no	E8; 4f +198/-1
+8a9d3a79dd263e067c0d1f410360fdda4dbe2cd0	2026-10-24T11:42:23+07:00	evals/rag	rag	no	E8; 2f +422/-5
+6d2b3299f288332bfabcae3968bfb0e5889c6b20	2026-10-24T11:48:11+07:00	core/pipeline,tenants/construction	behavior	no	E7; 2f +20/-4
+5b75f990207a0b856847895b68aee6350c19fb90	2026-10-24T11:51:15+07:00	evals/rag	rag	no	E8; 1f +27/-0
+e92351756bb2f2853ca16baa70c0605f3cda8ed0	2026-10-24T11:51:15+07:00	docs,docs/CHO	docs	no	E8; 4f +90/-5
+5c0431d3b3069db00f8f6fa3237b0537897e1d92	2026-10-24T12:21:58+07:00	core/contracts,core/pipeline,intelligence/router,tenants/construction	behavior	no	E7; 6f +128/-52
+1728336084f2d29bc8b6c9583863dc6b4efdd923	2026-10-24T12:21:58+07:00	intelligence/models	behavior	no	E8; 2f +40/-2
+72b64d1207976bc37fecb70f5dc279c2a60dc339	2026-10-24T12:21:58+07:00	evals/rag	rag	no	E8; 2f +97/-26
+9352182cc608dfe630e70b5ec1d9280d31202bef	2026-10-24T12:21:58+07:00	docs,docs/CHO	docs	no	E8; 3f +34/-10
+9b9ab069ee5f2486e0408d5b705ff1909bbb08c9	2026-10-24T12:24:08+07:00	docs/CHO	docs	no	E11; 1f +1/-0
+41d8a3fe544509fffd824a297a5e97b91c4aa0e1	2026-10-24T12:31:29+07:00	docs	docs	no	E11; 2f +42/-0
+ab027f03f52058941ab5bafe5ea0e8f6e81a0dca	2026-10-23T10:10:10+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 2f +28/-2
+8c432487b2bb882819debbedee346487a4c5d51c	2026-10-23T10:10:21+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 2f +32/-5
+799c434b47463d8db9fe9e0584efb4ae26488382	2026-10-23T11:09:24+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 2f +98/-10
+3ce9ad1a8d156547237076b8320d6d4cdb830e2a	2026-10-23T11:52:51+07:00	observability/traces	test	no	E7; nhánh phụ (gộp bằng merge thường); 1f +21/-0
+753e9fe2865335eb5c93810f471c2f326093e7fa	2026-10-23T11:52:51+07:00	scripts/mutation	test	no	E7; nhánh phụ (gộp bằng merge thường); 1f +13/-3
+c39a86a4423b5c47333015e09d3efcfc3a47174e	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +7/-2
+14f93807d82b1e94426c369ba739fb08a2fef51a	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +3/-1
+6829b44d6daf3cdb3101892480d66c0a1ff4f080	2026-10-23T15:02:29+07:00	observability/traces,scripts/mutation	security	no	E7; nhánh phụ (gộp bằng merge thường); 3f +33/-9
+51292cca59b432872a827828120fac819c65712e	2026-10-23T15:04:02+07:00	observability/traces,scripts/mutation	test	no	E7; nhánh phụ (gộp bằng merge thường); 2f +23/-0
+b1fe946efcbbff2a91b178053fce92827104ad6c	2026-10-23T15:04:47+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +4/-1
+f8d5f7ee19a237bc451dc5d191065d4a11b89f34	2026-10-23T15:52:23+07:00	observability/traces,scripts/mutation	security	no	E7; nhánh phụ (gộp bằng merge thường); 3f +86/-22
+46f97bbfc56ae0ed6e7824f73954b2853a77d3de	2026-10-23T15:53:08+07:00	observability/traces	test	no	E7; nhánh phụ (gộp bằng merge thường); 1f +30/-0
+ff59136b1286d319ad5abf9e79334b8773c0f43a	2026-10-23T15:53:47+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +10/-3
+88b936757dbdbec3847e10604d1c82a35397ffca	2026-10-23T15:54:03+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +3/-2
+351308acd00e4874276ce260c42dccdb71b1484a	2026-10-23T15:54:17+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 1f +2/-1
+18637d0657223f26505185937112da2f6418c9a9	2026-10-23T17:22:44+07:00	observability/traces,scripts/mutation	security	yes	Sanitize hợp vùng che tuần tự — "không bao giờ che ít hơn main"; vòng 4 của 5a; E7; nhánh phụ (gộp bằng merge thường); 3f +142/-6
+6d6802a9cecb7606554d816fe46bf70a44616c22	2026-10-23T17:24:08+07:00	observability/traces,scripts/mutation	test	no	E7; nhánh phụ (gộp bằng merge thường); 2f +3/-0
+c81b9fb5b70a3512aeb66ed8db8a0072242ecde5	2026-10-23T17:24:19+07:00	observability/traces	security	no	E7; nhánh phụ (gộp bằng merge thường); 2f +16/-1
+4eb69a7bd31601b5bdc9b5380b69848194496cea	2026-10-24T12:31:42+07:00	(none)	merge	yes	Gộp m1/gop-5a-v5: --cc rỗng; E11; 2 parents; 0f +0/-0
+0d8ca70f7807e3ecf79e4e93504e0c4da79ab4fb	2026-10-23T15:39:14+07:00	db/migrations,platform/pgstore	data-semantics	no	E7; dup-patch-of b4da74da; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 6f +561/-11
+23df39208ef6371408145333704e6e650f5ed893	2026-10-23T15:41:08+07:00	cmd/eais	behavior	no	E7; dup-patch-of 0dfaaa4f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 6f +449/-24
+d9b7f5cc8733ffbd0487cce9e352670b204e7826	2026-10-23T15:56:50+07:00	docs,scripts/mutation	data-semantics	no	E7; dup-patch-of fb025c9f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +78/-2
+0e63d5db756722794fda15d56979b05c6531ddd3	2026-10-23T16:00:25+07:00	docs	docs	no	E7; dup-patch-of eb885445; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +2/-2
+7cc8b35918536795f5003fbe66a7b8110869f316	2026-10-23T10:19:21+07:00	platform/pgstore	security	no	E7; dup-patch-of b0ed763a; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +135/-4
+995cab073344462a33c6043b8e7223e99dbc41fe	2026-10-23T11:54:57+07:00	core/pipeline,tenants/construction	behavior	no	E7; dup-patch-of 973726aa; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +26/-0
+9da45c3dc6a5097e578b28743d59e61262e782f5	2026-10-23T11:56:31+07:00	core/pipeline,observability/traces,tenants/construction	security	no	E7; dup-patch-of 9cbbc2a7; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +33/-3
+7b290e769f3877e71a0717787377bf9a5f7340cc	2026-10-23T11:58:06+07:00	docs/adr,intelligence/router	test	no	E7; dup-patch-of b865a4c7; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +35/-0
+1132145c512542cdf575200c57c5bba6d342feef	2026-10-23T12:01:13+07:00	core/pipeline	behavior	no	E7; dup-patch-of ff2802db; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +114/-10
+7e63ae453e7c4d07027c3cc8b841a391fe0326e2	2026-10-23T11:28:48+07:00	cmd/eais,tenants/construction/pack	behavior	no	E6; dup-patch-of ae59a370; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +205/-3
+0dba01eac452cb95b7087e5c425c364ab863cc1f	2026-10-23T11:31:05+07:00	execution/commands,observability/traces	behavior	no	E6; dup-patch-of d9dbfafc; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +379/-2
+3c5d66a3161e28816d125abfbf656503e9670ea6	2026-10-23T11:36:26+07:00	cmd/eais	behavior	no	E6; dup-patch-of 2ec293dd; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +749/-0
+6b0671a073536f5e211a3daba06800a0e602e04c	2026-10-23T11:37:36+07:00	cmd/eais,docs,docs/adr	behavior	no	E6; dup-patch-of cd5134ee; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +61/-3
+cfe9f8d061b8ac69a0ae8510a99227d8f339b635	2026-10-23T11:38:07+07:00	platform/pgstore	behavior	no	E6; dup-patch-of 003b8256; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +72/-1
+6edc10c8039110badfd14756b35b6f7139b7df9f	2026-10-23T11:42:48+07:00	docs,docs/adr	docs	no	E6; dup-patch-of 25f7b643; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +4/-2
+1a56f9ba171f20a0aba15c479f961e832a7bd75a	2026-10-23T11:43:27+07:00	execution/commands	test	no	E6; dup-patch-of a0824433; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +12/-0
+abef78bb8ea04fbd553ccdfa4404dbd327d809a6	2026-10-23T11:35:33+07:00	execution/commands	behavior	no	E6; dup-patch-of cd20f25f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +12/-6
+39bec56c7ebecff33a6554aa0bd3946d7b01eecf	2026-10-23T11:37:24+07:00	docs,execution/commands	behavior	no	E6; dup-patch-of ef7d69c9; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +71/-7
+ac366d44e83b22712ca03d67e8ddec51f61a27d6	2026-10-23T11:39:56+07:00	execution/commands	behavior	no	E6; dup-patch-of 9ee91cde; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +73/-4
+5ce31dd83f817bba7bcb0f82a781551053160d9f	2026-10-23T11:43:10+07:00	db/migrations,execution/commands,platform/pgstore	security	no	E6; dup-patch-of 7ac18a34; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 5f +72/-9
+89c378767b0a6e83aa8f65fff747555624c654ce	2026-10-23T11:44:41+07:00	db/migrations,execution/commands	security	no	E6; dup-patch-of 0fe4e8d3; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +68/-0
+a845db0ed0b790c347374522d151cba720310823	2026-10-23T11:45:52+07:00	execution/commands	test	no	E6; dup-patch-of bd7f3c17; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +96/-0
+16584dd89c02ef990c09ad5e7300894ef41e38e6	2026-10-23T11:47:43+07:00	execution/commands	behavior	no	E6; dup-patch-of d347f554; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +19/-3
+a4fcf5b1743728462324bc349aa68c742fc5135d	2026-10-23T12:31:41+07:00	execution/commands	behavior	no	E6; dup-patch-of d780f643; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +13/-3
+13170ef511bb8bc707995a8533ca2bb7efce8617	2026-10-23T12:32:33+07:00	execution/commands	test	no	E6; dup-patch-of 6583533f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +17/-3
+5b473a08a3db1ac928321ee61ffcf1e278019536	2026-10-23T12:33:21+07:00	execution/commands	behavior	no	E6; dup-patch-of 4b544caa; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +43/-1
+91e8b62a5c92d576014cc8050a1f9e56f2268a6b	2026-10-23T12:33:50+07:00	execution/commands	test	no	E6; dup-patch-of beb98f6f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-0
+0425a5f38f7579e73667f0c754bbe2f08d024f93	2026-10-23T12:34:21+07:00	db/migrations	security	no	E6; dup-patch-of d0204a13; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +7/-2
+4baf6c8a1caf4fc01238bfa129cc0bab43ca52fe	2026-10-23T12:34:21+07:00	db/migrations	security	no	E6; dup-patch-of 303c6386; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +7/-0
+7776b320cbd5d9e17721de9050ca6c2d7198f454	2026-10-23T12:39:09+07:00	docs,execution/commands	behavior	no	E6; dup-patch-of d46562e6; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +13/-6
+213520ab048a9786841672653972ed6bc27e4957	2026-10-23T12:39:29+07:00	docs	docs	no	E6; dup-patch-of ea30c3cf; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +2/-2
+b1eb150efa042942ec963d0ce68457d4f20c3f35	2026-10-23T14:38:37+07:00	data/normalization,tenants/construction/win	data-semantics	no	Bản sao patch của a8085fb trên nhánh m5 (ghi nhận -s ours); E7; dup-patch-of a8085fbc; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 5f +74/-4
+2484ad17ccf6b22a6ccaf7726eda2fd105b707f0	2026-10-23T10:10:10+07:00	observability/traces	security	no	E7; dup-patch-of ab027f03; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +28/-2
+208493d7874e36e7c22f0209b8fa942ddbab0d90	2026-10-23T10:10:21+07:00	observability/traces	security	no	E7; dup-patch-of 8c432487; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +32/-5
+c0a57006b5d68a195b5ab5a3a866b65d3822ded8	2026-10-23T11:09:24+07:00	observability/traces	security	no	E7; dup-patch-of 799c434b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +98/-10
+522c4bd3089231c19584e63a0d5db4f89625fc23	2026-10-23T11:52:51+07:00	observability/traces	test	no	E7; dup-patch-of 3ce9ad1a; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +21/-0
+c8efb54ab2f23783b483362147dc9ace628ecd59	2026-10-23T11:52:51+07:00	scripts/mutation	test	no	E7; dup-patch-of 753e9fe2; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +13/-3
+36e506f0a54e3549016b4fc496de8823d86f9467	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of c39a86a4; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +7/-2
+08da612279a17f6f4130d09faea4e7802d9d76f5	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of 14f93807; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-1
+040fa1601b8c3307f46904c81451f2345895d5f3	2026-10-23T15:02:29+07:00	observability/traces,scripts/mutation	security	no	E7; dup-patch-of 6829b44d; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +33/-9
+86c7d1d8c99b98c2bf53198baf765b0c63266697	2026-10-23T15:04:02+07:00	observability/traces,scripts/mutation	test	no	E7; dup-patch-of 51292cca; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +23/-0
+d669374051950ef48ecd74332e74fde6d9c22b9c	2026-10-23T15:04:47+07:00	observability/traces	security	no	E7; dup-patch-of b1fe946e; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +4/-1
+b15fb18697a147fd552098b9fd214733bf84ed54	2026-10-23T15:52:23+07:00	observability/traces,scripts/mutation	security	no	E7; dup-patch-of f8d5f7ee; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +86/-22
+8a045908d6af462cabd7cd4587a8d9a945c1ae6a	2026-10-23T15:53:08+07:00	observability/traces	test	no	E7; dup-patch-of 46f97bbf; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +30/-0
+6db34ae2e6e8715c90e6602d78c55b540f9d0f23	2026-10-23T15:53:47+07:00	observability/traces	security	no	E7; dup-patch-of ff59136b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +10/-3
+c8b4a936345bd5c411da8d99fdf25911402f51ab	2026-10-23T15:54:03+07:00	observability/traces	security	no	E7; dup-patch-of 88b93675; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-2
+90a1711da3aaa557f5e1cdd5f1bc99f0f6cd1d32	2026-10-23T15:54:17+07:00	observability/traces	security	no	E7; dup-patch-of 351308ac; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +2/-1
+f97ab5525448f8b844fa3d4d33f7ce421dd2f7c2	2026-10-23T10:10:10+07:00	observability/traces	security	no	E7; dup-patch-of ab027f03; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +28/-2
+4a37b0eb14b8690d1af8220e5c23594e24d7d247	2026-10-23T10:10:21+07:00	observability/traces	security	no	E7; dup-patch-of 8c432487; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +32/-5
+3cada7d0433ad28af41f2c87b8f28fc9ac5753bf	2026-10-23T11:09:24+07:00	observability/traces	security	no	E7; dup-patch-of 799c434b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +98/-10
+1885d9bd197ba4be0c8b2fc6dea455f2cb2eef79	2026-10-23T11:52:51+07:00	observability/traces	test	no	E7; dup-patch-of 3ce9ad1a; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +21/-0
+9f6c5a79c221dd71948771921ccf52c373bf1d9f	2026-10-23T11:52:51+07:00	scripts/mutation	test	no	E7; dup-patch-of 753e9fe2; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +13/-3
+d7c2332339cd3449325f4d984528c655c155a220	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of c39a86a4; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +7/-2
+91da332b91fb424805a6cc5d9cb7ac651dd8ad46	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of 14f93807; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-1
+056bd52ff24d9065c9b7a85ba427d511c21372b4	2026-10-23T15:02:29+07:00	observability/traces,scripts/mutation	security	no	E7; dup-patch-of 6829b44d; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +33/-9
+d0f67aab6a7905e6330a0b045e860a6ea45de9b6	2026-10-23T15:04:02+07:00	observability/traces,scripts/mutation	test	no	E7; dup-patch-of 51292cca; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +23/-0
+eb7d62ec9541f9af75db5d5f2c03baeda34dbcf8	2026-10-23T15:04:47+07:00	observability/traces	security	no	E7; dup-patch-of b1fe946e; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +4/-1
+19dd2c5eec6eb637fe226b7f16fd24eaf51fc4bb	2026-10-23T15:52:23+07:00	observability/traces,scripts/mutation	security	no	E7; dup-patch-of f8d5f7ee; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +86/-22
+c5ec54139163d9369b47201498dc858634f90a2b	2026-10-23T15:53:08+07:00	observability/traces	test	no	E7; dup-patch-of 46f97bbf; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +30/-0
+5b4965a3a3b4b3f63f4c0cbb969d9eb808807455	2026-10-23T15:53:47+07:00	observability/traces	security	no	E7; dup-patch-of ff59136b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +10/-3
+943dd9ad3109f5d65eea450eb6ac48553a7b0c04	2026-10-23T15:54:03+07:00	observability/traces	security	no	E7; dup-patch-of 88b93675; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-2
+1ca728833522cd7bfdd0bca0c4c4a16bfdee8cd3	2026-10-23T15:54:17+07:00	observability/traces	security	no	E7; dup-patch-of 351308ac; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +2/-1
+66e2ddb56ad60a01e074de8937e06e3306d79c1f	2026-10-23T10:10:10+07:00	observability/traces	security	no	E7; dup-patch-of ab027f03; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +28/-2
+86cc8ea2c84e55b09e003c876ce75f562a7693cc	2026-10-23T10:10:21+07:00	observability/traces	security	no	E7; dup-patch-of 8c432487; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +32/-5
+6efa69ba3240d79f72fa8be05f1f06c6c789367f	2026-10-23T11:04:55+07:00	scripts/mutation	test	no	E7; dup-patch-of 6e4acc64; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +212/-5
+59f49baf0b88d1754aa275738717fe9cf4c5a3d7	2026-10-23T10:19:21+07:00	platform/pgstore	security	no	E7; dup-patch-of b0ed763a; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 3f +135/-4
+96b9a2a44308419c348077ae050780e9b50bdba8	2026-10-23T11:14:44+07:00	platform/pgstore	behavior	no	E7; dup-patch-of 9db1bcc2; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +11/-2
+e1841f7c87e66ab490666f34387973b20c19e684	2026-10-23T11:16:35+07:00	platform/pgstore	behavior	no	E7; dup-patch-of db5bb02f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +31/-3
+5b24beada1a61d61b5bf1bac47ad5c9dd67654f6	2026-10-23T11:22:52+07:00	cmd/eais,platform/pgstore	behavior	no	E7; dup-patch-of edd0f78b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +42/-1
+322ced18beb359d904f73fb52f9a3297554a8c92	2026-10-23T11:23:50+07:00	cmd/eais,platform/pgstore	test	no	E7; dup-patch-of 88bda32f; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +28/-0
+0960f50126d6f91dbd574bb49fa88c49caa0e4b4	2026-10-23T11:23:50+07:00	platform/pgstore	behavior	no	E7; dup-patch-of 6fea37a3; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-2
+48020f0d807ff728963663be9dee326d2c5e03a1	2026-10-23T11:24:40+07:00	scripts/mutation	test	no	E7; dup-patch-of c14fe6c7; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +13/-4
+ab55ee56866997b1e6605fbb67e880c0e41b73f7	2026-10-23T11:31:10+07:00	scripts/mutation	test	no	E7; dup-patch-of ec9a62e6; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-1
+136ac31d9a79ce264a74785d74adf0b14a7fa610	2026-10-23T11:31:26+07:00	docs	docs	no	E7; dup-patch-of 31db01d4; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +2/-2
+cf5744fe13e16f19770c0cbc30941e0f7c80f71a	2026-10-23T11:32:04+07:00	scripts/mutation	test	no	E7; dup-patch-of 9cc4b789; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +28/-1
+355d91637a7f8de8166494c8b0d9d755a329f81f	2026-10-23T10:10:10+07:00	observability/traces	security	no	E7; dup-patch-of ab027f03; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +28/-2
+b48d583075e1cb27cc0345d20f17863a5e54c14b	2026-10-23T10:10:21+07:00	observability/traces	security	no	E7; dup-patch-of 8c432487; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +32/-5
+c0014a0f7f41b3e998e68500528573eb793a082e	2026-10-23T11:09:24+07:00	observability/traces	security	no	E7; dup-patch-of 799c434b; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +98/-10
+c2f3af33653aa0a29dcc93d8da4420340c0e7550	2026-10-23T11:52:51+07:00	observability/traces	test	no	E7; dup-patch-of 3ce9ad1a; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +21/-0
+49e195d9171eecb0f3d97fa06b35eb52be6cdd7e	2026-10-23T11:52:51+07:00	scripts/mutation	test	no	E7; dup-patch-of 753e9fe2; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +13/-3
+48376e3ae9d07e7bdda73dd0771619065c236cda	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of c39a86a4; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +7/-2
+486f24f1c420e942b15e0c9bfc83ca511cfbf9f1	2026-10-23T11:53:12+07:00	observability/traces	security	no	E7; dup-patch-of 14f93807; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 1f +3/-1
+839ffbd300032e248cc1524c14444ea82efd76a9	2026-10-23T10:25:31+07:00	scripts/mutation	test	no	E7; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 4f +187/-5
+4a08a1b8ae83a82f74f234bb7a65e2c964486cdd	2026-10-23T10:26:51+07:00	scripts/mutation	test	no	E7; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 2f +27/-2
+30660443ef286ad0d10417af6456f573ba510274	2026-10-21T05:13:22+07:00	core/pipeline,data/ingestion,data/normalization,docs,docs/CHO,scripts/mutation,tenants/construction	data-semantics	no	Thử nghiệm nhóm nghìn trên nhánh thu/; KHÔNG gộp nội dung, thay bởi D-OP-9 (a') 23/10; E2; nhánh ghi nhận -s ours ở 3d25add (cây không áp); 11f +155/-77
+3d25addeeb7d3cee824c3dacaa670fbe721ca443	2026-10-24T12:32:11+07:00	(none)	merge	yes	13 cha, -s ours: cây = cha 1 (đo); 82/85 commit nhánh có patch-id trong main, 3 không (839ffbd, 4a08a1b → nội dung có ở HEAD mutate.sh; 3066044 → thay bởi D-OP-9 a'); E11; 13 parents; 0f +0/-0
+4ac15e2e2f56dbc6c6d29bd411fadd63b7e17969	2026-10-23T16:28:35+07:00	core/pipeline,observability/traces	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 6f +321/-6
+c0ef5ab2e00067cd6903f90ecbefab328019d739	2026-10-23T16:31:11+07:00	core/pipeline,observability/traces	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 6f +313/-19
+04e1b424e4741d970c6a9a8afc45b8343f53d98c	2026-10-23T16:33:25+07:00	core/pipeline,observability/traces	behavior	no	nhánh phụ (gộp bằng merge thường); E8; 5f +283/-3
+5686f635270a43732ddf32e99d4a22ee83bbc08c	2026-10-23T16:34:49+07:00	core/pipeline,observability/traces	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 5f +118/-11
+1f7175a2eea399dcdba9878c1266e524430b9e3a	2026-10-23T16:36:22+07:00	core/pipeline,observability/traces,tenants/construction	test	no	E7; nhánh phụ (gộp bằng merge thường); 4f +111/-5
+8012c6f499086da4cbcef762736be7d0d344bca1	2026-10-23T16:41:02+07:00	observability/traces,scripts/mutation	test	no	E8; nhánh phụ (gộp bằng merge thường); 3f +97/-1
+ce528a19858ec6d85cb922b15a1aabbb8165098f	2026-10-23T16:45:14+07:00	observability/traces	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 1f +8/-4
+a201ac6af3da0284e25b9c4ca916006d89e9e97c	2026-10-23T16:54:11+07:00	scripts/mutation	test	no	E7; nhánh phụ (gộp bằng merge thường); 1f +2/-1
+9ce8aaa17ea8aeaef94fe2d4edf3c4117e740405	2026-10-23T16:55:19+07:00	core/pipeline,observability/traces,scripts/mutation	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 4f +41/-1
+81988eeca1c550a4443226f3c637811bbe9b0b68	2026-10-23T17:45:28+07:00	core/pipeline,scripts/mutation	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 3f +137/-2
+313040d7bd4dfa05853abc04178050523a1923b6	2026-10-23T17:50:35+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 5f +212/-9
+ce1fc5cd2aa3716798b685e62230c427992bf7c3	2026-10-23T17:54:14+07:00	core/pipeline,observability/traces,scripts/mutation	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 5f +186/-4
+ae38b3bd72a947c98a1414488a3e1c2d76c51eff	2026-10-23T17:56:16+07:00	core/pipeline,observability/traces,scripts/mutation	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 5f +73/-4
+298c0ff1ed5fb6f16ff2dbd4daef6dee803e7772	2026-10-23T17:58:46+07:00	observability/traces,scripts/mutation	test	no	E7; nhánh phụ (gộp bằng merge thường); 2f +82/-1
+1d48bd9e0577ac74baf25914fa432003ee5e9a04	2026-10-23T18:00:31+07:00	observability/traces	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 1f +5/-4
+d3a0c37e0b05000ad6c661c8396625c319dd4bff	2026-10-23T18:00:31+07:00	core/pipeline	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 2f +9/-2
+ec5eb20270262bc0a70047777ff99ad89915e6e1	2026-10-23T18:10:50+07:00	core/pipeline,scripts/mutation	behavior	no	E7; nhánh phụ (gộp bằng merge thường); 3f +32/-0
+893f6e7cfb0c584b31688e81c23510a428392088	2026-10-24T12:33:57+07:00	(none)	merge	no	Gộp m1/vet-s8-s10: --cc 3 tệp (ask.go, decision.go, step.go); E11; 2 parents; 0f +0/-0
+52d1d83937cb7756554d7201552ffcf43dcb69f5	2026-10-23T10:10:16+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 6f +54/-5
+57d2c37f6a77edf690b1228c605684df7a9f6ac5	2026-10-23T10:11:39+07:00	intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +104/-6
+1573b8fc805191ce253c98f1e1497c93a3a44c06	2026-10-23T10:16:52+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +250/-1
+730f237e9fa6002135bb8853daac9cb38544404b	2026-10-23T10:19:27+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +192/-18
+f384c5b65e9d58dcd7859fa2337b4e19595424a5	2026-10-23T10:22:14+07:00	intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +171/-14
+f5f8cde4c671b5a12d65c204101008ccdba1569b	2026-10-23T10:23:30+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +62/-3
+6ef2a9bde30f5e020cc82844c4bc377a3c410084	2026-10-23T10:27:30+07:00	core/pipeline,core/tenant,intelligence/intent,intelligence/router,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 9f +247/-4
+f33df45bc06d4ca3e011c12557580cbadeb5e887	2026-10-23T10:31:26+07:00	scripts/mutation	test	no	E9; nhánh phụ (gộp bằng merge thường); 1f +32/-30
+c7afacdef499511bf1b2d04f5487d9ca38e3cb4e	2026-10-23T10:33:41+07:00	docs/adr	docs	no	E9; nhánh phụ (gộp bằng merge thường); 1f +46/-0
+f5b6a83fbf7cafc041e47274875d10c21cab3121	2026-10-23T11:02:14+07:00	(none)	merge	no	E9; 2 parents; 0f +0/-0
+478b86d65c9ee6d84cfdbd15e86a8d98f04df73d	2026-10-23T11:12:20+07:00	intelligence/intent,observability/traces	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +39/-18
+281cecfefedc075861515a1e9ae20f6b1da57834	2026-10-23T11:15:44+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 3f +79/-2
+d0d351bee2f32676b8790ceb48e8dc84c4f9e59d	2026-10-23T11:20:33+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +193/-9
+d404ba49061d5a7dab2d017e87b5a064ec6981b3	2026-10-23T11:28:28+07:00	intelligence/intent,observability/traces,scripts/mutation,tenants/construction,tenants/construction/pack,tenants/construction/win	behavior	yes	S4AS-03: bỏ luật số cụm (hoà ⇒ hỏi lại); oracle test đảo; WIN-I-086 bỏ khỏi passing.txt (đọc diff test); E9; nhánh phụ (gộp bằng merge thường); 8f +225/-99
+68d0ec7fbcf02c3f5db5bfbf1f436be82a3244af	2026-10-23T11:30:34+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +84/-9
+b5aa57332ad191be7ead65e625603c76fb20fbd8	2026-10-23T11:32:27+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +55/-3
+d2c91113660833d6f42eeafe09f7fd0982199b60	2026-10-23T11:33:42+07:00	core/tenant,intelligence/intent,scripts/mutation	test	no	E9; nhánh phụ (gộp bằng merge thường); 3f +53/-0
+d8f29a1d4e6e82e83c0876993056fc75bc1277c1	2026-10-23T11:34:14+07:00	core/pipeline,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 3f +39/-4
+ddf4037d393c57aafd9e85e3834d932a84d665ed	2026-10-23T11:35:14+07:00	intelligence/intent	test	yes	Đổi TÊN test về như cũ để cổng so-theo-tên không thấy "mất" — nội dung (oracle) đã đổi ở d404ba4; E9; nhánh phụ (gộp bằng merge thường); 1f +1/-1
+2456d86bcb20dcf4bf92f30ec0032d65bb80c7c4	2026-10-23T11:42:59+07:00	scripts/mutation,tenants/construction	test	no	E9; nhánh phụ (gộp bằng merge thường); 2f +8/-10
+dccbbfaa0696e6d1b37dd7cbd4a7d1867ad633b3	2026-10-23T12:02:05+07:00	docs/adr,scripts/mutation	test	no	E9; nhánh phụ (gộp bằng merge thường); 2f +61/-3
+dc84cff09cc9ccfc8a0181c77a5f9263e910539b	2026-10-23T12:02:59+07:00	(none)	merge	no	E9; 2 parents; 0f +0/-0
+637d5f7c875d81936d5d2d0a298ef4066bce68f3	2026-10-23T12:38:05+07:00	(none)	merge	no	E9; 2 parents; 0f +0/-0
+3c94d79baa800e787c99113587a5166341489aac	2026-10-23T12:59:05+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack,tenants/construction/win	behavior	no	S4BS-01: WIN-I-086 trả về ratchet passing.txt; E9; nhánh phụ (gộp bằng merge thường); 6f +133/-12
+05348be2f85e6be87697a475f31b6c46811ff9a8	2026-10-23T13:01:18+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 4f +135/-10
+02ae8d09ad765885f241d9fda76c0aea81886b8e	2026-10-23T13:04:34+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +120/-6
+e832619f3fce62083efedbd2c31bb7757b38b190	2026-10-23T13:06:54+07:00	core/tenant,data/normalization,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	nhánh phụ (gộp bằng merge thường); E9; 7f +134/-15
+257008b3ab686aa4971c4acfc2f6984356e8a2be	2026-10-23T13:09:10+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +109/-12
+18a547971af19cc4599cbdbcc3141964f35809e2	2026-10-23T13:11:00+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +86/-13
+2e82b2697c31ed1f13fb0ac1be18381a8e32ce67	2026-10-23T13:17:36+07:00	intelligence/intent,scripts/mutation,tenants/construction	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 3f +39/-5
+38d915bdfb0cfb01ef68169a2a0ff604c8970f55	2026-10-23T13:21:26+07:00	scripts/mutation,tenants/construction	test	no	E9; nhánh phụ (gộp bằng merge thường); 2f +50/-27
+80012b765b18119be90f4db6f3ef4a0849df26d6	2026-10-23T13:35:29+07:00	scripts/mutation,tenants/construction	test	no	E9; nhánh phụ (gộp bằng merge thường); 2f +3/-3
+c5556c6199981df870a5014d36c8527a4463e096	2026-10-23T13:36:46+07:00	docs/adr	docs	no	E9; nhánh phụ (gộp bằng merge thường); 1f +57/-0
+78685985817f47c6fdd3ca0bd407f17cca1a2722	2026-10-23T13:37:40+07:00	(none)	merge	no	E9; 2 parents; 0f +0/-0
+e6e335ca5fdf15bd3a857408026dcad9edee0e3a	2026-10-24T12:44:13+07:00	(none)	merge	yes	Gộp S4: --cc 4 tệp; SỬA KỲ VỌNG test trong merge (vet_du_chat, du_phong_s4: "mấy tiếng" rời tập được trả lời) — hồi quy, sửa ở b7ec80e; E11; 2 parents; 0f +0/-0
+81e92d482e7bb57738e2adf424b62bb2271bd35f	2026-10-22T15:05:39+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	eval	no	E9; nhánh phụ (gộp bằng merge thường); 5f +97/-20
+9e1be9fe12c9af9d84f9a24d2158dbe418dcd2b4	2026-10-22T16:08:43+07:00	core/tenant,intelligence/intent,scripts/mutation,tenants/construction,tenants/construction/pack	behavior	no	E9; nhánh phụ (gộp bằng merge thường); 5f +73/-42
+86031b8ec446393438a6e982bce4ca5b49230237	2026-10-22T16:18:11+07:00	scripts/mutation	test	no	E9; nhánh phụ (gộp bằng merge thường); 1f +8/-6
+fbad52447728d9e30616ed3ce1974906aa2d01ec	2026-10-24T12:47:27+07:00	(none)	merge	no	Gộp lead/no-s4-sau-h4 (3 commit WIP): --cc 2 tệp; E11; 2 parents; 0f +0/-0
+2bae0aef2223eadd5de79742eedeb8ea4d6d4fde	2026-10-23T11:22:18+07:00	execution/reports	architecture	no	E10; nhánh phụ (gộp bằng merge thường); 10f +1820/-0
+50ed62af2b4401470e4f76975d64f672574839b3	2026-10-23T11:24:23+07:00	execution/reports	data-semantics	no	E10; nhánh phụ (gộp bằng merge thường); 4f +558/-5
+3b2dd1308f62640d3263e5e21e54126c44e482a3	2026-10-23T15:31:17+07:00	(none)	merge	no	E10; 2 parents; 0f +0/-0
+3540ac961f69075878b1f1d190fc4327061ccfe5	2026-10-23T15:50:25+07:00	execution/reports	test	no	E10; nhánh phụ (gộp bằng merge thường); 2f +1614/-0
+440317eedf16bf0e47e1c109422307454edc36b2	2026-10-23T15:56:40+07:00	execution/reports	behavior	no	E10; nhánh phụ (gộp bằng merge thường); 6f +847/-30
+353da59126a69fb0dbb6c8e7b646f768236357ac	2026-10-23T16:00:55+07:00	execution/reports	test	no	nhánh phụ (gộp bằng merge thường); E10; 3f +788/-0
+d6f35f79233196aaee6fb4092757ac71afc0efd2	2026-10-23T16:04:50+07:00	db/migrations,execution/reports,platform/pgstore	architecture	no	E10; nhánh phụ (gộp bằng merge thường); 6f +614/-24
+3b0c57a9456907dd30ca2e1067632aafe0104d8f	2026-10-23T16:05:32+07:00	(none)	merge	no	E10; 2 parents; 0f +0/-0
+1a7d48994c5eb2ea4e3dd28aa5825b24101801a7	2026-10-23T16:09:04+07:00	execution/reports	test	no	E10; nhánh phụ (gộp bằng merge thường); 4f +161/-4
+5a8ee0432a5ce522156872950744aecbc06d1395	2026-10-23T16:24:14+07:00	execution/reports,scripts/mutation	behavior	no	E10; nhánh phụ (gộp bằng merge thường); 5f +388/-8
+a3d11ef91c5883cd62535beaf3baf48c8c50c72d	2026-10-23T16:35:46+07:00	scripts/mutation	test	no	E10; nhánh phụ (gộp bằng merge thường); 1f +6/-1
+ca73f2563eb75b1dd925fa7a4c478a5da93bf3e6	2026-10-23T16:39:22+07:00	execution/reports	test	no	E10; nhánh phụ (gộp bằng merge thường); 1f +176/-0
+71c6b451f4c0d7a257e85e41077e589349c5f81b	2026-10-24T12:49:24+07:00	(none)	merge	yes	Gộp 0a: ĐỔI SỐ migration 0006_kho_bao_cao_ngay→0009 TRONG merge; DB dev đã áp bản nhánh phải dựng lại; E11; 2 parents; 0f +0/-0
+08716311f636c4c1ddeab9e376b20770ec548a78	2026-10-22T16:20:32+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +128/-70
+daf6366a77f0cb18642f2b7327a38220e619e7c8	2026-10-22T16:24:12+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +3/-3
+7279acf7eb7ee55de0418ab53e7fbfb9f1317efb	2026-10-22T16:24:12+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +8/-7
+90a9ca67befcd0be7ca3f7f1affad199840afc88	2026-10-22T16:24:12+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +37/-16
+251ce9d9486c3c224acdccd8d7c17c1544c6d1e1	2026-10-22T16:25:25+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +2/-2
+23dd4cc501ba601f6102a64ab66fde347a310688	2026-10-22T17:46:40+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +176/-100
+d8b967fd860683760bcd581c55c2a53052f94e87	2026-10-22T17:48:14+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +91/-21
+7470e8e586c50ab53d9033043ee4c29ba07394a2	2026-10-22T17:48:14+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +6/-3
+5353f9d4eb0432b11de187962a2c1d2e40e5c36e	2026-10-22T17:48:55+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +1/-1
+112c2108c5e17d1984c37ac37404677dae279e83	2026-10-22T17:49:27+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +3/-3
+63aa64c23dfc7d74b13162465bdf00245b5dbf19	2026-10-22T17:49:52+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +2/-0
+ca9df1ec1b851b4f843f8cd1df2d005b1aedbcc5	2026-10-22T17:50:48+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +2/-2
+508fa4341a4a632760a8eb6b9f038919f194c8d7	2026-10-22T17:51:12+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +2/-2
+6fc5cf18878a1df0b4f3409d203684696aa15c94	2026-10-22T18:41:52+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +6/-5
+d8e74b7527a8bec2c804109e8adbeeaa2e5e9a26	2026-10-22T18:42:58+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +7/-3
+11a09a236c6fafb82160b3dfa9e1e8a395c8b2a3	2026-10-22T18:44:10+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +2/-1
+9ce76ea65e0164816a4b2efea367396b31915362	2026-10-22T18:46:18+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +11/-7
+72e5f687d0233c17723aa310776fa6c460984703	2026-10-22T18:49:08+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +28/-14
+26588db0956014a1d7763ae6c27fe45a5daebc74	2026-10-22T18:49:37+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +4/-3
+98373be00e9640d672b567b1670a1fcbead2f017	2026-10-22T18:54:13+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +7/-3
+e90474c76223e068520052fd62430d8c47e2dc9e	2026-10-22T18:54:13+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +1/-1
+90c6589d51e270adfba72c25472232b27273d1c9	2026-10-22T18:55:54+07:00	docs,docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 2f +3/-3
+5d24551087b81687ab84c66ffdf3ca3d6289ece8	2026-10-22T19:52:12+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +29/-22
+270366306f2ca8c0397dec25dc2e9a3aa37b1b93	2026-10-22T19:52:12+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +21/-14
+2eda90fa4a42bc35592e44f559f2a8d357341c4b	2026-10-22T19:52:12+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +4/-3
+dd049f504daf0a27fe4bc58d9ac4bb17503dc7ab	2026-10-22T20:42:32+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +22/-17
+b06be27c27516b605f8892d03742cb61bc70c5d2	2026-10-22T20:42:32+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +15/-10
+ea51e15765e35dc2ef011b8786fa61979a082d2b	2026-10-22T20:42:32+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +3/-2
+811aff960c20dbe9185c74c2a60e700a6e80fe91	2026-10-23T09:34:09+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +25/-23
+0671bb4a0505c3e20818964e82cf9565ef72e834	2026-10-23T09:34:09+07:00	docs/adr	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +15/-11
+e747ed64e93886765ef8abfbc05dacba0d650506	2026-10-23T09:34:09+07:00	docs	docs	no	E10; nhánh phụ (gộp bằng merge thường); 1f +3/-2
+94882aebfddac97d48a3f79c9aa4e4479599f7ff	2026-10-24T12:50:21+07:00	(none)	merge	no	Gộp 0a vòng 7: giữ giấy vòng 6, bản vòng 7 vào nhap-vong-7/ 'KHÔNG CÓ HIỆU LỰC'; E11; 2 parents; 0f +0/-0
+35cf137f0a97bda4a2fd5288a9c21aa2e26d93ca	2026-10-24T12:59:20+07:00	docs,docs/CHO,scripts	ops	yes	D-RAG-05 + scripts/cong/so_ten.py: so test theo TÊN + trạng thái, không so nội dung kỳ vọng; E11; 7f +174/-0
+b7ec80ec69884975a6a5b3943d9e71b2578ea8f0	2026-10-24T13:22:01+07:00	core/pipeline,data/normalization,intelligence/intent,observability/traces,tenants/construction	behavior	yes	Sửa giao nhau sau gộp: 'mấy tiếng' về lại tập được trả lời; vết lối ra RAG ở S8/S10 (đọc diff test); E11; 8f +213/-30
+4fe8e0ba269285aafdb2a5d9b1b400eae2c8988f	2026-10-24T13:22:01+07:00	observability/traces,scripts/mutation	test	no	Kiểm Why phủ mọi chặng (trước thiếu S6/S8/S10); neo đột biến sau gộp; E11; 4f +36/-8
+e8e35b5f0118e5b8a3f5f79bed6a07e25a89f023	2026-10-24T13:29:14+07:00	docs,docs/CHO,tenants/construction/pack	docs	no	6f +122/-12; E11
+3f1bf7ec9625262e5950f2427e0535990c35c832	2026-10-24T13:30:47+07:00	docs	docs	yes	HEAD: 2398 test theo tên (2395 pass, 3 skip), 0 mất/0 đổi; H1/H3/H4 là bộ đã công bố; E11; 2f +4/-4

@@ -423,3 +423,10 @@ H1 / H3 / H4), dòng đột biến ở `scripts/dot-bien/n45-y-dinh-s4.sh`. Hế
 - **S4BS-05 (iii) phần từ khoá**: từ khoá của chỉ số bị phủ định / phụ ("… không phải số kho xuất, …", "đội trưởng chưa báo") vẫn hoà ⇒ hỏi lại (an toàn); vòng này chỉ xử lý cụm báo nghĩa và đoạn mục đích.
 - **S4BS-06 giới hạn**: bí danh "hóa đơn" (dấu khác "hoá đơn") chưa là bí danh nguồn ở `metrics.yaml` nên "Hóa đơn báo …" vẫn hoà; "Báo em số dầu cảm biến đo được của …" ("báo" là mệnh lệnh) hỏi lại. "Nhận xét định mức tiêu thụ 3782 L …" ("định mức" là danh từ, cụm hỏi lượng của pack) trả số tiêu thụ không nhãn.
 - Câu "không ca nào còn sai nghĩa không nhãn ở S4" chỉ đúng trong phạm vi đã đo: H4 và bộ phát triển 232 câu của tác giả (còn 1 câu sai nghĩa không nhãn: "Nhận xét định mức tiêu thụ …"); nhóm chưa thấy ngoài bộ (tiên lượng, "có ổn không", xăng, "4 củ") còn sai. H6 độc lập chưa chạy.
+
+## Ghi chú trạng thái 24/10/2026 (thêm sau, không sửa lời trên)
+
+Dòng "Trạng thái: ĐỀ XUẤT, chưa áp mã" ở đầu tệp đã lỗi thời. Mã vòng sửa S4 theo ADR này **đã ở main**: gộp `e6e335c` (24/10, D-RAG-05)
+ở trạng thái KHOÁ sau vòng 3, kèm nợ S4CS-01…04 — tức hồi quy S4CS-02 đã biết cũng vào main (F-001 của báo cáo audit
+`docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md`, tái hiện 7/7). Sửa hẹp S4CS-02 (D-AI-05) đang làm ở lát L2 của đợt vNext. H6 (bộ chấm
+độc lập của vòng này) **chưa chạy**: BLOCKED vì tệp ca H6 không có trên máy thi công.

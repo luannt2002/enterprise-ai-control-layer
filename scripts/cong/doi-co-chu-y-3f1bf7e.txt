@@ -44,3 +44,5 @@ TestRetrievePhamViKhongLo chỉ mục được đưa luật phạm vi theo thu�
 TestRetrievePhamViTheoTungBan chỉ mục được đưa luật phạm vi theo thuộc tính (trước dựa nhánh dự phòng đã bỏ); kỳ vọng giữ nguyên — Q11, F-031
 TestLaiPhamVi chỉ mục được đưa luật phạm vi theo thuộc tính (trước dựa nhánh dự phòng đã bỏ); kỳ vọng giữ nguyên — Q11, F-031
 TestPhamViQuaPG hai ca theo thuộc tính tự đưa luật phạm vi; thêm ca "không luật phạm vi thì tài liệu có phạm vi đóng" — Q11, F-031
+# Lát dọn mã (F-015, phần còn sót của L4): cổng "không có đường gọi model thật" của cmd/eais so chuỗi cấm theo GIAO THỨC thay tên hãng.
+TestKhongCoDuongGoiModelThat chuỗi cấm theo giao thức (EAIS_MODEL, _API_KEY, /v1/messages, /chat/completions) thay tên hãng / miền của hãng; phép kiểm khác giữ nguyên — F-015, dọn mã

@@ -8,7 +8,8 @@
 - token vào = ký tự / (ký tự mỗi token): tối thiểu 3,0 · kỳ vọng 2,5 · xấu nhất 1,5;
 - token ra mỗi lời gọi: tối thiểu 50 · kỳ vọng 150 · xấu nhất = max_tokens (trần cứng của API, gồm cả
   thinking nếu có).
-Giá Sonnet 5.5 (Pricing chính thức, tra 20/10/2026): vào 2 USD, ra 10 USD mỗi triệu token.
+Giá USD / triệu token (vào, ra) của model hợp đồng: EAIS_G7_MODEL tra trong EAIS_G7_PRICES (.env, cùng dạng
+"model=vào/ra;…" của g7run; giá tra trang Pricing chính thức, docs/g7/CHI-PHI-G7.md mục 5). Thiếu hay sai thì dừng, không dự toán.
 Pilot chạy k = 5 (ADR-0006 §6); lượt chính tính cả k = 3 và k = 5. Hệ cổng: EAIS, B1, B2+;
 chỉ báo cáo: B2, B2″, B2-oracle.
 Trần 15 USD là của TOÀN BỘ G7 (hợp đồng §9): cờ vượt trần xét cả tổng hệ cổng, tổng mọi hệ được chạy, và tổng
@@ -17,9 +18,11 @@ kết luận vì R0 đòi k ≥ 3, lẻ) — bản soát lượt 2, C-17; soát 
 """
 import argparse
 import json
+import math
+import os
+import sys
 from pathlib import Path
 
-PRICE_IN, PRICE_OUT = 2.0, 10.0  # USD / triệu token, claude-sonnet-5-5
 SCEN = {"tối thiểu": (3.0, 50), "kỳ vọng": (2.5, 150), "xấu nhất": (1.5, None)}  # None = max_tokens
 GATE = ["eais", "b1", "b2plus"]
 REPORT = ["b2", "b2pp", "b2oracle"]
@@ -44,10 +47,31 @@ def measure(d):
     return calls, chars, max_tok
 
 
-def cost(calls, chars, k, cpt, out_per_call):
+def price():
+    """(vào, ra) USD / triệu token của EAIS_G7_MODEL trong EAIS_G7_PRICES; luật đọc như priceTable của g7run."""
+    model, table = os.environ.get("EAIS_G7_MODEL", "").strip(), {}
+    for i, part in enumerate(os.environ.get("EAIS_G7_PRICES", "").split(";"), 1):
+        if not part.strip():
+            continue
+        name, ok, pr = part.partition("=")
+        tin, ok2, tout = pr.partition("/")
+        name = name.strip()
+        try:
+            a, b = float(tin), float(tout)
+        except ValueError:
+            a = b = math.nan
+        if not ok or not ok2 or not name or name in table or not (a >= 0 and b >= 0) or math.isinf(a) or math.isinf(b):
+            sys.exit(f"EAIS_G7_PRICES mục thứ {i}: phải là model=giá vào/giá ra (USD / triệu token, số không âm), model không trùng")
+        table[name] = (a, b)
+    if not model or model not in table:
+        sys.exit("chưa có giá của model hợp đồng: đặt EAIS_G7_MODEL và giá của nó trong EAIS_G7_PRICES (.env)")
+    return table[model]
+
+
+def cost(calls, chars, k, cpt, out_per_call, pr):
     tin = chars / cpt * k
     tout = calls * out_per_call * k
-    return tin, tout, (tin * PRICE_IN + tout * PRICE_OUT) / 1e6
+    return tin, tout, (tin * pr[0] + tout * pr[1]) / 1e6
 
 
 def main():
@@ -57,6 +81,7 @@ def main():
     ap.add_argument("--cap", type=float, default=15.0)
     ap.add_argument("--pilot-cases", type=int, default=16, help="số ca của pilot, để suy chi phí thử khói 3 ca")
     a = ap.parse_args()
+    pr = price()
     pc, pch, mt = measure(a.pilot)
     mc, mch, _ = measure(a.main)
     systems = [s for s in GATE + REPORT if s in pc or s in mc]
@@ -77,13 +102,13 @@ def main():
             opc = opc if opc is not None else mt
             row, gate_total, all_total, spare, spare_gate = [], 0.0, 0.0, 0.0, 0.0
             for s in systems:
-                _, _, p = cost(pc.get(s, 0), pch.get(s, 0), 5, cpt, opc)
-                _, _, m = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc)
+                _, _, p = cost(pc.get(s, 0), pch.get(s, 0), 5, cpt, opc, pr)
+                _, _, m = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc, pr)
                 row.append(f"{p + m:.2f}")
                 # dự phòng: thử khói 3 ca (theo trung bình mỗi ca của pilot) + chạy lại trọn lượt chính cùng k
                 n_pilot = max(1, a.pilot_cases)
-                _, _, sm = cost(pc.get(s, 0) * 3 / n_pilot, pch.get(s, 0) * 3 / n_pilot, 1, cpt, opc)
-                _, _, rr = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc)
+                _, _, sm = cost(pc.get(s, 0) * 3 / n_pilot, pch.get(s, 0) * 3 / n_pilot, 1, cpt, opc, pr)
+                _, _, rr = cost(mc.get(s, 0), mch.get(s, 0), km, cpt, opc, pr)
                 spare += sm + rr
                 if s in GATE:
                     spare_gate += sm + rr

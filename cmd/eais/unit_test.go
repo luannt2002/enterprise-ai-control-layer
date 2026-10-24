@@ -197,15 +197,16 @@ func TestTenantSlug(t *testing.T) {
 }
 
 // CỔNG: ứng dụng này KHÔNG có đường gọi model trả tiền. Mã không-test của cmd/eais chỉ được dùng models.Extractive (và kiểu Gateway /
-// Request), không chuỗi nào nhắc biến môi trường hay địa chỉ của nhà cung cấp. Thêm đường gọi model thật vào đây là đổi luật chi tiền
-// (docs/PROMPT-BUILD-EAIS.md §9.3): phải đi qua cổng, không lẻn qua một cờ.
+// Request), không chuỗi nào nhắc biến môi trường của model thật, khoá API hay điểm cuối của giao thức model (mã chỉ biết giao thức, nên cổng
+// cũng chỉ so theo giao thức). Thêm đường gọi model thật vào đây là đổi luật chi tiền (docs/PROMPT-BUILD-EAIS.md §9.3): phải đi qua cổng,
+// không lẻn qua một cờ.
 func TestKhongCoDuongGoiModelThat(t *testing.T) {
 	files, err := filepath.Glob("*.go")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("không đọc được mã của cmd/eais: %v", err)
 	}
 	allowed := map[string]bool{"Extractive": true, "Gateway": true, "Request": true}
-	forbiddenText := []string{"EAIS_MODEL", "ANTHROPIC", "anthropic.com", "OPENAI", "api.openai"}
+	forbiddenText := []string{"EAIS_MODEL", "_API_KEY", "/v1/messages", "/chat/completions"}
 	sawExtractive := false
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {

@@ -408,10 +408,12 @@ func qualityGate(docs []Document) {
 		cols := map[string]int{}
 		var bad []string
 		last := -1
+		inTable := map[int]bool{} // dòng thuộc một bảng parseBody nhận (header, phân cách, hàng)
 		for _, it := range parseBody(d.Body) {
 			if !it.table {
 				continue
 			}
+			inTable[it.hseq], inTable[it.hseq+1], inTable[it.seq] = true, true, true
 			h := cells(it.header)
 			if it.hseq != last { // đếm cột một lần mỗi bảng, không theo số hàng
 				for _, c := range h {
@@ -441,6 +443,17 @@ func qualityGate(docs []Document) {
 		var why []string
 		if len(bad) > 0 {
 			why = append(why, fmt.Sprintf("bảng không đủ ô / số (%d chỗ): %s", len(bad), strings.Join(bad[:min(3, len(bad))], "; ")))
+		}
+		// Dòng "|" ngoài mọi bảng: bảng mất dòng phân cách / header — parseBody coi là dòng thường, hàng số đứng một mình không tên cột
+		// (CON-T-005). Bản đầu tiên chưa có mốc để so cột nên chỉ luật này bắt được (F-024).
+		var orphan []string
+		for n, l := range strings.Split(d.Body, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(l), "|") && !inTable[n] {
+				orphan = append(orphan, fmt.Sprintf("#%d", n))
+			}
+		}
+		if len(orphan) > 0 {
+			why = append(why, fmt.Sprintf("dòng bắt đầu bằng \"|\" không thuộc bảng nào — mất dòng phân cách / header (%d dòng): %s", len(orphan), strings.Join(orphan[:min(5, len(orphan))], ", ")))
 		}
 		var lost, stale []string
 		for c, n := range base {

@@ -43,3 +43,22 @@ func TestTepKhongChuBiGiu(t *testing.T) {
 		t.Fatalf("muốn 4 tài liệu, được %d", len(docs))
 	}
 }
+
+// Bảng mất dòng phân cách (hoặc mất header) ở bản ĐẦU TIÊN — chưa có mốc để so cột (F-024): các dòng "|" thành dòng thường, hàng số
+// không tên cột được phục vụ (CON-T-005). Cổng giữ lại kèm lý do; bảng lành không bị đụng.
+func TestBangMatPhanCachBanDauBiGiu(t *testing.T) {
+	ban := func(id, body string) string {
+		return "---\nid: " + id + "\nversion: 1\nstatus: approved\n---\n# Định mức " + id + "\n" + body
+	}
+	docs := napThu(t, map[string]string{
+		"mat-phan-cach.md": ban("MAT-PC", "| Loại máy | Định mức |\n| Máy ủi | 21 |\n"),
+		"mat-header.md":    ban("MAT-HD", "|---|---|\n| Máy ủi | 21 |\n"),
+		"lanh.md":          ban("LANH", "| Loại máy | Định mức |\n|---|---|\n| Máy ủi | 21 |\n"),
+	})
+	for _, d := range docs {
+		giu := d.Status == StatusNeedsReview && strings.Contains(d.Hold, "không thuộc bảng nào")
+		if want := d.ID != "LANH"; giu != want {
+			t.Errorf("%s: muốn bị giữ = %v, được %q / %q", d.ID, want, d.Status, d.Hold)
+		}
+	}
+}

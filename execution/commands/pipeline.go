@@ -566,8 +566,10 @@ func (r *run) permission(ctx context.Context) bool {
 	if !d.Policy.Allows(r.pr, d.Tool.Capability) {
 		return deny("thiếu capability " + d.Tool.Capability)
 	}
-	if !d.Policy.Allows(r.pr, CapMetricsRead) {
-		return deny("thiếu capability " + CapMetricsRead)
+	// Quyền và phạm vi do CÙNG một vai thoả (Q11): chỉ vai có cả capability của lệnh lẫn metrics.read được xét phạm vi bên dưới.
+	holders := d.Policy.Holding(d.Policy.Holding(r.pr, d.Tool.Capability), CapMetricsRead)
+	if len(holders.Roles) == 0 {
+		return deny("thiếu capability " + CapMetricsRead + " trên cùng vai có " + d.Tool.Capability)
 	}
 	// Danh mục chỉ được đọc MỘT lần: tổ tiên tính trên chính ảnh chụp này (Lineage tự đọc danh mục nên đưa cho nó một danh mục trong bộ nhớ).
 	// Số lần đọc không phụ thuộc máy có tồn tại hay không, nên độ trễ không lộ điều §4.4 giấu; và Load nạp lại xen giữa hai lần đọc không còn
@@ -586,7 +588,7 @@ func (r *run) permission(ctx context.Context) bool {
 		r.infra(stPermission, err, in, "không đọc được danh mục thực thể nên không kết luận được quyền")
 		return false
 	}
-	if !d.Policy.InScope(r.pr, lineage) {
+	if !d.Policy.InScope(holders, lineage) {
 		return deny("thực thể ngoài phạm vi của người gọi")
 	}
 	r.ent, r.entFound = ents[i], true

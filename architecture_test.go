@@ -1,5 +1,5 @@
 // Cổng kiến trúc: mã DÙNG CHUNG không được rẽ nhánh theo tên tenant (CLAUDE.md §16).
-// Khác biệt tenant nằm ở pack (tenants/) hoặc domain module (domain/) — hai chỗ đó được
+// Khác biệt tenant nằm ở pack (tenants/), ví dụ (examples/) hoặc case study (case-studies/) — các chỗ đó được
 // mang tên tenant, phần còn lại thì không.
 package eais_test
 
@@ -15,31 +15,47 @@ import (
 	"testing"
 )
 
-// sharedRoots là các cây mã dùng chung cho mọi tenant.
-var sharedRoots = []string{"core", "data", "intelligence", "execution", "reliability", "governance", "observability", "platform", "simulations", "cmd"}
+// tenantRoots là các thư mục gốc ĐƯỢC mang tên tenant / từ miền: pack (tenants/), ví dụ (examples/), case study (case-studies/).
+// Phần còn lại của repo là mã dùng chung. Danh sách loại trừ chứ không danh sách cây: gói mới hay gói dời sang modules/, adapters/
+// tự rơi vào cổng thay vì âm thầm ra khỏi nó (F-011: literal ở modules/x từng lọt).
+var tenantRoots = map[string]bool{"tenants": true, "examples": true, "case-studies": true}
+
+// sharedGoFiles trả mọi tệp .go không phải test của mã dùng chung: toàn repo trừ tenantRoots, mọi thư mục testdata/ và mọi thư
+// mục ẩn (.git, .claude, …). Không thấy tệp nào là cổng rỗng, không phải xanh.
+func sharedGoFiles(t *testing.T) []string {
+	t.Helper()
+	var files []string
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if path != "." && (strings.HasPrefix(d.Name(), ".") || d.Name() == "testdata" || tenantRoots[path]) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
+			files = append(files, filepath.ToSlash(path))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("duyệt repo: %v", err)
+	}
+	if len(files) == 0 {
+		t.Fatal("không thấy tệp .go dùng chung nào: cổng rỗng không phải xanh")
+	}
+	return files
+}
 
 // tenantMarkers là tên/slug tenant tham chiếu. Thêm tenant mới thì thêm vào đây.
 var tenantMarkers = []string{"abc-infra", "xyz-sports", "construction", "sports"}
 
 func TestSharedCodeHasNoTenantLiterals(t *testing.T) {
 	var hits []string
-	for _, root := range sharedRoots {
-		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				if d == nil { // cây chưa tồn tại (chưa có mã) thì bỏ qua
-					return filepath.SkipDir
-				}
-				return err
-			}
-			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-				return nil
-			}
-			hits = append(hits, tenantLiterals(t, path)...)
-			return nil
-		})
-		if err != nil {
-			t.Fatalf("duyệt %s: %v", root, err)
-		}
+	for _, path := range sharedGoFiles(t) {
+		hits = append(hits, tenantLiterals(t, path)...)
 	}
 	for _, h := range hits {
 		t.Errorf("mã dùng chung mang tên tenant: %s", h)
@@ -79,23 +95,8 @@ func tenantLiterals(t *testing.T, path string) []string {
 // trường tên khác nhưng thẻ JSON là tenant.
 func TestRequestTypesHaveNoTenantField(t *testing.T) {
 	var hits []string
-	for _, root := range sharedRoots {
-		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				if d == nil {
-					return filepath.SkipDir
-				}
-				return err
-			}
-			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-				return nil
-			}
-			hits = append(hits, tenantFieldsInRequests(t, path)...)
-			return nil
-		})
-		if err != nil {
-			t.Fatalf("duyệt %s: %v", root, err)
-		}
+	for _, path := range sharedGoFiles(t) {
+		hits = append(hits, tenantFieldsInRequests(t, path)...)
 	}
 	for _, h := range hits {
 		t.Errorf("kiểu yêu cầu mang tenant (tenant phải đến từ Principal): %s", h)

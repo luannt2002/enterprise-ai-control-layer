@@ -39,6 +39,9 @@
 
 ## 1. Định nghĩa
 
+> **Ghi chú 24/10/2026:** định nghĩa sản phẩm dưới đây bị **ADR-0013** thay (kiến trúc tham chiếu: lõi kiểm soát + module tuỳ chọn +
+> ví dụ / case study; Fuel là case study). Lời cũ giữ làm lịch sử; các mục còn lại của tệp vẫn là bản đồ luồng / phase.
+
 > Nền tảng multi-tenant biến dữ liệu, tri thức, quy trình và công cụ của doanh nghiệp thành năng lực AI **có kiểm soát, kiểm thử được và quan sát được**.
 > - **Dùng lại** hệ thống doanh nghiệp đã có khi hệ đó đang giữ sự thật.
 > - **Tự lo** phần doanh nghiệp còn thiếu: thu dữ liệu, chuẩn hoá, đối soát.
@@ -332,7 +335,8 @@ Phần **giấy** của các phase này vẫn được làm khi còn tài nguyê
 
 ## 6. Giai đoạn và phase
 
-Giữ **số phase của roadmap gốc 20/10**, cột cuối quy đổi sang V3. Trạng thái tính tại `d6afad7`.
+Giữ **số phase của roadmap gốc 20/10**, cột cuối quy đổi sang V3. Trạng thái tính tại `d6afad7` (21/10) — **nhãn 24/10/2026: cột Trạng thái
+không cập nhật sau mốc này** (ví dụ Phase 1 đã có mã ở main); trạng thái hiện hành chỉ ở `docs/STATUS.md`.
 
 | Giai đoạn | Phase | Việc / lời khẳng định | Luồng | Chế độ | Cổng ra | Trạng thái | V3 |
 |---|---|---|---|---|---|---|---|
@@ -387,7 +391,7 @@ Giữ **số phase của roadmap gốc 20/10**, cột cuối quy đổi sang V3.
 | Canary vô hiệu; test PG bị SKIP; không có CI | Phase 5 (đưa CI có PG lên sớm nếu được) |
 | Tenant bị đồng nhất với ngành ngay từ bản vẽ đầu tiên | Phase 4a |
 | Một nửa số commit là xây bộ máy đo; sản phẩm chưa ra khỏi Phase 0 | §0 câu 4: đi rộng bằng lát mỏng |
-| Lõi chung còn mang giả định Fuel (`router.go:71` viết cứng `"project"`; thực thể Projects / Equipment; sự thật chỉ là số; từ của miền xây dựng trong `qualifier.go`) | Phase 4a, 4b |
+| Lõi chung còn mang giả định Fuel (`narrow` trong `intelligence/router/router.go` viết cứng `"project"`; thực thể Projects / Equipment; sự thật chỉ là số; từ của miền xây dựng trong `qualifier.go`) | Phase 4a, 4b |
 
 ---
 
@@ -403,6 +407,8 @@ Chưa có thì mọi phase vẫn chạy được trên dữ liệu giả lập, 
 ---
 
 ## 10. Hiện trạng đo được (mốc `d6afad7`)
+
+> Nhãn 24/10/2026: bảng đứng ở mốc `d6afad7` (21/10 16:44), không cập nhật; hiện trạng ở `docs/STATUS.md`.
 
 | Mục | Số | Nguồn |
 |---|---|---|
@@ -432,7 +438,7 @@ Thứ tự chi tiết ở `docs/PROMPT-BUILD-EAIS.md` §9 (từ 22/10, ưu tiên
 | Mã | Câu |
 |---|---|
 | **D-RM-03** | Doanh nghiệp hoặc người nghiệp vụ thật nào cho §9? |
-| **D-RM-04** | Có mở Giai đoạn II **trước khi đóng G7** không (luật dừng §4.3)? Khuyến nghị: mở sau khi đổi tên xong và chạy H4 |
+| **D-RM-04** | Có mở Giai đoạn II **trước khi đóng G7** không (luật dừng §4.3)? Khuyến nghị: mở sau khi đổi tên xong và chạy H4 — **đã trả lời A ngày 22/10** (`docs/CHO-QUYET-DINH.md` mục 0; nhãn 24/10) |
 | D-G7-8, D-G7-18 + câu cho phép chi tiền | W-G7 có chạy không (trần 15 USD đã duyệt có điều kiện) |
 | Thứ tự trong Giai đoạn III | Làm 4b (CRM) trước 4a, hay sau |
 

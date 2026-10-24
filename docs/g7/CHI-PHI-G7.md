@@ -107,7 +107,7 @@ cả tệp vào `manifest.json`). Từ L4 (F-015, cấm hard code nhà cung cấ
 
 | Hợp đồng ghi (mã trước L4) | Nay đặt |
 |---|---|
-| `EAIS_MODEL_PROVIDER=<tên hãng>` (§4, §12 bước 2) | `EAIS_MODEL_PROVIDER=messages`. Giá trị cũ bị từ chối lúc khởi động (`g7run` thoát 2, "provider model … chưa được hỗ trợ"). G7 chỉ dùng `messages`. Giao thức khác (kể cả `chat_completions`) bị từ chối NGAY sau khi dựng client, thoát 2, **0 lời gọi model** (`TestGiaoThucNgoaiHopDongBiTuChoiTruocLoiGoiModel`; trước bản sửa `6e0c37a` một lượt k=1 qua `chat_completions` gọi model 124 lần không trần ngân sách) |
+| `EAIS_MODEL_PROVIDER=<tên hãng>` (§4, §12 bước 2) | `EAIS_MODEL_PROVIDER=messages`. Giá trị cũ bị từ chối lúc khởi động (`g7run` thoát 2, "provider model … chưa được hỗ trợ"). G7 chỉ dùng `messages`. Giao thức khác (kể cả `chat_completions`) bị từ chối NGAY sau khi dựng client, thoát 2, **0 lời gọi model** (`TestGiaoThucNgoaiHopDongBiTuChoiTruocLoiGoiModel`; trước bản sửa `75e8197` một lượt k=1 qua `chat_completions` gọi model 124 lần không trần ngân sách) |
 | không ghi — mã cũ có endpoint mặc định | `EAIS_MODEL_BASE_URL=<endpoint chính thức>`: **bắt buộc**, trống là lỗi cấu hình |
 | không ghi — mã cũ tự gửi header phiên bản | `EAIS_MODEL_HEADERS=<tên>=<giá trị>`: header phiên bản API mà dịch vụ đòi. Giá trị mã cũ gửi: `git show 3f1bf7e:intelligence/models/messages.go`, dòng 256 |
 | model §4 (hằng trong mã cũ) | `EAIS_G7_MODEL` = đúng chuỗi model của §4. Mã chỉ nhận giá trị có sha256 (chuỗi nguyên văn) bằng băm ghim `contractModelSHA256`; lệch băm ⇒ coi như chưa đặt ⇒ CHẶN "model / tham số khác hợp đồng §4", từ chối trước lời gọi model. `EAIS_MODEL` khác `EAIS_G7_MODEL` ⇒ cũng CHẶN |
@@ -118,7 +118,7 @@ Chưa đặt `EAIS_G7_*` thì đóng mặc định: mọi model lệch hợp đ�
 (chú thích khối "Giá trị cụ thể của hợp đồng G7" trong `tenants/construction/win/g7run/main.go`).
 
 **Lượt G7 chỉ là bằng chứng khi `.env` khớp hợp đồng.** Giá trị G7 nay đến từ `.env`, nên sửa `.env` có thể lặng lẽ "đổi hợp đồng" mà
-không đổi tệp nào trong repo. Vì vậy mã ghim sha256 của giá trị model / endpoint ghi trong `HOP-DONG-G7.md` (`e992227`, hằng `contractModelSHA256`,
+không đổi tệp nào trong repo. Vì vậy mã ghim sha256 của giá trị model / endpoint ghi trong `HOP-DONG-G7.md` (`1cb5c44`, hằng `contractModelSHA256`,
 `officialEndpointSHA256` trong `tenants/construction/win/g7run/main.go`; mã không chứa chuỗi gốc): lượt G7 chỉ là bằng chứng khi `EAIS_G7_MODEL` /
 `EAIS_G7_ENDPOINT` khớp băm đó; lệch băm thì lượt không thành bằng chứng, kể cả khi luật D5 tính ra ĐẠT. Tính băm để đối chiếu:
 `printf '%s' '<model>' | sha256sum` và `printf '%s' 'https://<tên máy chữ thường>' | sha256sum`. Giá trị trong hợp đồng giữ nguyên: đổi model / endpoint là sửa hợp đồng

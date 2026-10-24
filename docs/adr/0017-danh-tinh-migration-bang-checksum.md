@@ -66,10 +66,10 @@ Trước ADR này `Migrate` coi một tệp đã áp khi `schema_migrations` có
 Comment đầu `db/migrations/0010_tenant_khong_rong.sql` (dòng 9–10) ghi: database đã có dòng tenant `''` thì cả tệp hoàn tác, "ứng dụng vẫn
 chạy vì Ready không đòi 0010". Câu đó đúng lúc viết, nay **sai**. Tệp migration không sửa được, kể cả comment (mục 4), nên đính chính ở đây.
 
-Chuỗi đọc mã (`f589cf6`):
+Chuỗi đọc mã (`a35f3d8`):
 1. `Migrate` áp các tệp chờ theo thứ tự tên; tệp nào lỗi thì trả lỗi ngay, tệp sau **không** áp (`platform/pgstore/migrate.go`, vòng `pending`).
 2. Lát L5b thêm `0011_ghi_chu_suy_luan.sql` (cột `facts.note`) và `Ready` đòi cột đó (`platform/pgstore/ready.go:44`,
-   `readyColumns`; commit `f589cf6`).
+   `readyColumns`; commit `a35f3d8`).
 3. Vậy database có dòng tenant `''` ⇒ 0010 hỏng ⇒ 0011 không áp ⇒ `Ready` báo "cột facts.note chưa có (migration 0011)" ⇒ `eais serve`
    không khởi động. Đóng mặc định — đúng hướng (không phục vụ khi lược đồ chưa đủ), nhưng người vận hành phải biết nguyên nhân thật nằm ở 0010.
 

@@ -256,7 +256,7 @@ mm M32 "BB4 nguyên văn bị chuẩn hoá trước khi lưu (PG)" $R/pg.go 'Tes
 === ĐỘT BIẾN ===
 	raw := []byte(NormalizeText(r.Raw))
 EOF
-# R-01 (chết khoá 40P01): hai đột biến đã đo ở commit sửa (1b4c1da) trên 14.700 thao tác trộn của TestPG_R01_.
+# R-01 (chết khoá 40P01): hai đột biến đã đo ở commit sửa (fe2ed6d) trên 14.700 thao tác trộn của TestPG_R01_.
 mm M35 "R-01 bỏ khoá tư vấn theo bản ghi ở getLocked (bản không có ô và bản vừa đổi ô hết được che: 23505)" $R/engine.go 'TestPG_R01_' <<'EOF'
 	if err := c.ensureLock(lockRef{rec: key}); err != nil {
 === ĐỘT BIẾN ===

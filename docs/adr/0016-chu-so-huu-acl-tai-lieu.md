@@ -55,11 +55,11 @@ Hệ quả đã đo / đọc thấy:
 - **Lọc ACL bằng SQL / RLS theo vai:** để sau; hôm nay mọi tài liệu của tenant đã nằm trong RAM sau RLS theo tenant, và chưa có số đo
   nào đòi đẩy phép lọc xuống DB.
 
-## Trạng thái thi công (24/10/2026 tối, nhánh `vnext/tach-2410`, kiểm bằng grep trên `f589cf6`)
+## Trạng thái thi công (24/10/2026 tối, nhánh `vnext/tach-2410`, kiểm bằng grep trên `a35f3d8`)
 
 | Mục | Trạng thái | Bằng chứng / chỗ còn thiếu |
 |---|---|---|
-| 1. Lõi quyết "ai đọc tài liệu nào" | **làm một phần** | `Policy` ở `core/policy` (lát L4, chỉ phụ thuộc `core/contracts`). `Policy.Holding(pr, capability)` (`core/policy/policy.go:68`) trả principal chỉ còn vai có capability — lát Q11 (`927ebf2`) dùng nó trước khi gọi RAG / dự phòng S4 (`core/pipeline/ask.go`, `answerKnowledge(…, Holding(pr, …))`); lát Q11b (`1ce56b6`) dùng cho router S5, ứng viên hỏi lại, che vết. Chưa có "một bộ lọc" đủ bốn thành phần (tenant, vai, phạm vi, ngày) như mục 1 tả: thứ trao cho RAG vẫn là `Principal` đã lọc vai |
+| 1. Lõi quyết "ai đọc tài liệu nào" | **làm một phần** | `Policy` ở `core/policy` (lát L4, chỉ phụ thuộc `core/contracts`). `Policy.Holding(pr, capability)` (`core/policy/policy.go:68`) trả principal chỉ còn vai có capability — lát Q11 (`3d5c33d`) dùng nó trước khi gọi RAG / dự phòng S4 (`core/pipeline/ask.go`, `answerKnowledge(…, Holding(pr, …))`); lát Q11b (`0470094`) dùng cho router S5, ứng viên hỏi lại, che vết. Chưa có "một bộ lọc" đủ bốn thành phần (tenant, vai, phạm vi, ngày) như mục 1 tả: thứ trao cho RAG vẫn là `Principal` đã lọc vai |
 | 2. RAG chỉ áp bộ lọc | **làm chưa trọn** | RAG vẫn tự đọc `pr.Roles` để khớp ACL (`intelligence/rag/rag.go:556–557`, hàm `allowed`; `visible` cũng duyệt `pr.Roles`). Đúng nhờ pipeline đã lọc vai qua `Holding`; đường gọi RAG nào bỏ qua `Holding` thì RAG không tự chặn |
 | 3. Vai lạ trong ACL hiện ra lúc nạp | **CHƯA LÀM** | không có phép kiểm vai ACL ↔ vai của policy ở đường nạp (`grep` `ACL` trong `intelligence/rag/source.go`, `platform/pgstore/load.go`: chỉ đọc / ghi, không so với policy). D-RAG-02 vẫn chỉ lộ khi đo |
 | 4. Tài liệu khai ACL, lõi quyết | giữ nguyên | ACL / phạm vi vẫn là thuộc tính tài liệu |

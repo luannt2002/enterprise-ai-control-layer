@@ -7,7 +7,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
-// Lát L5b: hai câu khoá chỗ mà đột biến từng sống sót (đo 24/10). Kết cục của cả hai giống hệt mốc 4ecb0ef.
+// Lát L5b: hai câu khoá chỗ mà đột biến từng sống sót (đo 24/10). Kết cục của cả hai giống hệt mốc 6fb1e90.
 
 // F-030: danh từ đếm của pack ("xe", lexicon.yaml count_nouns) tới được bộ dò ngày dd-mm của câu xác nhận (ask.go gọi a.RT.Normalizer.DashDateAt):
 // "10-12 xe" là số đếm, không phải ngày 10/12 — câu vẫn được trả số liệu theo ý định kho xuất, không bị hỏi lại mốc thời gian.

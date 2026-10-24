@@ -346,7 +346,7 @@ m tenants/construction/pack/intents.yaml 'condition_close_markers: [thì]' 'cond
 m tenants/construction/pack/intents.yaml 'làm sau, xong, không tính, chưa tính]' 'làm sau, xong]' 'S206 pack không có dấu bỏ qua "không tính" / "chưa tính" ("Không tính tiền, …" bị hỏi lại vì luật liền trước)'
 m $I '(source || !s.statedFigure' '(false || !s.statedFigure' 'S207 tên nguồn của pack trước cụm không miễn cụm hỏi lượng ("Cảm biến ghi nhận 3782 L … bao nhiêu?" thành lệnh ghi)'
 m $I 's.asking(ct[cut:]) && !head ||' 'false && !head ||' 'S208 cụm hỏi ở vế riêng sau "thì" không là câu hỏi ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" thành lệnh ghi — F2 vòng 2)'
-# S209 — từng bị coi là TƯƠNG ĐƯƠNG sau khi rút "là" khỏi từ đóng vế (9c3faba): ca cũ "… là 3782 L dầu" không còn từ đóng vế nên hai cận trùng nhau.
+# S209 — từng bị coi là TƯƠNG ĐƯƠNG sau khi rút "là" khỏi từ đóng vế (8d7f643): ca cũ "… là 3782 L dầu" không còn từ đóng vế nên hai cận trùng nhau.
 # Không phải tương đương (L5b đo 24/10): với "thì", số nêu sẵn đứng SAU từ đóng vế vẫn đổi kết cục — ca ghim TestL5bGiaTriDaNeuXetCaMenhDe.
 m $I 'start+len(ct)))' 'start+cut))' 'S209 giá trị đã nêu chỉ xét ở vế trước từ đóng vế ("Nhận xét định mức tiêu thụ bao nhiêu thì hợp lý với 3782 L dầu …" trả số)'
 m $I 'if k := firstSpan(ct[at:], s.opt.ConditionCloseMarkers); k >= 0 {' 'if k := firstSpan(ct[at:], nil); k >= 0 {' 'S210 không tách vế ở từ đóng vế trong mệnh đề có cụm ghi ("Đồng hồ ghi nhận … thì kho xuất bao nhiêu?" thành lệnh ghi)'

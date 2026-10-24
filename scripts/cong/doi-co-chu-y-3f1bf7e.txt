@@ -38,3 +38,7 @@ TestUnstablePathsAndCosts bỏ tên hãng khỏi test, thay 1:1 theo giao thức
 # Lát gia cố PG (F-037, phần migration): danh sách migration ghim thêm 0010_tenant_khong_rong.sql; phép kiểm khác giữ nguyên.
 TestMigrateDongThoiTrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037
 TestVetMigration0003TrenDBTrong danh sách migration ghim thêm 0010_tenant_khong_rong.sql (migration mới, không đổi số tệp cũ) — F-037
+# Lát L5 (F-004, F-005): lược đồ danh mục và kiểu cha thu hẹp do pack khai; kỳ vọng của ba test giữ nguyên.
+TestLoadSourcesRejectsBrokenMaps 6 ca hỏng thêm một dòng entity_lists để mỗi ca hỏng vì đúng lý do của nó, không vì thiếu lược đồ danh mục mới — F-004, lát L5
+TestNarrowGhiUngVienTruocVaSauKhiLoc ca gỡ theo dự án truyền Settings có kiểu cha {project, dự án} do pack khai và so By với "project" thay hằng NarrowByProject đã gỡ; kỳ vọng không đổi — F-005, lát L5
+TestExplainResolveKhongKeTrangThaiPhamViTungUngVien fixture Narrowing gỡ theo cha mang By "project" + ByLabel "dự án" thay hằng NarrowByProject đã gỡ; chữ kỳ vọng không đổi — F-005, lát L5

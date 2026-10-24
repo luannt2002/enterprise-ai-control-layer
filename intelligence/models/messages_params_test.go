@@ -45,7 +45,7 @@ func rawBodies(t *testing.T, reply func(body map[string]any) (int, string)) (*ht
 // top_k khác mặc định (ADR-0005 §1), nên client gửi "temperature": 0 là hỏng mọi lời gọi.
 func TestMessagesMacDinhKhongGuiSampling(t *testing.T) {
 	srv, got := rawBodies(t, func(map[string]any) (int, string) { return http.StatusOK, okReply })
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64}
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64}
 	if _, err := m.Generate(context.Background(), paramsReq); err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestMessagesProviderTuChoiTemperature(t *testing.T) {
 		}
 		return http.StatusOK, okReply
 	})
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64}
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64}
 	d, err := m.Generate(context.Background(), paramsReq)
 	if err != nil || d.Text == "" {
 		t.Fatalf("provider từ chối temperature: muốn trả lời được, được %+v (lỗi %v)", d, err)
@@ -77,7 +77,7 @@ func TestMessagesProviderTuChoiTemperature(t *testing.T) {
 func TestMessagesGuiThamSoDaCauHinh(t *testing.T) {
 	srv, got := rawBodies(t, func(map[string]any) (int, string) { return http.StatusOK, okReply })
 	zero := 0.0
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64,
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64,
 		Temperature: &zero, Thinking: "between_tools", Effort: "medium"}
 	if _, err := m.Generate(context.Background(), paramsReq); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestMessagesThuLai(t *testing.T) {
 		return s, okReply
 	})
 	var traces []MessagesTrace
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "khoa-bi-mat", Model: "m", MaxTokens: 64,
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "khoa-bi-mat", Model: "m", MaxTokens: 64,
 		MaxRetries: 2, Backoff: time.Millisecond, Trace: func(tr MessagesTrace) { traces = append(traces, tr) }}
 	d, err := m.Generate(context.Background(), paramsReq)
 	if err != nil || d.Text == "" {
@@ -139,23 +139,23 @@ func TestMessagesThuLai(t *testing.T) {
 
 	// 503 mãi: 1 + MaxRetries lần gửi rồi trả lỗi "không phục vụ được".
 	seq, n, traces = []int{http.StatusServiceUnavailable}, 0, nil
-	if _, err := m.Generate(context.Background(), paramsReq); contracts.FaultOf(err) != contracts.ThirdParty("anthropic", contracts.KindUnavailable) || len(traces) != 3 {
+	if _, err := m.Generate(context.Background(), paramsReq); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolMessages, contracts.KindUnavailable) || len(traces) != 3 {
 		t.Errorf("503 mãi: muốn lỗi Unavailable sau 3 lần gửi, được %v sau %d lần", err, len(traces))
 	}
 }
 
 // Cấu hình sai bị chặn lúc khởi động; ConfigFromEnv đọc đủ biến mới, thử lại mặc định 2.
 func TestNewKiemThamSo(t *testing.T) {
-	base := Config{Provider: "anthropic", Model: "m", APIKey: "k"}
+	base := Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: "https://api.example.com"}
 	for _, c := range []Config{
 		{Temperature: "không"}, {Thinking: "enabled"}, {Effort: "rất cao"}, {MaxRetries: -1},
 	} {
-		c.Provider, c.Model, c.APIKey = base.Provider, base.Model, base.APIKey
+		c.Provider, c.Model, c.APIKey, c.BaseURL = base.Provider, base.Model, base.APIKey, base.BaseURL
 		if _, err := New(c); contracts.FaultOf(err) != contracts.FaultCode {
 			t.Errorf("%+v: muốn lỗi cấu hình, được %v", Config{Temperature: c.Temperature, Thinking: c.Thinking, Effort: c.Effort, MaxRetries: c.MaxRetries}, err)
 		}
 	}
-	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", Temperature: "0.5", Thinking: "between_tools", Effort: "medium", MaxRetries: 3})
+	g, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: base.BaseURL, Temperature: "0.5", Thinking: "between_tools", Effort: "medium", MaxRetries: 3})
 	m, ok := g.(*Messages)
 	if err != nil || !ok || m.Temperature == nil || *m.Temperature != 0.5 || m.Thinking != "between_tools" || m.Effort != "medium" || m.MaxRetries != 3 {
 		t.Fatalf("cấu hình hợp lệ: được %+v (lỗi %v)", g, err)
@@ -163,7 +163,7 @@ func TestNewKiemThamSo(t *testing.T) {
 	if g, _ := New(base); g.(*Messages).Temperature != nil {
 		t.Error("không cấu hình temperature: muốn nil (không gửi)")
 	}
-	t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EAIS_MODEL_PROVIDER", ProtocolMessages)
 	t.Setenv("EAIS_MODEL_THINKING", "between_tools")
 	t.Setenv("EAIS_MODEL_EFFORT", "medium")
 	t.Setenv("EAIS_MODEL_TEMPERATURE", "")
@@ -190,7 +190,7 @@ func TestBackoffDoublesWithCap(t *testing.T) {
 	}
 	srv, _ := rawBodies(t, func(map[string]any) (int, string) { return http.StatusServiceUnavailable, `{}` })
 	var waits []time.Duration
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 3, Backoff: time.Millisecond,
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 3, Backoff: time.Millisecond,
 		sleep: func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }}
 	if _, err := m.Generate(context.Background(), paramsReq); err == nil {
 		t.Fatal("503 mãi: muốn lỗi")
@@ -198,7 +198,7 @@ func TestBackoffDoublesWithCap(t *testing.T) {
 	if len(waits) != 3 || waits[0] != time.Millisecond || waits[1] != 2*time.Millisecond || waits[2] != 4*time.Millisecond {
 		t.Errorf("thời gian chờ = %v, muốn [1ms 2ms 4ms]", waits)
 	}
-	if _, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", MaxRetries: MaxRetriesLimit + 1}); contracts.FaultOf(err) != contracts.FaultCode {
+	if _, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: "https://api.example.com", MaxRetries: MaxRetriesLimit + 1}); contracts.FaultOf(err) != contracts.FaultCode {
 		t.Errorf("MaxRetries > %d: muốn lỗi cấu hình, được %v", MaxRetriesLimit, err)
 	}
 }
@@ -209,7 +209,7 @@ func TestBackoffStopsOnContextCancel(t *testing.T) {
 	n, waits := 0, 0
 	srv, _ := rawBodies(t, func(map[string]any) (int, string) { n++; return http.StatusServiceUnavailable, `{}` })
 	ctx, cancel := context.WithCancel(context.Background())
-	m := &Messages{Provider: "anthropic", BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 5, Backoff: time.Hour,
+	m := &Messages{Provider: ProtocolMessages, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxTokens: 64, MaxRetries: 5, Backoff: time.Hour,
 		sleep: func(c context.Context, _ time.Duration) error { waits++; cancel(); return c.Err() }}
 	_, err := m.Generate(ctx, paramsReq)
 	// Đếm cả số lần chờ: nếu bỏ qua lỗi huỷ, vòng lặp vẫn thử tiếp (lần gửi sau hỏng ngay ở tầng
@@ -222,14 +222,14 @@ func TestBackoffStopsOnContextCancel(t *testing.T) {
 // C-18 (soát lượt 2): khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô).
 func TestNewChiNhanHTTPSHoacLoopback(t *testing.T) {
 	for url, ok := range map[string]bool{
-		"https://api.anthropic.com": true, "http://127.0.0.1:25480": true, "http://localhost:8080": true, "http://[::1]:9": true,
+		"https://api.example.com": true, "http://127.0.0.1:25480": true, "http://localhost:8080": true, "http://[::1]:9": true,
 		"http://example.com": false, "http://10.0.0.5:8080": false, "ftp://127.0.0.1": false,
 		// thông tin xác thực trong URL sẽ bị ghi nguyên văn vào manifest.json của bằng chứng (soát C2, F-11)
-		"https://user:pw@api.anthropic.com": false, "http://nguoidung:matkhau@127.0.0.1:25490": false, "https://user@api.anthropic.com": false,
+		"https://user:pw@api.example.com": false, "http://nguoidung:matkhau@127.0.0.1:25490": false, "https://user@api.example.com": false,
 		// tên máy không phân biệt hoa thường
 		"http://LOCALHOST:25490": true,
 	} {
-		_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: url})
+		_, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: url})
 		if (err == nil) != ok {
 			t.Errorf("BaseURL %s: lỗi %v; muốn nhận = %v", url, err, ok)
 		}
@@ -238,7 +238,7 @@ func TestNewChiNhanHTTPSHoacLoopback(t *testing.T) {
 
 // Từ chối URL có thông tin xác thực mà không in lại mật khẩu trong thông báo lỗi (soát C2, F-11).
 func TestLoiEndpointKhongInMatKhau(t *testing.T) {
-	_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: "http://nguoidung:matkhau-bi-mat@127.0.0.1:25490"})
+	_, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: "http://nguoidung:matkhau-bi-mat@127.0.0.1:25490"})
 	if err == nil {
 		t.Fatal("URL có thông tin xác thực phải bị từ chối")
 	}
@@ -262,7 +262,7 @@ func TestKhongTheoChuyenHuong(t *testing.T) {
 		http.Redirect(w, r, target.URL+r.URL.Path, http.StatusTemporaryRedirect)
 	}))
 	defer redirect.Close()
-	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "khoa-gia", BaseURL: redirect.URL})
+	g, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "khoa-gia", BaseURL: redirect.URL})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,9 +277,10 @@ func TestKhongTheoChuyenHuong(t *testing.T) {
 // C-18: EAIS_MODEL_MAX_TOKENS hỏng là lỗi cấu hình, không bị bỏ im lặng về mặc định.
 func TestMaxTokensHongLaLoi(t *testing.T) {
 	for _, v := range []string{"abc", "-5", "0"} {
-		t.Setenv("EAIS_MODEL_PROVIDER", "anthropic")
+		t.Setenv("EAIS_MODEL_PROVIDER", ProtocolMessages)
 		t.Setenv("EAIS_MODEL", "m")
 		t.Setenv("EAIS_MODEL_API_KEY", "k")
+		t.Setenv("EAIS_MODEL_BASE_URL", "https://api.example.com")
 		t.Setenv("EAIS_MODEL_MAX_TOKENS", v)
 		if _, err := New(ConfigFromEnv()); err == nil {
 			t.Errorf("EAIS_MODEL_MAX_TOKENS=%q: muốn lỗi cấu hình", v)
@@ -291,7 +292,7 @@ func TestMaxTokensHongLaLoi(t *testing.T) {
 // "?api_key=…") không được ra log (soát C3, C3-08; F-11 mới bỏ phần user:pass@).
 func TestLoiEndpointChiInSchemeVaHost(t *testing.T) {
 	for _, u := range []string{"http://gateway.example.com/v1?api_key=BIMAT123", "http://gateway.example.com/BIMAT123/", "http://gateway.example.com/v1#BIMAT123"} {
-		_, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "k", BaseURL: u})
+		_, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "k", BaseURL: u})
 		if err == nil {
 			t.Fatalf("%s: http tới máy không phải loopback phải bị từ chối", u)
 		}
@@ -307,7 +308,7 @@ func TestLoiTruyenTaiKhongInBiMatTrongURL(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	host := srv.URL
 	srv.Close() // máy chủ đã đóng: mọi lần gửi lỗi kết nối
-	g, err := New(Config{Provider: "anthropic", Model: "m", APIKey: "khoa-gia", BaseURL: host + "/BIMATPATH/?api_key=BIMATQUERY#BIMATFRAG"})
+	g, err := New(Config{Provider: ProtocolMessages, Model: "m", APIKey: "khoa-gia", BaseURL: host + "/BIMATPATH/?api_key=BIMATQUERY#BIMATFRAG"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,10 +335,10 @@ func TestConfigFromEnvTienToTuongThich(t *testing.T) {
 		t.Setenv(k, "")
 		os.Unsetenv(k)
 	}
-	t.Setenv("EACL_MODEL_PROVIDER", "anthropic")
+	t.Setenv("EACL_MODEL_PROVIDER", ProtocolMessages)
 	t.Setenv("EACL_MODEL", "m-cu")
 	t.Setenv("EACL_MODEL_API_KEY", "k-cu")
-	if c := ConfigFromEnv(); c.Provider != "anthropic" || c.Model != "m-cu" || c.APIKey != "k-cu" {
+	if c := ConfigFromEnv(); c.Provider != ProtocolMessages || c.Model != "m-cu" || c.APIKey != "k-cu" {
 		t.Errorf("chỉ có EACL_MODEL_*: muốn đọc dự phòng, được provider %q model %q, khoá rỗng = %v", c.Provider, c.Model, c.APIKey == "")
 	}
 	t.Setenv("EAIS_MODEL", "m-moi")

@@ -37,8 +37,8 @@ func fakeOfficial(t *testing.T) *atomic.Int64 {
 	}
 	t.Cleanup(func() { http.DefaultTransport = old })
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "khoa-gia-khong-that",
-		"EAIS_MODEL_THINKING": contractThinking, "EAIS_MODEL_EFFORT": contractEffort} {
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "khoa-gia-khong-that",
+		"EAIS_MODEL_BASE_URL": officialEndpoint, "EAIS_MODEL_THINKING": contractThinking, "EAIS_MODEL_EFFORT": contractEffort} {
 		t.Setenv(k, v)
 	}
 	return &n
@@ -203,7 +203,7 @@ func TestBangChungKhongGhiBiMatTrongURL(t *testing.T) {
 	}))
 	defer srv.Close()
 	clearModelEnv(t)
-	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": "anthropic", "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "k",
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolMessages, "EAIS_MODEL": contractModel, "EAIS_MODEL_API_KEY": "k",
 		"EAIS_MODEL_BASE_URL": srv.URL + "/BIMATPATH/?api_key=BIMATQUERY"} {
 		t.Setenv(k, v)
 	}

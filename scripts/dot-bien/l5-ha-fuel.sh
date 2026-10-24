@@ -32,3 +32,8 @@ export PKGS="./intelligence/intent/ ./core/tenant/"
 m intelligence/intent/intent.go '		} else if !Installed(contracts.RouteKind(d.Route)) {' '		} else if false {' 'L5-16 ý định route chưa cài vẫn nạp (F-007)'
 m $P '		} else if !intent.Installed(r) {' '		} else if false {' 'L5-17 unmatched_route chưa cài vẫn nạp (F-007)'
 m intelligence/intent/intent.go 'contracts.RouteClarification, contracts.RouteHumanEscalation, contracts.RouteReject}' 'contracts.RouteClarification, contracts.RouteHumanEscalation, contracts.RouteReject, contracts.RouteWorkflow}' 'L5-18 coi WORKFLOW là đã cài (F-007)'
+export PKGS="./core/tenant/..."
+m core/tenant/meta/meta.go '	"go.yaml.in/yaml/v3"' '	_ "github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
+	"go.yaml.in/yaml/v3"' 'L5-19 phần meta của pack kéo động cơ QUERY (F-029)'
+m $P '	if len(mf.Metrics) > 0 {' '	if false {' 'L5-20 pack có chỉ số không bị đòi mẫu câu số liệu (F-029)'
+m $P '	if len(mf.Metrics) > 0 {' '	if true {' 'L5-21 pack chỉ-tài-liệu bị đòi mẫu câu số liệu (L6 báo)'

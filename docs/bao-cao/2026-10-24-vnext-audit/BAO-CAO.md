@@ -4,6 +4,9 @@
 > dẫn máy và tên tệp nội bộ thay bằng mô tả trung tính; tên hãng / tên model thay bằng chữ trung tính (luật repo công khai). Chỉ ba tệp
 > dữ liệu được chép vào `artifacts/` cạnh tệp này: `02-code-inventory.csv`, `12-old-to-new-migration-map.csv`, `commit-categories.tsv`;
 > các tệp khác liệt ở §A (`test-*.json`, `00-source-attestation.txt`, manifest…) chỉ có ở thư mục audit ngoài repo.
+>
+> **Đính chính (24/10, sau khi chép):** "583 dòng import" ở §7.1 và §16 (Q3) sai: **578** dòng import trong **227** tệp `.go`; 583 là mọi
+> dòng `.go` nhắc tên repo ở bất kỳ dạng nào (`git grep` trên `3f1bf7e`; lệnh ở ADR-0013). Thân báo cáo giữ nguyên.
 
 > **Viết cho:** chủ dự án (maintainer) và phiên BUILD của team — người sẽ quyết G5 (chọn phương án) trước khi ai động vào mã.
 >

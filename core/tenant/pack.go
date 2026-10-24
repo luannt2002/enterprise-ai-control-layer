@@ -7,24 +7,18 @@
 package tenant
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant/meta"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/router"
-	"go.yaml.in/yaml/v3"
 )
 
 // metricsFile là metrics.yaml.
@@ -37,6 +31,8 @@ type metricsFile struct {
 type intentsFile struct {
 	UnmatchedRoute    string `yaml:"unmatched_route"`
 	UnmatchedTemplate string `yaml:"unmatched_template"`
+	// NarrowParent: kiểu thực thể cha để router gỡ bí danh mơ hồ theo ngữ cảnh ("máy 07 của dự án A"), kèm tên gọi trong vết (F-005).
+	NarrowParent router.ParentType `yaml:"narrow_parent"`
 	// ConfirmMarkers: cụm biến câu hỏi số liệu thành câu XÁC NHẬN một con số người dùng đưa ra
 	// ("4k đúng không?"). Có khai thì phải có mẫu confirmTemplates.
 	ConfirmMarkers []string `yaml:"confirm_markers"`
@@ -83,10 +79,11 @@ type templatesFile struct {
 
 // requiredTemplates là các mẫu câu luồng hỏi luôn có thể cần — thiếu một cái là một
 // nhánh của luồng không có lời để nói.
-var requiredTemplates = []string{
-	"clarify_intent", "clarify_missing", "forbidden", "no_data", "needs_review",
-	"fallback_unverified", "approx_note", "conflict_note",
-}
+var requiredTemplates = []string{"clarify_intent", "clarify_missing", "forbidden", "fallback_unverified"}
+
+// metricTemplates là các mẫu câu của luồng SỐ LIỆU: chỉ bắt buộc khi pack khai ít nhất một chỉ số — pack chỉ-tài-liệu không có nhánh
+// nào nói chúng.
+var metricTemplates = []string{"no_data", "needs_review", "approx_note", "conflict_note"}
 
 // AllowedPlaceholders là các biến mẫu câu được phép dùng.
 var AllowedPlaceholders = map[string]bool{
@@ -99,14 +96,8 @@ var AllowedPlaceholders = map[string]bool{
 	"left_label": true, "right_label": true, "left_value": true, "right_value": true,
 }
 
-// Meta là phần định danh của pack (pack.yaml).
-type Meta struct {
-	ID       string `yaml:"id"`       // mã pack, ví dụ "construction"
-	Tenant   string `yaml:"tenant"`   // slug tenant, ví dụ "abc-infra"
-	Version  string `yaml:"version"`  // phiên bản do người viết pack đặt
-	Language string `yaml:"language"` // ngôn ngữ trả lời, ví dụ "vi"
-	Timezone string `yaml:"timezone"` // múi giờ IANA: "hôm nay" là ngày của tenant
-}
+// Meta là phần định danh của pack (pack.yaml) — ở core/tenant/meta, phần không phụ thuộc động cơ nào (F-029).
+type Meta = meta.Meta
 
 // Runtime là pack đã kiểm và biên dịch của một tenant. Dùng chung cho mọi lượt, chỉ đọc.
 type Runtime struct {
@@ -134,24 +125,13 @@ func (r *Runtime) Now() time.Time { return time.Now().In(r.Location) }
 
 // Load nạp và kiểm pack trong thư mục dir. Trả lỗi gom đủ thông tin để sửa pack.
 func Load(dir string) (*Runtime, error) {
-	var meta Meta
-	if err := decodeStrict(filepath.Join(dir, "pack.yaml"), &meta); err != nil {
+	m, loc, problems, err := meta.Read(dir)
+	if err != nil {
 		return nil, err
-	}
-	var problems []string
-	if meta.ID == "" || meta.Tenant == "" || meta.Version == "" {
-		problems = append(problems, "pack.yaml thiếu id/tenant/version")
-	}
-	if meta.Language == "" {
-		problems = append(problems, "pack.yaml thiếu language")
-	}
-	loc, err := time.LoadLocation(meta.Timezone)
-	if meta.Timezone == "" || err != nil {
-		problems = append(problems, fmt.Sprintf("pack.yaml: timezone %q không hợp lệ", meta.Timezone))
 	}
 
 	var lex normalization.Lexicon
-	if err := decodeStrict(filepath.Join(dir, "lexicon.yaml"), &lex); err != nil {
+	if err := meta.DecodeStrict(filepath.Join(dir, "lexicon.yaml"), &lex); err != nil {
 		problems = append(problems, err.Error())
 	}
 	engine, err := normalization.Compile(lex)
@@ -159,12 +139,12 @@ func Load(dir string) (*Runtime, error) {
 		problems = append(problems, "lexicon.yaml: "+err.Error())
 	}
 
-	rt := &Runtime{Meta: meta, Location: loc, Normalizer: engine}
+	rt := &Runtime{Meta: m, Location: loc, Normalizer: engine}
 	if engine != nil {
 		problems = append(problems, loadQuerySections(dir, rt)...)
 	}
 
-	version, err := hashPack(dir)
+	version, err := meta.Hash(dir)
 	if err != nil {
 		problems = append(problems, err.Error())
 	}
@@ -182,7 +162,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 	termKnown := func(t string) bool { _, ok := rt.Normalizer.Term(t); return ok }
 
 	var mf metricsFile
-	if err := decodeStrict(filepath.Join(dir, "metrics.yaml"), &mf); err != nil {
+	if err := meta.DecodeStrict(filepath.Join(dir, "metrics.yaml"), &mf); err != nil {
 		problems = append(problems, err.Error())
 	} else if cat, err := sourceoftruth.Compile(mf.Metrics, mf.Derived, unitKnown); err != nil {
 		problems = append(problems, "metrics.yaml: "+err.Error())
@@ -199,7 +179,7 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 	}
 
 	var inf intentsFile
-	if err := decodeStrict(filepath.Join(dir, "intents.yaml"), &inf); err != nil {
+	if err := meta.DecodeStrict(filepath.Join(dir, "intents.yaml"), &inf); err != nil {
 		problems = append(problems, err.Error())
 	} else {
 		if set, err := intent.Compile(inf.Intents, termKnown, metricKnown); err != nil {
@@ -308,28 +288,36 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 			})
 			rt.Intents = set
 		}
-		if !contracts.RouteKind(inf.UnmatchedRoute).Valid() {
+		if r := contracts.RouteKind(inf.UnmatchedRoute); !r.Valid() {
 			problems = append(problems, fmt.Sprintf("intents.yaml: unmatched_route %q không thuộc 12 route", inf.UnmatchedRoute))
+		} else if !intent.Installed(r) {
+			problems = append(problems, fmt.Sprintf("intents.yaml: unmatched_route %s chưa cài trong luồng hỏi (F-007)", r))
 		}
-		rt.Router = router.Settings{UnmatchedRoute: inf.UnmatchedRoute, UnmatchedTemplate: inf.UnmatchedTemplate}
+		if p := inf.NarrowParent; (p.Type == "") != (p.Label == "") || p.Type == contracts.NarrowByScope {
+			problems = append(problems, fmt.Sprintf("intents.yaml: narrow_parent cần cả type và label, type khác %q (gặp %+v)", contracts.NarrowByScope, p))
+		}
+		rt.Router = router.Settings{UnmatchedRoute: inf.UnmatchedRoute, UnmatchedTemplate: inf.UnmatchedTemplate, NarrowParent: inf.NarrowParent}
 		rt.ConfirmMarkers = inf.ConfirmMarkers
 		rt.ClaimNeutral = inf.ClaimNeutralWords
 		rt.QuantityMarkers = inf.QuantityMarkers
 	}
 
-	if err := decodeStrict(filepath.Join(dir, "policy.yaml"), &rt.Policy); err != nil {
+	if err := meta.DecodeStrict(filepath.Join(dir, "policy.yaml"), &rt.Policy); err != nil {
 		problems = append(problems, err.Error())
 	} else if err := rt.Policy.Validate(); err != nil {
 		problems = append(problems, "policy.yaml: "+err.Error())
 	}
 
 	var tf templatesFile
-	if err := decodeStrict(filepath.Join(dir, "templates.yaml"), &tf); err != nil {
+	if err := meta.DecodeStrict(filepath.Join(dir, "templates.yaml"), &tf); err != nil {
 		problems = append(problems, err.Error())
 		return problems
 	}
 	rt.Templates = tf.Templates
 	needed := append([]string{}, requiredTemplates...)
+	if len(mf.Metrics) > 0 {
+		needed = append(needed, metricTemplates...)
+	}
 	if inf.UnmatchedTemplate != "" {
 		needed = append(needed, inf.UnmatchedTemplate)
 	}
@@ -397,50 +385,4 @@ func placeholderNames(text string) []string {
 		out = append(out, text[i+1:i+j])
 		text = text[i+j+1:]
 	}
-}
-
-// decodeStrict đọc một tệp YAML và từ chối khoá lạ: gõ nhầm "default_unti" phải đỏ lúc
-// khởi động, không được âm thầm thành giá trị rỗng.
-func decodeStrict(path string, out any) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("%s: %w", path, err)
-	}
-	defer f.Close()
-	dec := yaml.NewDecoder(f)
-	dec.KnownFields(true)
-	if err := dec.Decode(out); err != nil {
-		if errors.Is(err, io.EOF) {
-			return fmt.Errorf("%s: tệp rỗng", path)
-		}
-		return fmt.Errorf("%s: %w", path, err)
-	}
-	return nil
-}
-
-// hashPack băm mọi tệp .yaml trong thư mục theo thứ tự tên, kèm tên tệp.
-func hashPack(dir string) (string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-	var names []string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".yaml") {
-			names = append(names, e.Name())
-		}
-	}
-	sort.Strings(names)
-	h := sha256.New()
-	for _, n := range names {
-		b, err := os.ReadFile(filepath.Join(dir, n))
-		if err != nil {
-			return "", err
-		}
-		h.Write([]byte(n))
-		h.Write([]byte{0})
-		h.Write(b)
-		h.Write([]byte{0})
-	}
-	return hex.EncodeToString(h.Sum(nil))[:16], nil
 }

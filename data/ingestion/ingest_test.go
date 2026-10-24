@@ -241,12 +241,12 @@ func TestLoadSourcesRejectsBrokenMaps(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, body := range map[string]string{
-		"chỉ số lạ":        "entities_file: e.json\nsources:\n  - {type: erp, metric: magic, files: [{path: a.json, format: json}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
-		"nguồn không hạng": "entities_file: e.json\nsources:\n  - {type: gossip, metric: issued_fuel, files: [{path: a.json, format: json}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
-		"thiếu trường":     "entities_file: e.json\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.json, format: json}], fields: {record_id: r}, entity_namespace: erp}\n",
-		"định dạng lạ":     "entities_file: e.json\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.doc, format: doc}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
-		"xlsx thiếu sheet": "entities_file: e.json\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.xlsx, format: xlsx}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
-		"khoá gõ nhầm":     "entities_file: e.json\nsources:\n  - {type: erp, metrik: issued_fuel}\n",
+		"chỉ số lạ":        "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: erp, metric: magic, files: [{path: a.json, format: json}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
+		"nguồn không hạng": "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: gossip, metric: issued_fuel, files: [{path: a.json, format: json}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
+		"thiếu trường":     "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.json, format: json}], fields: {record_id: r}, entity_namespace: erp}\n",
+		"định dạng lạ":     "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.doc, format: doc}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
+		"xlsx thiếu sheet": "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: erp, metric: issued_fuel, files: [{path: a.xlsx, format: xlsx}], fields: {record_id: r, entity: e, date: d, quantity: q}, entity_namespace: erp}\n",
+		"khoá gõ nhầm":     "entities_file: e.json\nentity_lists: [{list: x, type: y}]\nsources:\n  - {type: erp, metrik: issued_fuel}\n",
 		"thiếu entities":   "sources: []\n",
 	} {
 		p := filepath.Join(t.TempDir(), "sources.yaml")

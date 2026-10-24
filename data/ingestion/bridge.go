@@ -10,18 +10,15 @@ import (
 // LoadDirectory trả danh mục thực thể của tenant cho LUỒNG HỎI: bí danh chung + mọi mã theo nguồn
 // (người dùng có thể hỏi "asset-8392" hay "EX003" như hỏi "máy 03").
 func LoadDirectory(dir string, sm SourceMap) (entityresolution.MemoryDirectory, error) {
-	ix, err := loadIndex(filepath.Join(dir, sm.EntitiesFile))
+	ix, err := loadIndex(filepath.Join(dir, sm.EntitiesFile), sm.EntityLists)
 	if err != nil {
 		return nil, err
 	}
 	out := make(entityresolution.MemoryDirectory, 0, len(ix.base))
 	for _, e := range ix.base {
-		for _, q := range ix.raw.Equipment {
-			if q.ID != e.ID {
-				continue
-			}
+		if codes := ix.codes[e.ID]; codes != nil {
 			aliases := append([]entityresolution.Alias(nil), e.Aliases...)
-			for ns, code := range q.SourceIDs {
+			for ns, code := range codes {
 				aliases = append(aliases, entityresolution.Alias{Text: code, Source: ns})
 			}
 			e.Aliases = aliases
@@ -38,7 +35,7 @@ func (r Result) Facts() sourceoftruth.MemoryStore {
 	for _, o := range r.Observations {
 		out = append(out, sourceoftruth.Fact{
 			ID: o.Key, Metric: o.Metric, EntityID: o.Entity, OccurredOn: o.On, Value: o.Value,
-			Source: sourceoftruth.Observation{ID: o.Key, SourceType: o.Source, SourceRef: o.Key, Raw: o.Raw},
+			Source: sourceoftruth.Observation{ID: o.Key, SourceType: o.Source, SourceRef: o.Key, Raw: o.Raw, ObservedAt: o.SentAt, ReportedBy: o.Sender},
 		})
 	}
 	return out

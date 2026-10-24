@@ -44,3 +44,7 @@ TestRetrievePhamViKhongLo chỉ mục được đưa luật phạm vi theo thu�
 TestRetrievePhamViTheoTungBan chỉ mục được đưa luật phạm vi theo thuộc tính (trước dựa nhánh dự phòng đã bỏ); kỳ vọng giữ nguyên — Q11, F-031
 TestLaiPhamVi chỉ mục được đưa luật phạm vi theo thuộc tính (trước dựa nhánh dự phòng đã bỏ); kỳ vọng giữ nguyên — Q11, F-031
 TestPhamViQuaPG hai ca theo thuộc tính tự đưa luật phạm vi; thêm ca "không luật phạm vi thì tài liệu có phạm vi đóng" — Q11, F-031
+# Lát L5 (F-004, F-005): lược đồ danh mục và kiểu cha thu hẹp do pack khai; kỳ vọng của ba test giữ nguyên.
+TestLoadSourcesRejectsBrokenMaps 6 ca hỏng thêm một dòng entity_lists để mỗi ca hỏng vì đúng lý do của nó, không vì thiếu lược đồ danh mục mới — F-004, lát L5
+TestNarrowGhiUngVienTruocVaSauKhiLoc ca gỡ theo dự án truyền Settings có kiểu cha {project, dự án} do pack khai và so By với "project" thay hằng NarrowByProject đã gỡ; kỳ vọng không đổi — F-005, lát L5
+TestExplainResolveKhongKeTrangThaiPhamViTungUngVien fixture Narrowing gỡ theo cha mang By "project" + ByLabel "dự án" thay hằng NarrowByProject đã gỡ; chữ kỳ vọng không đổi — F-005, lát L5

@@ -123,9 +123,10 @@ func TestNarrowGhiUngVienTruocVaSauKhiLoc(t *testing.T) {
 	// khe đã điền bằng một dự án: gỡ theo dự án đó
 	prj := contracts.EntityRef{ID: "PRJ-A", Key: "PRJ-A", Type: "project"}
 	byProject := contracts.Intent{Name: "q", Slots: map[string]contracts.Slot{"subject": {Name: "subject", Entity: &prj}}}
-	plan = Route(set, intent.Result{Intent: byProject, Candidates: cands}, contracts.NormalizedInput{}, contracts.Principal{Roles: []string{"director"}}, pol, Settings{}, lineage)
+	byParent := Settings{NarrowParent: ParentType{Type: "project", Label: "dự án"}} // kiểu cha do pack khai (F-005)
+	plan = Route(set, intent.Result{Intent: byProject, Candidates: cands}, contracts.NormalizedInput{}, contracts.Principal{Roles: []string{"director"}}, pol, byParent, lineage)
 	n = plan.Narrowed
-	if n.By != contracts.NarrowByProject || !slices.Equal(n.After, []string{"EX-03"}) || n.Chosen != "EX-03" {
+	if n.By != "project" || !slices.Equal(n.After, []string{"EX-03"}) || n.Chosen != "EX-03" {
 		t.Errorf("gỡ theo dự án: %+v", n)
 	}
 
@@ -136,7 +137,7 @@ func TestNarrowGhiUngVienTruocVaSauKhiLoc(t *testing.T) {
 	}
 
 	// không có ứng viên: không ghi gì
-	if plan = Route(set, intent.Result{Intent: byProject}, contracts.NormalizedInput{}, contracts.Principal{Roles: []string{"director"}}, pol, Settings{}, lineage); plan.Narrowed.Slot != "" {
+	if plan = Route(set, intent.Result{Intent: byProject}, contracts.NormalizedInput{}, contracts.Principal{Roles: []string{"director"}}, pol, byParent, lineage); plan.Narrowed.Slot != "" {
 		t.Errorf("không có ứng viên thì không có lần gỡ nào: %+v", plan.Narrowed)
 	}
 }

@@ -47,16 +47,37 @@ var dataVersionFormat = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // nhận" (LoadRecord.DataVersion rỗng), vì dữ liệu đã đổi và dòng cũ không còn mô tả nó. Đường có phiên bản là LoadWithVersion; Load giữ lại
 // cho bộ chạy winrun và test, những nơi tự giữ băm manifest riêng.
 func (s *Store) Load(ctx context.Context, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
-	return s.load(ctx, LoadInfo{}, entities, facts, docs)
+	return s.load(ctx, LoadInfo{}, false, entities, facts, docs)
 }
 
 // LoadWithVersion như Load nhưng ghi phiên bản của lần nạp vào sổ nạp TRONG CÙNG giao dịch: dữ liệu mới và phiên bản của nó cùng commit hoặc
 // cùng huỷ (lần nạp hỏng giữa chừng không đổi dữ liệu, cũng không đổi phiên bản). Phiên bản sai dạng bị từ chối trước khi chạm DB.
 func (s *Store) LoadWithVersion(ctx context.Context, info LoadInfo, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
+	if err := checkLoadInfo(info); err != nil {
+		return err
+	}
+	return s.load(ctx, info, false, entities, facts, docs)
+}
+
+// LoadDocuments THAY CHỈ tài liệu tri thức của tenant (bảng documents); danh mục và fact giữ nguyên (F-019): module RAG nạp / công bố
+// tài liệu mà không đụng dữ liệu nghiệp vụ — Load(ctx, nil, nil, docs) thì xoá sạch fact. Cùng giao dịch, cùng khoá tư vấn và cùng sổ nạp
+// như Load: info rỗng ghi dòng "không ghi nhận" (dữ liệu đã đổi, phiên bản cũ không còn mô tả nó), info khác rỗng phải đúng dạng như
+// LoadWithVersion.
+func (s *Store) LoadDocuments(ctx context.Context, info LoadInfo, docs []rag.Document) error {
+	if info != (LoadInfo{}) {
+		if err := checkLoadInfo(info); err != nil {
+			return err
+		}
+	}
+	return s.load(ctx, info, true, nil, nil, docs)
+}
+
+// checkLoadInfo: phiên bản sai dạng bị từ chối trước khi chạm DB.
+func checkLoadInfo(info LoadInfo) error {
 	if info.LoadID == "" || !dataVersionFormat.MatchString(info.DataVersion) {
 		return contracts.Errorf(contracts.FaultInput, fmt.Sprintf("lần nạp cần mã lần nạp và phiên bản dữ liệu dạng 64 hex, được mã %q, phiên bản %q", info.LoadID, info.DataVersion))
 	}
-	return s.load(ctx, info, entities, facts, docs)
+	return nil
 }
 
 // LatestLoad trả dòng mới nhất của sổ nạp cho tenant trong ngữ cảnh: lần nạp đã COMMIT gần nhất, đọc từ PG (RLS: chỉ tenant đó). Tenant chưa
@@ -88,26 +109,32 @@ func (s *Store) LatestLoad(ctx context.Context) (LoadRecord, error) {
 // ở READ COMMITTED không tự loại trừ nhau — hai giao dịch cùng xoá cái cũ rồi cùng ghi cái mới, giao dịch sau đụng khoá chính và bị
 // huỷ nguyên khối. Khoá này chặn cả hai tiến trình khác nhau (server đang nạp, `eais ingest` chạy cùng lúc), điều mà khoá trong bộ nhớ
 // của server không làm được. Tenant khác nhau không chờ nhau.
-func (s *Store) load(ctx context.Context, info LoadInfo, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
+func (s *Store) load(ctx context.Context, info LoadInfo, docsOnly bool, entities []entityresolution.Entity, facts []sourceoftruth.Fact, docs []rag.Document) error {
 	tenant, err := tenantOf(ctx)
 	if err != nil {
 		return err
+	}
+	tables := []string{"entity_aliases", "facts", "documents", "entities"}
+	if docsOnly {
+		tables = []string{"documents"}
 	}
 	return s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock($1)", loadLockKey(tenant)); err != nil {
 			return err
 		}
-		for _, table := range []string{"entity_aliases", "facts", "documents", "entities"} {
+		for _, table := range tables {
 			if _, err := tx.Exec(ctx, "DELETE FROM "+table); err != nil { // RLS: chỉ dòng của tenant này
 				return err
 			}
 		}
-		if err := loadEntities(ctx, tx, entities); err != nil {
-			return err
-		}
-		for i := 0; i < len(facts); i += loadBatch {
-			if err := loadFacts(ctx, tx, facts[i:min(i+loadBatch, len(facts))], i); err != nil {
+		if !docsOnly {
+			if err := loadEntities(ctx, tx, entities); err != nil {
 				return err
+			}
+			for i := 0; i < len(facts); i += loadBatch {
+				if err := loadFacts(ctx, tx, facts[i:min(i+loadBatch, len(facts))], i); err != nil {
+					return err
+				}
 			}
 		}
 		for _, d := range docs {

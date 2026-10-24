@@ -1,16 +1,22 @@
 package pipeline
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"slices"
 	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/sourceoftruth"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 	"github.com/luannt2002/enterprise-ai-control-layer/observability/traces"
+	"github.com/luannt2002/enterprise-ai-control-layer/reliability/validation"
 )
 
 // File này dựng phần GIẢI THÍCH của vết (traces.Why, R2-03) từ chính những gì luồng hỏi đã quyết: mọi dòng lấy từ dữ liệu có sẵn tại chỗ
@@ -478,4 +484,269 @@ func (a *Ask) noteGate(why *traces.Why, g gate) {
 		n.Reject("phán quyết %s: bị loại — kết quả so sánh bằng tuyệt đối chọn %s", word(other), g.tmpl)
 		n.Reject("không phán quyết (confirm_withheld): bị loại — cổng không thiếu chiều nào")
 	}
+}
+
+// draftHeadRunes là số ký tự tối đa của đoạn đầu bản nháp in ở S8: đủ để người đọc vết thấy bản nháp mở đầu bằng chữ gì, không đủ để vết phình theo độ
+// dài bản nháp (bản nháp của model có thể dài cả trang).
+const draftHeadRunes = 80
+
+// textDigest trả số ký tự (rune) và băm ngắn (12 ký tự hex đầu của SHA-256) của một đoạn chữ: dấu vân tay để người đọc vết thấy bước nào đổi chữ — bản nháp
+// ở S8 và câu giao ở S10 trùng băm thì không bước nào ở giữa đổi một chữ. Tính trên chữ ĐÃ qua traces.Sanitize (đúng dạng chữ nằm trong vết bền, nên số ký
+// tự khớp chữ người đọc thấy dù câu có đoạn bị che) và đã bỏ khoảng trắng đầu / cuối (mẫu câu cắt chúng khi dựng câu giao).
+//
+// NỢ chi phí (V8AS-07; chưa tối ưu ở vòng 2): textDigest và draftHead chạy traces.Sanitize (regex) trên TOÀN chữ. Đo vi mô MỘT hàm trên máy này (taskset một nhân, 200 vòng × 3 lần; CHƯA đo cả
+// Handle): chữ 300 ký tự ≈ 53–71 µs, 20 KB ≈ 4,6–4,8 ms, 200 KB ≈ 46 ms; draftHead 20 KB ≈ 4,6–4,9 ms (người soát vòng 1 đo cùng cỡ: 47 µs, 3,5 ms, 36 ms). Theo mã, mỗi bản nháp bị Sanitize 5 lần
+// trong một lượt (nhận: noteDraft 2, draftLedger.settle 2, noteDelivered 1; loại: noteDraft 2, noteRejected 1, settle 1, noteDelivered 1), cộng 1 lần cho câu giao. Nhân số đo vi mô với số lần
+// đếm được: bản nháp 300 ký tự ≈ 0,3–0,4 ms mỗi lượt (cỡ mẫu câu của bộ 117), bản nháp model 20 KB ≈ 24 ms (ước, chưa đo thật). Trả nợ khi cần: làm sạch MỘT lần ở noteDraft, lưu chữ đã sạch,
+// số ký tự và băm vào sổ rồi dùng lại cho đoạn đầu, settle và S10 — không đổi chữ nào của vết.
+func textDigest(s string) (runes int, hash string) {
+	clean := strings.TrimSpace(traces.Sanitize(s))
+	sum := sha256.Sum256([]byte(clean))
+	return utf8.RuneCountInString(clean), hex.EncodeToString(sum[:])[:12]
+}
+
+// draftHead trả đoạn đầu của bản nháp (tối đa draftHeadRunes ký tự, kèm "…" khi cắt). Làm sạch TRƯỚC khi cắt: bí mật nằm vắt qua chỗ cắt ("sk-" rồi vài ký
+// tự) không còn khớp mẫu che của traces.Sanitize sau khi cắt, nên mảnh đầu của nó sẽ lọt vào vết.
+func draftHead(s string) string {
+	clean := strings.TrimSpace(traces.Sanitize(s))
+	return cutHead(clean)
+}
+
+// cutHead cắt chữ ĐÃ làm sạch (và, ở draftLedger.settle, đã che phạm vi) xuống tối đa draftHeadRunes ký tự, kèm "…" khi cắt.
+func cutHead(clean string) string {
+	if r := []rune(clean); len(r) > draftHeadRunes {
+		return string(r[:draftHeadRunes]) + "…"
+	}
+	return clean
+}
+
+// draftLine dựng dòng S8 của một bản nháp (noteDraft ghi dạng tạm, draftLedger.settle ghi dạng cuối, cùng một cách): cách sinh, số ký tự, băm ngắn và đoạn đầu trong
+// cặp “…” (để Why.WithholdQuoted che được khi câu hỏi mang bí mật).
+func draftLine(prefix, how string, runes int, hash, head string) string {
+	return fmt.Sprintf("%sbản nháp %s: %d ký tự · băm %s · đầu %s", prefix, how, runes, hash, contracts.Quote(head))
+}
+
+// noteDraft ghi S8: bản nháp NHƯ ĐƯỢC SINH — cách sinh (how), số ký tự, băm ngắn và đoạn đầu (nằm trong cặp “…” để Why.WithholdQuoted che được khi câu hỏi
+// mang bí mật). Gọi ngay sau khi bản nháp có chữ, TRƯỚC khi S9 kiểm: người đọc vết thấy chính thứ S9 đã nhận. Chỉ ghi, không đọc lại để quyết gì.
+// Dòng ghi ở đây là dạng TẠM: đoạn đầu cắt trước khi bộ che phạm vi tồn tại (nó dựng sau cùng, từ mọi thực thể của lượt). Handle gọi draftLedger.settle để ghi lại
+// đúng dòng này ở dạng cuối trước khi dòng rời Handle; vị trí dòng được ghi vào sổ để settle tìm lại.
+func (a *Ask) noteDraft(ctx context.Context, why *traces.Why, prefix, how, text string) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	runes, hash := textDigest(text)
+	line := len(n.Reasons)
+	n.Reason("%s", draftLine(prefix, how, runes, hash, draftHead(text)))
+	ledgerOf(ctx).addDraft(prefix, how, text, line)
+}
+
+// noteTemplateDraft ghi S8 cho câu dựng bằng mẫu câu của tenant (route số liệu, hỏi lại, từ chối, chuyển người): tmpl là mẫu THẬT đã dùng, có thể khác
+// RoutePlan.Template (câu xác nhận dùng confirm_yes / confirm_no, truy vấn không ra dữ liệu dùng no_data).
+func (a *Ask) noteTemplateDraft(ctx context.Context, why *traces.Why, prefix, tmpl, text string) {
+	a.noteDraft(ctx, why, prefix, traces.TemplateDraftOpen+tmpl+traces.TemplateDraftClose, text)
+}
+
+// noteModelDraft ghi S8 cho bản nháp do model diễn đạt (model là tên do gateway khai trong contracts.Draft.Model).
+func (a *Ask) noteModelDraft(ctx context.Context, why *traces.Why, prefix, model, text string) {
+	if model == "" {
+		model = "(không khai tên)"
+	}
+	a.noteDraft(ctx, why, prefix, "do model "+model+" diễn đạt", text)
+}
+
+// draftLedger là sổ các bản nháp mà MỘT lượt đã dựng ở S8, để S10 đối chiếu chúng với câu giao (noteDelivered). Chỉ để GIẢI THÍCH vết: không bước nào đọc
+// nó để quyết gì. Sổ đi theo ctx của lượt vì answerKnowledge (nhánh RAG đang sửa) không đổi chữ ký; không có sổ trong ctx (test gọi thẳng answerMetric, noWhy)
+// thì mọi phương thức của sổ là không làm gì.
+type draftLedger struct{ drafts []ledgerDraft }
+
+// ledgerDraft là một bản nháp trong sổ: prefix như ở dòng S8 của nó ("", "số liệu: ", "tri thức: "), how là cách sinh ở dòng đó, line là chỗ của dòng trong
+// Why.Generate.Reasons (chỉ có nghĩa khi how != ""), text là chữ gốc, rejected = S9 đã loại nó.
+type ledgerDraft struct {
+	prefix   string
+	how      string
+	line     int
+	text     string
+	rejected bool
+}
+
+type ledgerKey struct{}
+
+// withLedger gắn một sổ mới vào ctx của lượt.
+func withLedger(ctx context.Context) (context.Context, *draftLedger) {
+	l := &draftLedger{}
+	return context.WithValue(ctx, ledgerKey{}, l), l
+}
+
+// ledgerOf trả sổ của lượt, nil khi ctx không mang sổ.
+func ledgerOf(ctx context.Context) *draftLedger {
+	l, _ := ctx.Value(ledgerKey{}).(*draftLedger)
+	return l
+}
+
+// add ghi một bản nháp không kèm dòng S8 (chỉ để S10 đối chiếu); addDraft ghi cả cách sinh và chỗ của dòng S8 để settle ghi lại dòng đó.
+func (l *draftLedger) add(prefix, text string) { l.addDraft(prefix, "", text, -1) }
+
+func (l *draftLedger) addDraft(prefix, how, text string, line int) {
+	if l != nil {
+		l.drafts = append(l.drafts, ledgerDraft{prefix: prefix, how: how, line: line, text: text})
+	}
+}
+
+// rejectedDraftLine dựng dòng S8 của bản nháp mà S9 đã LOẠI: cách sinh, số ký tự và băm, KHÔNG có chữ nào của bản nháp (V8AS-06, quyết định của chủ dự án — mặc định an
+// toàn). Chữ bị loại có thể là lệnh chèn nằm trong tài liệu và người đọc vết có thể là một tác nhân AI; S9 đã chặn chính chữ đó nên dòng S8 không đưa lại nó. Người đọc vẫn nối
+// được S8 với S9 và S10 bằng băm. Đoạn đầu chỉ có ở dòng của bản nháp S9 nhận (draftLine). Giới hạn đã biết: chi tiết vi phạm của S9 do validator viết (vd CLAIM_UNBOUND nêu
+// claim "…") không do hàm này quản; chi tiết đó cũng nằm trong AskResponse.Verdict nên đổi nó là đổi câu trả lời (nợ).
+func rejectedDraftLine(prefix, how string, runes int, hash string) string {
+	return fmt.Sprintf("%sbản nháp %s: %d ký tự · băm %s · %s", prefix, how, runes, hash, draftWithheld)
+}
+
+// draftWithheld là chữ thay cho đoạn đầu ở dòng S8 của bản nháp bị S9 loại.
+const draftWithheld = "chữ không in: S9 đã loại bản nháp này"
+
+// settle ghi lại dòng S8 của từng bản nháp trong sổ ở dạng CUỐI, một lần, khi Handle đã dựng xong bộ che phạm vi: đoạn đầu được che phạm vi TRƯỚC rồi mới cắt (V8AS-02).
+// Cắt trước thì khoá / tên thực thể ngoài phạm vi nằm vắt qua ký tự thứ draftHeadRunes chỉ còn mảnh đầu ("Máy ủi DZ", "DZ-0"), bộ che chỉ khớp nguyên token nên không nhận ra
+// và mảnh đó lọt vào vết của chính người hỏi hạn chế. Chữ đi qua bộ làm sạch bí mật rồi bộ che phạm vi khi còn nguyên vẹn; chỉ sau đó mới cắt. Số ký tự và băm giữ nguyên
+// (tính trên chữ làm sạch, không phụ thuộc người hỏi). Bản nháp S9 đã loại (noteRejected đánh dấu trong sổ TRƯỚC khi Handle chốt) không có đoạn đầu (V8AS-06).
+func (l *draftLedger) settle(why *traces.Why, red scopeRedactor) {
+	if l == nil {
+		return
+	}
+	for _, d := range l.drafts {
+		if d.how == "" || d.line < 0 || d.line >= len(why.Generate.Reasons) {
+			continue
+		}
+		runes, hash := textDigest(d.text)
+		if d.rejected {
+			why.Generate.Reasons[d.line] = rejectedDraftLine(d.prefix, d.how, runes, hash)
+			continue
+		}
+		head := cutHead(red.line(strings.TrimSpace(traces.Sanitize(d.text))))
+		why.Generate.Reasons[d.line] = draftLine(d.prefix, d.how, runes, hash, head)
+	}
+}
+
+// reject đánh dấu S9 đã loại bản nháp (cùng tiền tố và chữ) gần nhất chưa bị loại.
+func (l *draftLedger) reject(prefix, text string) {
+	if l == nil {
+		return
+	}
+	for i := len(l.drafts) - 1; i >= 0; i-- {
+		if d := &l.drafts[i]; !d.rejected && d.prefix == prefix && d.text == text {
+			d.rejected = true
+			return
+		}
+	}
+}
+
+// noteRejected ghi S9 khi loại bản nháp text: số ký tự và băm của bản bị loại (KHÔNG in chữ), nằm cạnh lý do loại (các vi phạm ở lý do của S9). Đồng thời đánh dấu trong sổ để
+// S10 không kể câu giao "không chứa bản nháp" như một lỗi khi S9 đã loại nó, và để draftLedger.settle ghi dòng S8 của bản nháp này không có đoạn đầu (V8AS-06): dòng S8
+// tạm do noteDraft ghi lúc dựng, TRƯỚC khi S9 quyết, còn đoạn đầu.
+func (a *Ask) noteRejected(ctx context.Context, why *traces.Why, prefix, text string) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Validate
+	runes, hash := textDigest(text)
+	n.Reject("%s%s: %d ký tự · băm %s (bản nháp ở S8; lý do loại: các vi phạm nêu ở lý do)", prefix, traces.RejectedDraft, runes, hash)
+	ledgerOf(ctx).reject(prefix, text)
+}
+
+// noteDelivered ghi S10: số ký tự và băm của câu GIAO (answer là chữ cuối cùng rời Handle), rồi với từng bản nháp trong sổ: câu giao trùng bản nháp (băm
+// trùng ⇒ không bước nào sau S8 đổi chữ), chứa nguyên văn nó (route tri thức: mẫu câu bọc bản nháp), không chứa nó dù S9 không loại (một bước sau S9 đã đổi
+// chữ — chính lỗi mà bảng vết trước đây đổ nhầm cho S8), hay S9 đã loại nó (câu giao là mẫu thay thế). So khoảng trắng đầu / cuối đã bỏ như textDigest.
+func (a *Ask) noteDelivered(why *traces.Why, answer string, l *draftLedger) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Respond
+	runes, hash := textDigest(answer)
+	n.Reason("câu giao: %d ký tự · băm %s", runes, hash)
+	if l == nil {
+		return
+	}
+	given := strings.TrimSpace(answer)
+	for _, d := range l.drafts {
+		dr, dh := textDigest(d.text)
+		draft := strings.TrimSpace(d.text)
+		switch {
+		case d.rejected:
+			n.Reason("%sbản nháp ở S8 (%d ký tự · băm %s) đã bị S9 loại nên không vào câu giao; câu giao là mẫu thay thế của tenant", d.prefix, dr, dh)
+		case given == draft:
+			n.Reason("%scâu giao trùng bản nháp ở S8 (băm %s): không bước nào sau S8 đổi chữ", d.prefix, dh)
+		case strings.Contains(given, draft):
+			n.Reason("%scâu giao chứa nguyên văn bản nháp ở S8 (%d ký tự · băm %s), phần còn lại do mẫu câu của tenant dựng", d.prefix, dr, dh)
+		default:
+			n.Reason("%scâu giao "+traces.DeliveredMismatch+" ở S8 (%d ký tự · băm %s) dù S9 không loại nó", d.prefix, dr, dh)
+		}
+	}
+}
+
+// quantityTrigger nói câu hỏi kích hoạt nhánh thoát sớm "đòi LƯỢNG nghiệp vụ" (asksFactQuantity) vì cụm hỏi lượng NÀO của pack và chiều đo NÀO của chỉ số
+// nghiệp vụ (marker rỗng = nhánh không kích hoạt). Chỉ để GIẢI THÍCH: đọc lại cùng dữ liệu với asksFactQuantity (hai hàm giữ hai bản vì nhánh RAG đang
+// sửa asksFactQuantity) — TestQuantityTriggerKhopAsksFactQuantity khoá hai hàm cùng kết luận trên mọi câu đã công bố.
+func (a *Ask) quantityTrigger(in contracts.NormalizedInput, now time.Time) (marker string, dims []string) {
+	for _, m := range a.RT.QuantityMarkers {
+		if normalization.ContainsPhrase(in.Raw, m) {
+			marker = m
+			break
+		}
+	}
+	if marker == "" {
+		return "", nil
+	}
+	fact := a.factDimensions()
+	for d := range validation.Dimensions(a.RT.Normalizer, in.Raw, now) {
+		if fact[d] {
+			dims = append(dims, d)
+		}
+	}
+	slices.Sort(dims)
+	return marker, dims
+}
+
+// noteQuantityExit ghi S8 lý do của nhánh thoát sớm TRƯỚC truy xuất: quy tắc (câu đòi lượng nghiệp vụ mà chỉ có tài liệu, tài liệu không phải nguồn của số liệu —
+// P4), cụm hỏi lượng và chiều đo đã kích hoạt nó. Kết cục và mẫu câu do noteExit ghi ngay sau (chung với các nhánh thoát khác).
+func (a *Ask) noteQuantityExit(why *traces.Why, in contracts.NormalizedInput, now time.Time) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	marker, dims := a.quantityTrigger(in, now)
+	n.Reason("thoát sớm TRƯỚC truy xuất, model chưa được gọi: câu đòi lượng nghiệp vụ (cụm hỏi lượng %s của pack, chiều đo %s) mà route RAG chỉ có tài liệu — tài liệu không phải nguồn của số liệu (P4), nên báo thiếu bằng chứng", contracts.Quote(marker), strings.Join(dims, ", "))
+}
+
+// noteNoEvidence ghi S8 lý do của nhánh thoát sớm SAU truy xuất: không đoạn nào người hỏi được đọc (S7 nói thêm vì sao có thể rỗng).
+func (a *Ask) noteNoEvidence(why *traces.Why, prefix string) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	n.Reason("%sthoát sớm SAU truy xuất, model chưa được gọi: truy xuất trả 0 đoạn người hỏi được đọc", prefix)
+}
+
+// noteHybridSkipped ghi S8 vì sao HYBRID không truy xuất tài liệu: phần số liệu không ra câu trả lời (outcome khác RESOLVED) thì không nối tài liệu vào.
+func (a *Ask) noteHybridSkipped(why *traces.Why, outcome contracts.Outcome) {
+	if a.noWhy {
+		return
+	}
+	n := &why.Generate
+	n.Reason("tri thức: không truy xuất, model chưa được gọi: phần số liệu không ra câu trả lời (outcome %s) nên không nối tài liệu vào", outcome)
+}
+
+// noteExit ghi S8 cho mọi nhánh thoát sớm của answerKnowledge (gọi bằng defer ở đầu fail, sau khi fail đã đặt resp): kết cục mà nhánh CHỌN (đọc từ chính đối số
+// của fail), mẫu câu thật và bản nháp của nó. rejected = S9 loại bản nháp của model (không phải thoát sớm): dòng của S9 / S10 nói chuyện đó, không ghi ở đây.
+// HYBRID không đổi kết cục — fail chỉ nối mẩu hybrid_no_knowledge vào câu số liệu.
+func (a *Ask) noteExit(ctx context.Context, why *traces.Why, hybrid bool, name string, outcome contracts.Outcome, resp *contracts.AskResponse, rejected bool) {
+	if a.noWhy || rejected {
+		return
+	}
+	n := &why.Generate
+	if hybrid {
+		n.Reason("tri thức: phần quy trình bỏ, kết cục giữ nguyên %s: mẫu câu hybrid_no_knowledge nối vào cuối câu số liệu", resp.Outcome)
+		a.noteTemplateDraft(ctx, why, "tri thức: ", "hybrid_no_knowledge", a.fragment("hybrid_no_knowledge", nil))
+		return
+	}
+	n.Reason("kết cục nhánh đã chọn: %s (mẫu câu %s)", outcome, name)
+	a.noteTemplateDraft(ctx, why, "", name, resp.Answer)
 }

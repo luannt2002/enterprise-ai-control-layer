@@ -73,6 +73,8 @@ type Why struct {
 	Execute   Notes `json:"execute,omitzero"`   // S6: route tri thức — đường truy xuất, số tài liệu / đoạn thấy, điểm + hạng, lý do im
 	Context   Notes `json:"context,omitzero"`   // S7: bằng chứng được dùng / bị loại (thẩm quyền, quyền đọc tài liệu)
 	Validate  Notes `json:"validate,omitzero"`  // S9: cổng phán quyết của câu xác nhận
+	Generate  Notes `json:"generate,omitzero"`  // S8: bản nháp như được sinh (cách sinh, số ký tự, băm, đoạn đầu)
+	Respond   Notes `json:"respond,omitzero"`   // S10: số ký tự và băm của câu giao, đối chiếu với bản nháp ở S8
 }
 
 // quoted tìm mọi đoạn chữ của người hỏi trong một dòng giải thích: contracts.Quote không để QuoteClose lọt vào bên trong đoạn được bao nên
@@ -126,7 +128,7 @@ func (w Why) Compact(limit, maxRunes int) Why {
 }
 
 func (w Why) apply(f func([]string) []string) Why {
-	for _, n := range []*Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Execute, &w.Context, &w.Validate} {
+	for _, n := range []*Notes{&w.Normalize, &w.Resolve, &w.Intent, &w.Route, &w.Execute, &w.Context, &w.Validate, &w.Generate, &w.Respond} {
 		n.Reasons, n.Rejected = f(n.Reasons), f(n.Rejected)
 	}
 	return w

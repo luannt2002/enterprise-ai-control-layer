@@ -75,9 +75,16 @@ type Deps struct {
 type Ask struct {
 	RT   *tenant.Runtime
 	Deps Deps
-	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle và answerMetric — chỉ test trong gói đặt, để so route / outcome / câu trả lời
-	// giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn ghi (nhánh RAG đang sửa hàm đó).
+	// noWhy tắt phần GHI giải thích của vết (why.go) ở Handle, answerMetric và các hàm note* mà answerKnowledge gọi (S8, S9, S10) — chỉ test trong gói đặt, để so route / outcome / câu trả
+	// lời giữa có vết và không có vết (C11, lệnh ca chiều 23/10). answerKnowledge vẫn tự ghi phần S7 (noteRetrieved và dòng "bản nháp bị loại ở S9 nên không đoạn nào được trích dẫn") ở cả
+	// hai chế độ (nhánh RAG đang sửa hàm đó).
 	noWhy bool
+	// beforeDecision chạy ngay trước khi dựng Decision (nil = không làm gì) — chỉ test trong gói đặt, để GIEO lỗi vào câu giao ở đúng vị trí mà vết S10 phải bắt được
+	// (V8AS-01): lỗi đặt ở đây là lỗi mà dấu vân tay ghi sớm hơn bị bỏ sót.
+	beforeDecision func(resp *contracts.AskResponse)
+	// afterDecision chạy ngay sau khi dựng Decision, trước bộ che (nil = không làm gì) — chỉ test trong gói đặt: gieo lỗi vào CÂU GHI TRONG BẢN GHI (Decision.Answer) mà không đổi câu trả về
+	// (Response.Answer), như một lỗi nằm trong a.decision; dấu vân tay S10 lấy từ Decision.Answer nên phải thấy nó (V8AS-01).
+	afterDecision func(d *traces.Decision)
 }
 
 // Outcome là kết quả một lượt kèm vết để ghi log và lưu `interactions`.
@@ -109,6 +116,10 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	// Từ đây mọi truy vấn mang tenant của Principal: tầng lưu trữ đặt GUC cho RLS từ giá trị này.
 	ctx = contracts.WithTenant(ctx, pr.TenantID)
+	var led *draftLedger // sổ bản nháp của lượt, chỉ để S10 đối chiếu với câu giao (why.go); noWhy thì không có sổ
+	if !a.noWhy {
+		ctx, led = withLedger(ctx)
+	}
 	// S2 — chuẩn hoá
 	in, _ := traces.Measure(tr, "normalize", func() (contracts.NormalizedInput, error) {
 		return a.RT.Normalizer.Normalize(req.Text, normalization.Options{Now: now}), nil
@@ -212,10 +223,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		resp.Clarification = &contracts.Clarification{Missing: plan.Intent.Missing, Candidates: visible}
 		vars["missing"], vars["candidates"], vars["options"] = missing, cands, a.intentOptions(slices.Concat(cls.Ambiguous, cls.NeedTerm, cls.NeedMeaning))
 		resp.Answer = a.render(plan.Template, vars)
+		a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionClarify}
 		resp.Clarification.Question = resp.Answer
 	case contracts.RouteReject, contracts.RouteHumanEscalation:
 		resp.Answer = a.render(plan.Template, vars)
+		a.noteTemplateDraft(ctx, &why, "", plan.Template, resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 	case contracts.RouteSQLQuery, contracts.RouteCalculation, contracts.RouteHybrid:
 		if err := a.answerMetric(ctx, tr, now, &plan, in, names, plan.Intent, &resp, vars, &why); err != nil {
@@ -228,6 +241,8 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true, &why); err != nil {
 				return Outcome{}, err
 			}
+		} else if plan.Route == contracts.RouteHybrid {
+			a.noteHybridSkipped(&why, resp.Outcome)
 		}
 	case contracts.RouteRAG:
 		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false, &why); err != nil {
@@ -238,6 +253,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// lỗi cấu hình/mã thay vì giả vờ trả lời.
 		return Outcome{}, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("route %s chưa có capability trong luồng hỏi", plan.Route))
 	}
+	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
+	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá. Dựng ngay sau switch (trước khối giải thích) vì draftLedger.settle cần nó.
+	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
 	if !a.noWhy {
 		why.Normalize = explainNormalize(in)
 		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
@@ -245,6 +263,7 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
 		why.Intent = explainIntent(cls, ci)
 		why.Route = a.explainRoute(routed, plan)
+		led.settle(&why, red) // S8: dòng bản nháp ở dạng cuối — che phạm vi TRƯỚC rồi mới cắt đoạn đầu (V8AS-02)
 	}
 	// Câu mang bí mật mà bộ làm sạch nhận ra — ở câu gốc HOẶC ở câu đã gấp ký tự — thì không trích chữ nào của câu vào giải thích. Phải nhìn cả hai: mẫu che
 	// neo bằng `\b` (Go chỉ coi chữ, số, gạch dưới ASCII là "chữ"), nên token đứng ngay sau một chữ x toàn chiều rộng (hay ký hiệu lít, số hay gạch dưới toàn chiều
@@ -253,12 +272,18 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	if traces.Sanitize(in.Raw) != in.Raw || traces.Sanitize(req.Text) != req.Text {
 		why = why.WithholdQuoted()
 	}
-	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
-	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá.
-	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
+	if a.beforeDecision != nil {
+		a.beforeDecision(&resp)
+	}
 	d := a.decision(pr, now, req.Text, in, res, plan.Intent, resp)
+	if a.afterDecision != nil {
+		a.afterDecision(&d)
+	}
 	red.decision(&d)
 	if !a.noWhy {
+		// S10: dấu vân tay của CHÍNH câu giao đã chốt (Decision.Answer, chữ nằm trong bản ghi) — ghi SAU khi Decision dựng xong, không sớm hơn: một bước nào cắt hay đổi câu giao
+		// giữa chừng (vd ngay trước a.decision) thì dấu vân tay ghi sớm vẫn là của câu CŨ, và bảng vết nói "câu giao trùng bản nháp" trong khi câu đã khác (V8AS-01)
+		a.noteDelivered(&why, d.Answer, led)
 		d.Why = finalWhy(why, red)
 	}
 	return Outcome{
@@ -442,11 +467,13 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		// lý do THẬT của việc ghi đè route mà vết S5 kể (C8, lệnh ca chiều 23/10) — không giữ lý do của router ("ý định … khớp luật")
 		plan.Reason = "nguồn ngang thẩm quyền lệch quá dung sai, cần người duyệt: " + vars["reason"]
 		resp.Answer = a.render("needs_review", vars)
+		a.noteTemplateDraft(ctx, why, prefix, "needs_review", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionEscalate}
 		resp.Outcome = contracts.OutcomeHumanReviewRequired
 		return nil
 	case result.Total == nil:
 		resp.Answer = a.render("no_data", vars)
+		a.noteTemplateDraft(ctx, why, prefix, "no_data", resp.Answer)
 		resp.Verdict = contracts.Verdict{Pass: true, Action: contracts.ActionAccept}
 		resp.Outcome = contracts.OutcomeInsufficientEvidence
 		return nil
@@ -545,6 +572,11 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		text += a.fragment("confirm_withheld", vars)
 	}
 	draft := contracts.Draft{Text: text, FromTemplate: true, Claims: claims}
+	used := tmpl // mẫu THẬT đã dùng: câu xác nhận đổi tmpl, câu giữ phán quyết còn nối thêm mẩu confirm_withheld
+	if withheld != "" {
+		used += " + confirm_withheld"
+	}
+	a.noteTemplateDraft(ctx, why, prefix, used, draft.Text)
 
 	// S9 — kiểm: số có trong bằng chứng (lớp lọc đầu), rồi mỗi số ràng buộc đủ sáu chiều.
 	violations, _ := traces.Measure(tr, "validate", func() ([]contracts.Violation, error) {
@@ -552,6 +584,7 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 		return append(v, validation.BindClaims(draft.Text, ignore[:2], draft.Claims, pkg.Evidence)...), nil
 	})
 	if len(violations) > 0 {
+		a.noteRejected(ctx, why, prefix, draft.Text)
 		resp.Answer = a.render("fallback_unverified", vars)
 		resp.Verdict = contracts.Verdict{Pass: false, Violations: violations, Action: contracts.ActionFallback}
 		resp.Outcome = contracts.OutcomeSystemFailure // câu không kiểm được thì không giao như thành công
@@ -571,6 +604,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool, why *traces.Why) error {
 
 	fail := func(name string, outcome contracts.Outcome, violations []contracts.Violation) {
+		defer a.noteExit(ctx, why, hybrid, name, outcome, resp, len(violations) > 0)
 		if hybrid {
 			resp.Answer += a.fragment("hybrid_no_knowledge", nil)
 			resp.Verdict.Violations = append(resp.Verdict.Violations, violations...)
@@ -585,6 +619,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	// Câu hỏi đòi LƯỢNG nghiệp vụ ("bao nhiêu lít dầu") mà chỉ có tài liệu: tài liệu không phải
 	// nguồn của số liệu (P4) — không gọi model, báo thiếu bằng chứng.
 	if !hybrid && a.asksFactQuantity(in, now) {
+		a.noteQuantityExit(why, in, now)
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
 	}
@@ -620,6 +655,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	noteExecute(why, prefix, rep, ev, knowledgeK)
 	noteRetrieved(why, prefix, ev, knowledgeK)
 	if len(ev) == 0 {
+		a.noteNoEvidence(why, prefix)
 		fail("no_knowledge", contracts.OutcomeInsufficientEvidence, nil)
 		return nil
 	}
@@ -638,6 +674,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 		}
 		return err
 	}
+	a.noteModelDraft(ctx, why, prefix, draft.Model, draft.Text)
 	// Model nói rõ bằng chứng không trả lời được (Draft.Refused): "không có" như khi không đoạn nào khớp — không phải lỗi, không trích
 	// dẫn (ROADMAP-RAG §6.5). Bản nháp rỗng / văn xuôi KHÔNG mang cờ là đầu ra hỏng: vẫn qua S9 và bị chặn.
 	if draft.Refused {
@@ -654,6 +691,7 @@ func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Ti
 	})
 	if len(violations) > 0 {
 		why.Context.Reject("%sbản nháp bị loại ở S9 nên không đoạn nào được trích dẫn", prefix)
+		a.noteRejected(ctx, why, prefix, draft.Text)
 		fail("fallback_unverified", contracts.OutcomeSystemFailure, violations)
 		return nil
 	}

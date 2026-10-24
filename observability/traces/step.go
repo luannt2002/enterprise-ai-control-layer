@@ -50,13 +50,29 @@ const (
 // NotRecorded là giá trị của trường "lý do" / "phương án bị loại" mà luồng hỏi chưa xuất ra ngoài Handle. Ghi thẳng điều này thay
 // vì suy đoán: một lý do bịa trong vết còn tệ hơn một chỗ trống ghi rõ là trống. Nội dung sau dấu hai chấm nói chỗ cần móc.
 // Các chặng S2, S3, S4, S5, S7 và cổng phán quyết ở S9 đã được móc (Decision.Why, R2-03) nên lượt chạy thật không còn chỗ trống ở đó;
-// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột, S8, bản nháp bị loại ở S9.
+// NotRecorded còn ở bản dựng tay / lượt cũ chưa mang Why, và ở các chỗ chưa móc: S6 khi không xung đột.
 const NotRecorded = "chưa ghi — cần móc trong core/pipeline (làn 1)"
 
 func notRecorded(what string) string { return NotRecorded + ": " + what }
 
 // IsNotRecorded báo một giá trị có phải chỗ trống ghi rõ của NotRecorded không.
 func IsNotRecorded(s string) bool { return strings.HasPrefix(s, NotRecorded) }
+
+// DeliveredMismatch có mặt trong dòng S10 khi câu giao KHÔNG chứa nguyên văn bản nháp mà S9 đã nhận (Why.Respond): một bước sau S9 đã đổi chữ của câu đã qua kiểm.
+// BuildSteps đánh dấu S10 lệch khi thấy nó, để "BƯỚC LỆCH ĐẦU TIÊN" chỉ đúng S10 chứ không để người đọc đổ cho S8.
+const DeliveredMismatch = "KHÔNG chứa nguyên văn bản nháp"
+
+// TemplateDraftOpen và TemplateDraftClose bao quanh tên mẫu câu THẬT trong cách sinh của dòng S8 ("bản nháp dựng bằng mẫu câu X (không gọi model): …"): core/pipeline ghi, BuildSteps đọc lại
+// để ô QUYẾT ĐỊNH của S8 nói đúng mẫu mà dòng lý do nói — mẫu của router khác mẫu dùng khi truy vấn không ra dữ liệu (no_data), câu xác nhận (confirm_yes / confirm_no) hay cổng giữ phán quyết
+// (mẫu + confirm_withheld) — V8AS-05.
+const (
+	TemplateDraftOpen  = "dựng bằng mẫu câu "
+	TemplateDraftClose = " (không gọi model)"
+)
+
+// RejectedDraft có mặt trong dòng "phương án bị loại" của S9 khi luồng hỏi đã xuất bản nháp bị loại (số ký tự và băm, Why.Validate.Rejected): BuildSteps chỉ ghi
+// chỗ trống NotRecorded cho bản nháp bị loại khi không dòng nào mang nó.
+const RejectedDraft = "bản nháp bị loại"
 
 // ValidStage báo mã bước có hợp lệ không: S0…S10 (luồng hỏi), C0…C7 và C4b (luồng lệnh, HOP-DONG §7.5), S? hoặc L1.<tên>.
 func ValidStage(s string) bool {
@@ -140,8 +156,8 @@ func SpanStage(name string) (stage string, ok bool) {
 	return "", false
 }
 
-// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7 và
-// cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
+// BuildSteps dựng 11 bước S0…S10 của một lượt hỏi TỪ những gì Turn có — chỉ ghép, không suy thêm. Giải thích của S2, S3, S4, S5, S7, S8 (bản nháp
+// như được sinh), S10 (dấu vân tay câu giao) và cổng phán quyết ở S9 lấy nguyên văn từ Decision.Why do luồng hỏi ghi tại chỗ quyết định. Thứ gì luồng hỏi chưa xuất ra (kết quả truy
 // vấn khi không xung đột, bản nháp của model…) thì Reason / Rejected mang NotRecorded, kèm chỗ cần móc. Bước không nằm trên đường đi của
 // route (không có span tương ứng) có Status skipped.
 // Thời gian của bước lấy từ span cùng chặng theo bảng stageSpans: normalize→S2, resolve→S3, intent→S4, route→S5, execute và
@@ -271,7 +287,11 @@ func BuildSteps(t Turn) []Step {
 	})
 	add(StageExecute, "execute", func(s *Step) {
 		if !executed {
-			skip(s, "không có span execute / retrieve: route "+d.Route+" không truy vấn nguồn")
+			reason := "không có span execute / retrieve: route " + d.Route + " không truy vấn nguồn"
+			if route.NeedsModel() { // route tri thức luôn truy xuất: không có span nghĩa là lượt thoát sớm TRƯỚC truy xuất, không phải S6 sai
+				reason = "không có span execute / retrieve: route " + d.Route + " cần truy xuất nhưng lượt thoát sớm trước truy xuất (lý do ở S8)"
+			}
+			skip(s, reason)
 			return
 		}
 		s.Input = []string{"route=" + d.Route}
@@ -284,6 +304,11 @@ func BuildSteps(t Turn) []Step {
 			s.Reason = notRecorded("kết quả truy vấn (sourceoftruth.Result) chưa xuất khỏi Handle")
 			s.Rejected = []string{notRecorded("nguồn / bằng chứng bị loại lúc truy vấn chưa xuất khỏi Handle")}
 		default:
+			// NỢ (V8a, V8AS-04; ngữ nghĩa chưa đổi ở vòng 2): xung đột đã giải HỢP LỆ bằng thẩm quyền (outcome RESOLVED) vẫn bị đánh dấu LỆCH, nên "BƯỚC LỆCH ĐẦU TIÊN: S6" hiện trên
+			// lượt không có gì sai (vd "Dự án A tháng 10 xuất tổng cộng bao nhiêu dầu?"). Số đo của NGƯỜI SOÁT vòng 1 (chưa phải đo độc lập của tác giả vòng 2), 474 lượt = bộ 117 + H1 + H3 + H4
+			// với người hỏi đúng của ca: 120 / 275 lượt RESOLVED (43,6%) chỉ lệch ở S6, và chỉ 148 / 474 lượt ra "Không có bước lệch". Con số 30 / 104 (28,8%, 948 lượt hai người hỏi) của vòng 1
+			// KHÔNG tái lập được (test tạm không commit): đừng trích nó. Người đọc không bị lừa (chỉ nhiễu) và LỆCH ở đây là chủ ý của P5 (không giấu xung đột nguồn). Chủ dự án chọn: (a) giữ;
+			// (b) chỉ LỆCH ở S6 khi xung đột chờ người duyệt hoặc outcome không RESOLVED. Đổi nghĩa dấu này thì đổi kèm TestBuocTuLuotThat (đòi S6 lệch khi có xung đột).
 			s.Status = StatusDeviant // nguồn cùng chỉ số nói khác nhau
 			var reasons []string
 			for _, c := range resp.Conflicts {
@@ -348,18 +373,31 @@ func BuildSteps(t Turn) []Step {
 			skip(s, "route trống hoặc không hợp lệ nên không có cách dựng câu")
 		case route.NeedsModel() && has("generate"):
 			s.Decision = "model diễn đạt"
-			s.Reason = notRecorded("model, bản nháp và usage (contracts.Draft) chưa xuất khỏi Handle")
-			s.Rejected = []string{notRecorded("bản nháp bị loại chưa xuất khỏi Handle")}
+			if gen := d.Why.Generate; gen.Recorded() {
+				s.Reason, s.Rejected = joinReasons(gen), slices.Clone(gen.Rejected)
+			} else {
+				s.Reason = notRecorded("model, bản nháp và usage (contracts.Draft) chưa xuất khỏi Handle")
+				s.Rejected = []string{notRecorded("bản nháp bị loại chưa xuất khỏi Handle")}
+			}
 		case route.NeedsModel():
 			// route cần model mà pipeline không gọi Model.Generate (không có span generate): lượt kết thúc sớm — câu hỏi đòi lượng nghiệp
 			// vụ, truy xuất rỗng, phần số liệu không ra dữ liệu… Vết không được kể là model đã diễn đạt (R1-02): P10 dựa vào chặng MODEL
 			// để chọn đúng miền lỗi, đừng đổi model khi lỗi nằm ở dữ liệu.
 			s.Status, s.Decision = StatusSkipped, "model chưa được gọi"
-			s.Reason = "route " + d.Route + " cần model nhưng không có span generate: lượt kết thúc sớm với outcome " + d.Outcome +
-				", câu dựng bằng mẫu của tenant; " + notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
+			s.Reason = "route " + d.Route + " cần model nhưng không có span generate: lượt kết thúc sớm với outcome " + d.Outcome + ", câu dựng bằng mẫu của tenant; "
+			if gen := d.Why.Generate; gen.Recorded() { // lý do thoát, kết cục mà nhánh chọn, mẫu THẬT và bản nháp: do luồng hỏi ghi tại chỗ thoát
+				s.Reason += joinReasons(gen)
+				s.Rejected = slices.Clone(gen.Rejected)
+			} else {
+				s.Reason += notRecorded("lý do thoát sớm và tên mẫu chưa xuất khỏi Handle")
+			}
 		default:
-			s.Decision = "mẫu câu của tenant " + plan.Template
+			s.Decision = "mẫu câu của tenant " + usedTemplate(d.Why.Generate, plan.Template)
 			s.Reason = "route " + d.Route + " không cần model (RouteKind.NeedsModel = false): dựng bằng mẫu câu, không gọi model"
+			if gen := d.Why.Generate; gen.Recorded() {
+				s.Reason += "; " + joinReasons(gen)
+				s.Rejected = slices.Clone(gen.Rejected)
+			}
 		}
 	})
 	add(StageValidate, "validate", func(s *Step) {
@@ -379,11 +417,13 @@ func BuildSteps(t Turn) []Step {
 			s.Reason = strings.Join(vs, "; ")
 		}
 		// cổng phán quyết của câu xác nhận (verdictGap) chạy trước khi dựng câu: phán quyết hay không và vì sao
-		if n := d.Why.Validate; n.Recorded() {
+		n := d.Why.Validate
+		if n.Recorded() {
 			s.Reason += "; " + joinReasons(n)
-			s.Rejected = slices.Clone(n.Rejected)
 		}
-		if !resp.Verdict.Pass {
+		s.Rejected = slices.Clone(n.Rejected) // kể cả khi chặng không có ý nào ở Reasons: route tri thức chỉ ghi dòng bản nháp bị loại
+		// kiểm trượt mà luồng hỏi không xuất bản nháp bị loại (lượt cũ, bản dựng tay): chỗ trống ghi rõ
+		if !resp.Verdict.Pass && !slices.ContainsFunc(s.Rejected, func(x string) bool { return strings.Contains(x, RejectedDraft) }) {
 			s.Rejected = append(s.Rejected, notRecorded("bản nháp bị loại khi kiểm trượt chưa xuất khỏi Handle"))
 		}
 		if !resp.Verdict.Pass || resp.Verdict.Action == contracts.ActionFallback || resp.Verdict.Action == contracts.ActionEscalate {
@@ -398,11 +438,31 @@ func BuildSteps(t Turn) []Step {
 		if plan.Outcome != "" {
 			s.Reason = "router kết thúc sớm với outcome " + string(plan.Outcome)
 		}
+		if rep := d.Why.Respond; rep.Recorded() { // dấu vân tay của câu giao, đối chiếu với bản nháp ở S8
+			s.Reason += "; " + joinReasons(rep)
+			s.Rejected = slices.Clone(rep.Rejected)
+			if strings.Contains(joinReasons(rep), DeliveredMismatch) {
+				s.Status = StatusDeviant
+			}
+		}
 		if d.Outcome != string(contracts.OutcomeResolved) {
 			s.Status = StatusDeviant
 		}
 	})
 	return steps
+}
+
+// usedTemplate trả tên mẫu câu THẬT mà luồng hỏi đã dùng, đọc từ dòng bản nháp dựng bằng mẫu của S8 (dòng không tiền tố: bản nháp của chính câu giao). Lượt không mang dòng đó (lượt cũ, bản dựng
+// tay) thì giữ mẫu của router (routed).
+func usedTemplate(gen Notes, routed string) string {
+	for _, r := range gen.Reasons {
+		if rest, ok := strings.CutPrefix(r, "bản nháp "+TemplateDraftOpen); ok {
+			if tmpl, _, ok := strings.Cut(rest, TemplateDraftClose); ok && tmpl != "" {
+				return tmpl
+			}
+		}
+	}
+	return routed
 }
 
 // joinReasons nối các ý của Notes.Reasons thành lý do MỘT dòng của bước (cùng quy ước "; " với lý do của S6 / S9).

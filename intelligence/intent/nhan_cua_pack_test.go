@@ -44,3 +44,28 @@ func TestHasFigureDocNhanCuaPack(t *testing.T) {
 		}
 	}
 }
+
+// F-005: lời giải thích khe thiếu khi câu có cụm mơ hồ nói router còn gỡ được bằng gì — kiểu cha do pack khai (Options.NarrowParentLabel), không
+// viết cứng "dự án". Pack không khai kiểu cha thì router chỉ gỡ theo phạm vi dữ liệu, lời giải thích cũng chỉ nói thế.
+func TestGoiYMoHoTheoKieuChaCuaPack(t *testing.T) {
+	yes := func(string) bool { return true }
+	s, err := Compile(nil, yes, yes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := contracts.Resolution{Ambiguous: []contracts.AmbiguousMention{alias("may 3", "equipment")}}
+	for _, c := range []struct {
+		parent, want string
+	}{
+		{"khách hàng", " — có cụm mơ hồ " + contracts.Quote("may 3") + " (router có thể gỡ ở S5 bằng khách hàng đã nêu hay phạm vi dữ liệu của người hỏi)"},
+		{"", " — có cụm mơ hồ " + contracts.Quote("may 3") + " (router có thể gỡ ở S5 bằng phạm vi dữ liệu của người hỏi)"},
+	} {
+		s.SetOptions(Options{NarrowParentLabel: c.parent})
+		if got := s.ambiguousHint(res); got != c.want {
+			t.Errorf("kiểu cha %q: gợi ý = %q, muốn %q", c.parent, got, c.want)
+		}
+		if got := s.ambiguousHint(contracts.Resolution{}); got != "" {
+			t.Errorf("kiểu cha %q, không cụm mơ hồ: gợi ý = %q, muốn rỗng", c.parent, got)
+		}
+	}
+}

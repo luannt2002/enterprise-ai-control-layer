@@ -121,6 +121,9 @@ type Options struct {
 	// Labels báo con số ở [start, end) của câu là nhãn / số đếm / tần suất ("phiếu 912", "2 máy"): normalization.Engine.LabelContext với danh từ
 	// nhãn / đếm của lexicon pack (F-030). Không khai ⇒ như pack không khai danh từ nào: chỉ từ chức năng của bộ chuẩn hoá.
 	Labels func(raw string, start, end int) bool
+	// NarrowParentLabel: tên gọi kiểu cha mà router dùng gỡ bí danh mơ hồ (narrow_parent.label của pack, F-005) — cho lời giải thích khe thiếu.
+	// Rỗng ⇒ router chỉ gỡ theo phạm vi dữ liệu của người hỏi.
+	NarrowParentLabel string
 }
 
 // SetOptions gắn chính sách phân loại của pack. Pack khai động từ nguồn (SourceVerbs) thì sinh luôn cụm "<tên nguồn> <động từ>" ("cảm biến báo", "hoá đơn báo", "ERP báo") cho ý định của chỉ số mà nguồn đó
@@ -810,7 +813,7 @@ func (s *Set) fill(top Def, in contracts.NormalizedInput, res contracts.Resoluti
 			}
 			if sd.Required {
 				it.Missing = append(it.Missing, sd.Name)
-				w.reason("khe %s thiếu: không có thực thể rõ đúng loại (%s)%s", sd.Name, orAny(sd.Types), ambiguousHint(res))
+				w.reason("khe %s thiếu: không có thực thể rõ đúng loại (%s)%s", sd.Name, orAny(sd.Types), s.ambiguousHint(res))
 			}
 		case "period":
 			ps := distinctPeriods(in)
@@ -1829,8 +1832,8 @@ func orAny(types []string) string {
 	return strings.Join(types, "|")
 }
 
-// ambiguousHint nhắc các cụm mơ hồ của S3 khi khe thực thể thiếu (router còn có thể gỡ ở S5 bằng phạm vi / dự án).
-func ambiguousHint(res contracts.Resolution) string {
+// ambiguousHint nhắc các cụm mơ hồ của S3 khi khe thực thể thiếu (router còn có thể gỡ ở S5 bằng phạm vi / kiểu cha do pack khai).
+func (s *Set) ambiguousHint(res contracts.Resolution) string {
 	if len(res.Ambiguous) == 0 {
 		return ""
 	}
@@ -1838,7 +1841,11 @@ func ambiguousHint(res contracts.Resolution) string {
 	for _, m := range res.Ambiguous {
 		ms = append(ms, contracts.Quote(m.Mention))
 	}
-	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng dự án đã nêu hay phạm vi dữ liệu của người hỏi)"
+	by := "phạm vi dữ liệu của người hỏi"
+	if s.opt.NarrowParentLabel != "" {
+		by = s.opt.NarrowParentLabel + " đã nêu hay " + by
+	}
+	return " — có cụm mơ hồ " + strings.Join(ms, ", ") + " (router có thể gỡ ở S5 bằng " + by + ")"
 }
 
 // termFor trả thuật ngữ đã quyết chỉ số (cùng thứ tự với metricOf): thuật ngữ trong câu, không có thì thuật ngữ hiểu ngầm.

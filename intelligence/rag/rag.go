@@ -395,6 +395,13 @@ func qualityGate(docs []Document) {
 	mocs := map[string][]moc{} // mã → các bản đã công bố đạt kiểm, theo thứ tự bản
 	for _, i := range idx {
 		d := &docs[i]
+		// Thân không có chữ (tệp rỗng, PDF scan chưa có lớp chữ — F-023): không đoạn nào vào chỉ mục, tài liệu biến mất mà không ai biết.
+		// Giữ lại kèm lý do, cả tài liệu không phiên bản (nguồn files không khai bản).
+		// shortcut: luật "0 chữ cái", chưa đo độ phủ chữ theo trang; PDF scan lẫn vài chữ rác vẫn lọt — đo theo trang khi có adapter OCR.
+		if (d.Status == "" || d.Status == StatusApproved) && !strings.ContainsFunc(d.Body, unicode.IsLetter) {
+			d.Status, d.Hold = StatusNeedsReview, "thân tài liệu không có chữ (tệp rỗng hoặc PDF scan chưa có lớp chữ)"
+			continue
+		}
 		if d.Version == 0 || (d.Status != StatusApproved && d.Status != StatusSuperseded) {
 			continue
 		}

@@ -38,4 +38,10 @@ func TestNarrowTheoKieuChaDoPackKhai(t *testing.T) {
 			t.Errorf("%s: không được gỡ theo cha, được %+v", name, n)
 		}
 	}
+	// thực thể không mang kiểu mà pack không khai kiểu cha: "" không được coi là kiểu cha
+	untyped := contracts.EntityRef{ID: "KH-1", Key: "KH-1"}
+	cls.Intent.Slots = map[string]contracts.Slot{"subject": {Name: "subject", Entity: &untyped}}
+	if n := Route(set, cls, contracts.NormalizedInput{}, pr, pol, Settings{}, lineage).Narrowed; n.Slot != "" {
+		t.Errorf("kiểu rỗng, pack không khai kiểu cha: không được gỡ theo cha, được %+v", n)
+	}
 }

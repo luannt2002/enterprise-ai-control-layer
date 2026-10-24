@@ -75,3 +75,15 @@ giới S4 cần chủ dự án quyết.
 
 Cổng của cây này (so với `17213ce`): `go test -json ./...` có PG 2045 pass + 2 skip (hai lệnh đo động cơ thật, bật tay), so theo tên
 0 mất / 0 đổi / 5 test mới; winreport 117 / H1 / H3 / H4 × bộ nhớ / PG 0 dòng khác ngoài dòng thời gian; smoke 21/21.
+
+## Vết RAG ở S6 (24/10) — tệp chung bị chạm
+
+> Viết cho: team build. Chỉ để biết. Không đổi câu trả lời / outcome của route nào; route số liệu thuần không đổi một dòng vết.
+
+| Tệp | Đổi gì | Ảnh hưởng tới phần của team |
+|---|---|---|
+| `core/contracts/tenantctx.go` | **thêm** `KnowledgeQuery.Report *RetrievalReport` + kiểu `RetrievalReport` (chỉ mục điền khi khác nil) | không: trường mới, nil = như cũ; `KnowledgeRetriever` không đổi |
+| `core/pipeline/ask.go`, `why.go` | `answerKnowledge` truyền `Report`, ghi `noteExecute` vào `Why.Execute` | dòng S7 tri thức giữ nguyên văn (test so từng dòng của `observability/traces` vẫn xanh) |
+| `observability/traces/decision.go` | `Why.Execute` (S6, `omitzero`) + có trong `apply` (bộ che chữ người hỏi) | `NewRecord` xoá `Why` nên bản ghi đã lưu / phát lại không đổi; test reflection mới đòi MỌI ô `Notes` của `Why` qua bộ che — thêm ô sau này mà quên `apply` là đỏ |
+| `observability/traces/step.go` | S6: route RAG dùng `Why.Execute` thay ô "chưa ghi"; HYBRID NỐI vết tri thức vào phần số liệu (xung đột / ô chưa ghi giữ nguyên, dấu khoảng trống của bảng vẫn bật) | khi team xuất `sourceoftruth.Result` ra S6 (làn 1): phần đó là "phần số liệu", vết tri thức chỉ nối sau |
+

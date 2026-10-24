@@ -349,7 +349,9 @@ top-3 đã có đáp án. Ngưỡng chọn lại trên bộ phát triển rồi 
 ### 6.7 Vết của RAG (đi theo làn 0, brief §9.4)
 
 Mỗi lượt RAG ghi thêm vào vết:
-- số tài liệu bị loại vì tenant / vai / phạm vi / phiên bản / trạng thái (chỉ số đếm, không ghi nội dung của thứ bị cấm);
+- số tài liệu bị loại vì phiên bản / trạng thái TRONG tài liệu người hỏi thấy. Số đếm theo tenant / vai / phạm vi KHÔNG vào vết của lượt:
+  người hỏi đọc được vết của chính mình (`GET /v1/trace`), đếm tài liệu bị cấm là cho biết có tài liệu họ không được xem — phá "không có"
+  = "không được xem" (§6.2). Nếu cần số đó thì chỉ ở nhật ký kiểm toán vai quản trị;
 - các đoạn được tìm thấy, điểm, hạng;
 - đoạn được chọn, đoạn bị loại và lý do (ngân sách, trùng);
 - trạng thái ở §6.2;
@@ -550,7 +552,11 @@ Mỗi món là một cổng năng lực riêng. Mở bằng một lỗi đo đư
 | RAG-7 | quy mô đo được (`evals/rag/quy_mo_test.go`); RLS, xác thực của M1; thử lại theo Retry-After / retryDelay, nhãn lỗi `third_party:<giao thức>`; đổi nhà cung cấp chỉ đổi `.env` (đã làm 1 lần: embedding thứ nhất bị chặn hạn mức → thứ hai, 0 dòng code) | dự phòng tự động giữa hai nhà cung cấp, chi phí mỗi lượt, thử tải; lượt nhúng chờ hạn mức không báo tiến độ |
 | RAG-8 | — | chỉ khi việc đòi |
 
-Vết RAG (§6.7): đã có đoạn truy xuất / được dẫn / bị loại và lý do khi trả thông báo (R2-03 + nhánh RAG); **thiếu** số tài liệu bị loại theo từng lý do, điểm và hạng, lý do "im".
+Vết RAG (§6.7): đã có đoạn truy xuất / được dẫn / bị loại và lý do khi trả thông báo (R2-03 + nhánh RAG). **24/10:** chặng S6 của
+route tri thức ghi đường truy xuất, số bản tài liệu / đoạn người hỏi thấy, số bản không làm căn cứ được ở ngày hỏi, hạng + điểm từng đoạn
+giữ lại, số đoạn xếp sau hạng k, lý do "im" (luật chủ đề / ngưỡng từ khoá / điểm đầu < ngưỡng lai), dừng ở thông báo phiên bản; HYBRID
+nối thêm vào phần số liệu của S6, không đè. Cố ý KHÔNG đếm tài liệu ngoài vai / phạm vi (§6.7). **Còn thiếu:** trích dẫn / số đã kiểm
+gom vào một dòng, phương án dự phòng đã dùng.
 
 ### 10.2 Việc tiếp theo [ĐỀ XUẤT, 23/10]
 

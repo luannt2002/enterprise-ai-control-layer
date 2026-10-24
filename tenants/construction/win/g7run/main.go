@@ -11,8 +11,8 @@
 //
 // Không có model thật thì G7 là CHẶN (docs/04 §6): provider rỗng hoặc "extractive" vẫn chạy hết
 // ống nối bằng model giả tất định để thấy mọi mắt xích nối đúng, nhưng kết quả KHÔNG phải bằng chứng.
-// Model thật cấu hình bằng biến môi trường (models.ConfigFromEnv: EAIS_MODEL_PROVIDER, EAIS_MODEL,
-// EAIS_MODEL_API_KEY, EAIS_MODEL_BASE_URL, EAIS_MODEL_THINKING, EAIS_MODEL_EFFORT…); cờ -provider ghi
+// Model thật — chỉ giao thức messages (models.ProtocolMessages) — cấu hình bằng biến môi trường (models.ConfigFromEnv:
+// EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_API_KEY, EAIS_MODEL_BASE_URL, EAIS_MODEL_THINKING, EAIS_MODEL_EFFORT…); cờ -provider ghi
 // đè EAIS_MODEL_PROVIDER. Thiếu model hay khoá là lỗi cấu hình, thoát ngay. Mọi hệ dùng CHUNG một
 // gateway; không gửi temperature (ADR-0005 §1). -smoke N chạy N ca đầu một lượt mỗi hệ để kiểm
 // provider nhận tham số, trước khi chi tiền cho lượt chạy thật. Giá trị của hợp đồng — model, endpoint chính thức, bảng giá —
@@ -371,6 +371,12 @@ func run(cfg config) int {
 		return 2
 	}
 	_, fake := gw.(*models.Extractive)
+	if _, ok := gw.(*models.Messages); !ok && !fake {
+		// Hợp đồng G7 §4 chỉ định giao thức messages, và chỉ nhánh đó có trần ngân sách + kiểm trước khi tiêu tiền: giao thức khác
+		// từng gọi model không trần, không kiểm (soát độc lập cuối). Đóng mặc định — từ chối TRƯỚC lời gọi model.
+		fmt.Fprintf(os.Stderr, "LỖI: provider %q: hợp đồng G7 §4 chỉ dùng giao thức %s (hoặc model giả); không gọi model\n", mc.Provider, models.ProtocolMessages)
+		return 2
+	}
 	if fake {
 		fmt.Println(blockedLine)
 	}

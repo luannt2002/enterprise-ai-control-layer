@@ -127,3 +127,28 @@ func TestMocHopDongKhongDoiBangCauHinh(t *testing.T) {
 		})
 	}
 }
+
+// Hợp đồng G7 §4 chỉ định MỘT giao thức (messages), và chỉ nhánh đó có trần ngân sách (budgetGateway) và kiểm trước khi tiêu tiền. Giao
+// thức khác (chat_completions) từng gọi model không trần, không kiểm — kết luận vẫn CHẶN nhưng tiền thật đã tiêu (lát tài liệu nêu khi
+// soát cuối). Nay bị từ chối TRƯỚC lời gọi model đầu tiên, cả thử khói lẫn lượt chạy: đóng mặc định.
+func TestGiaoThucNgoaiHopDongBiTuChoiTruocLoiGoiModel(t *testing.T) {
+	var calls atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		_, _ = io.WriteString(w, `{"choices":[{"message":{"content":"{\"answer\": \"x\", \"evidence_ids\": []}"}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`)
+	}))
+	defer srv.Close()
+	clearModelEnv(t)
+	for k, v := range map[string]string{"EAIS_MODEL_PROVIDER": models.ProtocolChat, "EAIS_MODEL": modelHopDong, "EAIS_MODEL_API_KEY": "k", "EAIS_MODEL_BASE_URL": srv.URL} {
+		t.Setenv(k, v)
+	}
+	data := genData(t)
+	for _, smoke := range []int{1, 0} {
+		calls.Store(0)
+		cfg := baseCfg(data)
+		cfg.smoke = smoke
+		if code := run(cfg); code != 2 || calls.Load() != 0 {
+			t.Errorf("giao thức %s, -smoke %d: mã %d, %d lời gọi; muốn 2 và 0 lời gọi (từ chối trước khi tiêu tiền)", models.ProtocolChat, smoke, code, calls.Load())
+		}
+	}
+}

@@ -3,6 +3,8 @@
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — GO của chủ dự án cho báo cáo audit vNext (`docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10
   "vNext"): chấp nhận theo GO chung 24/10 cho toàn bộ khuyến nghị của báo cáo; chủ dự án chưa trả lời riêng Q2 / Q3 / Q5. Mã chưa đổi: phần thi công thuộc lát L4 (`core/policy`) và L6 (ranh giới RAG) của báo cáo §14.
+  **Ghi chú trạng thái 24/10 tối:** câu "mã chưa đổi" ở trên đã cũ — đã thi công một phần (lát L4, Q11, Q11b); mục 3 CHƯA LÀM, mục 2
+  làm chưa trọn. Chi tiết: mục "Trạng thái thi công" cuối tệp.
 - **Giải:** mâu thuẫn D12 của báo cáo (§17: hai nơi giữ hai nửa quyền đọc tài liệu); nguồn gốc của D-RAG-02 (12 vai của ACL kho không có
   trong policy). Lựa chọn cấu hình cụ thể cho pack construction (D-RAG-02 a / b / c) vẫn là câu của chủ dự án.
 - **Liên quan:** ADR-0013, ADR-0015 (lõi / module); `CLAUDE.md` §12 (RAG không sở hữu "tenant authorization", "enterprise permission"); báo cáo audit
@@ -52,3 +54,15 @@ Hệ quả đã đo / đọc thấy:
   để không cho hai vai ghép quyền.
 - **Lọc ACL bằng SQL / RLS theo vai:** để sau; hôm nay mọi tài liệu của tenant đã nằm trong RAM sau RLS theo tenant, và chưa có số đo
   nào đòi đẩy phép lọc xuống DB.
+
+## Trạng thái thi công (24/10/2026 tối, nhánh `vnext/tach-2410`, kiểm bằng grep trên `f589cf6`)
+
+| Mục | Trạng thái | Bằng chứng / chỗ còn thiếu |
+|---|---|---|
+| 1. Lõi quyết "ai đọc tài liệu nào" | **làm một phần** | `Policy` ở `core/policy` (lát L4, chỉ phụ thuộc `core/contracts`). `Policy.Holding(pr, capability)` (`core/policy/policy.go:68`) trả principal chỉ còn vai có capability — lát Q11 (`927ebf2`) dùng nó trước khi gọi RAG / dự phòng S4 (`core/pipeline/ask.go`, `answerKnowledge(…, Holding(pr, …))`); lát Q11b (`1ce56b6`) dùng cho router S5, ứng viên hỏi lại, che vết. Chưa có "một bộ lọc" đủ bốn thành phần (tenant, vai, phạm vi, ngày) như mục 1 tả: thứ trao cho RAG vẫn là `Principal` đã lọc vai |
+| 2. RAG chỉ áp bộ lọc | **làm chưa trọn** | RAG vẫn tự đọc `pr.Roles` để khớp ACL (`intelligence/rag/rag.go:556–557`, hàm `allowed`; `visible` cũng duyệt `pr.Roles`). Đúng nhờ pipeline đã lọc vai qua `Holding`; đường gọi RAG nào bỏ qua `Holding` thì RAG không tự chặn |
+| 3. Vai lạ trong ACL hiện ra lúc nạp | **CHƯA LÀM** | không có phép kiểm vai ACL ↔ vai của policy ở đường nạp (`grep` `ACL` trong `intelligence/rag/source.go`, `platform/pgstore/load.go`: chỉ đọc / ghi, không so với policy). D-RAG-02 vẫn chỉ lộ khi đo |
+| 4. Tài liệu khai ACL, lõi quyết | giữ nguyên | ACL / phạm vi vẫn là thuộc tính tài liệu |
+| Ca hai vai ở mục "SUY" | **có test, xanh** | `TestHaiVaiTachQuyenDocVaACL`, `TestHaiVaiDuPhongS4`, `TestPhamViDuPhongRAGBangPolicy` (`tenants/construction/pham_vi_cheo_test.go`), `TestHaiVaiSoLieuMotVai`, `TestRouteHaiVaiPhamViMotVai` |
+
+Kiểm lại: `grep -n "pr.Roles" intelligence/rag/rag.go`; `grep -rn "Holding(" --include=*.go . | grep -v _test`.

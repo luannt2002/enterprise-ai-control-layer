@@ -19,3 +19,12 @@ m $I '	if c.seen[key] {' '	if false {' 'L5-7 bản ghi trùng khoá thành fact 
 B=data/ingestion/bridge.go
 m $B ', ObservedAt: o.SentAt, ReportedBy: o.Sender},' '},' 'L5-8 [PG] fact mất người gửi và giờ gửi (F-008)'
 m $I '		on, at = d, t' '		on = d' 'L5-9 fact mất giờ gửi (F-008)'
+export PKGS="./intelligence/router/ ./core/pipeline/ ./core/tenant/ ./tenants/construction/"
+R=intelligence/router/router.go
+m $R '		if parent.Type == "" || cur.Entity.Type != parent.Type {' '		if cur.Entity.Type != parent.Type {' 'L5-10 pack không khai kiểu cha vẫn gỡ theo cha (F-005)'
+m $R '		if parent.Type == "" || cur.Entity.Type != parent.Type {' '		if parent.Type == "" {' 'L5-11 gỡ theo cha với khe điền bằng kiểu khác (F-005)'
+m $R '		nar.By, nar.ByLabel = parent.Type, parent.Label' '		nar.By, nar.ByLabel = parent.Type, "dự án"' 'L5-12 vết gọi kiểu cha bằng tên gán cứng (F-005)'
+m core/pipeline/why.go '		if nar.By != contracts.NarrowByScope {' '		if nar.By == "project" {' 'L5-13 lời giải thích chỉ nhận kiểu cha project (F-005)'
+P=core/tenant/pack.go
+m $P 'UnmatchedTemplate: inf.UnmatchedTemplate, NarrowParent: inf.NarrowParent}' 'UnmatchedTemplate: inf.UnmatchedTemplate}' 'L5-14 runtime bỏ narrow_parent của pack (F-005)'
+m $P '		if p := inf.NarrowParent; (p.Type == "") != (p.Label == "") || p.Type == contracts.NarrowByScope {' '		if p := inf.NarrowParent; false {' 'L5-15 narrow_parent nửa vời vẫn nạp (F-005)'

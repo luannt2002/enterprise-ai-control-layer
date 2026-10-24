@@ -23,13 +23,14 @@ type (
 
 // narrow gỡ bí danh mơ hồ bằng NGỮ CẢNH đã có trong câu và trong danh tính — luật tất định:
 //
-//	(a) khe thực thể đã điền bằng một DỰ ÁN mà câu còn nhắc một thiết bị mơ hồ ("máy 07 của dự
-//	    án A"): giữ ứng viên thuộc dự án đó; đúng 1 thì câu hỏi là về thiết bị ấy, 0 hoặc > 1
-//	    thì hỏi lại — không lặng lẽ trả lời cho cả dự án;
+//	(a) khe thực thể đã điền bằng một thực thể thuộc KIỂU CHA do pack khai (parent) mà câu còn nhắc
+//	    một thực thể mơ hồ ("máy 07 của dự án A"): giữ ứng viên thuộc thực thể cha đó; đúng 1 thì câu
+//	    hỏi là về ứng viên ấy, 0 hoặc > 1 thì hỏi lại — không lặng lẽ trả lời cho cả thực thể cha.
+//	    Pack không khai kiểu cha thì không gỡ theo cha;
 //	(b) khe còn thiếu: giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi; đúng 1 thì chọn
 //	    (người hỏi không thể muốn thiết bị mình không được xem). Vai phạm vi "all" thì mọi ứng
 //	    viên đều trong phạm vi nên vẫn phải hỏi lại.
-func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, lineage func(contracts.EntityRef) []string) (contracts.Intent, contracts.Narrowing) {
+func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, parent ParentType, lineage func(contracts.EntityRef) []string) (contracts.Intent, contracts.Narrowing) {
 	it := cls.Intent
 	if len(cls.Candidates) == 0 {
 		return it, contracts.Narrowing{}
@@ -48,10 +49,10 @@ func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Polic
 	nar := contracts.Narrowing{Slot: slot, Before: keysOf(cls.Candidates)}
 	var keep []contracts.EntityRef
 	if cur, ok := it.Slots[slot]; ok && cur.Entity != nil {
-		if cur.Entity.Type != "project" {
+		if parent.Type == "" || cur.Entity.Type != parent.Type {
 			return it, contracts.Narrowing{}
 		}
-		nar.By = contracts.NarrowByProject
+		nar.By, nar.ByLabel = parent.Type, parent.Label
 		for _, c := range cls.Candidates {
 			for _, k := range lineage(c) {
 				if k == cur.Entity.Key {
@@ -121,6 +122,14 @@ func terminalOutcome(r contracts.RouteKind) contracts.Outcome {
 type Settings struct {
 	UnmatchedRoute    string `yaml:"unmatched_route"`
 	UnmatchedTemplate string `yaml:"unmatched_template"`
+	// NarrowParent: kiểu thực thể CHA dùng để gỡ bí danh mơ hồ theo ngữ cảnh (xem narrow); rỗng = chỉ gỡ theo phạm vi dữ liệu.
+	NarrowParent ParentType `yaml:"narrow_parent"`
+}
+
+// ParentType là một kiểu thực thể cha của pack: tên kiểu (Entity.Type) và tên gọi của nó trong lời giải thích ("dự án").
+type ParentType struct {
+	Type  string `yaml:"type"`
+	Label string `yaml:"label"`
 }
 
 // Route quyết kế hoạch cho một lượt hỏi. lineage trả khoá thực thể + tổ tiên (từ danh mục).
@@ -183,7 +192,7 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 	}
 	def, _ := set.Def(cls.Intent.Name)
 	var it contracts.Intent
-	it, narrowed = narrow(cls, def, pr, pol, lineage)
+	it, narrowed = narrow(cls, def, pr, pol, st.NarrowParent, lineage)
 	plan = contracts.RoutePlan{Intent: it}
 	cls.Intent = plan.Intent
 

@@ -2,9 +2,6 @@
 # Mỗi dòng là MỘT lần xuất hiện: <tệp>\t<literal Go dạng strconv.Quote>\t<mã phát hiện F-0xx>\t<lý do>. Khớp chính xác theo (tệp, literal),
 # không theo số dòng. Literal mới hay literal nợ bị sửa → cổng đỏ; mục không còn trong mã → cổng đỏ (mục thừa).
 # Lát nào gỡ literal thì xoá đúng mục của nó trong CÙNG commit. Không thêm mục mới để cổng xanh: thêm nợ phải có mã phát hiện và lý do.
-core/contracts/contracts.go	"project"	F-005	NarrowByProject: router chỉ thu hẹp theo cha khi kiểu thực thể là project (kiểu cha gán cứng)
-core/pipeline/why.go	"dự án đã nêu trong câu"	F-005	lời giải thích của thu hẹp theo cha project
-core/pipeline/why.go	"không thuộc dự án đã nêu trong câu"	F-005	lời giải thích của thu hẹp theo cha project
 data/normalization/qualifier.go	"khối"	F-030	labelBefore: đơn vị khối viết cứng trong bộ chuẩn hoá dùng chung
 data/normalization/qualifier.go	"lít"	F-030	labelBefore: đơn vị lít viết cứng trong bộ chuẩn hoá dùng chung
 data/normalization/qualifier.go	"khối"	F-030	unitLabels: đơn vị khối viết cứng
@@ -18,5 +15,4 @@ evals/g7.go	"(?i)^\\s*(nghìn|ngàn|triệu|tr|tỷ|m3|m³|khối)(?:[^\\p{L}\\p
 evals/g7.go	"khối"	F-030	bộ đọc số của bộ chấm G7: hệ số của đơn vị khối
 intelligence/intent/intent.go	" (router có thể gỡ ở S5 bằng dự án đã nêu hay phạm vi dữ liệu của người hỏi)"	F-005	lời giải thích nói cha project gán cứng
 intelligence/models/messages.go	"phản hồi không có câu trả lời trọn vẹn của model (stop_reason %q, có khối chữ: %v)"	F-011	FALSE_POSITIVE: khối chữ = khối nội dung của giao thức model, không phải đơn vị khối
-intelligence/router/router.go	"project"	F-005	chỉ thu hẹp theo cha khi Type == project
 reliability/validation/knowledge.go	"khối"	F-030	ambiguousUnitWord: đơn vị khối viết cứng trong bộ kiểm tri thức

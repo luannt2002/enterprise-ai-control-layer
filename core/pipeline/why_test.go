@@ -106,7 +106,7 @@ func TestExplainResolveKhongKeTrangThaiPhamViTungUngVien(t *testing.T) {
 		t.Errorf("người hỏi phạm vi hạn chế không được thấy tên / loại: %q", got)
 	}
 	// gỡ theo dự án nói đúng lý do loại
-	p := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: contracts.NarrowByProject, Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, clarifyInfo{}, true)
+	p := explainResolve(in, res, contracts.Narrowing{Slot: "subject", By: "project", ByLabel: "dự án", Before: []string{"DZ-03", "EX-03"}, After: []string{"EX-03"}, Chosen: "EX-03"}, clarifyInfo{}, true)
 	if want := []string{"1 ứng viên bị loại khi gỡ mơ hồ: không thuộc dự án đã nêu trong câu (vết không nêu trạng thái phạm vi của từng ứng viên)"}; !slices.Equal(p.Rejected, want) {
 		t.Errorf("gỡ theo dự án: %q", p.Rejected)
 	}

@@ -189,8 +189,8 @@ func explainResolve(in contracts.NormalizedInput, res contracts.Resolution, nar 
 	}
 	if nar.Slot != "" {
 		by, dropWhy := "phạm vi dữ liệu của người hỏi", "ngoài phạm vi dữ liệu của người hỏi"
-		if nar.By == contracts.NarrowByProject {
-			by, dropWhy = "dự án đã nêu trong câu", "không thuộc dự án đã nêu trong câu"
+		if nar.By != contracts.NarrowByScope { // gỡ theo kiểu cha của pack: gọi bằng tên gọi của pack
+			by, dropWhy = nar.ByLabel+" đã nêu trong câu", "không thuộc "+nar.ByLabel+" đã nêu trong câu"
 		}
 		result := "giữ nguyên mơ hồ"
 		if nar.Chosen != "" {

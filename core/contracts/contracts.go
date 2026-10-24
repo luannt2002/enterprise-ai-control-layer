@@ -289,7 +289,7 @@ type RoutePlan struct {
 	// Checked: các bậc kiểm router đã đi qua theo thứ tự, kể cả bậc đã chặn — đường quyết định ghi đúng lúc quyết định (R2-03), chỉ để
 	// giải thích: không bậc nào đọc lại nó để quyết.
 	Checked []RouteCheck `json:"checked,omitempty"`
-	// Narrowed: lần router gỡ bí danh mơ hồ bằng ngữ cảnh (dự án đã nêu, phạm vi dữ liệu của người hỏi). Slot rỗng = không gỡ lần nào.
+	// Narrowed: lần router gỡ bí danh mơ hồ bằng ngữ cảnh (thực thể cha đã nêu, phạm vi dữ liệu của người hỏi). Slot rỗng = không gỡ lần nào.
 	Narrowed Narrowing `json:"narrowed,omitzero"`
 }
 
@@ -301,11 +301,9 @@ type RouteCheck struct {
 	Detail string    `json:"detail,omitempty"` // dữ kiện đã kiểm và kết quả của nó
 }
 
-// Cách router gỡ bí danh mơ hồ (Narrowing.By).
-const (
-	NarrowByProject = "project" // khe đã điền bằng một dự án: giữ ứng viên thuộc dự án đó
-	NarrowByScope   = "scope"   // khe còn thiếu: giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi
-)
+// NarrowByScope (Narrowing.By): khe còn thiếu — giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi. Khi khe đã điền bằng một thực thể
+// thuộc KIỂU CHA do pack khai (intents.yaml narrow_parent), By là tên kiểu đó: giữ ứng viên thuộc thực thể ấy (F-005).
+const NarrowByScope = "scope"
 
 // Narrowing ghi một lần router gỡ bí danh mơ hồ: ứng viên TRƯỚC và SAU khi lọc, và thực thể được chọn.
 type Narrowing struct {
@@ -314,6 +312,8 @@ type Narrowing struct {
 	Before []string `json:"before"`           // khoá các ứng viên của cụm mơ hồ trước khi lọc (không trùng, theo thứ tự gặp)
 	After  []string `json:"after"`            // khoá các ứng viên còn lại sau khi lọc
 	Chosen string   `json:"chosen,omitempty"` // khoá thực thể được chọn; rỗng = lọc xong vẫn không gỡ được
+	// ByLabel: tên gọi kiểu cha của pack ("dự án") cho lời giải thích khi By là kiểu cha; không vào JSON (suy lại được từ pack).
+	ByLabel string `json:"-"`
 }
 
 // Outcome là kết quả CÓ KIỂU của một lượt hỏi (docs/04 §4): client đọc trường này, không đoán

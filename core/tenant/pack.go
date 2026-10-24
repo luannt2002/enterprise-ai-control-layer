@@ -37,6 +37,8 @@ type metricsFile struct {
 type intentsFile struct {
 	UnmatchedRoute    string `yaml:"unmatched_route"`
 	UnmatchedTemplate string `yaml:"unmatched_template"`
+	// NarrowParent: kiểu thực thể cha để router gỡ bí danh mơ hồ theo ngữ cảnh ("máy 07 của dự án A"), kèm tên gọi trong vết (F-005).
+	NarrowParent router.ParentType `yaml:"narrow_parent"`
 	// ConfirmMarkers: cụm biến câu hỏi số liệu thành câu XÁC NHẬN một con số người dùng đưa ra
 	// ("4k đúng không?"). Có khai thì phải có mẫu confirmTemplates.
 	ConfirmMarkers []string `yaml:"confirm_markers"`
@@ -311,7 +313,10 @@ func loadQuerySections(dir string, rt *Runtime) []string {
 		if !contracts.RouteKind(inf.UnmatchedRoute).Valid() {
 			problems = append(problems, fmt.Sprintf("intents.yaml: unmatched_route %q không thuộc 12 route", inf.UnmatchedRoute))
 		}
-		rt.Router = router.Settings{UnmatchedRoute: inf.UnmatchedRoute, UnmatchedTemplate: inf.UnmatchedTemplate}
+		if p := inf.NarrowParent; (p.Type == "") != (p.Label == "") || p.Type == contracts.NarrowByScope {
+			problems = append(problems, fmt.Sprintf("intents.yaml: narrow_parent cần cả type và label, type khác %q (gặp %+v)", contracts.NarrowByScope, p))
+		}
+		rt.Router = router.Settings{UnmatchedRoute: inf.UnmatchedRoute, UnmatchedTemplate: inf.UnmatchedTemplate, NarrowParent: inf.NarrowParent}
 		rt.ConfirmMarkers = inf.ConfirmMarkers
 		rt.ClaimNeutral = inf.ClaimNeutralWords
 		rt.QuantityMarkers = inf.QuantityMarkers

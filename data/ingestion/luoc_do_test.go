@@ -117,7 +117,7 @@ func TestLuocDoDanhMucHongBiChan(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, c := range map[string]struct{ from, to, want string }{
-		"thiếu entity_lists":       {"entity_lists:\n  - {list: customers, type: customer}\n  - {list: orders, type: order, parent_field: customer}\n", "", "entity_lists"},
+		"thiếu entity_lists":       {"entity_lists:\n  - {list: customers, type: customer}\n  - {list: orders, type: order, parent_field: customer}\n", "", "thiếu entity_lists"},
 		"mảng thiếu loại":          {"{list: customers, type: customer}", "{list: customers}", "type"},
 		"mảng khai hai lần":        {"{list: orders, type: order, parent_field: customer}", "{list: customers, type: order}", "customers"},
 		"chữ tự do thiếu loại":     {"free_text_entity: {type: order, label: đơn hàng}\n", "", "free_text_entity"},

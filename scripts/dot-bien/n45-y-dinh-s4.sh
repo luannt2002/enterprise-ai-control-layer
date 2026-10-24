@@ -191,7 +191,7 @@ m $I '		if counts[i] > 0 && contracts.RouteKind(d.Route) == contracts.RouteRAG {
 m $I '				} else if !s.attachedRequest(clauses, ci, rawBG) {
 					continue
 				}' '				}' 'S106 lệnh ghi không cần con số ("ghi nhận dầu" không có con số, mệnh đề kề cũng không có, bị hỏi lại)'
-m $I '					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' '					if false {' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi (mệnh đề có cụm hỏi không được coi là câu hỏi)'
+m $I 's.asking(cj) && (' 'false && s.asking(cj) && (' 'S107 câu xác nhận / hỏi lượng có "ghi nhận" cũng là lệnh ghi (mệnh đề có cụm hỏi không được coi là câu hỏi)'
 m $I '	return append(slices.Clone(s.opt.IgnorePhrases), s.cuePhrases()...)' '	return slices.Clone(s.opt.IgnorePhrases)' 'S108 cụm báo nghĩa không chiếm chỗ ("nhận" của "ghi nhận" khớp ý định kho xuất)'
 m intelligence/router/router.go '		if len(cls.Unsupported) > 0 { // nghĩa hệ chưa hỗ trợ' '		if false { // nghĩa hệ chưa hỗ trợ' 'S110 router không nói nghĩa chưa hỗ trợ (hỏi lại như câu thiếu nghĩa)'
 m core/pipeline/ask.go '		vars["unsupported_note"] = strings.Join(unsupported, " ")' '		_ = unsupported' 'S111 câu hỏi lại không nói nghĩa nào chưa hỗ trợ'
@@ -199,7 +199,7 @@ m $I '	for _, c := range s.cuePhrases() { // cụm báo nghĩa chưa hỗ trợ 
 
 
 # ---- vòng 2 (23/10, soát vòng 1): S4AS-01 — lệnh ghi lịch sự có "?" vẫn là lệnh
-m $I '					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' '					if strings.HasSuffix(strings.TrimSpace(in.Raw), "?") || s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {' 'S113 dấu "?" ở cuối câu làm mệnh đề thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
+m $I 's.asking(cj) && (' 'strings.HasSuffix(strings.TrimSpace(in.Raw), "?") || s.asking(cj) && (' 'S113 dấu "?" ở cuối câu làm mệnh đề thành câu hỏi (lệnh ghi lịch sự bị trả như truy vấn)'
 m $I '	return slices.ContainsFunc(slices.Concat(s.opt.FocusMarkers, s.opt.QuantityMarkers), func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' '	return slices.ContainsFunc(s.opt.FocusMarkers, func(m string) bool { return normalization.ContainsPhrase(text, m) })
 }' 'S114 cụm hỏi lượng không đánh dấu câu hỏi ("ghi nhận … bao nhiêu" bị coi là lệnh)'
@@ -279,8 +279,8 @@ m $I '	for j := 0; j < ci; j++ {' '	for j := 0; j < len(clauses); j++ {' 'S157 y
 m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if len(out) == 0 && false {' 'S158 bỏ luật lệnh ghi theo cấu trúc: động từ ngoài danh sách ("Nhập", "Chốt số", "Note lại") lại trả số tiêu thụ'
 m $I '	if s.asking(raw) || strings.Contains(raw, "?") {' '	if s.asking(raw) {' 'S159 dấu "?" không là dấu hiệu hỏi của câu nêu giá trị ("Nhập … nhé?" bị coi là lệnh)'
 m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return len(sp) > 0 && sp[len(sp)-1][1] == end && false' 'S160 đuôi "… không" cuối câu không là dấu hiệu hỏi ("EX-03 hôm nay có đốt 3782 L dầu không" bị coi là lệnh ghi)'
-m $I '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })' '	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) })' 'S161 mọi lượng có đơn vị là giá trị ("7h30", "20 tấn" biến yêu cầu tra cứu thành lệnh ghi)'
-m $I 'return !inName(sp) && s.fitsAnyMetric(sp.Value) })' 'return (!inName(sp) || true) && s.fitsAnyMetric(sp.Value) })' 'S162 "03" của "máy 03" (bị gắn đơn vị lít) là giá trị'
+m $I '&& !inName(sp) && s.fitsAnyMetric(sp.Value)' '&& !inName(sp)' 'S161 mọi lượng có đơn vị là giá trị ("7h30", "20 tấn" biến yêu cầu tra cứu thành lệnh ghi)'
+m $I '!inName(sp) && s.fitsAnyMetric(sp.Value)' '(!inName(sp) || true) && s.fitsAnyMetric(sp.Value)' 'S162 "03" của "máy 03" (bị gắn đơn vị lít) là giá trị'
 m tenants/construction/pack/intents.yaml 'needs_value: true, signals: ["stated_value"]}' 'needs_value: true}' 'S163 pack không khai tín hiệu stated_value cho nghĩa lệnh ghi'
 m $I '	if len(out) == 0 && s.statedValue(in, res) {' '	if s.statedValue(in, res) {' 'S164 nhãn "chưa ghi số liệu" thêm vào cả câu đã mang nghĩa khác ("nhắc tôi khi … 4000 L" mang hai nhãn)'
 
@@ -318,7 +318,8 @@ m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r 
 m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
 
 # ---- S4CS-02 (soát 23/10, hồi quy S1 của S4BS-05) + S4CS-07 (X3, X4 của người soát từng sống sót): từ phủ định / dấu bỏ qua chỉ phủ nhận cụm báo nghĩa khi đứng trước cụm
-# không có nội dung số liệu chen giữa, hay đứng sau cụm mà phần còn lại không có nội dung số liệu; mệnh đề điều kiện mang cụm hỏi không phải giả thiết thuần.
+# không có nội dung số liệu chen giữa, hay đứng sau cụm mà phần còn lại không có nội dung số liệu; mệnh đề điều kiện mang cụm hỏi không phải giả thiết thuần; mệnh đề nêu sẵn giá trị
+# không thành câu hỏi nhờ cụm hỏi lượng.
 m $I '		return len(sp) > 0 && sp[len(sp)-1][1] == end' '		return len(sp) > 0 && sp[len(sp)-1][1] <= end' 'X3 từ phủ định ở bất kỳ đâu là đuôi hỏi ("EX-03 hôm nay không nghỉ, dùng 3782 L dầu" thành câu hỏi, trả số)'
 m $I 'func(sp [2]int) bool { return sp[0] == trimmed })' 'func(sp [2]int) bool { return sp[0] >= trimmed })' 'X4 từ nối điều kiện ở mọi vị trí ("Cảnh báo giúp em nếu EX-03 … cấp dầu" thành giả thiết, trả số)'
 m $I 'return !s.asking(clause) && slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'return slices.ContainsFunc(spansOf(clause, s.opt.ConditionMarkers)' 'S189 mệnh đề điều kiện mang cụm hỏi vẫn là giả thiết ("Nếu mưa to thì dự báo EX-03 dùng bao nhiêu dầu?" trả số)'
@@ -329,6 +330,9 @@ m $I 'hasFigure(in, res, start, end) || s.asking(text)' 's.asking(text)' 'S193 c
 m $I '|| s.asking(text) || s.metricWord(text)' '|| s.metricWord(text)' 'S194 cụm hỏi không là nội dung số liệu ("EX-03 dự báo không cần chính xác bao nhiêu dầu …" trả số)'
 m $I '|| s.asking(text) || s.metricWord(text)' '|| s.asking(text)' 'S195 chữ của từ khoá chỉ số không là nội dung số liệu ("EX-03 hôm nay dự báo không dùng hết dầu" trả số)'
 m $I 'text := s.withoutCues(rawBG[start:end])' 'text := rawBG[start:end]' 'S196 chữ của chính cụm báo nghĩa là nội dung số liệu ("báo" của "Dự báo khỏi cần, …" làm cụm không bị bỏ qua)'
+m $I '|| !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {' '|| true) {' 'S197 cụm hỏi lượng làm lệnh nêu sẵn giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu cho ca mấy" trả số)'
+m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.hasSourceName(cj) ||' 'S198 cụm xác nhận không làm mệnh đề nêu giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu đúng không?" thành lệnh ghi)'
+m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.confirming(cj) ||' 'S199 mệnh đề nêu tên nguồn cũng là lệnh ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?" thành lệnh ghi)'
 
 # Nợ S4 sửa sau H4 (lệnh ca MVP ALL-IN mục 3d): lượng / số ngoài miền một lần đo của chỉ số không phải giá trị của nó (F6'); cụm ghép
 # mang nghĩa khác không phải từ khoá (S4R-03).

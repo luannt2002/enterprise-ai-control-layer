@@ -1186,7 +1186,9 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				askedAt := func(j int) bool {
-					if s.asking(rawBG[clauses[j][0]:clauses[j][1]]) {
+					// lệnh nêu sẵn giá trị ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm xác nhận làm nó thành câu hỏi
+					// (S4CS-02). Mệnh đề nêu tên nguồn là lời của nguồn ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?"): cụm hỏi trong đó hỏi chỉ số khác.
+					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (s.confirming(cj) || s.hasSourceName(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
 						return true
 					}
 					next := ""
@@ -1243,12 +1245,18 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 // khác như giờ họp "7h30", "20 tấn", và không nằm trong tên thực thể: "03" của "máy 03" đứng cạnh "dầu" bị bộ chuẩn hoá gắn đơn vị lít) và không có dấu hiệu hỏi nào (xem questioned). Thực thể do
 // bên gọi kiểm. Số tiền do tín hiệu tiền xét trước.
 func (s *Set) statedValue(in contracts.NormalizedInput, res contracts.Resolution) bool {
+	return s.statedFigure(in, res, 0, len(in.Raw)) && !s.questioned(maskRanges(in.Raw, nameRanges(res)))
+}
+
+// statedFigure báo khoảng [start, end) của câu có một lượng kèm đơn vị cùng chiều đo với một chỉ số của pack, không nằm trong tên thực thể (giá trị cụ thể, xem statedValue).
+func (s *Set) statedFigure(in contracts.NormalizedInput, res contracts.Resolution, start, end int) bool {
 	inName := func(sp contracts.Span) bool {
 		return slices.ContainsFunc(res.Entities, func(e contracts.EntityRef) bool { return e.Start <= sp.Start && sp.End <= e.End }) ||
 			slices.ContainsFunc(res.Ambiguous, func(m contracts.AmbiguousMention) bool { return m.Start <= sp.Start && sp.End <= m.End })
 	}
-	figure := slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool { return !inName(sp) && s.fitsAnyMetric(sp.Value) })
-	return figure && !s.questioned(maskRanges(in.Raw, nameRanges(res)))
+	return slices.ContainsFunc(in.SpansOf(contracts.ValueQuantity), func(sp contracts.Span) bool {
+		return sp.Start >= start && sp.End <= end && !inName(sp) && s.fitsAnyMetric(sp.Value)
+	})
 }
 
 // fitsAnyMetric báo một lượng đổi được sang đơn vị của chỉ số nào đó của các ý định số liệu (cùng chiều đo).

@@ -16,6 +16,9 @@ func TestS4CS02CumBaoNghiaKhongBiMienTruOan(t *testing.T) {
 		// từ phủ định / dấu bỏ qua đứng sau cụm và mở vị ngữ khác ("không dùng hết dầu", "không cần chính xác")
 		"Dự báo EX-03 không dùng hết dầu hôm nay phải không":                 notForecast,
 		"Dự báo nhanh không cần chính xác EX-03 hôm nay dùng bao nhiêu dầu?": notForecast,
+		// "mấy" / "định mức" đứng sau cụm ghi / đánh giá không biến lệnh thành câu hỏi
+		"Ghi nhận EX-03 hôm nay dùng 3782 L dầu cho ca mấy.":       notWrite,
+		"Nhận xét định mức tiêu thụ 3782 L dầu hôm nay của EX-03.": notEval,
 	} {
 		askBack(t, q, note)
 	}
@@ -43,4 +46,7 @@ func TestS4CS02LuatViTriPhuDinhDieuKien(t *testing.T) {
 	askBack(t, "EX-03 hôm nay dự báo không dùng hết dầu", notForecast)
 	askBack(t, "EX-03 dự báo không cần chính xác bao nhiêu dầu hôm nay?", notForecast)
 	askBack(t, "EX-03 hôm nay dự báo không quá 4000 L dầu", notForecast)
+	// mệnh đề nêu sẵn giá trị: cụm xác nhận vẫn là câu hỏi; mệnh đề nêu tên nguồn là lời của nguồn, cụm hỏi hỏi chỉ số khác
+	answered(t, "Ghi nhận EX-03 hôm nay dùng 3782 L dầu đúng không?")
+	answered(t, "Phiếu kho ghi nhận 3850 L dầu cho EX-03 hôm nay thì cảm biến đo bao nhiêu?")
 }

@@ -68,7 +68,7 @@ vòng qua quyền của app · thêm năng lực khi chưa qua hai cổng (§4).
 | **P4 Hành động** | command, tool, workflow, event, chống trùng, đọc lại | ◐ lõi lệnh `execution/commands` + route `POST /v1/commands/<tool>` (Phase 1, M4); chưa có workflow / event |
 | **P5 Kiểm soát** | tenant, danh tính, quyền, kiểm đầu ra, audit, vết, chi phí | ● tenant từ danh tính; RLS FORCE; từ chối vai vượt RLS; kiểm số; vết bền mọi lượt. **Chưa:** xác thực môi trường thật, chi phí theo lượt |
 | **P6 Chứng minh** | bộ ca, bộ giữ lại, baseline, bộ chấm, đột biến, soát độc lập | ● **mạnh nhất**: H1, H3, H4, P1, 0a đóng băng bằng băm; đột biến; soát độc lập |
-| **P7 Vận hành** | HTTP API, CI có PG, triển khai, quản trị, SLA | ◐ `cmd/eais` (HTTP + CLI, chỉ `-dev`); một lệnh chạy thử; CI GitHub có PG |
+| **P7 Vận hành** | HTTP API, CI có PG, triển khai, quản trị, SLA | ◐ `cmd/eais` (HTTP + CLI, chỉ `-dev`); một lệnh chạy thử; CI có PG, cấm SKIP: **định nghĩa** ở `.github/workflows/ci.yml`, chưa chạy trên GitHub |
 
 ---
 
@@ -118,7 +118,7 @@ người chấm mù) → cổng nhị phân → đột biến → soát độc l
 *Thiếu:* bộ chấm v2 chưa khoá, người chấm mù, baseline mức app.
 
 **L9. Vận hành:** HTTP API · CI có PG · triển khai · bí mật · hạn mức · SLA · sao lưu · scale. *Hiện có:* `cmd/eais`, một lệnh chạy thử,
-CI có PG cấm SKIP. *Phase:* 5, 9.
+CI có PG cấm SKIP (định nghĩa, chưa chạy trên GitHub — F-014). *Phase:* 5, 9.
 
 **L10. Điều phối người–agent:** chủ dự án quyết ở `docs/CHO-QUYET-DINH.md` → BUILD xây theo `docs/PROMPT-BUILD-EAIS.md`, commit + push,
 tệp tiến độ sống → phiên điều phối / debug đọc qua git, gửi lỗi qua `docs/debug-handoff/`.
@@ -164,7 +164,7 @@ nào không cần AI · gom ngữ cảnh gì · thiếu / mâu thuẫn thì hỏ
 | | **4b** Ngành thứ hai, chế độ A | CRM: tóm tắt khách + tạo task qua API; lõi ≈ 0 dòng phải sửa | A | ○ |
 | | **4c** Bốn kiểu doanh nghiệp | mỗi kiểu một việc | A + B | ○ |
 | | **4d** Ngành thứ ba | khác hẳn (thể thao realtime / tài chính) | A / B | ○ |
-| **IV. Nền tảng** | **5** Cứng hoá | xác thực thật, vòng đời tenant / pack, bí mật, hạn mức, chi phí, CI, quản trị | — | ○ (CI có PG đã có) |
+| **IV. Nền tảng** | **5** Cứng hoá | xác thực thật, vòng đời tenant / pack, bí mật, hạn mức, chi phí, CI, quản trị | — | ○ (CI có PG: định nghĩa, chưa chạy trên GitHub) |
 | | **8** Tích hợp chuẩn hoá | connector Zalo / email / CRM / ERP, webhook, MCP | A | ○ |
 | **V. Trí tuệ nâng cao** | **6** AI nâng cao | **model hiểu ý định** (có bằng chứng đòi), PDF / bảng / OCR, rerank, ML thực thể, model local | — | ◐ phần RAG (§5) |
 | | **7** Agent có biên | khi luồng cố định không quyết được | — | ○ |

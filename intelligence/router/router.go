@@ -162,7 +162,12 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification, len(cls.NeedMeaning) > 0, orNone(strings.Join(cls.NeedMeaning, ", "), "không rơi vào trường hợp có thực thể và thuật ngữ mà không từ khoá nào khớp")):
 		// thực thể ngoài phạm vi dữ liệu của người hỏi: nghĩa nào cũng bị từ chối, nên từ chối ngay, không hỏi lại
 		for _, e := range cls.Mentioned {
-			out := !pol.InScope(pr, lineage(e))
+			keys := lineage(e)
+			// phạm vi của mỗi nghĩa do chính vai có capability của nghĩa đó thoả (Q11): ngoài phạm vi ở MỌI nghĩa mới từ chối
+			out := !slices.ContainsFunc(cls.NeedMeaning, func(m string) bool {
+				d, _ := set.Def(m)
+				return pol.InScope(pol.Holding(pr, d.Capability), keys)
+			})
 			if check("phạm vi dữ liệu (câu hỏi nghĩa số liệu)", contracts.RouteReject, out, e.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")) {
 				return contracts.RoutePlan{
 					Route: contracts.RouteReject, Template: "forbidden", Outcome: contracts.OutcomePermissionDenied,
@@ -191,8 +196,15 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		}
 	}
 	def, _ := set.Def(cls.Intent.Name)
+	// Quyền và phạm vi do CÙNG một vai thoả (Q11): gỡ mơ hồ theo phạm vi và bậc phạm vi dữ liệu chỉ xét vai có capability của ý định (và của
+	// vế so sánh) — vai phạm vi rộng mà không có quyền đọc không cho vai khác mượn phạm vi. Bậc capability bên dưới vẫn xét mọi vai.
+	held := pol.Holding(pr, def.Capability)
+	if cls.Compare != "" {
+		cdef, _ := set.Def(cls.Compare)
+		held = pol.Holding(held, cdef.Capability)
+	}
 	var it contracts.Intent
-	it, narrowed = narrow(cls, def, pr, pol, st.NarrowParent, lineage)
+	it, narrowed = narrow(cls, def, held, pol, st.NarrowParent, lineage)
 	plan = contracts.RoutePlan{Intent: it}
 	cls.Intent = plan.Intent
 
@@ -231,7 +243,7 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		if s.Entity == nil {
 			continue
 		}
-		out := !pol.InScope(pr, lineage(*s.Entity))
+		out := !pol.InScope(held, lineage(*s.Entity))
 		if check("phạm vi dữ liệu", contracts.RouteReject, out, s.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi") {
 			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
 			plan.Reason = "thực thể " + s.Entity.Key + " ngoài phạm vi dữ liệu của người hỏi"

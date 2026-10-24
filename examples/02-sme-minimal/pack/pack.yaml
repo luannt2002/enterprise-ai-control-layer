@@ -1,0 +1,6 @@
+# Pack tối thiểu của ví dụ SME bán hàng (giả lập, F-028): khách hàng → đơn hàng, hai chỉ số số theo ngày, hai vai.
+id: sme-minimal
+tenant: sme-mau
+version: 0.1.0
+language: vi
+timezone: Asia/Ho_Chi_Minh

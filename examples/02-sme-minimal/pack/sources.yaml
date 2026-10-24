@@ -1,0 +1,20 @@
+# Ánh xạ nguồn: danh mục khách → đơn ở danh-muc.json (đơn trỏ khách qua trường "khach"), hai bảng CSV giả lập.
+entities_file: danh-muc.json
+entity_lists:
+  - {list: khach_hang, type: khach_hang}
+  - {list: don_hang, type: don_hang, parent_field: khach}
+
+sources:
+  - type: phieu_xuat
+    metric: so_thung_xuat
+    files: [{path: phieu-xuat.csv, format: csv}]
+    fields: {record_id: so_phieu, entity: ma_don, date: ngay, quantity: so_thung}
+    default_unit: thùng
+    entity_namespace: ban_hang
+
+  - type: so_ban_hang
+    metric: doanh_thu_ghi_nhan
+    files: [{path: doanh-thu.csv, format: csv}]
+    fields: {record_id: so_chung_tu, entity: ma_don, date: ngay, quantity: so_tien}
+    default_unit: VND
+    entity_namespace: ban_hang

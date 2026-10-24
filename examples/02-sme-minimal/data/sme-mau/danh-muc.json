@@ -1,0 +1,13 @@
+{
+  "ghi_chu": "Dữ liệu GIẢ LẬP tự viết cho ví dụ 02-sme-minimal — không phải khách hàng, đơn hàng hay số liệu thật.",
+  "khach_hang": [
+    {"id": "KH-MP", "name": "Công ty Minh Phát", "aliases": ["khách Minh Phát", "Minh Phát"]},
+    {"id": "KH-HA", "name": "Cửa hàng Hoàng Anh", "aliases": ["khách Hoàng Anh", "Hoàng Anh"]}
+  ],
+  "don_hang": [
+    {"id": "DH-101", "name": "Đơn DH-101", "khach": "KH-MP", "source_ids": {"ban_hang": "DH-101"}},
+    {"id": "DH-102", "name": "Đơn DH-102", "khach": "KH-MP", "source_ids": {"ban_hang": "DH-102"}},
+    {"id": "DH-107", "name": "Đơn DH-107", "khach": "KH-MP", "aliases": ["đơn 7"], "source_ids": {"ban_hang": "DH-107"}},
+    {"id": "DH-207", "name": "Đơn DH-207", "khach": "KH-HA", "aliases": ["đơn 7"], "source_ids": {"ban_hang": "DH-207"}}
+  ]
+}

@@ -1,0 +1,32 @@
+# Hai ý định số liệu + ngoài phạm vi. "đơn 7 của khách Minh Phát": khe đã điền bằng một khách hàng thì router gỡ mơ hồ theo khách đó.
+unmatched_route: REJECT
+unmatched_template: out_of_scope
+narrow_parent: {type: khach_hang, label: khách hàng}
+quantity_markers: [bao nhiêu, mấy]
+
+intents:
+  - name: xuat_kho
+    label: số thùng xuất kho
+    route: SQL_QUERY
+    keywords: [xuất kho, xuất, giao]
+    terms: [hang]
+    metric_by_term: {hang: so_thung_xuat}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: đơn hàng hoặc khách hàng, from: entity, types: [don_hang, khach_hang], required: true}
+      - {name: period, label: thời gian, from: period, default: today}
+
+  - name: doanh_thu
+    label: doanh thu ghi nhận
+    route: SQL_QUERY
+    keywords: [ghi nhận, thu về]
+    terms: [doanh_thu]
+    metric_by_term: {doanh_thu: doanh_thu_ghi_nhan}
+    priority: 20
+    template: metric_total
+    capability: metrics.read
+    slots:
+      - {name: subject, label: đơn hàng hoặc khách hàng, from: entity, types: [don_hang, khach_hang], required: true}
+      - {name: period, label: thời gian, from: period, default: today}

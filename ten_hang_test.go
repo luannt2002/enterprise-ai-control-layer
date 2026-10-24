@@ -48,10 +48,7 @@ var tenHangSHA256 = []string{
 }
 
 // tenHangChoPhep: tệp được tạm giữ tên hãng, kèm lý do. Mục không còn tên hãng nào là mục thừa (đỏ) — để tên không quay lại lặng lẽ.
-var tenHangChoPhep = map[string]string{
-	"cmd/eais/unit_test.go": "ngoài lát L4: cổng 'không có đường gọi model thật' liệt kê chuỗi cấm bằng tên; đổi sang băm rồi bỏ mục",
-	"scripts/du-toan-g7.py": "ngoài lát L4: dự toán G7 ghi tên + giá model; chuyển sang EAIS_G7_MODEL / EAIS_G7_PRICES rồi bỏ mục",
-}
+var tenHangChoPhep = map[string]string{}
 
 var duoiQuet = regexp.MustCompile(`\.(go|sh|py|ya?ml|json)$`)
 

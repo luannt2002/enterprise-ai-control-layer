@@ -444,6 +444,9 @@ func (s *server) persistTrace(ctx context.Context, pr contracts.Principal, rec t
 // tenant / principal / vai: định danh chỉ đến từ token), không có nội dung thừa sau đối tượng. Lỗi trả kèm mã HTTP (415, 413, 400) và tên trường mà bên gọi
 // cần sửa (trường lạ đầu tiên, hoặc trường đúng tên nhưng sai kiểu); lỗi không quy về một trường (thân rỗng, JSON hỏng, nội dung thừa, sai Content-Type) thì
 // không có tên trường. Nơi gọi biến lỗi này thành INVALID_REQUEST dừng ở C0 (commands.Pipeline.Malformed).
+//
+// Thông điệp của err chỉ vào log nên chỉ nói LOẠI lỗi, không mang chữ do bên gọi gửi (tên trường lạ, chữ lỗi cú pháp của bộ giải mã): chữ
+// đó có thể là bí mật mà che theo mẫu không bắt được (F-035). Tên trường lạ chỉ về bên gọi, qua bad.
 func decodeCommand(w http.ResponseWriter, r *http.Request) (req commands.Request, status int, bad []string, err error) {
 	if mt, _, perr := mime.ParseMediaType(r.Header.Get("Content-Type")); perr != nil || mt != "application/json" {
 		return req, http.StatusUnsupportedMediaType, nil, inputErr("Content-Type phải là application/json")
@@ -460,11 +463,11 @@ func decodeCommand(w http.ResponseWriter, r *http.Request) (req commands.Request
 			return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu rỗng")
 		case strings.HasPrefix(derr.Error(), "json: unknown field "):
 			name := strings.Trim(strings.TrimPrefix(derr.Error(), "json: unknown field "), `"`)
-			return req, http.StatusBadRequest, []string{clipRunes(name, 64)}, inputErr(fmt.Sprintf("trường lạ %q: thân chỉ nhận command_id, subject_key, metric, day", clipRunes(name, 64)))
+			return req, http.StatusBadRequest, []string{clipRunes(name, 64)}, inputErr("trường lạ: thân chỉ nhận command_id, subject_key, metric, day")
 		case errors.As(derr, &typeErr) && slices.Contains([]string{"command_id", "subject_key", "metric", "day"}, typeErr.Field):
 			return req, http.StatusBadRequest, []string{typeErr.Field}, inputErr("trường " + typeErr.Field + " phải là chuỗi")
 		}
-		return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu không phải JSON hợp lệ: " + derr.Error())
+		return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu không phải JSON hợp lệ")
 	}
 	if _, terr := dec.Token(); !errors.Is(terr, io.EOF) {
 		return req, http.StatusBadRequest, nil, inputErr("thân yêu cầu có nội dung thừa sau đối tượng JSON")
@@ -523,7 +526,7 @@ func (s *server) ingest(w http.ResponseWriter, r *http.Request, pr contracts.Pri
 		return
 	}
 	s.log.Info("đã nạp lại dữ liệu", "tenant", pr.TenantID, "principal", pr.ID, "load_id", rep.LoadID, "observations", rep.Observations,
-		"quarantined", rep.Quarantined, "quarantine_new", rep.NewQuarantine, "ms", rep.ElapsedMs)
+		"quarantined", rep.Quarantined, "quarantine_new", rep.NewQuarantine, "held", rep.Held, "kept_published", len(rep.KeptPublished), "ms", rep.ElapsedMs)
 	writeJSON(w, http.StatusOK, rep)
 }
 

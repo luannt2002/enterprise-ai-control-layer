@@ -48,3 +48,5 @@ TestPhamViQuaPG hai ca theo thuộc tính tự đưa luật phạm vi; thêm ca 
 TestLoadSourcesRejectsBrokenMaps 6 ca hỏng thêm một dòng entity_lists để mỗi ca hỏng vì đúng lý do của nó, không vì thiếu lược đồ danh mục mới — F-004, lát L5
 TestNarrowGhiUngVienTruocVaSauKhiLoc ca gỡ theo dự án truyền Settings có kiểu cha {project, dự án} do pack khai và so By với "project" thay hằng NarrowByProject đã gỡ; kỳ vọng không đổi — F-005, lát L5
 TestExplainResolveKhongKeTrangThaiPhamViTungUngVien fixture Narrowing gỡ theo cha mang By "project" + ByLabel "dự án" thay hằng NarrowByProject đã gỡ; chữ kỳ vọng không đổi — F-005, lát L5
+# Lát dọn mã (F-015, phần còn sót của L4): cổng "không có đường gọi model thật" của cmd/eais so chuỗi cấm theo GIAO THỨC thay tên hãng.
+TestKhongCoDuongGoiModelThat chuỗi cấm theo giao thức (EAIS_MODEL, _API_KEY, /v1/messages, /chat/completions) thay tên hãng / miền của hãng; phép kiểm khác giữ nguyên — F-015, dọn mã

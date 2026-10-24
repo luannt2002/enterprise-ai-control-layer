@@ -1181,8 +1181,8 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if at < 0 {
 				continue
 			}
-			// vế kết quả của mệnh đề điều kiện không đóng vế nằm ở một mệnh đề khác còn chữ ("Nếu dự báo mưa, EX-03 …", "EX-03 …, nếu dự báo mưa?")
-			others := slices.ContainsFunc(clauses, func(n [2]int) bool { return n != c && strings.TrimSpace(in.Raw[n[0]:n[1]]) != "" })
+			// vế kết quả của mệnh đề điều kiện không đóng vế là một mệnh đề khác ("Nếu dự báo mưa, EX-03 …", "EX-03 …, nếu dự báo mưa?")
+			others := slices.ContainsFunc(clauses, func(n [2]int) bool { return n != c && s.consequent(in, res, rawBG, n[0], n[1]) })
 			if s.denied(in, res, rawBG, c, at) || s.conditional(ct, at, others) {
 				w.reason("cụm báo nghĩa %s ở mệnh đề %s bị bỏ qua: mệnh đề nói không cần / để sau, phủ định hay nêu điều kiện (S4BS-05)", u.Name, contracts.Quote(ct))
 				continue
@@ -1405,6 +1405,15 @@ func (s *Set) conditional(clause string, at int, others bool) bool {
 		}
 		return others
 	})
+}
+
+// consequent báo mệnh đề [start, end) của câu có thể là vế KẾT QUẢ của một mệnh đề điều kiện: có tên thực thể, con số, cụm hỏi hay cụm báo nghĩa. Mệnh đề lịch sự
+// ("…, cảm ơn em.", "…, được không?") thì không — vế kết quả khi ấy nằm ngay trong mệnh đề điều kiện (S4CS-02 vòng 3). Không dùng chữ của từ khoá chỉ số như dataIn: "cảm" của
+// "cảm ơn" là chữ của "cảm biến".
+func (s *Set) consequent(in contracts.NormalizedInput, res contracts.Resolution, rawBG string, start, end int) bool {
+	text := rawBG[start:end]
+	return s.asking(text) || s.UnsupportedCue(text) || hasFigure(in, res, start, end) ||
+		slices.ContainsFunc(nameRanges(res), func(r [2]int) bool { return start < r[1] && r[0] < end })
 }
 
 // ValidSignal kiểm một tín hiệu cấu trúc do pack khai ở unsupported_meanings: "stated_value" (câu nêu giá trị, không dấu hiệu hỏi), "span:<money|quantity|number>" (bộ chuẩn hoá thấy một span kiểu đó), "asked_unit:<chiều

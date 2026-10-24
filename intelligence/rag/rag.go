@@ -86,7 +86,7 @@ type MemoryIndex struct {
 	MinScore float64
 	// Now cho ngày HỎI (giờ của tenant) để xét hiệu lực, khi ngữ cảnh không mang ngày của lượt; nil = time.Now.
 	Now func() time.Time
-	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ router.Policy.InScope), khi ngữ cảnh không mang luật
+	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ policy.Policy.InScope), khi ngữ cảnh không mang luật
 	// của lượt; nil = thuộc tính "entity_scope" của principal giao với keys.
 	InScope func(pr contracts.Principal, keys []string) bool
 	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.

@@ -1,11 +1,28 @@
 # STATUS — trạng thái EAIS
 
+> **Cập nhật 24/10/2026 khuya — vNext: nhánh `vnext/tach-2410` (CHƯA gộp main)**, báo cáo `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.
+> Khối "vNext" ngay dưới mô tả nhánh đó; main vẫn là `3f1bf7e`. Mọi chữ từ dòng "Cập nhật: 24/10/2026 tối — TÍCH HỢP" trở xuống giữ nguyên làm lịch sử,
+> trừ lệnh chạy G7 ở bảng WIN (sửa theo cấu hình của lát L4).
+>
 > Cập nhật: **24/10/2026 tối — TÍCH HỢP: mọi nhánh đã vào main (D-RAG-05)**, báo cáo `docs/bao-cao/2026-10-24-tich-hop-main.md`. Phần dưới khối
 > "Tích hợp 24/10" giữ nguyên chữ của 23/10 17:26 (báo cáo ca `docs/bao-cao/2026-10-23-ca.md`); tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
+
+## vNext 24/10 khuya: nhánh `vnext/tach-2410` (đỉnh `f589cf6`) — CHƯA gộp main, MVP vẫn CHƯA RA
+
+- Theo GO 24/10 (phương án B′, `docs/CHO-QUYET-DINH.md` mục 0): cổng trước, tách TẠI CHỖ, dời thư mục để sau; L5 trước H6; MIT; L7 đợt sau.
+- Đã gộp vào nhánh: L1 cổng; L2 + hai vòng sửa + KHOÁ S4CS-02 (kèm nợ N1–N9, ADR-0010); L3 tài liệu (ADR-0013 / 0015 / 0016); R-01 (hết
+  40P01); L4 `core/policy` + bỏ tên hãng khỏi mã; gia cố PG (Ready kiểm RLS, migration theo checksum, 0010 — ADR-0017); L6 ranh giới RAG;
+  Q11 + Q11b (quyền và phạm vi từ CÙNG một vai — Q-P1-10 = A, suy diễn); L5 + L5b (Fuel xuống case study, pack thứ hai
+  `examples/02-sme-minimal`, migration 0011); dọn mã. Bảng từng lát: báo cáo thi công mục 1.
+- Đo [điều phối, `f589cf6`]: cổng có PG 2.475 tên, 2.471 pass, 4 skip, 0 fail; `kiem-skip` và `so-than` XANH; so tên với `3f1bf7e`:
+  mất 8 (subtest đổi tên khi bỏ tên hãng), đổi 0, mới 85; smoke 21/21; winreport bộ nhớ 117 / H1 / H3 / H4 khác 0 dòng.
+- Sau đỉnh: hai lát sửa theo soát độc lập cuối (tài liệu `vnext/sua-soat-docs`, mã `vnext/sua-soat-ma`).
+- CHƯA: H6 + bộ 0a (BLOCKED — tệp ca không có trên máy), gộp main (chủ dự án quyết), CI chạy trên GitHub. Sổ nợ bền và câu chờ quyết:
+  báo cáo thi công mục 3, 4. Migration mới tiếp theo: **0012**.
 
 ## Tích hợp 24/10 tối (D-RAG-05): main = mọi nhánh + RAG — MVP vẫn CHƯA RA
 

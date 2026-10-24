@@ -75,7 +75,35 @@ func TestDecide(t *testing.T) {
 	if _, _, err := d.Propositions(context.Background(), "x", map[string]string{"du": "?", "lien_quan": "?"}); !strings.Contains(err.Error(), "lien_quan") {
 		t.Errorf("thiếu mệnh đề phải lỗi, được %v", err)
 	}
+	reply = `{"answers":{"du":{"noul":1.5},"lien_quan":{"noul":0.4}}}`
+	if _, _, err := d.Propositions(context.Background(), "x", map[string]string{"du": "?", "lien_quan": "?"}); contracts.FaultOf(err) != contracts.ThirdParty(ProtocolDecide, contracts.KindBadResponse) {
+		t.Errorf("xác suất mệnh đề ngoài [0, 1] phải là bad_response, được %v", err)
+	}
 	if _, err := NewDecider(ServiceConfig{Provider: ProtocolDecide, BaseURL: srv.URL, APIKey: "k"}); contracts.FaultOf(err) != contracts.FaultCode {
 		t.Errorf("thiếu model phải là lỗi cấu hình: %v", err)
+	}
+}
+
+// Trần TỔNG của một quyết định, kể cả thử lại: máy chủ chậm thì lỗi quá giờ trong trần, không chờ theo từng lần gửi × số lần thử lại.
+func TestDecideTranTong(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(2 * time.Second):
+		case <-r.Context().Done():
+		}
+	}))
+	defer srv.Close()
+	d, err := NewDecider(ServiceConfig{Provider: ProtocolDecide, BaseURL: srv.URL, APIKey: "k", Model: "m", MaxRetries: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.budget = 100 * time.Millisecond
+	t0 := time.Now()
+	_, _, err = d.Choice(context.Background(), "x", "?", map[string]string{"a": "", "b": ""})
+	if contracts.FaultOf(err) != contracts.ThirdParty(ProtocolDecide, contracts.KindTimeout) || time.Since(t0) > time.Second {
+		t.Errorf("muốn lỗi quá giờ trong trần tổng, được %v sau %s", err, time.Since(t0))
+	}
+	if d.Client == nil || d.Client.Timeout != decideTimeout {
+		t.Errorf("mỗi lần gửi phải có trần riêng %s", decideTimeout)
 	}
 }

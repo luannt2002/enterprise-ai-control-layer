@@ -1,6 +1,7 @@
 package models
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -19,13 +20,18 @@ import (
 // chọn trên bộ có nhãn của chính mình; cùng đầu vào gọi lại có thể lệch vài phần trăm (không tất định).
 const ProtocolDecide = "typed_questions"
 
-// decideTimeout: một quyết định nằm trên đường hỏi (S4) — quá hạn thì luồng giữ kết quả của luật, không chờ như sinh câu trả lời.
-const decideTimeout = 6 * time.Second
+// Một quyết định nằm trên đường hỏi (S4) — quá hạn thì luồng giữ kết quả của luật, không chờ như sinh câu trả lời. decideTimeout là
+// trần MỖI lần gửi; decideBudget là trần CẢ lời gọi kể cả thử lại (thử lại theo Retry-After có thể chờ tới maxProviderWait).
+const (
+	decideTimeout = 6 * time.Second
+	decideBudget  = 8 * time.Second
+)
 
 // Decide gọi model quyết định có kiểu.
 type Decide struct {
 	caller
 	URL, APIKey, Model string
+	budget             time.Duration // 0 = decideBudget
 }
 
 // NewDecider dựng client theo cấu hình EAIS_DECIDE_*. Model nên ghim mã phiên bản, không dùng bí danh tự chuyển phiên bản.
@@ -40,6 +46,8 @@ func NewDecider(c ServiceConfig) (*Decide, error) {
 
 // Choice trả xác suất từng nhãn của MỘT câu hỏi chọn một trên state, và mã model nhà cung cấp báo (ghi vết).
 func (d *Decide) Choice(ctx context.Context, state any, instructions string, labels map[string]string) (map[string]float64, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, cmp.Or(d.budget, decideBudget))
+	defer cancel()
 	var resp decideResp
 	q := map[string]any{"q": map[string]any{"type": "choice", "instructions": instructions, "criteria": labels}}
 	if err := d.post(ctx, d.URL, http.Header{"Authorization": {"Bearer " + d.APIKey}}, map[string]any{"model": d.Model, "state": state, "questions": q}, &resp); err != nil {
@@ -58,6 +66,8 @@ func (d *Decide) Choice(ctx context.Context, state any, instructions string, lab
 
 // Propositions trả xác suất "đúng" của từng mệnh đề (có / không) trên CÙNG state trong một lần gọi; các mệnh đề được chấm độc lập nhau.
 func (d *Decide) Propositions(ctx context.Context, state any, props map[string]string) (map[string]float64, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, cmp.Or(d.budget, decideBudget))
+	defer cancel()
 	var resp decideResp
 	q := map[string]any{}
 	for name, text := range props {

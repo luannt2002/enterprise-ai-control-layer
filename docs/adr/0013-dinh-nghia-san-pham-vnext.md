@@ -2,8 +2,8 @@
 
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — GO của chủ dự án cho báo cáo audit vNext (nguyên văn ở `docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10
-  "vNext"): "sửa lại toàn bộ theo cái file md đó và code tách và tiếp tục làm theo md đó đi nhé tách đi chanega code đi nhé". Báo cáo đã
-  khuyến nghị đúng định nghĩa này (câu Q2 = A, Q3 = A ở §16).
+  "vNext"): "sửa lại toàn bộ theo cái file md đó và code tách và tiếp tục làm theo md đó đi nhé tách đi chanega code đi nhé". Định nghĩa
+  này là khuyến nghị Q2 = A, Q3 = A của báo cáo (§16): chấp nhận theo GO chung 24/10 cho toàn bộ khuyến nghị của báo cáo; chủ dự án chưa trả lời riêng Q2 / Q3 / Q5.
 - **Thay:**
   - phần **định nghĩa sản phẩm** của D-RM-01 ("nền tảng multi-tenant…", `docs/ROADMAP-DAY-DU.md` §1). Phần còn lại của D-RM-01 (bảy mặt
     phẳng, luồng L0–L10, Phase 0–10, hai cổng) giữ làm bản đồ;
@@ -22,7 +22,10 @@
 - Phần chín nhất của repo là **lõi kiểm soát**: tenant từ danh tính, quyền đóng mặc định, RLS FORCE, kiểm đầu ra, vết bền, lệnh có đọc lại
   (UNKNOWN thật), bộ giữ lại băm trước. Các kiểu của lõi đã có sẵn (báo cáo §11.4), không phải phát minh.
 - Tên hướng sản phẩm đã đổi bốn lần trong bốn ngày (`docs/history/NAME-EVOLUTION.md`). Đổi đường dẫn module lần nữa chạm 227 tệp `.go`
-  / 583 dòng import và mọi URL clone (báo cáo §07.1).
+  / 578 dòng mang chuỗi import của module (576 dòng import thật, 2 dòng là chuỗi trong test) và mọi URL clone. Đo 24/10 trên `3f1bf7e`:
+  `git grep -l '"github.com/luannt2002/enterprise-ai-control-layer' 3f1bf7e -- '*.go' | wc -l` → 227;
+  `git grep -h '"github.com/luannt2002/enterprise-ai-control-layer' 3f1bf7e -- '*.go' | wc -l` → 578 (bỏ dấu nháy mở: 580).
+  Báo cáo §07.1 ghi 583 là số dòng chứa tên repo ở mọi dạng, không phải số dòng import.
 
 ## Quyết định
 

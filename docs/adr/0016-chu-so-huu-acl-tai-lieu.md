@@ -2,7 +2,7 @@
 
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — GO của chủ dự án cho báo cáo audit vNext (`docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10
-  "vNext"). Mã chưa đổi: phần thi công thuộc lát L4 (`core/policy`) và L6 (ranh giới RAG) của báo cáo §14.
+  "vNext"): chấp nhận theo GO chung 24/10 cho toàn bộ khuyến nghị của báo cáo; chủ dự án chưa trả lời riêng Q2 / Q3 / Q5. Mã chưa đổi: phần thi công thuộc lát L4 (`core/policy`) và L6 (ranh giới RAG) của báo cáo §14.
 - **Giải:** mâu thuẫn D12 của báo cáo (§17: hai nơi giữ hai nửa quyền đọc tài liệu); nguồn gốc của D-RAG-02 (12 vai của ACL kho không có
   trong policy). Lựa chọn cấu hình cụ thể cho pack construction (D-RAG-02 a / b / c) vẫn là câu của chủ dự án.
 - **Liên quan:** ADR-0013, ADR-0015 (lõi / module); `CLAUDE.md` §12 (RAG không sở hữu "tenant authorization", "enterprise permission"); báo cáo audit

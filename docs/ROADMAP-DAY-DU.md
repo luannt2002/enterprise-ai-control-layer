@@ -391,7 +391,10 @@ không cập nhật sau mốc này** (ví dụ Phase 1 đã có mã ở main); t
 | Canary vô hiệu; test PG bị SKIP; không có CI | Phase 5 (đưa CI có PG lên sớm nếu được) |
 | Tenant bị đồng nhất với ngành ngay từ bản vẽ đầu tiên | Phase 4a |
 | Một nửa số commit là xây bộ máy đo; sản phẩm chưa ra khỏi Phase 0 | §0 câu 4: đi rộng bằng lát mỏng |
-| Lõi chung còn mang giả định Fuel (`narrow` trong `intelligence/router/router.go` viết cứng `"project"`; thực thể Projects / Equipment; sự thật chỉ là số; từ của miền xây dựng trong `qualifier.go`) | Phase 4a, 4b |
+| Lõi chung còn mang giả định Fuel (`router.go:71` viết cứng `"project"`; thực thể Projects / Equipment; sự thật chỉ là số; từ của miền xây dựng trong `qualifier.go`) | Phase 4a, 4b |
+
+> Ghi chú 24/10/2026 (D9): `router.go:71` trong bảng trên là số dòng ở mốc `d6afad7`. Số dòng trôi theo mã (ở `3f1bf7e` là dòng 75):
+> tra bằng tên symbol — hàm `narrow` trong `intelligence/router/router.go`.
 
 ---
 

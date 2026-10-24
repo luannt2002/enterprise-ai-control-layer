@@ -2,7 +2,8 @@
 
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — GO của chủ dự án cho báo cáo audit vNext, phương án **B′** (cổng trước, tách tại chỗ, dời thư
-  mục sau cùng; `docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10 "vNext"). Cây thư mục ở mục 4 là **ĐÍCH**, chưa dời gì.
+  mục sau cùng; `docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10 "vNext"). B′ là khuyến nghị Q5 của báo cáo: chấp nhận theo GO chung 24/10 cho toàn bộ khuyến nghị của báo cáo; chủ dự án chưa trả lời riêng Q2 / Q3 / Q5. Cây thư mục ở mục 4
+  là **ĐÍCH**, chưa dời gì.
 - **Liên quan:** ADR-0013 (định nghĩa sản phẩm); ADR-0014 (cổng trước khi tách — lát L1); ADR-0016 (chủ sở hữu ACL tài liệu); báo cáo audit
   `docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md` §04.3, §06, §11.2–§11.5, §13, §14; phát hiện F-004, F-005, F-011, F-029, F-030, F-031.
 

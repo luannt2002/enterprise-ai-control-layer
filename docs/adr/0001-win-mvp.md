@@ -35,3 +35,10 @@ Ngày 19/10, chủ dự án chốt: làm WIN trước, không làm quá rộng; 
 
 - **Bản 04 đề xuất 19/10 lúc 20:5x** (MVP gồm cả tác vụ duyệt, lệnh, đầu dò thể thao): bị thay vì rộng hơn mức cần để chứng minh luận đề.
 - **Không có baseline:** bị loại vì chỉ chứng minh được "EAIS chạy", không chứng minh được "EAIS hơn".
+
+## Ghi chú trạng thái 24/10/2026 (thêm sau, không sửa lời trên)
+
+- **SUPERSEDED-BY ADR-0013** cho phần ràng buộc phạm vi: "chỉ QUERY; không mở COMMAND / WORKFLOW / EVENT / Agent / MCP / Python /
+  framework chung trước khi đóng G7". Ràng buộc này đã bị D-RM-04 nới ngày 22/10 (mã Giai đoạn II mở sau khi chạy H4; COMMAND C0–C7 đã ở
+  main); ADR-0013 thay hẳn: G7 là cổng giá trị của case study Fuel, không còn là điều kiện mở module khác.
+- Còn hiệu lực cho case study Fuel: D1–D6 (D5 đã sửa theo ADR-0005 / D-G7-1) và luật "không thêm tính năng chỉ để cải thiện benchmark".

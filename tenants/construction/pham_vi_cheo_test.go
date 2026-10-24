@@ -78,19 +78,22 @@ func TestPhamViDuPhongRAGBangPolicy(t *testing.T) {
 	}
 }
 
-// Q-P1-10 (người nhiều vai): capability documents.read (router, S5) và ACL tài liệu (chỉ mục tri thức) được thoả bởi HAI VAI KHÁC NHAU của
-// cùng một người hỏi. Vai A có documents.read nhưng không trong ACL; vai B trong ACL nhưng không có documents.read. Từng vai một mình không
-// đọc được tài liệu (đối chứng); câu hỏi là hai vai cùng nhau có đọc được không. Hợp đồng chưa quyết (CHO mục 5): đo thấy lọt thì Skip có
-// lý do + mã câu hỏi, KHÔNG sửa trước khi chủ dự án quyết.
+// Q-P1-10 / Q11 (người nhiều vai): capability documents.read (router, S5) và ACL tài liệu (chỉ mục tri thức) được thoả bởi HAI VAI KHÁC NHAU
+// của cùng một người hỏi. Vai A có documents.read nhưng không trong ACL; vai B trong ACL nhưng không có documents.read. Từng vai một mình
+// không đọc được tài liệu (đối chứng âm); hai vai cùng nhau cũng KHÔNG — quyền và ACL / phạm vi đến từ CÙNG một vai (Q11 = A, CHO mục 0).
+// Đối chứng dương: tài liệu mà chính vai có documents.read nằm trong ACL thì người hai vai vẫn đọc được (không chặn oan người nhiều vai).
 func TestHaiVaiTachQuyenDocVaACL(t *testing.T) {
 	for _, c := range []struct {
 		name  string
 		roles []string // [vai A có documents.read, vai B trong ACL]
 		attr  string
 		scope []string
+		q     string
 	}{
-		{"tài liệu không khai phạm vi", []string{"site_engineer", "accountant"}, "", nil},
-		{"tài liệu PRJ-B, vai có quyền đọc chỉ được giao PRJ-A", []string{"project_manager", "accountant"}, "PRJ-A", []string{"PRJ-B"}},
+		{"tài liệu không khai phạm vi", []string{"site_engineer", "accountant"}, "", nil, cauQuyTrinh},
+		{"tài liệu PRJ-B, vai có quyền đọc chỉ được giao PRJ-A", []string{"project_manager", "accountant"}, "PRJ-A", []string{"PRJ-B"}, cauQuyTrinh},
+		// HYBRID: phần số liệu do accountant tự đủ quyền + phạm vi; phần quy trình vẫn phải do vai có documents.read nằm trong ACL
+		{"câu ghép số liệu + quy trình", []string{"site_engineer", "accountant"}, "", nil, cauGhep},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			a, m := newAsk(t), &models.Extractive{}
@@ -100,15 +103,20 @@ func TestHaiVaiTachQuyenDocVaACL(t *testing.T) {
 				return strings.Contains(r.Answer, "24 giờ") || citesDocument(r, doc.ID)
 			}
 			for _, role := range c.roles {
-				if r := ask(t, a, user(role, c.attr), cauQuyTrinh).Response; doc24(r) {
+				if r := ask(t, a, user(role, c.attr), c.q).Response; doc24(r) {
 					t.Fatalf("đối chứng: vai %s một mình đã đọc được tài liệu (%s → %q)", role, r.Outcome, r.Answer)
 				}
 			}
 			pr := user(c.roles[0], c.attr)
 			pr.Roles = c.roles
-			if r := ask(t, a, pr, cauQuyTrinh).Response; doc24(r) {
-				t.Skipf("Q-P1-10 chưa quyết: vai %v cùng nhau đọc được %s (route %s, outcome %s, %d lời gọi model) dù không vai nào một mình "+
-					"đọc được — documents.read lấy từ %s, ACL / phạm vi từ %s; khuyến nghị đang ghi: cùng một vai", c.roles, doc.ID, r.Route, r.Outcome, m.Calls(), c.roles[0], c.roles[1])
+			if r := ask(t, a, pr, c.q).Response; doc24(r) {
+				t.Errorf("Q11: vai %v cùng nhau đọc được %s (route %s, outcome %s, %d lời gọi model) dù không vai nào một mình đọc được — "+
+					"documents.read lấy từ %s, ACL / phạm vi từ %s", c.roles, doc.ID, r.Route, r.Outcome, m.Calls(), c.roles[0], c.roles[1])
+			}
+			// đối chứng dương: vai có documents.read nằm trong ACL, tài liệu không khai phạm vi
+			a.Deps.Knowledge = rag.NewMemoryIndex("abc-infra", []rag.Document{taiLieuPhamVi([]string{c.roles[0]}, nil)})
+			if r := ask(t, a, pr, c.q).Response; !doc24(r) {
+				t.Errorf("vai %v: %s có documents.read và nằm trong ACL mà không đọc được (%s → %q)", c.roles, c.roles[0], r.Outcome, r.Answer)
 			}
 		})
 	}

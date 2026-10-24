@@ -1,0 +1,7 @@
+# Test được phép SKIP ở cổng có PG (CI và scripts/cong/cong.sh) — đọc bởi scripts/kiem-skip-test.py --cho-phep.
+# Mỗi dòng "<gói> <TênTest> # lý do". Mục không còn SKIP cũng làm cổng đỏ (THỪA): test bỏ đi hay bắt đầu chạy được thì xoá mục.
+# Chỉ cho phép test ĐO cần thứ CI cố ý không có (bên thứ ba có trả tiền, gửi dữ liệu ra ngoài, tệp cấu hình riêng); test cần PG hay
+# công cụ cài được thì không bao giờ vào đây.
+github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestCaseStudy # bộ đo case study: cần EAIS_RAG_CASE trỏ tệp cấu hình riêng, không có trong repo
+github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestDongCoThat # đo với động cơ thật: cần EAIS_RAG_DONG_CO=1 + nhà cung cấp, gửi dữ liệu ra ngoài
+github.com/luannt2002/enterprise-ai-control-layer/evals/rag TestChamDoan # đo bộ chấm đoạn với model thật: cần EAIS_DECIDE_*, gửi dữ liệu ra ngoài

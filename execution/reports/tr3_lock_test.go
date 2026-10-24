@@ -1,15 +1,20 @@
 package reports
 
-// Khoá tuần tự hoá TR3 (HOP-DONG §5.6 mục 2; LC74; đột biến DB26). Hai lớp kiểm:
+// Khoá tuần tự hoá TR3 (HOP-DONG §5.6 mục 2; LC74; đột biến DB26). Ba lớp kiểm:
 //   - xác định, không cần PG: bọc giao dịch của kho bộ nhớ để GHI LẠI thứ tự khoá và lần đọc nhóm; mỗi lần đọc nhóm phải đứng sau khoá của ô đó, và các khoá của một giao dịch tăng dần;
-//   - đua thật (kho PG): hai giao dịch cùng nạp hai bản nghi trùng của hai tệp khác nhau; điểm dừng giữa lúc đọc nhóm và lúc ghi làm đua xảy ra CHẮC CHẮN nếu khoá vắng, không dựa vào lịch chạy.
+//   - đua thật (kho PG): hai giao dịch cùng nạp hai bản nghi trùng của hai tệp khác nhau; điểm dừng giữa lúc đọc nhóm và lúc ghi làm đua xảy ra CHẮC CHẮN nếu khoá vắng, không dựa vào lịch chạy;
+//   - tải hỗn hợp (kho PG, R-01): nạp × quyết định × thu hồi × sửa tin đồng thời trên cùng tenant, đòi 0 lần chết khoá (40P01).
 
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
 type lockRecorder struct {
@@ -220,4 +225,141 @@ func TestKhoaTuanTu_ApplyBanGocOOKhacCoKhoaNhoHon_ChayLaiVanDung(t *testing.T) {
 	if got.Disposition != DispAccepted || mustRecord(t, ctx, m, "goc").Disposition != DispSuperseded {
 		t.Fatalf("sau APPLY: đính chính %+v, bản gốc %+v", got, mustRecord(t, ctx, m, "goc"))
 	}
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-01 (soát 23/10): nạp × quyết định × thu hồi × sửa tin ĐỒNG THỜI trên CÙNG tenant của kho PG. Chuỗi chờ vòng cần một giao dịch giữ khoá hàng trong lúc chờ khoá tư vấn
+// của một ô (ô đích của sửa tin / CHOOSE / CORRECT / APPLY, hay ô mới của bản ghi), còn giao dịch giữ khoá ô đó chờ chính hàng ấy (UPDATE, hay khoá ngoại của dòng sổ
+// DUPLICATE trỏ bản ghi). Đòi 0 lần 40P01, 0 lỗi ngoài lệnh bị từ chối (nhãn input), và sau mỗi vòng: điểm bất động TR3, số dòng sổ = số lần giao thành công (BB1).
+// Vòng chẵn "nóng": mọi bản có ô nằm cùng MỘT ô, bản không có ô (thực thể mơ hồ, cách ly) được quyết định hay sửa vào ô đó.
+func TestPG_R01_ThaoTacHonHopDongThoi_KhongChetKhoa(t *testing.T) {
+	st, _ := pgSetup(t)
+	pg := NewPG(st, testOptions())
+	const workers, perWorker, rounds = 6, 25, 98 // 14.700 thao tác (người soát đo trên 14.608); 6 kết nối: container PG 1 GiB dùng chung, đừng tăng
+	ops, deadlocks := 0, 0
+	var others []string
+	for round := 0; round < rounds; round++ {
+		ctx, _ := newCtx("r01")
+		hot := round%2 == 0
+		var mu sync.Mutex
+		var wg sync.WaitGroup
+		delivered := 0
+		start := make(chan struct{})
+		for w := 0; w < workers; w++ {
+			wg.Add(1)
+			go func(w int) {
+				defer wg.Done()
+				rng := rand.New(rand.NewSource(int64(round*workers + w)))
+				<-start
+				for i := 0; i < perWorker; i++ {
+					isDeliver, err := r01Op(ctx, pg, rng, hot, fmt.Sprintf("r%d-w%d-%d", round, w, i))
+					mu.Lock()
+					ops++
+					switch {
+					case err == nil:
+						if isDeliver {
+							delivered++
+						}
+					case contracts.FaultOf(err) == contracts.FaultInput: // lệnh bị từ chối: bình thường dưới tải ngẫu nhiên
+					case sqlState(err) == "40P01":
+						deadlocks++
+					default:
+						others = append(others, err.Error())
+					}
+					mu.Unlock()
+				}
+			}(w)
+		}
+		close(start)
+		wg.Wait()
+		if bad := oracle(mustRecords(t, ctx, pg), 60*time.Minute); len(bad) > 0 {
+			t.Fatalf("vòng %d: vi phạm bất biến sau tải đồng thời:\n  %s", round, strings.Join(bad, "\n  "))
+		}
+		if led, err := pg.Ledger(ctx, ""); err != nil || len(led) != delivered {
+			t.Fatalf("vòng %d: sổ có %d dòng (lỗi %v), muốn %d = số lần giao thành công (BB1)", round, len(led), err, delivered)
+		}
+	}
+	t.Logf("%d thao tác, %d lỗi 40P01, %d lỗi khác", ops, deadlocks, len(others))
+	if deadlocks > 0 || len(others) > 0 {
+		if len(others) > 3 {
+			others = others[:3]
+		}
+		t.Fatalf("chết khoá %d / %d thao tác; lỗi khác ngoài lệnh bị từ chối: %q", deadlocks, ops, others)
+	}
+}
+
+// r01Op chạy MỘT thao tác ngẫu nhiên (giao 45%, quyết định 30%, thu hồi 10%, sửa tin 15%). Giao vào sáu khoá k0..k5 (TR1, TR2, id_conflict xảy ra thường); ba loại còn
+// lại nhắm một bản ghi bất kỳ đang có. Trả true nếu là lần giao.
+func r01Op(ctx context.Context, st Store, rng *rand.Rand, hot bool, batch string) (bool, error) {
+	if rng.Intn(100) < 45 {
+		_, err := st.Deliver(ctx, batch, 1, r01Item(rng, fmt.Sprintf("k%d", rng.Intn(6)), hot))
+		return true, err
+	}
+	rs, err := st.Records(ctx)
+	if err != nil || len(rs) == 0 {
+		return false, err
+	}
+	r := rs[rng.Intn(len(rs))]
+	switch p := rng.Intn(55); {
+	case p < 30:
+		_, err = st.Decide(ctx, r01Command(rng, r, hot))
+	case p < 40:
+		err = st.Retract(ctx, r.Key, "ingest", "thử tải")
+	default:
+		it := r01Item(rng, r.Key, hot)
+		it.Raw = "sửa " + batch
+		err = st.Amend(ctx, r.Key, it, "ingest", "thử tải")
+	}
+	return false, err
+}
+
+func r01Day(rng *rand.Rand, hot bool) string {
+	if hot {
+		return "2026-10-19"
+	}
+	return []string{"2026-10-19", "2026-10-20", "2026-10-21"}[rng.Intn(3)]
+}
+
+// r01Item: một người gửi chung và bốn nguyên văn để TR2 trỏ chéo giữa các khoá; một phần HELD không có ô hay HELD đính chính, để CHOOSE / CORRECT / APPLY và sửa tin chuyển
+// bản ghi giữa các ô.
+func r01Item(rng *rand.Rand, key string, hot bool) Item {
+	mods := []func(*Item){withSender("S1"), withRaw(fmt.Sprintf("tin %d", rng.Intn(4))), withDay(r01Day(rng, hot))}
+	if !hot && rng.Intn(2) == 0 {
+		mods = append(mods, withEntity("E2"))
+	}
+	switch p := rng.Intn(100); {
+	case p < 60:
+	case p < 75:
+		mods = append(mods, heldFor(ReasonAmbiguousEntity), withEntity(""))
+	case p < 85:
+		mods = append(mods, heldFor(ReasonCorrectionUnconfirmed), withKind(KindCorrection))
+	case p < 93:
+		mods = append(mods, heldFor(ReasonNumberReadingUncertain), withValue(""))
+	default:
+		mods = append(mods, quarantinedFor(ReasonUnparseable), withEntity(""), withDay(""), withValue(""))
+	}
+	return mk(key, []int{0, 20, 40, 55, 70}[rng.Intn(5)], mods...)
+}
+
+// r01Command chọn quyết định theo trạng thái đọc được (có thể đã cũ: lệnh bị từ chối vẫn là một giao dịch ghi audit dưới khoá).
+func r01Command(rng *rand.Rand, r Record, hot bool) Command {
+	cmd := Command{Key: r.Key, Actor: "pm-1", Why: "thử tải"}
+	switch r.Reason {
+	case ReasonPossibleDuplicate:
+		seen := r.DuplicateOf
+		cmd.Decision, cmd.SeenDuplicateOf = DecKeepBoth, &seen
+		if rng.Intn(2) == 0 {
+			cmd.Decision = DecMarkDuplicate
+		}
+	case ReasonAmbiguousEntity:
+		cmd.Decision, cmd.Entity = DecChoose, "E1"
+		if !hot && rng.Intn(2) == 0 {
+			cmd.Entity = "E2"
+		}
+	case ReasonCorrectionUnconfirmed:
+		cmd.Decision, cmd.Target = DecApply, fmt.Sprintf("k%d", rng.Intn(6))
+	default:
+		cmd.Decision, cmd.Entity, cmd.OccurredOn, cmd.Value = DecCorrect, "E1", r01Day(rng, hot), &Quantity{Number: "1000", Unit: "L"}
+	}
+	return cmd
 }

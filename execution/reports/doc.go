@@ -23,7 +23,10 @@
 // Memory (test) và PG (PostgreSQL, migration kho_bao_cao_ngay) cùng chạy engine.go, tr3.go, decide.go: mỗi kho chỉ cài giao diện txn (đọc, khoá, ghi từng bảng), nên hai kho không thể lệch nhau về
 // luật; test chạy cùng một bộ trên cả hai (forEachStore) và so khớp từng trường trên chuỗi sự kiện ngẫu nhiên. Mỗi thao tác là MỘT giao dịch (khoá, đọc, tính, ghi một lượt): lỗi ở đâu cũng không để
 // lại nửa đơn vị. Khoá tuần tự hoá TR3 là khoá tư vấn mức giao dịch theo (tenant, thực thể, ngày xảy ra) lấy TRƯỚC khi đọc nhóm, theo thứ tự khoá tăng dần (giao dịch chạm hai ô và cần khoá nhỏ hơn thì
-// bị bỏ và chạy lại với cả hai ô lấy sẵn). Va chạm khoá duy nhất (hai giao dịch cùng tạo một unit_key ở hai ô khác nhau) cũng làm giao dịch chạy lại: bên thua thấy bản của bên thắng và đi theo TR1.
+// bị bỏ và chạy lại với mọi khoá đã cần lấy sẵn). Quyết định, thu hồi và sửa tin lấy thêm khoá tư vấn của CHÍNH bản ghi (tenant, unit_key) trong cùng thứ tự đó, thay cho khoá hàng: không giao dịch nào
+// giữ khoá hàng trong lúc chờ khoá tư vấn (khoá hàng ngầm của UPDATE và của khoá ngoại chỉ đến lúc ghi, sau khoá tư vấn cuối cùng), nên không có chuỗi chờ vòng. Bản cũ giữ FOR UPDATE rồi còn xin
+// khoá ô đích và chết khoá 40P01 dưới tải hỗn hợp (R-01, soát 23/10; test TestPG_R01_*). Va chạm khoá duy nhất (hai giao dịch cùng tạo một unit_key ở hai ô khác nhau) cũng làm giao dịch
+// chạy lại: bên thua thấy bản của bên thắng và đi theo TR1.
 //
 // # Giao diện cho các bước sau
 //

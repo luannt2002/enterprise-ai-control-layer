@@ -115,3 +115,23 @@ func TestS4CS02Vong2ChuNguTruocCumGhi(t *testing.T) {
 	}
 	hoiLaiKhongNhan(t, "Đoàn kiểm tra kết luận EX-03 hôm nay dùng 3782 L dầu thì kho xuất bao nhiêu?")
 }
+
+// S4CS-02 vòng 3 (soát lại vòng 2). F1: lời nhờ đứng trước cụm ghi / đánh giá ("Nhờ anh", "Anh ơi", "Em muốn") không phải lời của nguồn — mệnh đề có cả giá trị
+// đã nêu lẫn cụm hỏi lượng mà trước cụm không có tên nguồn của pack thì là lệnh, hỏi lại kèm nhãn (hướng an toàn); cụm hỏi ở vế riêng sau "thì" vẫn là câu hỏi khi có
+// chủ ngữ trước cụm ("Đồng hồ ghi nhận … thì kho xuất bao nhiêu?").
+func TestS4CS02Vong3LoiNhoVaMenhDeLichSu(t *testing.T) {
+	for q, note := range map[string]string{
+		"Nhờ anh nhận xét định mức tiêu thụ 3782 L dầu hôm qua của EX-03.":  notEval,
+		"Giúp em nhận xét định mức tiêu thụ 3782 L dầu hôm qua của EX-03.":  notEval,
+		"Anh ơi ghi nhận giúp em EX-03 hôm qua dùng 3782 L dầu cho ca mấy.": notWrite,
+		"Em muốn ghi nhận EX-03 hôm qua dùng 3782 L dầu cho ca mấy.":        notWrite,
+		"Ghi nhận EX-03 hôm nay dùng 3782 L dầu thì kho xuất bao nhiêu?":    notWrite, // lệnh đứng đầu mệnh đề: câu hỏi ở vế sau "thì" không xoá lệnh
+	} {
+		askBack(t, q, note)
+	}
+	// ghim dương: "thì" làm trợ từ chủ đề không gây hỏi oan; tên nguồn của pack trước cụm là lời của nguồn
+	hoiLaiKhongNhan(t, "Máy 03 thì hôm qua dùng bao nhiêu dầu?") // bí danh mơ hồ của seed: hỏi lại máy, không nhãn nghĩa chưa hỗ trợ
+	answersIntent(t, "Tiền dầu thì để sau, EX-03 hôm qua dùng bao nhiêu dầu?", "fuel_consumed", "Dầu tiêu thụ đo được")
+	answersIntent(t, "Đồng hồ ghi nhận 3782 L dầu cho EX-03 hôm qua thì kho xuất bao nhiêu?", "fuel_issued", "Dầu kho xuất")
+	answersIntent(t, "Cảm biến ghi nhận 3782 L dầu cho EX-03 hôm nay bao nhiêu?", "fuel_consumed", "3.782")
+}

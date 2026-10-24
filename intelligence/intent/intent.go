@@ -1190,11 +1190,12 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				askedAt := func(j int) bool {
-					// lệnh nêu sẵn giá trị, cụm đứng ĐẦU mệnh đề ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm
-					// xác nhận làm nó thành câu hỏi (S4CS-02). Có chủ ngữ trước cụm ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" — cùng luật đứng đầu của mệnh đề ngữ cảnh ở dưới) hay
-					// tên nguồn của pack ("ERP ghi nhận …") thì đó là lời của một nguồn: cụm hỏi trong mệnh đề hỏi chỉ số khác.
-					command := j == ci && len(strings.Fields(ct[:at])) <= 1 && !s.hasSourceName(ct)
-					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (!command || s.confirming(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
+					cj := rawBG[clauses[j][0]:clauses[j][1]]
+					if j != ci {
+						if s.asking(cj) {
+							return true
+						}
+					} else if s.askedCue(in, res, ct, c[0], at) {
 						return true
 					}
 					next := ""
@@ -1289,6 +1290,23 @@ func (s *Set) questioned(raw string) bool {
 		sp := normalization.PhraseSpans(raw, m)
 		return len(sp) > 0 && sp[len(sp)-1][1] == end
 	})
+}
+
+// askedCue báo mệnh đề ct (bắt đầu ở byte start của câu) chứa cụm ghi / đánh giá ở byte at là CÂU HỎI chứ không phải lệnh (S4CS-02). Cụm xác nhận ("… đúng không?") luôn là câu hỏi.
+// Mệnh đề nêu sẵn giá trị (lượng có đơn vị của chỉ số) mà có cụm hỏi lượng ở cùng vế với cụm là LỆNH — "Ghi nhận … 3782 L dầu cho ca mấy", "Nhờ anh nhận xét định mức tiêu
+// thụ 3782 L …" — trừ khi trước cụm là tên nguồn của pack ("Cảm biến ghi nhận 3782 L … bao nhiêu?"): hướng an toàn, lời nhờ không phân biệt được với chủ ngữ lạ. Cụm hỏi ở vế
+// riêng sau từ đóng vế ("thì kho xuất bao nhiêu?") là câu hỏi khi trước cụm có chủ ngữ ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?", cùng ngưỡng đứng đầu ≤ 1 chữ của
+// mệnh đề ngữ cảnh S4AS-04) hay tên nguồn; cụm đứng đầu thì vẫn là lệnh ("Ghi nhận … 3782 L dầu thì kho xuất bao nhiêu?"). Giá trị đã nêu xét trên cả mệnh đề ("Nhận xét định mức
+// tiêu thụ … là 3782 L dầu").
+func (s *Set) askedCue(in contracts.NormalizedInput, res contracts.Resolution, ct string, start, at int) bool {
+	cut := len(ct)
+	if k := firstSpan(ct[at:], s.opt.ConditionCloseMarkers); k >= 0 {
+		cut = at + k
+	}
+	source := s.hasSourceName(ct[:at])
+	head := len(strings.Fields(ct[:at])) <= 1 && !source
+	return s.confirming(ct) || s.asking(ct[cut:]) && !head ||
+		s.asking(ct[:cut]) && (source || !s.statedFigure(in, res, start, start+len(ct)))
 }
 
 // attachedRequest báo mệnh đề ci là yêu cầu KÈM THÊM sau câu hỏi ("EX-03 hôm nay đội báo bao nhiêu dầu, kèm nhận xét luôn?"): đứng sau một mệnh đề là câu hỏi, không là câu hỏi, và không nêu tên nguồn

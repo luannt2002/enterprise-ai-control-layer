@@ -2,8 +2,8 @@
 
 - **Ngày:** 24/10/2026.
 - **Trạng thái:** **CHẤP NHẬN 24/10/2026** — GO của chủ dự án cho báo cáo audit vNext (nguyên văn ở `docs/CHO-QUYET-DINH.md` mục 0, dòng 24/10
-  "vNext"): "sửa lại toàn bộ theo cái file md đó và code tách và tiếp tục làm theo md đó đi nhé tách đi chanega code đi nhé". Báo cáo đã
-  khuyến nghị đúng định nghĩa này (câu Q2 = A, Q3 = A ở §16).
+  "vNext"): "sửa lại toàn bộ theo cái file md đó và code tách và tiếp tục làm theo md đó đi nhé tách đi chanega code đi nhé". Định nghĩa
+  này là khuyến nghị Q2 = A, Q3 = A của báo cáo (§16): chấp nhận theo GO chung 24/10 cho toàn bộ khuyến nghị của báo cáo; chủ dự án chưa trả lời riêng Q2 / Q3 / Q5.
 - **Thay:**
   - phần **định nghĩa sản phẩm** của D-RM-01 ("nền tảng multi-tenant…", `docs/ROADMAP-DAY-DU.md` §1). Phần còn lại của D-RM-01 (bảy mặt
     phẳng, luồng L0–L10, Phase 0–10, hai cổng) giữ làm bản đồ;

@@ -33,7 +33,7 @@ type ServiceConfig struct {
 
 // ServiceFromEnv đọc EAIS_<role>_PROVIDER, _MODEL, _BASE_URL, _API_KEY, _DIM, _BATCH, _QUERY_TASK, _PASSAGE_TASK, _MAX_RETRIES
 // (trống = 2); role là "EMBED" hoặc
-// "RERANK". Số viết sai thành -1 để constructor báo lỗi cấu hình, không lặng lẽ về mặc định.
+// "RERANK" (hoặc "DECIDE"). Số viết sai thành -1 để constructor báo lỗi cấu hình, không lặng lẽ về mặc định.
 func ServiceFromEnv(role string) ServiceConfig {
 	env := func(k string) string { return os.Getenv("EAIS_" + role + "_" + k) }
 	num := func(k string, def int) int {

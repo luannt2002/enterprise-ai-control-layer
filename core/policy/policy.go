@@ -13,6 +13,10 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
+// CapMetricsRead là capability đọc số liệu — tên chung của nền tảng, không của tenant nào. Phạm vi dữ liệu thực thể mà luồng hỏi xét ngoài
+// router (ứng viên của câu hỏi lại, che phạm vi trong vết) đi với nó: chỉ vai có nó mới cho phạm vi (Q11).
+const CapMetricsRead = "metrics.read"
+
 // RoleDef là một vai nghiệp vụ trong pack (policy.yaml).
 type RoleDef struct {
 	Capabilities []string `yaml:"capabilities"`

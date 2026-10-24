@@ -1,14 +1,11 @@
-# Mẫu câu của ví dụ. Phần số liệu (no_data, needs_review…) bắt buộc với mọi pack dù pack không có chỉ số nào.
+# Mẫu câu của ví dụ. Pack không khai chỉ số nào nên không khai mẫu câu của luồng số liệu (no_data, needs_review…): lõi chỉ đòi chúng khi
+# pack có chỉ số (core/tenant/pack.go, metricTemplates).
 templates:
   out_of_scope: "Câu hỏi này nằm ngoài sổ tay quy trình nội bộ."
   clarify_intent: "Bạn muốn hỏi {options}? {candidates}"
   clarify_missing: "Bạn cho biết thêm {missing}. {candidates}"
   forbidden: "Bạn không có quyền xem nội dung này."
-  no_data: "Chưa có dữ liệu {metric_label} của {entity_name} {period}."
-  needs_review: "Dữ liệu {metric_label} của {entity_name} {period} đang chờ đối soát."
   fallback_unverified: "Hệ thống chưa kiểm được câu trả lời này nên chưa gửi."
-  approx_note: " Có số liệu ước lượng."
-  conflict_note: " Nguồn khác lệch: {conflicts}{conflict_more}."
   knowledge_answer: "Theo {title}: {procedure}"
   no_knowledge: "Chưa có tài liệu bạn được xem trả lời được câu hỏi này."
   hybrid_no_knowledge: " Chưa có tài liệu bạn được xem trả lời phần quy trình."

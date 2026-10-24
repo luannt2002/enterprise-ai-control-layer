@@ -61,11 +61,19 @@ func EmbedKey(text string) string {
 // NewMemoryIndex băm đúng chữ này vào chunk.key.
 func embedText(c *chunk) string { return c.doc.Title + ": " + c.text }
 
-// EmbedTexts trả chữ cần nhúng của mọi đoạn trong chỉ mục, mỗi chữ một lần, theo thứ tự đoạn.
+// releasable: chữ của bản được phép RỜI MÁY tới embedder / reranker — bản đã duyệt hoặc không khai (vế trạng thái của servable). Nháp và
+// chờ soát (kể cả bản cổng chất lượng giữ) chưa được công bố nên không gửi ra nhà cung cấp; bản đã thay thế không còn phục vụ (F-017).
+// Không xét ngày hiệu lực: bản đã duyệt có hiệu lực từ ngày mai phải có vector trước ngày đó, không thì lượt đầu của ngày đó lỗi thiếu vector.
+func releasable(d *Document) bool { return d.Status == "" || d.Status == StatusApproved }
+
+// EmbedTexts trả chữ cần nhúng của mọi đoạn thuộc bản được phép rời máy (releasable), mỗi chữ một lần, theo thứ tự đoạn.
 func (ix *MemoryIndex) EmbedTexts() []string {
 	seen := map[string]bool{}
 	var out []string
 	for i := range ix.chunks {
+		if !releasable(ix.chunks[i].doc) {
+			continue
+		}
 		if t := embedText(&ix.chunks[i]); !seen[t] {
 			seen[t] = true
 			out = append(out, t)
@@ -96,12 +104,14 @@ func (ix *MemoryIndex) hybrid(ctx context.Context, pr contracts.Principal, query
 		c                   *chunk
 		kw, cos, rrf, score float64
 	}
-	// Ứng viên: đoạn làm căn cứ được, và đoạn của tài liệu không có đúng một bản làm căn cứ (để báo phiên bản như đường từ khoá).
+	// Ứng viên: đoạn làm căn cứ được, và đoạn của tài liệu không có đúng một bản làm căn cứ (để báo phiên bản như đường từ khoá) — chỉ
+	// đoạn của bản được phép rời máy: chữ của ứng viên tới reranker, và vector của nó phải có (F-017). Tài liệu chỉ có bản chưa duyệt vì
+	// thế không báo phiên bản trên đường lai (đường từ khoá vẫn báo).
 	var cs []*cand
 	for i := range ix.chunks {
 		c := &ix.chunks[i]
 		id := c.doc.ID
-		if vis[c.doc] && (serving[id] == 1 && servable(c.doc, today) || serving[id] != 1 && live[id]) {
+		if vis[c.doc] && releasable(c.doc) && (serving[id] == 1 && servable(c.doc, today) || serving[id] != 1 && live[id]) {
 			cs = append(cs, &cand{c: c, kw: idfScore(c, q, df, seen)})
 		}
 	}

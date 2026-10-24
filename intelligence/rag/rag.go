@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -90,7 +91,8 @@ type MemoryIndex struct {
 	InScope func(pr contracts.Principal, keys []string) bool
 	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.
 	Semantic *Semantic
-	vocab    *lazyVocab // từ vựng cặp từ của từng tài liệu — khôi phục dấu câu không dấu (semantic.go); dựng ở lần cần đầu tiên
+	vocab    *lazyVocab    // từ vựng cặp từ của từng tài liệu — khôi phục dấu câu không dấu (semantic.go); dựng ở lần cần đầu tiên
+	sections *lazySections // mục đánh số của từng tài liệu — luật "mục không tồn tại"; dựng ở lần cần đầu tiên
 }
 
 // stopWords là từ chức năng tiếng Việt — không mang nghĩa để so khớp.
@@ -477,7 +479,7 @@ func isTableSeparator(line string) bool {
 
 // NewMemoryIndex dựng chỉ mục cho một tenant; tài liệu của tenant khác bị bỏ ngay ở đây.
 func NewMemoryIndex(tenant string, docs []Document) *MemoryIndex {
-	ix := &MemoryIndex{tenant: tenant, MinScore: 2.0, vocab: &lazyVocab{}}
+	ix := &MemoryIndex{tenant: tenant, MinScore: 2.0, vocab: &lazyVocab{}, sections: &lazySections{}}
 	for i := range docs {
 		d := &docs[i]
 		if d.Tenant != tenant {
@@ -646,6 +648,10 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 			}
 		}
 	}
+	if miss := ix.missingSections(query, vis); miss != "" {
+		rep.Silence = "câu hỏi nhắc mục không có trong tài liệu người hỏi thấy: " + contracts.Quote(miss)
+		return []contracts.Evidence{}, nil
+	}
 	if ix.Semantic != nil && ix.Semantic.MinScore > 0 {
 		return ix.hybrid(ctx, pr, query, k, today, vis, serving, live, df, seen)
 	}
@@ -719,6 +725,110 @@ func (ix *MemoryIndex) Retrieve(ctx context.Context, pr contracts.Principal, que
 		out = append(out, evidenceOf(h.c, h.s))
 	}
 	return out, nil
+}
+
+// numbered: "<từ> <nhãn>" — nhãn là số Ả Rập, hoặc la mã / một chữ cái A–Z VIẾT HOA đúng như gõ ("Điều 18", "Chương II", "Mục A");
+// sau nhãn là hết chuỗi hoặc ký tự không phải chữ / số ("**Điều 25**", "Điều 7/"). Chữ thường và chữ có dấu không là nhãn ("những điều
+// vi phạm", "Mục Ý kiến"). numberedRange: khoảng "tầng 3–5" — mọi số trong khoảng đều là có.
+var (
+	numbered      = regexp.MustCompile(`(\pL+)\s+([0-9]+|[IVXLCDM]+|[A-Z])(?:$|[^\pL\pN])`)
+	numberedRange = regexp.MustCompile(`(\pL+)\s+([0-9]+)\s*[-–—]\s*([0-9]+)(?:$|[^\pL\pN])`)
+)
+
+// sectionRef chuẩn hoá một mục đánh số để so: từ chữ thường GIỮ DẤU ("mục" ≠ "mức"), la mã → số, bỏ số 0 đầu.
+func sectionRef(word, label string) string {
+	switch {
+	case label[0] >= '0' && label[0] <= '9':
+		if label = strings.TrimLeft(label, "0"); label == "" {
+			label = "0"
+		}
+	case strings.Trim(label, "IVXLCDM") == "":
+		val := map[byte]int{'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+		n := 0
+		for i := range len(label) {
+			if v := val[label[i]]; i+1 < len(label) && v < val[label[i+1]] {
+				n -= v
+			} else {
+				n += v
+			}
+		}
+		label = strconv.Itoa(n)
+	default:
+		label = strings.ToLower(label)
+	}
+	return strings.ToLower(normalization.NFC(word)) + " " + label
+}
+
+// lazySections giữ, cho từng tài liệu, tiền tố đánh số của tiêu đề trong thân (từ đầu của tiêu đề bắt đầu bằng "<từ> <nhãn>") và MỌI
+// mục đánh số xuất hiện ở tiêu đề + thân (kể cả dẫn chiếu "Điều 25 Luật …"); dựng một lần ở lần cần đầu tiên.
+type lazySections struct {
+	once     sync.Once
+	prefixes map[*Document]map[string]int
+	occurs   map[*Document]map[string]bool
+}
+
+func (ix *MemoryIndex) sectionsOf() *lazySections {
+	s := ix.sections
+	s.once.Do(func() {
+		s.prefixes, s.occurs = map[*Document]map[string]int{}, map[*Document]map[string]bool{}
+		for _, d := range ix.docs {
+			ps, oc := map[string]int{}, map[string]bool{}
+			for _, l := range strings.Split(d.Body, "\n") {
+				if h := headingRe.FindStringSubmatch(strings.TrimSpace(l)); h != nil {
+					if m := numbered.FindStringSubmatchIndex(h[2]); m != nil && m[0] == 0 {
+						ps[strings.Fields(sectionRef(h[2][m[2]:m[3]], h[2][m[4]:m[5]]))[0]]++
+					}
+				}
+			}
+			text := normalization.NFC(d.Title + "\n" + d.Body)
+			for _, m := range numbered.FindAllStringSubmatch(text, -1) {
+				oc[sectionRef(m[1], m[2])] = true
+			}
+			for _, m := range numberedRange.FindAllStringSubmatch(text, -1) {
+				a, _ := strconv.Atoi(m[2])
+				b, _ := strconv.Atoi(m[3])
+				for n := a; n <= b && b-a <= 500; n++ { // khoảng ngược / quá dài: chỉ hai đầu (đã ghi ở trên)
+					oc[sectionRef(m[1], strconv.Itoa(n))] = true
+				}
+			}
+			s.prefixes[d], s.occurs[d] = ps, oc
+		}
+	})
+	return s
+}
+
+// missingSections: câu hỏi nhắc mục đánh số với tiền tố của hệ đánh số trong kho (tiền tố ở ≥ 2 tiêu đề của tài liệu người
+// hỏi thấy) mà KHÔNG mục nào được nhắc xuất hiện ở đâu trong các tài liệu đó ⇒ trả các mục (rỗng = luật không áp dụng). So giữ dấu nên
+// câu không dấu không khớp tiền tố có dấu (luật tự không chạy; bỏ dấu thì "mức" trùng "mục"). Chỉ tài liệu người hỏi thấy góp tiền tố
+// lẫn mục — tài liệu bị cấm không đổi quyết định.
+func (ix *MemoryIndex) missingSections(query string, vis map[*Document]bool) string {
+	q := normalization.NFC(query)
+	allCaps := strings.ToUpper(q) == q // câu viết HOA toàn bộ: chữ cái / la mã không phân biệt được với chữ thường ⇒ chỉ nhận nhãn số
+	sec := ix.sectionsOf()
+	var refs []string
+	for _, m := range numbered.FindAllStringSubmatch(q, -1) {
+		if allCaps && (m[2][0] < '0' || m[2][0] > '9') {
+			continue
+		}
+		ref := sectionRef(m[1], m[2])
+		p, n := strings.Fields(ref)[0], 0
+		for d, ps := range sec.prefixes {
+			if vis[d] {
+				n += ps[p]
+			}
+		}
+		if n < 2 {
+			continue
+		}
+		for d, oc := range sec.occurs {
+			if vis[d] && oc[ref] {
+				return ""
+			}
+		}
+		refs = append(refs, ref)
+	}
+	slices.Sort(refs)
+	return strings.Join(slices.Compact(refs), ", ")
 }
 
 // report trả nơi ghi vết truy xuất của lượt (KnowledgeQuery.Report); lượt không xin vết thì ghi vào một bản bỏ đi.

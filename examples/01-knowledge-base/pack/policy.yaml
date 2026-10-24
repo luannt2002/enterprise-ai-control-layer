@@ -1,0 +1,6 @@
+# Vai → capability. Chỉ có quyền đọc tài liệu; quyền đọc TỪNG tài liệu nằm ở docs/acl.json.
+roles:
+  nhan-vien: {capabilities: [documents.read], scope: all}
+  quan-ly: {capabilities: [documents.read], scope: all}
+  quan-tri: {capabilities: [documents.read], scope: all}
+  khach: {capabilities: [], scope: all}

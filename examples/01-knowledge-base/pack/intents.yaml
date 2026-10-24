@@ -1,0 +1,11 @@
+# Một ý định duy nhất: câu hỏi về quy trình / quy định nội bộ, trả lời bằng đoạn tài liệu người hỏi được đọc.
+unmatched_route: REJECT
+unmatched_template: out_of_scope
+intents:
+  - name: hoi_so_tay
+    label: quy trình nội bộ
+    route: RAG
+    keywords: [quy trình, quy định, thủ tục, làm gì, bao lâu, ai duyệt, ai phê duyệt, phê duyệt, nghỉ phép, mua sắm, mật khẩu, bảo mật]
+    priority: 10
+    template: knowledge_answer
+    capability: documents.read

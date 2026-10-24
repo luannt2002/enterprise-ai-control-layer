@@ -17,8 +17,8 @@ m $S '	if len(sm.EntityLists) == 0 {' '	if false {' 'L5-5 thiếu lược đồ 
 m $S '	} else if freeText && !types[fe.Type] {' '	} else if false {' 'L5-6 chữ tự do trỏ loại chưa khai vẫn nạp'
 m $I '	if c.seen[key] {' '	if false {' 'L5-7 bản ghi trùng khoá thành fact thứ hai cùng id (F-009)'
 B=data/ingestion/bridge.go
-m $B ', ObservedAt: o.SentAt, ReportedBy: o.Sender},' '},' 'L5-8 [PG] fact mất người gửi và giờ gửi (F-008)'
-m $I '		on, at = d, t' '		on = d' 'L5-9 fact mất giờ gửi (F-008)'
+m $B ', ObservedAt: o.SentAt, ReportedBy: o.Sender},' '},' 'L5-8 fact mất người gửi và giờ gửi (F-008; cũng đỏ TestFactGiuNguonGocQuaPG khi có PG)'
+m $I '		on, at = d, t' '		on, at = d, time.Time{}' 'L5-9 fact mất giờ gửi (F-008)'
 export PKGS="./intelligence/router/ ./core/pipeline/ ./core/tenant/ ./tenants/construction/"
 R=intelligence/router/router.go
 m $R '		if parent.Type == "" || cur.Entity.Type != parent.Type {' '		if cur.Entity.Type != parent.Type {' 'L5-10 pack không khai kiểu cha vẫn gỡ theo cha (F-005)'

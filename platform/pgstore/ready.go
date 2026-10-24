@@ -41,6 +41,7 @@ var readyNeeds = []struct {
 // RAG / lần nạp đầu tiên mới lỗi.
 var readyColumns = []struct{ table, column, migration string }{
 	{"documents", "version", "0007"},
+	{"facts", "note", "0011"},
 }
 
 // Ping kiểm kết nối còn sống — rẻ, dành cho healthz gọi thường xuyên; Ready kiểm cả schema và quyền (đắt hơn, gọi lúc khởi động).

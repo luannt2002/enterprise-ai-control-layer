@@ -317,6 +317,8 @@ m tenants/construction/pack/intents.yaml 'source_verbs: [báo]' 'source_verbs: [
 m $I '	end := s.contentEnd(raw)' '	end := len(strings.TrimRightFunc(raw, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S187 đuôi hỏi "… có đốt 3782 L dầu không ạ" bị coi là lệnh ghi (từ trung tính cuối câu chặn đuôi hỏi)'
 m $I '	end := s.contentEnd(masked)' '	end := len(strings.TrimRightFunc(masked, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }))' 'S188 "… được không ạ?" bị coi là phủ định (cụm "lưu lại" bị bỏ qua, lệnh ghi lịch sự trả số)'
 
+# Vòng 2 (soát độc lập L2): trước cụm phải LIỀN trước; vế điều kiện đóng ở "thì" (condition_close_markers), không "thì" thì vế kết quả là mệnh đề khác; lệnh nêu
+# sẵn giá trị chỉ khi cụm đứng đầu mệnh đề (S200, F2).
 # ---- S4CS-02 (soát 23/10, hồi quy S1 của S4BS-05) + S4CS-07 (X3, X4 của người soát từng sống sót): từ phủ định / dấu bỏ qua chỉ phủ nhận cụm báo nghĩa khi đứng trước cụm
 # không có nội dung số liệu chen giữa, hay đứng sau cụm mà phần còn lại không có nội dung số liệu; mệnh đề điều kiện mang cụm hỏi không phải giả thiết thuần; mệnh đề nêu sẵn giá trị
 # không thành câu hỏi nhờ cụm hỏi lượng.
@@ -331,8 +333,9 @@ m $I '|| s.asking(text) || s.metricWord(text)' '|| s.metricWord(text)' 'S194 c�
 m $I '|| s.asking(text) || s.metricWord(text)' '|| s.asking(text)' 'S195 chữ của từ khoá chỉ số không là nội dung số liệu ("EX-03 hôm nay dự báo không dùng hết dầu" trả số)'
 m $I 'text := s.withoutCues(rawBG[start:end])' 'text := rawBG[start:end]' 'S196 chữ của chính cụm báo nghĩa là nội dung số liệu ("báo" của "Dự báo khỏi cần, …" làm cụm không bị bỏ qua)'
 m $I '|| !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {' '|| true) {' 'S197 cụm hỏi lượng làm lệnh nêu sẵn giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu cho ca mấy" trả số)'
-m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.hasSourceName(cj) ||' 'S198 cụm xác nhận không làm mệnh đề nêu giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu đúng không?" thành lệnh ghi)'
-m $I '(s.confirming(cj) || s.hasSourceName(cj) ||' '(s.confirming(cj) ||' 'S199 mệnh đề nêu tên nguồn cũng là lệnh ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?" thành lệnh ghi)'
+m $I '!command || s.confirming(cj) ||' '!command ||' 'S198 cụm xác nhận không làm mệnh đề nêu giá trị thành câu hỏi ("Ghi nhận … 3782 L dầu đúng không?" thành lệnh ghi)'
+m $I ' && !s.hasSourceName(ct)' '' 'S199 tên nguồn của pack đứng đầu mệnh đề cũng là lệnh ("ERP ghi nhận 3900 L … thì cảm biến đo bao nhiêu?" thành lệnh ghi)'
+m $I 'len(strings.Fields(ct[:at])) <= 1' 'true' 'S200 chủ ngữ đứng trước cụm ghi vẫn là lệnh nêu sẵn giá trị ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" thành lệnh ghi — F2 soát L2)'
 m $I '			return at < sp[1]+end' '			return end >= 0' 'S201 cụm SAU "thì" cũng thuộc vế điều kiện ("Nếu mưa to thì dự báo EX-03 …", "Hễ … thì nhắc tôi" trả số)'
 m $I '		return others' '		return true' 'S202 mệnh đề duy nhất mở bằng "nếu" (không "thì") là giả thiết ("Nếu mưa to dự báo EX-03 … bao nhiêu" trả số)'
 m $I '		return others' '		return false' 'S203 vế điều kiện là mệnh đề riêng mà không "thì" vẫn kích hoạt cụm ("Nếu dự báo mưa, …", "…, nếu dự báo mưa?" bị hỏi lại)'

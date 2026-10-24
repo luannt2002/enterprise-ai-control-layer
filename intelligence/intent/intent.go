@@ -1190,9 +1190,11 @@ func (s *Set) unsupportedIn(in contracts.NormalizedInput, rawBG string, res cont
 			if u.NeedsValue {
 				// mệnh đề là câu hỏi khi tự có cụm hỏi, hoặc mệnh đề liền sau chỉ là cái đuôi hỏi ("…, đúng không?"), như premiseRanges
 				askedAt := func(j int) bool {
-					// lệnh nêu sẵn giá trị ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm xác nhận làm nó thành câu hỏi
-					// (S4CS-02). Mệnh đề nêu tên nguồn là lời của nguồn ("Phiếu kho ghi nhận 3850 L … thì cảm biến đo bao nhiêu?"): cụm hỏi trong đó hỏi chỉ số khác.
-					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (s.confirming(cj) || s.hasSourceName(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
+					// lệnh nêu sẵn giá trị, cụm đứng ĐẦU mệnh đề ("Ghi nhận … 3782 L dầu cho ca mấy", "Nhận xét định mức tiêu thụ 3782 L …"): cụm hỏi LƯỢNG không hỏi lượng đã nêu, chỉ cụm
+					// xác nhận làm nó thành câu hỏi (S4CS-02). Có chủ ngữ trước cụm ("Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" — cùng luật đứng đầu của mệnh đề ngữ cảnh ở dưới) hay
+					// tên nguồn của pack ("ERP ghi nhận …") thì đó là lời của một nguồn: cụm hỏi trong mệnh đề hỏi chỉ số khác.
+					command := j == ci && len(strings.Fields(ct[:at])) <= 1 && !s.hasSourceName(ct)
+					if cj := rawBG[clauses[j][0]:clauses[j][1]]; s.asking(cj) && (!command || s.confirming(cj) || !s.statedFigure(in, res, clauses[j][0], clauses[j][1])) {
 						return true
 					}
 					next := ""

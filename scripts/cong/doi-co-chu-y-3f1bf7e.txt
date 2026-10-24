@@ -3,3 +3,35 @@
 TestSharedCodeHasNoTenantLiterals duyệt tệp bằng sharedGoFiles (denylist mọi thư mục trừ tenants/examples/case-studies) thay sharedRoots; kỳ vọng vẫn 0 lần trúng — F-011, lát L1
 TestRequestTypesHaveNoTenantField duyệt tệp bằng sharedGoFiles thay sharedRoots; kỳ vọng không đổi — F-011, lát L1
 legacyAllowed thêm mục cho phép tên cũ ở NAME-EVOLUTION và bản chép báo cáo audit (hạn mức đúng bằng số lần) — ADR-0013, lát L3
+# Lát L4 (F-015): bỏ tên hãng / endpoint / tên model khỏi test — thay 1:1 bằng giao thức ProtocolMessages, endpoint api.example.com, model giả;
+# kiểm header phiên bản chặt hơn (đúng giá trị thay vì khác rỗng); 0 phép kiểm bị bỏ (điều phối đối chiếu 8 dòng xoá ↔ dòng thay).
+clearModelEnv bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+fakeOfficial bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestBackoffDoublesWithCap bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestBackoffStopsOnContextCancel bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestBangChungKhongGhiBiMatTrongURL bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestBudgetCapStopsCalls bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestConfigFromEnvTienToTuongThich bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestDryRunIsNotEvidence bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestEndpointTonTienVietKhacVanBiKiemTruoc bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestKhongTheoChuyenHuong bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestLoiEndpointChiInSchemeVaHost bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestLoiEndpointKhongInMatKhau bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestLoiTruyenTaiKhongInBiMatTrongURL bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMaxTokensHongLaLoi bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMessagesGateway bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMessagesGuiThamSoDaCauHinh bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMessagesMacDinhKhongGuiSampling bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMessagesProviderTuChoiTemperature bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestMessagesThuLai bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestNewChiNhanHTTPSHoacLoopback bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestNewKiemThamSo bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestNewTheoCauHinh bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestProviderOutageMakesRunInvalid bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestRunDungTruocKhiGoiModelKhiOutCoTep bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestRunNganSachVaTepBam bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestSmokeFailsOnBadResponse bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestSmokeFailsWhenProviderRejects bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestSmokeKhongDatKhiHeCongBiChan bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestSmokeThroughFakeProvider bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4
+TestUnstablePathsAndCosts bỏ tên hãng khỏi test, thay 1:1 theo giao thức / giá trị giả — F-015, lát L4

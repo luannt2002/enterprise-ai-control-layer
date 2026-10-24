@@ -28,6 +28,9 @@ type Observation struct {
 	Value  contracts.Value
 	Raw    string
 	Note   string // suy luận đã áp, ví dụ thực thể kế thừa từ tin trước
+	// Sender, SentAt: người gửi và thời điểm gửi của nguồn chữ tự do (tin nhắn); rỗng / zero khi nguồn không có.
+	Sender string
+	SentAt time.Time
 }
 
 // Quarantine là bản ghi không thành quan sát được — luôn kèm lý do, không bao giờ rơi im lặng.
@@ -195,23 +198,23 @@ func (c *conformer) add(res *Result, rel string, f FileSpec, r map[string]string
 	}
 	c.seen[key] = true
 	var (
-		on     time.Time
-		entity string
-		value  contracts.Value
-		raw    string
-		note   string
+		on, at         time.Time
+		entity, sender string
+		value          contracts.Value
+		raw            string
+		note           string
 	)
 	switch {
 	case f.Format == "pdf_lines" || c.spec.FreeText:
-		raw = c.field(r, "text")
-		d, err := c.freeTextDate(rel, f, r)
+		raw, sender = c.field(r, "text"), c.field(r, "sender")
+		d, t, err := c.freeTextDate(rel, f, r)
 		if err != nil {
 			quarantine(ReasonUnparseable, err.Error())
 			return
 		}
-		on = d
+		on, at = d, t
 		var reason, detail string
-		entity, value, note, reason, detail = c.freeText(raw, c.field(r, "sender"), on)
+		entity, value, note, reason, detail = c.freeText(raw, sender, on)
 		if reason != "" {
 			quarantine(reason, detail)
 			return
@@ -252,24 +255,27 @@ func (c *conformer) add(res *Result, rel string, f FileSpec, r map[string]string
 	}
 	res.Observations = append(res.Observations, Observation{
 		Key: key, Tenant: c.rt.Meta.Tenant, Entity: entity, Metric: c.spec.Metric, Source: c.spec.Type,
-		On: on, Value: value, Raw: raw, Note: note,
+		On: on, Value: value, Raw: raw, Note: note, Sender: sender, SentAt: at,
 	})
 }
 
-func (c *conformer) freeTextDate(rel string, f FileSpec, r map[string]string) (time.Time, error) {
+// freeTextDate trả ngày của bản ghi chữ tự do, và thời điểm gửi khi nguồn có (trường datetime; zero khi không có).
+func (c *conformer) freeTextDate(rel string, f FileSpec, r map[string]string) (day, at time.Time, err error) {
 	if f.Format == "pdf_lines" { // báo cáo ngày: ngày nằm ở tên tệp YYYY-MM-DD.pdf
 		base := strings.TrimSuffix(filepath.Base(rel), filepath.Ext(rel))
-		return time.ParseInLocation("2006-01-02", base, c.rt.Location)
+		day, err = time.ParseInLocation("2006-01-02", base, c.rt.Location)
+		return day, at, err
 	}
 	if s := c.field(r, "datetime"); s != "" {
 		t, err := time.Parse(time.RFC3339, s)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("thời điểm %q: %w", s, err)
+			return day, at, fmt.Errorf("thời điểm %q: %w", s, err)
 		}
-		t = t.In(c.rt.Location)
-		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, c.rt.Location), nil
+		l := t.In(c.rt.Location)
+		return time.Date(l.Year(), l.Month(), l.Day(), 0, 0, 0, 0, c.rt.Location), t, nil
 	}
-	return time.ParseInLocation("2006-01-02", c.field(r, "date"), c.rt.Location)
+	day, err = time.ParseInLocation("2006-01-02", c.field(r, "date"), c.rt.Location)
+	return day, at, err
 }
 
 // freeText trích thực thể (loại do pack khai) và lượng từ chữ tự do bằng CHÍNH bộ chuẩn hoá + nhận dạng của luồng hỏi.

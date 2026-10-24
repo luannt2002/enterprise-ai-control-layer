@@ -35,7 +35,7 @@ func (r Result) Facts() sourceoftruth.MemoryStore {
 	for _, o := range r.Observations {
 		out = append(out, sourceoftruth.Fact{
 			ID: o.Key, Metric: o.Metric, EntityID: o.Entity, OccurredOn: o.On, Value: o.Value,
-			Source: sourceoftruth.Observation{ID: o.Key, SourceType: o.Source, SourceRef: o.Key, Raw: o.Raw},
+			Source: sourceoftruth.Observation{ID: o.Key, SourceType: o.Source, SourceRef: o.Key, Raw: o.Raw, ObservedAt: o.SentAt, ReportedBy: o.Sender},
 		})
 	}
 	return out

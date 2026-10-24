@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
@@ -209,12 +210,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	vars := map[string]string{"reason": plan.Reason}
 	var ci clarifyInfo // cách dựng danh sách ứng viên của câu hỏi lại (chỉ để giải thích vết)
+	// Phạm vi dữ liệu của câu hỏi lại và của vết chỉ do vai đọc được số liệu thoả (Q11): vai phạm vi rộng mà không có quyền đọc không cho mượn phạm vi
+	reader := a.RT.Policy.Holding(pr, policy.CapMetricsRead)
 
 	// Từ đây chỉ dùng plan.Intent: ý định SAU khi router đã kiểm quyền và gỡ mơ hồ.
 	switch plan.Route {
 	case contracts.RouteClarification:
 		asked := append(slices.Clone(cls.Candidates), cls.Unclear.Entities...)
-		visible, hidden := a.visibleCandidates(ctx, pr, asked)
+		visible, hidden := a.visibleCandidates(ctx, reader, asked)
 		ci = clarifyInfo{used: true, before: asked, shown: visible, hidden: hidden}
 		if rival || doubt {
 			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
@@ -266,12 +269,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
 	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá. Dựng ngay sau switch (trước khối giải thích) vì draftLedger.settle cần nó.
-	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
+	red := a.newScopeRedactor(ctx, reader, req.Text, entityRefs(res, cls, ci, routed, plan)...)
 	if !a.noWhy {
 		why.Normalize = explainNormalize(in)
 		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
 		// chúng cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
-		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
+		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(reader, nil))
 		why.Intent = explainIntent(cls, ci)
 		why.Route = a.explainRoute(routed, plan)
 		led.settle(&why, red) // S8: dòng bản nháp ở dạng cuối — che phạm vi TRƯỚC rồi mới cắt đoạn đầu (V8AS-02)

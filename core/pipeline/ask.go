@@ -46,6 +46,14 @@ type KnowledgeRetriever interface {
 	Retrieve(ctx context.Context, pr contracts.Principal, query string, k int) ([]contracts.Evidence, error)
 }
 
+// IntentFallback được hỏi SAU luật S4 và chỉ được đổi kết quả của luật sang ĐÚNG MỘT ý định tri thức (route RAG) mà nó khai; quyền,
+// phạm vi, khe vẫn do router (S5) quyết. Dùng để đo các phương án S4 (docs/ROADMAP-RAG.md §10.2): dò chỉ mục tri thức (tất định) hay
+// model phân loại. Fallback trả use = true để đổi, kèm độ tin cậy và lý do ghi vào vết; lỗi thì luồng giữ kết quả của luật.
+type IntentFallback interface {
+	Intent() string
+	Fallback(ctx context.Context, pr contracts.Principal, in contracts.NormalizedInput, cls intent.Result) (use bool, conf float64, why string, err error)
+}
+
 // Deps là các nguồn dữ liệu của MỘT tenant mà luồng hỏi cần.
 type Deps struct {
 	Directory entityresolution.Directory
@@ -54,6 +62,8 @@ type Deps struct {
 	// đó là lỗi cấu hình, không âm thầm trả lời.
 	Knowledge KnowledgeRetriever
 	Model     models.Gateway
+	// IntentFallback: dự phòng S4 (thử nghiệm, nil = tắt — hành vi như cũ). Xem fallbackIntent.
+	IntentFallback IntentFallback
 	// DataVersion định danh bộ dữ liệu đang phục vụ (ví dụ băm manifest của lần nạp) — ghi vào
 	// bản ghi quyết định; phát lại chỉ hợp lệ trên đúng bộ dữ liệu đó.
 	DataVersion string
@@ -114,6 +124,11 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	cls, _ := traces.Measure(tr, "intent", func() (intent.Result, error) {
 		return a.RT.Intents.Classify(in, res, now), nil
 	})
+	if f := a.Deps.IntentFallback; f != nil {
+		if cls, err = a.fallbackIntent(ctx, now, pr, in, cls, f); err != nil {
+			return Outcome{}, err
+		}
+	}
 	// Hỏi lại nghĩa số liệu chỉ kể ý định người hỏi có quyền; không còn ý định nào thì như câu không khớp (từ chối như cũ) — không lộ
 	// nhãn ý định cho người không có capability (CLAUDE.md §21)
 	cls.NeedMeaning = slices.DeleteFunc(cls.NeedMeaning, func(n string) bool {
@@ -550,6 +565,31 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 // model diễn đạt, rồi kiểm — claim gắn bằng chứng, số có trong bằng chứng, không lượng nghiệp vụ
 // nào lấy từ tài liệu. hybrid = phần quy trình nối sau câu số liệu đã RESOLVED: phần này hỏng thì
 // chỉ bỏ phần này kèm ghi chú, không làm hỏng phần số liệu đã kiểm.
+// fallbackIntent hỏi dự phòng S4. Câu hỏi lượng (asksQuantity), hay người hỏi thiếu capability của ý định tri thức thì không hỏi (không dò tài liệu hộ người không được
+// đọc); dự phòng lỗi thì giữ kết quả của luật và ghi vết — luật là đường mặc định, lỗi bên ngoài không làm hỏng lượt. Ngữ cảnh mang
+// đúng truy vấn tri thức của answerKnowledge (ngày hỏi, phạm vi, chủ đề) để dò chỉ mục thấy đúng những gì route RAG sẽ thấy.
+func (a *Ask) fallbackIntent(ctx context.Context, now time.Time, pr contracts.Principal, in contracts.NormalizedInput, cls intent.Result, f IntentFallback) (intent.Result, error) {
+	def, ok := a.RT.Intents.Def(f.Intent())
+	if !ok || contracts.RouteKind(def.Route) != contracts.RouteRAG {
+		return cls, contracts.Errorf(contracts.FaultCode, "dự phòng S4 khai ý định không phải ý định tri thức của pack: "+f.Intent())
+	}
+	if (def.Capability != "" && !a.RT.Policy.Allows(pr, def.Capability)) || a.asksQuantity(in) {
+		return cls, nil
+	}
+	kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in)})
+	use, conf, why, err := f.Fallback(kctx, pr, in, cls)
+	switch {
+	case err != nil:
+		cls.Why.Reasons = append(slices.Clone(cls.Why.Reasons), "dự phòng S4 lỗi ("+contracts.FaultOf(err)+") — giữ kết quả của luật")
+	case use:
+		cls = intent.Result{
+			Intent: contracts.Intent{Name: def.Name, Confidence: conf, Slots: map[string]contracts.Slot{}, Rule: "intent:fallback"},
+			Why:    intent.Why{Reasons: append(slices.Clone(cls.Why.Reasons), "dự phòng S4 → "+def.Name+": "+why), Rejected: cls.Why.Rejected},
+		}
+	}
+	return cls, nil
+}
+
 func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Time, pr contracts.Principal,
 	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool, why *traces.Why) error {
 

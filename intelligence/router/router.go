@@ -297,6 +297,9 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 
 	plan.Route, plan.Template = contracts.RouteKind(def.Route), def.Template
 	plan.Reason = "ý định " + def.Name + " khớp luật"
+	if cls.Intent.Rule == "intent:fallback" { // ý định do dự phòng S4 chọn (pipeline.IntentFallback), không phải luật từ khoá
+		plan.Reason = "ý định " + def.Name + " do dự phòng S4 chọn"
+	}
 	check("route khai của ý định", plan.Route, true, def.Name+" → "+def.Route)
 	compare := check("câu so sánh hai nghĩa", contracts.RouteCalculation, cls.Compare != "", orNone(cls.Compare, "không có vế so sánh"))
 	if compare {

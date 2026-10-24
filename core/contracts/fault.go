@@ -78,6 +78,9 @@ func FaultOf(err error) string {
 	return ""
 }
 
+// IsThirdParty: lỗi do nhà cung cấp bên ngoài (nhãn third_party:…), không phải do mã hay hạ tầng của mình.
+func IsThirdParty(err error) bool { return strings.HasPrefix(FaultOf(err), thirdPartyPrefix) }
+
 // Retryable trả lời đúng câu hỏi mà bên gọi cần: thử lại sau có ích không?
 func Retryable(err error) bool {
 	label := FaultOf(err)

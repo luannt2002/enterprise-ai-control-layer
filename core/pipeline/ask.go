@@ -121,13 +121,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		return Outcome{}, err
 	}
 	// S4 — ý định
-	cls, _ := traces.Measure(tr, "intent", func() (intent.Result, error) {
-		return a.RT.Intents.Classify(in, res, now), nil
-	})
-	if f := a.Deps.IntentFallback; f != nil {
-		if cls, err = a.fallbackIntent(ctx, now, pr, in, cls, f); err != nil {
-			return Outcome{}, err
+	cls, err := traces.Measure(tr, "intent", func() (intent.Result, error) {
+		r := a.RT.Intents.Classify(in, res, now)
+		if f := a.Deps.IntentFallback; f != nil {
+			return a.fallbackIntent(ctx, now, pr, in, r, f)
 		}
+		return r, nil
+	})
+	if err != nil {
+		return Outcome{}, err
 	}
 	// Hỏi lại nghĩa số liệu chỉ kể ý định người hỏi có quyền; không còn ý định nào thì như câu không khớp (từ chối như cũ) — không lộ
 	// nhãn ý định cho người không có capability (CLAUDE.md §21)
@@ -565,31 +567,6 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 // model diễn đạt, rồi kiểm — claim gắn bằng chứng, số có trong bằng chứng, không lượng nghiệp vụ
 // nào lấy từ tài liệu. hybrid = phần quy trình nối sau câu số liệu đã RESOLVED: phần này hỏng thì
 // chỉ bỏ phần này kèm ghi chú, không làm hỏng phần số liệu đã kiểm.
-// fallbackIntent hỏi dự phòng S4. Câu hỏi lượng (asksQuantity), hay người hỏi thiếu capability của ý định tri thức thì không hỏi (không dò tài liệu hộ người không được
-// đọc); dự phòng lỗi thì giữ kết quả của luật và ghi vết — luật là đường mặc định, lỗi bên ngoài không làm hỏng lượt. Ngữ cảnh mang
-// đúng truy vấn tri thức của answerKnowledge (ngày hỏi, phạm vi, chủ đề) để dò chỉ mục thấy đúng những gì route RAG sẽ thấy.
-func (a *Ask) fallbackIntent(ctx context.Context, now time.Time, pr contracts.Principal, in contracts.NormalizedInput, cls intent.Result, f IntentFallback) (intent.Result, error) {
-	def, ok := a.RT.Intents.Def(f.Intent())
-	if !ok || contracts.RouteKind(def.Route) != contracts.RouteRAG {
-		return cls, contracts.Errorf(contracts.FaultCode, "dự phòng S4 khai ý định không phải ý định tri thức của pack: "+f.Intent())
-	}
-	if (def.Capability != "" && !a.RT.Policy.Allows(pr, def.Capability)) || a.asksQuantity(in) {
-		return cls, nil
-	}
-	kctx := contracts.WithKnowledgeQuery(ctx, contracts.KnowledgeQuery{AsOf: now, InScope: a.RT.Policy.InScope, Topic: KnowledgeTopic(in)})
-	use, conf, why, err := f.Fallback(kctx, pr, in, cls)
-	switch {
-	case err != nil:
-		cls.Why.Reasons = append(slices.Clone(cls.Why.Reasons), "dự phòng S4 lỗi ("+contracts.FaultOf(err)+") — giữ kết quả của luật")
-	case use:
-		cls = intent.Result{
-			Intent: contracts.Intent{Name: def.Name, Confidence: conf, Slots: map[string]contracts.Slot{}, Rule: "intent:fallback"},
-			Why:    intent.Why{Reasons: append(slices.Clone(cls.Why.Reasons), "dự phòng S4 → "+def.Name+": "+why), Rejected: cls.Why.Rejected},
-		}
-	}
-	return cls, nil
-}
-
 func (a *Ask) answerKnowledge(ctx context.Context, tr *traces.Trace, now time.Time, pr contracts.Principal,
 	in contracts.NormalizedInput, tmpl string, resp *contracts.AskResponse, hybrid bool, why *traces.Why) error {
 

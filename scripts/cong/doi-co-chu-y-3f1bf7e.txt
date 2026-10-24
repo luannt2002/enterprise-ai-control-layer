@@ -2,4 +2,4 @@
 # Dùng: go run ./scripts/cong/so-than <cây 3f1bf7e> <cây mới> scripts/cong/doi-co-chu-y-3f1bf7e.txt
 TestSharedCodeHasNoTenantLiterals duyệt tệp bằng sharedGoFiles (denylist mọi thư mục trừ tenants/examples/case-studies) thay sharedRoots; kỳ vọng vẫn 0 lần trúng — F-011, lát L1
 TestRequestTypesHaveNoTenantField duyệt tệp bằng sharedGoFiles thay sharedRoots; kỳ vọng không đổi — F-011, lát L1
-legacyAllowed thêm mục cho phép chữ EACL ở NAME-EVOLUTION và bản chép báo cáo audit (hạn mức đúng bằng số lần) — ADR-0013, lát L3
+legacyAllowed thêm mục cho phép tên cũ ở NAME-EVOLUTION và bản chép báo cáo audit (hạn mức đúng bằng số lần) — ADR-0013, lát L3

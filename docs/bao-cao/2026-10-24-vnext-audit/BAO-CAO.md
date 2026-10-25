@@ -5,6 +5,9 @@
 > dữ liệu được chép vào `artifacts/` cạnh tệp này: `02-code-inventory.csv`, `12-old-to-new-migration-map.csv`, `commit-categories.tsv`;
 > các tệp khác liệt ở §A (`test-*.json`, `00-source-attestation.txt`, manifest…) chỉ có ở thư mục audit ngoài repo.
 >
+> **Đính chính (25/10):** F-014 và §15 ghi "CI CHƯA từng chạy trên GitHub" (dựa vào chú thích `ci.yml:3-4`, REPO_CLAIM) — SAI. Đo qua API
+> công khai: đã có 77 lượt trên main trước `7339ff4`; lượt `3f1bf7e` đỏ đúng ở bước cấm SKIP (phần EXECUTED của F-014 vẫn đúng); `7339ff4` xanh.
+>
 > **Đính chính (24/10, sau khi chép):** "583 dòng import" ở §7.1 và §16 (Q3) sai: **578** dòng import trong **227** tệp `.go`; 583 là mọi
 > dòng `.go` nhắc tên repo ở bất kỳ dạng nào (`git grep` trên `3f1bf7e`; lệnh ở ADR-0013). Thân báo cáo giữ nguyên.
 

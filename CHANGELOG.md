@@ -6,6 +6,11 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 25/10/2026 — vNext gộp vào main
+
+- Gộp `vnext/tach-2410` vào main (`b1d160c`, `--no-ff`), theo lời chủ dự án 25/10 (CHO dòng "vNext → main").
+- CI GitHub trên `7339ff4`: XANH mọi bước (lượt `3f1bf7e` trước đó đỏ ở bước cấm SKIP — F-014). Đính chính câu "CI chưa chạy trên GitHub" ở `ci.yml`, README, STATUS, báo cáo.
+
 ### 24/10/2026 — vNext thi công (nhánh `vnext/tach-2410`, CHƯA gộp main)
 
 Theo GO 24/10 (phương án B′). Bảng từng lát, số đo và sổ nợ: `docs/bao-cao/2026-10-24-vnext-thi-cong.md`. **MVP CHƯA RA**; H6 chưa chạy.

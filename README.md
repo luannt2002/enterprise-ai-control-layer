@@ -68,7 +68,7 @@ vòng qua quyền của app · thêm năng lực khi chưa qua hai cổng (§4).
 | **P4 Hành động** | command, tool, workflow, event, chống trùng, đọc lại | ◐ lõi lệnh `execution/commands` + route `POST /v1/commands/<tool>` (Phase 1, M4); chưa có workflow / event |
 | **P5 Kiểm soát** | tenant, danh tính, quyền, kiểm đầu ra, audit, vết, chi phí | ● tenant từ danh tính; RLS FORCE; từ chối vai vượt RLS; kiểm số; vết bền mọi lượt. **Chưa:** xác thực môi trường thật, chi phí theo lượt |
 | **P6 Chứng minh** | bộ ca, bộ giữ lại, baseline, bộ chấm, đột biến, soát độc lập | ● **mạnh nhất**: H1, H3, H4, P1, 0a đóng băng bằng băm; đột biến; soát độc lập |
-| **P7 Vận hành** | HTTP API, CI có PG, triển khai, quản trị, SLA | ◐ `cmd/eais` (HTTP + CLI, chỉ `-dev`); một lệnh chạy thử; CI có PG, cấm SKIP: **định nghĩa** ở `.github/workflows/ci.yml`, chưa chạy trên GitHub |
+| **P7 Vận hành** | HTTP API, CI có PG, triển khai, quản trị, SLA | ◐ `cmd/eais` (HTTP + CLI, chỉ `-dev`); một lệnh chạy thử; CI có PG, cấm SKIP: `.github/workflows/ci.yml`, chạy trên GitHub mỗi lần push main / PR (lượt `3f1bf7e` ĐỎ ở bước "Không test nào bị SKIP hay FAIL" (F-014), lượt `7339ff4` XANH mọi bước — đo 25/10 qua API công khai của GitHub Actions) |
 
 ---
 
@@ -118,7 +118,7 @@ người chấm mù) → cổng nhị phân → đột biến → soát độc l
 *Thiếu:* bộ chấm v2 chưa khoá, người chấm mù, baseline mức app.
 
 **L9. Vận hành:** HTTP API · CI có PG · triển khai · bí mật · hạn mức · SLA · sao lưu · scale. *Hiện có:* `cmd/eais`, một lệnh chạy thử,
-CI có PG cấm SKIP (định nghĩa, chưa chạy trên GitHub — F-014). *Phase:* 5, 9.
+CI có PG cấm SKIP: chạy trên GitHub, xanh trên `7339ff4` (trước đó đỏ ở bước SKIP — F-014). *Phase:* 5, 9.
 
 **L10. Điều phối người–agent:** chủ dự án quyết ở `docs/CHO-QUYET-DINH.md` → BUILD xây theo `docs/PROMPT-BUILD-EAIS.md`, commit + push,
 tệp tiến độ sống → phiên điều phối / debug đọc qua git, gửi lỗi qua `docs/debug-handoff/`.
@@ -164,7 +164,7 @@ nào không cần AI · gom ngữ cảnh gì · thiếu / mâu thuẫn thì hỏ
 | | **4b** Ngành thứ hai, chế độ A | CRM: tóm tắt khách + tạo task qua API; lõi ≈ 0 dòng phải sửa | A | ○ |
 | | **4c** Bốn kiểu doanh nghiệp | mỗi kiểu một việc | A + B | ○ |
 | | **4d** Ngành thứ ba | khác hẳn (thể thao realtime / tài chính) | A / B | ○ |
-| **IV. Nền tảng** | **5** Cứng hoá | xác thực thật, vòng đời tenant / pack, bí mật, hạn mức, chi phí, CI, quản trị | — | ○ (CI có PG: định nghĩa, chưa chạy trên GitHub) |
+| **IV. Nền tảng** | **5** Cứng hoá | xác thực thật, vòng đời tenant / pack, bí mật, hạn mức, chi phí, CI, quản trị | — | ◐ (CI có PG chạy trên GitHub, xanh trên `7339ff4`) |
 | | **8** Tích hợp chuẩn hoá | connector Zalo / email / CRM / ERP, webhook, MCP | A | ○ |
 | **V. Trí tuệ nâng cao** | **6** AI nâng cao | **model hiểu ý định** (có bằng chứng đòi), PDF / bảng / OCR, rerank, ML thực thể, model local | — | ◐ phần RAG (§5) |
 | | **7** Agent có biên | khi luồng cố định không quyết được | — | ○ |
@@ -374,7 +374,7 @@ $W/eais quarantine -tenant abc-infra <mã lần nạp>                         #
   **Nâng cấp từ bản chưa có sổ nạp (trước việc 5e):** sau khi áp migration 0006, MỌI bên nạp dữ liệu vào PG phải chạy binary có sổ nạp. Binary cũ không biết bảng `load_records`: nó vẫn thay dữ liệu của tenant nhưng không ghi dòng sổ. Hậu quả đo được (tái hiện ngày 23/10/2026 bằng hai binary, trước và sau 5e, trên một PG riêng): khi sổ đã có ít nhất một dòng do binary mới ghi, một lần `eais ingest` bằng binary cũ với bộ dữ liệu khác để sổ nguyên một dòng mà dữ liệu sống đã đổi, và server mới vẫn khai trong vết phiên bản của lần nạp TRƯỚC — đúng loại lỗi mà sổ nạp sinh ra để chặn, và không kiểm tra nào phát hiện. (DB đã áp 0006 mà chưa có dòng sổ nào thì an toàn: vết khai `(chưa ghi nhận lần nạp)`.) Trình tự nâng cấp: (1) dừng MỌI bên nạp bản cũ — cron, `eais ingest`, server cũ (`POST /v1/ingest`) — TRƯỚC khi migrate; (2) `eais migrate` (chạy lại được); (3) chạy `serve` và mọi bên nạp bằng binary mới (bản mới từ chối mở kho khi chưa áp 0006 và nói rõ cần `eais migrate`: `TestReadySoNap`); (4) nạp lại MỘT lần (`eais ingest`) để sổ có dòng đầu tiên — tới lúc đó vết khai `(chưa ghi nhận lần nạp)`. Bước (1) không có gì ép: nhiều bản chạy dùng chung một PG dev là chỗ dễ vướng.
 - Lượt mà `Handle` trả lỗi (kể cả bị chính sách chặn, vd tenant lạ) chỉ để lại MỘT bước vết `S?` đánh dấu TRỐNG, không chỉ được tầng lỗi, vì `Handle` trả kết quả rỗng khi lỗi (`core/pipeline` ngoài phạm vi của ứng dụng). Chỉ tiêu "người chỉ đọc vết mà chỉ đúng tầng sai đầu tiên ở ≥ 90% ca đỏ" **chưa đo**, và với lượt lỗi cơ chế hiện tại không cho đạt: cần `Handle` trả kết quả một phần khi lỗi.
 - Chưa có vết các bước nạp (`L1.*`) và chưa có chính sách dọn / lưu giữ vết và sổ nạp `load_records` (một dòng mỗi lần nạp; vai ứng dụng không có quyền xoá).
-- CI ở `.github/workflows/ci.yml`: cổng SKIP chạy cục bộ nay xanh (`scripts/cong/cong.sh` → `scripts/kiem-skip-test.py` với `scripts/cong/skip-cho-phep.txt`; đỏ rc=1 trên `3f1bf7e`, xanh trên `a35f3d8` của nhánh vnext); CI chưa chạy trên GitHub.
+- CI ở `.github/workflows/ci.yml`: cổng SKIP chạy cục bộ nay xanh (`scripts/cong/cong.sh` → `scripts/kiem-skip-test.py` với `scripts/cong/skip-cho-phep.txt`; đỏ rc=1 trên `3f1bf7e`, xanh trên `a35f3d8` của nhánh vnext); CI trên GitHub: lượt `3f1bf7e` ĐỎ ở bước "Không test nào bị SKIP hay FAIL" (F-014), lượt `7339ff4` XANH mọi bước — đo 25/10 qua API công khai của GitHub Actions.
 - **Sau tích hợp 24/10:** S4 mang hồi quy S4CS-02 (7 câu nền hỏi lại nay trả số không nhãn) và nợ S4CS-01, -03, -04; mã 0a có lỗi R-01 (chết khoá PG khi nạp chạy cùng quyết định) và chưa nối vào `cmd/eais` (`Ready` chưa biết 4 bảng `report_*`); vết S8–S10 chờ soát vòng 2; 5a vòng 5 chờ soát — xem `docs/bao-cao/2026-10-24-tich-hop-main.md` mục 6. (Trên nhánh `vnext/tach-2410`, chưa gộp main: R-01 đã sửa, S4CS-02 đã khoá kèm nợ N1–N9 — `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.)
 - **RAG:** app chạy đường từ khoá + model trích (7/14 câu không có đáp án vẫn nhận đoạn ở đường từ khoá [đo: từ khoá] — đường lai 0/14 [đo: lai] nhưng chỉ ở bộ đo); chữ của bản chưa duyệt không còn tới embedder / reranker (F-017, lát L6 `6f5ba09`, test `nhung_ban_nhap_test.go` ở `intelligence/rag` và `platform/pgstore`; trước L6 việc nhúng gửi cả chữ bản nháp ra nhà cung cấp — §5.7 việc 1); tài liệu và vector chưa công bố nguyên tử (F-021, chờ quyết); nạp chỉ Markdown ở app.
 

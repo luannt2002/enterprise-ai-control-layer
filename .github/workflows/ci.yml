@@ -1,7 +1,7 @@
 # CI của EAIS: vet, gofmt, test CÓ PostgreSQL (và FAIL nếu có bất kỳ test nào bị SKIP), cổng danh tính, smoke E2E một lệnh.
 #
-# CHƯA CHẠY TRÊN GITHUB: tệp này được kiểm cú pháp YAML và MỌI lệnh trong nó đã được chạy tại máy với một PostgreSQL riêng, nhưng
-# bản thân GitHub Actions chưa từng chạy nó. Lần chạy đầu tiên trên GitHub là phép thử thật của nó.
+# Chạy trên GitHub mỗi lần push main / mở PR. Câu cũ ở đây ("chưa chạy trên GitHub") SAI: đo 25/10/2026 qua API công khai — trước
+# 7339ff4 đã có 77 lượt trên main; lượt 3f1bf7e ĐỎ ở bước "Không test nào bị SKIP hay FAIL" (F-014), lượt 7339ff4 XANH mọi bước.
 #
 # Giới hạn đã biết (ghi thẳng, không giấu):
 # - Action được ghim theo TAG đầy đủ (vN.M.P), chưa ghim theo SHA: máy dựng tệp này không tra được SHA của tag. Tag có thể bị di dời;

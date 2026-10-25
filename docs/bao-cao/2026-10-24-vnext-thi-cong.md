@@ -63,7 +63,7 @@ nào nới quyền / RLS, winreport `3f1bf7e` ↔ `a35f3d8` khác 0 dòng, 4 l�
 | Q11b, người hai vai [ĐO, lát Q11b] | mã cũ: 328 câu khác + 433 chỗ lộ trên 483 câu; mã mới: 0 (y hệt vai đủ quyền một mình) |
 | Pack thứ hai [ĐO, lát L5, chạy lùi] | cần 7 tệp lõi |
 | Nợ chữ miền trong lõi (danh sách của cổng từ miền) [REPO, L5 / L5b] | 29 → 14 → **4** mục |
-| Cổng SKIP của CI | trước đỏ (rc=1 trên `3f1bf7e`), nay xanh. CI vẫn CHƯA chạy trên GitHub |
+| Cổng SKIP của CI | trước đỏ (rc=1 trên `3f1bf7e`), nay xanh. **Đính chính 25/10:** câu "CI chưa chạy trên GitHub" (của repo và của báo cáo audit) SAI — lượt `3f1bf7e` ĐỎ ở bước "Không test nào bị SKIP hay FAIL" (F-014), lượt `7339ff4` XANH mọi bước — đo 25/10 qua API công khai của GitHub Actions |
 | **CHỐT — cổng có PG trên `2f058d7`** (đỉnh nhánh lúc đẩy) [ĐO, điều phối] | **2.482** tên, 2.478 pass, 4 skip, **0 fail**; `kiem-skip` XANH; `so-than` XANH; so tên với mốc có PG `3f1bf7e`: **mất 0**, đổi 0, mới 84 (8 subtest g7run lấy lại tên cũ: tên đọc từ hợp đồng lúc chạy, mã không chứa tên hãng) |
 | **CHỐT — smoke** `scripts/chay-thu.sh` trên `2f058d7` [ĐO, điều phối] | 21 đạt, 0 hỏng; binary nhúng `code_version=2f058d7…` (cây sạch) |
 
@@ -101,7 +101,7 @@ sách và không qua kiểm trước khi tiêu tiền — đo đỏ trước: m�
 | 2 | F-021: tài liệu + vector công bố không nguyên tử | nhúng TRƯỚC, ghi vector trong giao dịch của Load (nạp phụ thuộc embedder) | đoạn chưa có vector đi đường từ khoá + dòng vết (đảo kỳ vọng `TestVectorTriThucPG`: "kho chưa nhúng" ra lỗi) | **hoãn** tới khi đường lai vào app (hôm nay chỉ bộ đo chạy nó); lúc đó chọn **A** — giữ đóng mặc định |
 | 3 | Tên hãng trong docs lịch sử (35 tệp / 267 từ trên `a35f3d8`) | giữ nguyên tài liệu lịch sử; thêm cổng cho docs hiện hành với danh sách cho phép theo tệp, hạn mức đúng bằng số lần (như `legacyAllowed`) | thay bằng chữ trung tính ở mọi tệp | **A**: B sửa bằng chứng lịch sử và tệp đã băm (hợp đồng G7 được băm vào `manifest.json` của mỗi lượt) |
 | 4 | Tệp ca H6 (đã băm ở `6734cff`) ở đâu | chủ dự án chép tệp ca vào máy chạy, chạy H6 MỘT lần trên đỉnh đã gộp | soạn bộ mới bởi người soạn khác, băm trước | **A** |
-| 5 | Gộp `vnext/tach-2410` vào main khi nào | sau khi hai lát sửa theo soát cuối gộp, cổng có PG xanh, và CI chạy một lần trên GitHub | chờ H6 chạy xong | **A**: H6 chấm đúng mã sẽ lên main; CI chưa từng chạy trên GitHub là lỗ đáng đóng trước khi gộp |
+| 5 | ~~Gộp `vnext/tach-2410` vào main khi nào~~ — **đã gộp 25/10** (`b1d160c`, lời chủ dự án ở CHO); CI GitHub trên `7339ff4` xanh | sau khi hai lát sửa theo soát cuối gộp, cổng có PG xanh, và CI chạy một lần trên GitHub | chờ H6 chạy xong | **A**: H6 chấm đúng mã sẽ lên main; CI chưa từng chạy trên GitHub là lỗ đáng đóng trước khi gộp |
 | 6 | `CLAUDE.md` còn ba chỗ lời cũ (§9, danh sách tenant, §25) | chủ dự án sửa theo phụ lục | giữ nguyên | **A**: `CLAUDE.md` là hợp đồng của chủ dự án, agent không sửa |
 
 ## 5. Kiểm lại

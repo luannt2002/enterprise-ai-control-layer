@@ -2,6 +2,7 @@
 
 > Đo 20/10/2026 trên revision `85108c4`. **Chưa gọi model thật, chưa chi đồng nào.**
 > Hợp đồng benchmark: `docs/g7/HOP-DONG-G7.md`.
+> Biến môi trường từ lát L4 (24/10/2026) khác chữ trong hợp đồng: **mục 8**.
 
 ## 1. Cách đo
 
@@ -91,8 +92,35 @@ Giá chính thức, tra 20/10/2026 ở `platform.claude.com/docs/en/about-claude
 D=$(mktemp -d)
 python3 -I scripts/g7-chay-kho.py 25480 $D/requests.jsonl &   # cổng bất kỳ còn trống; đừng dùng cổng của dịch vụ đang chạy
 go run ./tenants/construction/win/gen/cmd/gen -world tenants/construction/win/world.yaml -out $D/data -profile functional -seed 42
-EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=chay-kho EAIS_MODEL_API_KEY=khong-phai-khoa-that \
+EAIS_MODEL_PROVIDER=messages EAIS_MODEL=chay-kho EAIS_MODEL_API_KEY=khong-phai-khoa-that \
 EAIS_MODEL_BASE_URL=http://127.0.0.1:25480 go run ./tenants/construction/win/g7run -data $D/data -k 3
 wc -l $D/requests.jsonl      # 372
 kill %1
 ```
+
+Lệnh trên đã đổi giá trị provider sang giao thức `messages` (24/10, lát L4); chưa chạy lại sau L4, số 372 là số đo 20/10.
+
+## 8. Biến môi trường từ lát L4 (24/10/2026) — đọc kèm hợp đồng §4 / §12
+
+Hợp đồng `docs/g7/HOP-DONG-G7.md` §4 và §12 ghi biến môi trường theo mã TRƯỚC L4. Hợp đồng không sửa (đóng băng; `g7run -contract` băm
+cả tệp vào `manifest.json`). Từ L4 (F-015, cấm hard code nhà cung cấp) mã chỉ biết giao thức; giá trị cụ thể ở `.env` (khuôn: `.env.example`):
+
+| Hợp đồng ghi (mã trước L4) | Nay đặt |
+|---|---|
+| `EAIS_MODEL_PROVIDER=<tên hãng>` (§4, §12 bước 2) | `EAIS_MODEL_PROVIDER=messages`. Giá trị cũ bị từ chối lúc khởi động (`g7run` thoát 2, "provider model … chưa được hỗ trợ"). G7 chỉ dùng `messages`. Giao thức khác (kể cả `chat_completions`) bị từ chối NGAY sau khi dựng client, thoát 2, **0 lời gọi model** (`TestGiaoThucNgoaiHopDongBiTuChoiTruocLoiGoiModel`; trước bản sửa `75e8197` một lượt k=1 qua `chat_completions` gọi model 124 lần không trần ngân sách) |
+| không ghi — mã cũ có endpoint mặc định | `EAIS_MODEL_BASE_URL=<endpoint chính thức>`: **bắt buộc**, trống là lỗi cấu hình |
+| không ghi — mã cũ tự gửi header phiên bản | `EAIS_MODEL_HEADERS=<tên>=<giá trị>`: header phiên bản API mà dịch vụ đòi. Giá trị mã cũ gửi: `git show 3f1bf7e:intelligence/models/messages.go`, dòng 256 |
+| model §4 (hằng trong mã cũ) | `EAIS_G7_MODEL` = đúng chuỗi model của §4. Mã chỉ nhận giá trị có sha256 (chuỗi nguyên văn) bằng băm ghim `contractModelSHA256`; lệch băm ⇒ coi như chưa đặt ⇒ CHẶN "model / tham số khác hợp đồng §4", từ chối trước lời gọi model. `EAIS_MODEL` khác `EAIS_G7_MODEL` ⇒ cũng CHẶN |
+| endpoint chính thức §12 (hằng trong mã cũ) | `EAIS_G7_ENDPOINT`. Mã chuẩn hoá (`canonEndpoint`: `scheme://` + tên máy chữ thường, bỏ một dấu chấm cuối, bỏ đường dẫn; cổng khác trống / 443 ⇒ không hợp lệ) rồi so sha256 với băm ghim `officialEndpointSHA256`; lệch băm ⇒ không endpoint nào chính thức. `EAIS_MODEL_BASE_URL` không chuẩn hoá về đúng endpoint đó ⇒ CHẠY KHÔ, không phải bằng chứng |
+| bảng giá §9 / mục 5 tệp này (hằng trong mã cũ) | `EAIS_G7_PRICES="<model>=<giá vào>/<giá ra>"` (USD / triệu token). Model không có giá ⇒ lượt tốn tiền bị từ chối trước lời gọi đầu tiên |
+
+Chưa đặt `EAIS_G7_*` thì đóng mặc định: mọi model lệch hợp đồng, không endpoint nào là chính thức, không lượt nào thành bằng chứng G7
+(chú thích khối "Giá trị cụ thể của hợp đồng G7" trong `tenants/construction/win/g7run/main.go`).
+
+**Lượt G7 chỉ là bằng chứng khi `.env` khớp hợp đồng.** Giá trị G7 nay đến từ `.env`, nên sửa `.env` có thể lặng lẽ "đổi hợp đồng" mà
+không đổi tệp nào trong repo. Vì vậy mã ghim sha256 của giá trị model / endpoint ghi trong `HOP-DONG-G7.md` (`1cb5c44`, hằng `contractModelSHA256`,
+`officialEndpointSHA256` trong `tenants/construction/win/g7run/main.go`; mã không chứa chuỗi gốc): lượt G7 chỉ là bằng chứng khi `EAIS_G7_MODEL` /
+`EAIS_G7_ENDPOINT` khớp băm đó; lệch băm thì lượt không thành bằng chứng, kể cả khi luật D5 tính ra ĐẠT. Tính băm để đối chiếu:
+`printf '%s' '<model>' | sha256sum` và `printf '%s' 'https://<tên máy chữ thường>' | sha256sum`. Giá trị trong hợp đồng giữ nguyên: đổi model / endpoint là sửa hợp đồng
+(chủ dự án quyết, rồi đóng băng lại, rồi đổi băm ghim trong mã — có người soát diff), không phải sửa `.env`. Test
+`TestMocHopDongKhongDoiBangCauHinh` đọc model / endpoint từ HOP-DONG-G7 lúc chạy: đổi dạng hai chỗ đó trong hợp đồng thì test dừng có thông báo.

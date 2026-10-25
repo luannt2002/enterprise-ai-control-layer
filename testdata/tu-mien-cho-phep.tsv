@@ -1,0 +1,8 @@
+# Nợ TỪ MIỀN trong mã dùng chung — cổng TestSharedCodeHasNoDomainLiterals (architecture_test.go, ADR-0014).
+# Mỗi dòng là MỘT lần xuất hiện: <tệp>\t<literal Go dạng strconv.Quote>\t<mã phát hiện F-0xx>\t<lý do>. Khớp chính xác theo (tệp, literal),
+# không theo số dòng. Literal mới hay literal nợ bị sửa → cổng đỏ; mục không còn trong mã → cổng đỏ (mục thừa).
+# Lát nào gỡ literal thì xoá đúng mục của nó trong CÙNG commit. Không thêm mục mới để cổng xanh: thêm nợ phải có mã phát hiện và lý do.
+evals/g7.go	"(?i)^\\s*(nghìn|ngàn|triệu|tr|tỷ|m3|m³|khối)(?:[^\\p{L}\\p{N}]|$)"	F-030	bộ đọc số của bộ chấm G7: hậu tố đơn vị khối (m³) viết cứng; lộ ra khi cổng quét cả evals/
+evals/g7.go	"khối"	F-030	bộ đọc số của bộ chấm G7: hệ số của đơn vị khối
+intelligence/models/messages.go	"phản hồi không có câu trả lời trọn vẹn của model (stop_reason %q, có khối chữ: %v)"	F-011	FALSE_POSITIVE: khối chữ = khối nội dung của giao thức model, không phải đơn vị khối
+reliability/validation/knowledge.go	"khối"	F-030	ambiguousUnitWord: đơn vị khối viết cứng trong bộ kiểm tri thức

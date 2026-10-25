@@ -4,6 +4,12 @@
 # Bố cục tệp khớp tenants/construction/win/CONTRACT.md.
 
 entities_file: entities.json
+# Lược đồ danh mục (F-004): mảng nào của entities.json là loại thực thể nào; thiết bị trỏ dự án cha qua trường "project".
+entity_lists:
+  - {list: projects, type: project}
+  - {list: equipment, type: equipment, parent_field: project}
+# Nguồn chữ tự do (tin nhắn, báo cáo ngày) nhận dạng thiết bị; tên gọi dùng trong lý do cách ly và ghi chú kế thừa.
+free_text_entity: {type: equipment, label: thiết bị}
 
 sources:
   - type: warehouse_slip

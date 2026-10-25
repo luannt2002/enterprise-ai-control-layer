@@ -4,9 +4,9 @@ package reports
 // bộ nhớ (engine.go, tr3.go, decide.go): gói này chỉ nói SQL, nên hai kho không thể lệch nhau về luật. Mở giao dịch đã đặt tenant là việc của platform/pgstore (TxBeginner), nên tenant luôn
 // đến từ ngữ cảnh (contracts.TenantFrom) và RLS chặn phần còn lại.
 //
-// MỖI thao tác (một lần giao, một quyết định, một thu hồi, một sửa tin) là MỘT giao dịch: khoá tư vấn các ô bị chạm (§5.6 mục 2), đọc, tính, rồi ghi một lượt (bản ghi, phiên bản, lịch sử, dòng
-// sổ) trước khi COMMIT; lỗi ở đâu cũng huỷ cả giao dịch, nên không có đơn vị nửa ghi (§7.5, LC67). Va chạm khoá duy nhất (hai giao dịch cùng tạo một unit_key ở hai ô khác nhau) và nhu cầu
-// lấy khoá theo thứ tự làm giao dịch bị bỏ và chạy lại (retryOp): bên thua đọc lại, thấy bản của bên thắng và đi theo đường TR1.
+// MỖI thao tác (một lần giao, một quyết định, một thu hồi, một sửa tin) là MỘT giao dịch: khoá tư vấn các ô bị chạm (§5.6 mục 2) và các bản ghi có sẵn bị sửa (getLocked, không khoá
+// hàng: R-01), đọc, tính, rồi ghi một lượt (bản ghi, phiên bản, lịch sử, dòng sổ) trước khi COMMIT; lỗi ở đâu cũng huỷ cả giao dịch, nên không có đơn vị nửa ghi (§7.5, LC67).
+// Va chạm khoá duy nhất (hai giao dịch cùng tạo một unit_key ở hai ô khác nhau) và nhu cầu lấy khoá theo thứ tự làm giao dịch bị bỏ và chạy lại (retryOp): bên thua đọc lại, thấy bản của bên thắng và đi theo đường TR1.
 //
 // Lỗi: lỗi của bên gọi và lỗi đã gắn nhãn giữ nguyên; lỗi PostgreSQL được phân loại như platform/pgstore (tạm thời ⇒ hạ tầng; vi phạm ràng buộc ⇒ dữ liệu; còn lại ⇒ mã).
 
@@ -64,7 +64,7 @@ const (
 	sqlInsertVersion = `INSERT INTO report_versions (tenant_id, unit_key, version, content_sha256, fingerprint, raw, snapshot)
 		VALUES (current_setting('eais.tenant_id'), $1, $2, $3, $4, $5, $6::jsonb)`
 
-	// seq tính ngay trong câu lệnh: các thao tác cùng một bản ghi đã xếp hàng bằng khoá ô và khoá hàng (getLocked), nên không đua.
+	// seq tính ngay trong câu lệnh: các thao tác cùng một bản ghi đã xếp hàng bằng khoá ô và khoá bản ghi (getLocked), nên không đua.
 	sqlInsertHistory = `INSERT INTO report_history (tenant_id, unit_key, seq, at, actor, event, from_disposition, to_disposition, reason, detail, version, duplicate_of, decision, pack_version)
 		VALUES (current_setting('eais.tenant_id'), $1, (SELECT coalesce(max(seq), 0) + 1 FROM report_history WHERE unit_key = $1), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
@@ -109,7 +109,7 @@ func (s *PG) run(ctx context.Context, fn func(c *opctx) error) error {
 	if err != nil {
 		return err
 	}
-	return retryOp(func(want []slotKey) error {
+	return retryOp(func(want []lockRef) error {
 		tx, err := s.db.BeginTenantTx(ctx)
 		if err != nil {
 			return err
@@ -181,7 +181,7 @@ func (s *PG) Record(ctx context.Context, key string) (Record, bool, error) {
 	var out Record
 	var ok bool
 	err := s.read(ctx, func(x *pgTx) error {
-		r, err := x.getRecord(key, false)
+		r, err := x.getRecord(key)
 		if r != nil {
 			out, ok = *r, true
 		}
@@ -293,12 +293,8 @@ func (x *pgTx) lock(k int64) error {
 	return err
 }
 
-func (x *pgTx) getRecord(key string, forUpdate bool) (*Record, error) {
-	q := `SELECT ` + recordCols + ` FROM report_records WHERE unit_key = $1`
-	if forUpdate {
-		q += ` FOR UPDATE`
-	}
-	rows, err := x.tx.Query(x.ctx, q, key)
+func (x *pgTx) getRecord(key string) (*Record, error) {
+	rows, err := x.tx.Query(x.ctx, `SELECT `+recordCols+` FROM report_records WHERE unit_key = $1`, key)
 	if err != nil {
 		return nil, err
 	}

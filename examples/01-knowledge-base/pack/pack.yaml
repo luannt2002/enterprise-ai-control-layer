@@ -1,0 +1,6 @@
+# Pack tối thiểu của ví dụ kho tri thức (giả lập): chỉ tài liệu, không có số liệu nghiệp vụ.
+id: knowledge-base
+tenant: so-tay-mau
+version: 0.1.0
+language: vi
+timezone: Asia/Ho_Chi_Minh

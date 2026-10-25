@@ -2,6 +2,10 @@
 
 > **Viết cho:** chủ dự án và phiên BUILD.
 >
+> **Cập nhật 24/10 tối (nhánh `vnext/tach-2410`, CHƯA gộp main):** R-01 đã sửa (`0ba1da0`: 14.700 thao tác, mã cũ 133 lần 40P01, mã mới
+> 0); S4CS-02 đã khoá sau ba vòng sửa (`6fb1e90`) kèm nợ N1–N9 ghi ở ADR-0010 (N6, N8 là LỌT có từ trước L2). Thân dưới giữ nguyên chữ
+> lúc tích hợp — trạng thái mới: `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.
+>
 > **Quyết định:** D-RAG-05 (`docs/CHO-QUYET-DINH.md`) — chủ dự án: "merge hết về main, main là đồng bộ hết mới nhất… chạy lại test, debug,
 > update doc / report / state".
 >

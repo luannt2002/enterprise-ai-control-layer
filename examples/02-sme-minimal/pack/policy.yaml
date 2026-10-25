@@ -1,0 +1,4 @@
+# Hai vai: quản lý xem mọi khách; nhân viên kinh doanh chỉ xem khách (và đơn của khách) có khoá trong entity_scope của mình.
+roles:
+  quan_ly: {capabilities: [metrics.read], scope: all}
+  nhan_vien: {capabilities: [metrics.read], scope: attribute}

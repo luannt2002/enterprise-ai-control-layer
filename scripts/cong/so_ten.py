@@ -1,4 +1,5 @@
 # So kết quả go test -json theo TÊN (gói + test): mất, đổi trạng thái, mới. Rỗng không phải xanh: số tên phải > 0.
+# "đổi" ở đây là đổi TRẠNG THÁI; đổi thân / kỳ vọng mà giữ tên chỉ hiện ở scripts/cong/so-than (F-034; cong.sh chạy khi đặt CONG_MOC).
 import json, sys
 def load(p):
     out = {}

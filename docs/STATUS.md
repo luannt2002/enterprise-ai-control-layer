@@ -1,11 +1,28 @@
 # STATUS — trạng thái EAIS
 
+> **Cập nhật 24/10/2026 khuya — vNext: nhánh `vnext/tach-2410` (CHƯA gộp main)**, báo cáo `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.
+> Khối "vNext" ngay dưới mô tả nhánh đó; main vẫn là `3f1bf7e`. Mọi chữ từ dòng "Cập nhật: 24/10/2026 tối — TÍCH HỢP" trở xuống giữ nguyên làm lịch sử,
+> trừ lệnh chạy G7 ở bảng WIN (sửa theo cấu hình của lát L4).
+>
 > Cập nhật: **24/10/2026 tối — TÍCH HỢP: mọi nhánh đã vào main (D-RAG-05)**, báo cáo `docs/bao-cao/2026-10-24-tich-hop-main.md`. Phần dưới khối
 > "Tích hợp 24/10" giữ nguyên chữ của 23/10 17:26 (báo cáo ca `docs/bao-cao/2026-10-23-ca.md`); tiến độ từng lần push: `docs/bao-cao/TIEN-DO-BUILD.md`.
 > Báo cáo ngày: `docs/bao-cao/2026-10-20-win-mvp.md`. Chạy lại / làm tiếp ở máy khác: `docs/ops/README.md`.
 > **Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01).** Tên sản phẩm: EAIS (D-RM-02, đổi tên lại tối 21/10). Việc đang làm: khối "MVP" ngay dưới (khối "Việc hiện hành (tối 21/10)" ở mục Việc tiếp theo là lịch sử).
 > **Câu đang chờ chủ dự án quyết: `docs/CHO-QUYET-DINH.md`.** Checkpoint G7 (A–H, chưa gọi model thật): `docs/g7/CHECKPOINT-A-H.md`.
 > Số ở mục H1 và mục đêm 20→21/10 đo ngày 21/10; các mục ghi 20/10 (bảng bộ 117, bằng chứng, đột biến) đo ngày 20/10. Chỗ ghi **CHƯA ĐO** là chưa đo.
+
+## vNext 24/10 khuya: nhánh `vnext/tach-2410` (đỉnh `a35f3d8`) — CHƯA gộp main, MVP vẫn CHƯA RA
+
+- Theo GO 24/10 (phương án B′, `docs/CHO-QUYET-DINH.md` mục 0): cổng trước, tách TẠI CHỖ, dời thư mục để sau; L5 trước H6; MIT; L7 đợt sau.
+- Đã gộp vào nhánh: L1 cổng; L2 + hai vòng sửa + KHOÁ S4CS-02 (kèm nợ N1–N9, ADR-0010); L3 tài liệu (ADR-0013 / 0015 / 0016); R-01 (hết
+  40P01); L4 `core/policy` + bỏ tên hãng khỏi mã; gia cố PG (Ready kiểm RLS, migration theo checksum, 0010 — ADR-0017); L6 ranh giới RAG;
+  Q11 + Q11b (quyền và phạm vi từ CÙNG một vai — Q-P1-10 = A, suy diễn); L5 + L5b (Fuel xuống case study, pack thứ hai
+  `examples/02-sme-minimal`, migration 0011); dọn mã. Bảng từng lát: báo cáo thi công mục 1.
+- Đo [điều phối, `a35f3d8`]: cổng có PG 2.475 tên, 2.471 pass, 4 skip, 0 fail; `kiem-skip` và `so-than` XANH; so tên với `3f1bf7e`:
+  mất 8 (subtest đổi tên khi bỏ tên hãng), đổi 0, mới 85; smoke 21/21; winreport bộ nhớ 117 / H1 / H3 / H4 khác 0 dòng.
+- Sau đỉnh: hai lát sửa theo soát độc lập cuối (tài liệu `vnext/sua-soat-docs`, mã `vnext/sua-soat-ma`).
+- CHƯA: H6 + bộ 0a (BLOCKED — tệp ca không có trên máy), gộp main (chủ dự án quyết), CI chạy trên GitHub. Sổ nợ bền và câu chờ quyết:
+  báo cáo thi công mục 3, 4. Migration mới tiếp theo: **0012**.
 
 ## Tích hợp 24/10 tối (D-RAG-05): main = mọi nhánh + RAG — MVP vẫn CHƯA RA
 
@@ -27,7 +44,7 @@ Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03
   không lấy tenant từ thân); vết từng bước S0–S10 lưu bền theo tenant cho mọi lượt đã xác thực (migration 0003, RLS), xem bằng `eais trace`,
   kể cả lượt lỗi; một lệnh `scripts/chay-thu.sh` từ clone sạch (smoke E2E 21 / 21; từ chối dùng lại PG đang chạy trừ khi `EAIS_REUSE_PG=1`, và
   từ chối khi compose project đã có container chạy / tạm dừng); `code_version` của vết là mã git, giá trị nhúng bằng `-ldflags`, hoặc băm của
-  binary; CI GitHub có PG, cấm SKIP; vết xuất lý do và phương án đã xét ở S2–S5, S7, cổng phán quyết (R2-03, `5fd463f`). Tiếp: đo lại trên bộ
+  binary; CI có PG, cấm SKIP — định nghĩa ở `.github/workflows/ci.yml`, chưa chạy trên GitHub (ghi chú 24/10, F-014); vết xuất lý do và phương án đã xét ở S2–S5, S7, cổng phán quyết (R2-03, `5fd463f`). Tiếp: đo lại trên bộ
   thẻ mới chia đều theo tầng, có ca xanh đối chứng.
 - **M3 chưa RA**: cổng phán quyết KHOÁ HẲN (`59557c2`); H4 chạy một lần 104 / 119 hai đường; dòng S4 KHÔNG ĐẠT (10 / 119 = 8,4% > 5%; 3 câu
   sai nghĩa không nhãn). Chủ dự án 23/10: D-AI-02 = a — vòng sửa S4 bằng luật đang chạy (gộp D-OP-18 = c, D-OP-11 = b); chấm trên H6 do người
@@ -114,7 +131,7 @@ Roadmap hiện hành: `docs/ROADMAP-DAY-DU.md` (D-RM-01, Phase 0–10). Phase đ
 | G4 DECISION | ĐẠT | - `routing` 17/17.<br>- Runner chấm `model_calls` bằng gateway giả đếm lời gọi.<br>- Đột biến bắt buộc "SQL gọi gateway" (BA) và "RAG bỏ gateway" (BB) đều bị bắt. |
 | G5 CONTROL | ĐẠT **có điều kiện** (083 là kỳ vọng trọng tài) | - `permission` 18/18.<br>- Cổng AST: không kiểu `*Request` nào mang tenant.<br>- PG: RLS FORCE + GUC đọc lại; canary B có test cho phép / từ chối, đối chứng dương, ghi chéo tenant bị WITH CHECK chặn.<br>- Ràng buộc claim 6 chiều. Bảng "sai đúng một chiều" 6 × 3 bị chặn 100%; 0 chặn oan trên 13 ca mẫu + 117 ca thật.<br>- Lượng dầu trong tài liệu bị chặn bởi hai lớp, một lớp độc lập với bộ chuẩn hoá.<br>- Chèn lệnh trong SOP không đổi được route / quyền / số. |
 | G6 PROOF | ĐẠT **có điều kiện**: vi phạm "đóng băng trước W1" ở 3 ca | - 117 ca do phiên không viết mã soạn (08:47–08:58); mọi lớp ≥ 12 ca.<br>- `cases-independent.yaml` sha256 `ffdd704b535d2195…`, băm ghi 09:15, **sau** lần đo đầu 09:03 và sau khi phiên viết mã trọng tài 3 kỳ vọng (083, 107, 108).<br>- Bản ghi quyết định + phát lại: 117/117 không lệch.<br>- Thuộc tính: tổng ≥ 0; dẫn xuất = a − b lấy từ bằng chứng; A không thấy B.<br>- Mỗi cổng có đột biến bị bắt. |
-| G7 VALUE | **CHẶN** | - Bộ khung xong: baseline RAG (`evals/baseline`), luật D5 + bộ đếm độc lập (`evals/g7.go`), lệnh `g7run`, client model thật `models.Messages` cấu hình qua biến môi trường.<br>- Chạy ống nối bằng model giả: D5 ĐẠT, nhưng KHÔNG phải bằng chứng (04 §6).<br>- Thiếu: khoá model + đồng ý chi phí. Có rồi thì chạy `EAIS_MODEL_PROVIDER=anthropic EAIS_MODEL=<model> EAIS_MODEL_API_KEY=<khoá> go run ./tenants/construction/win/g7run -data <dir>`. |
+| G7 VALUE | **CHẶN** | - Bộ khung xong: baseline RAG (`evals/baseline`), luật D5 + bộ đếm độc lập (`evals/g7.go`), lệnh `g7run`, client model thật `models.Messages` cấu hình qua biến môi trường.<br>- Chạy ống nối bằng model giả: D5 ĐẠT, nhưng KHÔNG phải bằng chứng (04 §6).<br>- Thiếu: khoá model + đồng ý chi phí. Có rồi thì chạy `EAIS_MODEL_PROVIDER=messages EAIS_MODEL=<model> EAIS_MODEL_API_KEY=<khoá> EAIS_MODEL_BASE_URL=<endpoint> EAIS_MODEL_HEADERS=<header phiên bản> go run ./tenants/construction/win/g7run -data <dir>`, với `EAIS_G7_MODEL` / `EAIS_G7_ENDPOINT` / `EAIS_G7_PRICES` đặt trong `.env` (sửa 24/10 theo lát L4: giá trị provider cũ mang tên hãng nay bị từ chối, endpoint không còn mặc định — `docs/g7/CHI-PHI-G7.md` mục 8). |
 | Scale smoke | ĐẠT | - `scripts/scale-smoke.sh`: 117/117 ở cả functional và smoke, câu trả lời giống từng byte; smoke 3,67 s, peak RSS 562,8 MiB (đo 10:35).<br>- Đường PG (`winreport -pg`): 117/117, từng ca và từng câu trả lời giống đường bộ nhớ; smoke 6,08 s, 653,7 MiB, kể cả nạp ~355 nghìn fact vào PG. |
 
 Mốc "≈ 20%" của tối 19/10 bỏ, vì nó ước theo cảm nhận. Từ nay chỉ đếm cổng có lệnh chứng minh.

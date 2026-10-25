@@ -31,7 +31,7 @@ import (
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
 )
 
-const usageText = `eais — ứng dụng EAIS (Enterprise AI Systems)
+const usageText = `eais — ứng dụng EAIS (Enterprise AI Integration Reference Architecture)
 
   eais migrate                                 áp migration (cần EAIS_PG_ADMIN_DSN)
   eais ingest -pack P -data D                  nạp dữ liệu nguồn của tenant của pack (cần EAIS_PG_DSN)
@@ -151,8 +151,8 @@ func cmdIngest(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		}
 		return 1
 	}
-	fmt.Fprintf(stdout, "NẠP %s: %d quan sát, %d cách ly (%d ghi mới, %d đã có từ lần nạp cùng mã)\n", a.tenantID(), rep.Observations, rep.Quarantined,
-		rep.NewQuarantine, rep.Quarantined-rep.NewQuarantine)
+	fmt.Fprintf(stdout, "NẠP %s: %d quan sát, %d cách ly (%d ghi mới, %d đã có từ lần nạp cùng mã), %d bản tài liệu bị giữ (không công bố), %d bản giữ nguyên công bố\n",
+		a.tenantID(), rep.Observations, rep.Quarantined, rep.NewQuarantine, rep.Quarantined-rep.NewQuarantine, rep.Held, len(rep.KeptPublished))
 	fmt.Fprintf(stdout, "mã lần nạp: %s\nphiên bản dữ liệu: %s\nphiên bản pack: %s\nthời gian: %d ms\nxem cách ly: eais quarantine -tenant %s %s\n",
 		rep.LoadID, rep.DataVersion, rep.PackVersion, rep.ElapsedMs, a.tenantID(), rep.LoadID)
 	return 0

@@ -423,3 +423,48 @@ H1 / H3 / H4), dòng đột biến ở `scripts/dot-bien/n45-y-dinh-s4.sh`. Hế
 - **S4BS-05 (iii) phần từ khoá**: từ khoá của chỉ số bị phủ định / phụ ("… không phải số kho xuất, …", "đội trưởng chưa báo") vẫn hoà ⇒ hỏi lại (an toàn); vòng này chỉ xử lý cụm báo nghĩa và đoạn mục đích.
 - **S4BS-06 giới hạn**: bí danh "hóa đơn" (dấu khác "hoá đơn") chưa là bí danh nguồn ở `metrics.yaml` nên "Hóa đơn báo …" vẫn hoà; "Báo em số dầu cảm biến đo được của …" ("báo" là mệnh lệnh) hỏi lại. "Nhận xét định mức tiêu thụ 3782 L …" ("định mức" là danh từ, cụm hỏi lượng của pack) trả số tiêu thụ không nhãn.
 - Câu "không ca nào còn sai nghĩa không nhãn ở S4" chỉ đúng trong phạm vi đã đo: H4 và bộ phát triển 232 câu của tác giả (còn 1 câu sai nghĩa không nhãn: "Nhận xét định mức tiêu thụ …"); nhóm chưa thấy ngoài bộ (tiên lượng, "có ổn không", xăng, "4 củ") còn sai. H6 độc lập chưa chạy.
+
+## Ghi chú trạng thái 24/10/2026 (thêm sau, không sửa lời trên)
+
+Dòng "Trạng thái: ĐỀ XUẤT, chưa áp mã" ở đầu tệp đã lỗi thời. Mã vòng sửa S4 theo ADR này **đã ở main**: gộp `e6e335c` (24/10, D-RAG-05)
+ở trạng thái KHOÁ sau vòng 3, kèm nợ S4CS-01…04 — tức hồi quy S4CS-02 đã biết cũng vào main (F-001 của báo cáo audit
+`docs/bao-cao/2026-10-24-vnext-audit/BAO-CAO.md`, tái hiện 7/7). Sửa hẹp S4CS-02 (D-AI-05) ở lát L2 của đợt vNext, ba vòng (khoá sau vòng 3 theo
+luật của repo):
+- Vòng 1 (`31ca271`, `056c7b8`): soát độc lập KHÔNG ĐẠT — luật "liền trước" và cắt vế điều kiện ở "thì" chưa làm đúng (9 câu còn trả lời không
+  nhãn); hồi quy mới "Đồng hồ ghi nhận 3782 L … thì kho xuất bao nhiêu?" bị gắn nhãn lệnh ghi.
+- Vòng 2 (`105b6eb`, `72749e1`, `e5e945b`): phủ định / dấu bỏ qua đứng trước cụm phải LIỀN trước ("không tính", "chưa tính" thành dấu bỏ qua của
+  pack); vế điều kiện đóng ở `condition_close_markers`; lệnh nêu sẵn giá trị chỉ khi cụm đứng đầu mệnh đề. Soát lại KHÔNG ĐẠT — hồi quy mới: lời nhờ
+  ở đầu câu ("Nhờ anh nhận xét định mức tiêu thụ 3782 L …", "Em muốn ghi nhận … cho ca mấy") trả số không nhãn; "là" đóng vế điều kiện và mệnh đề lịch
+  sự sau vế điều kiện ("…, cảm ơn em.") để cụm lọt.
+- Vòng 3 (`793cee3`, `0e3d37b`): mệnh đề nêu sẵn giá trị có cụm hỏi lượng ở cùng vế là LỆNH trừ khi trước cụm là tên nguồn của pack
+  (hướng an toàn — lời nhờ không phân biệt được với chủ ngữ lạ); cụm hỏi ở vế sau từ đóng vế là câu hỏi khi cụm không đứng đầu; vế kết quả của mệnh
+  đề điều kiện không đóng vế phải có nội dung số liệu hay cụm báo nghĩa; `condition_close_markers: [thì, là]`. Soát vòng 3 KHÔNG ĐẠT — hồi quy S1 mới:
+  "là" lấy làm từ đóng vế là chữ "là" ĐẦU TIÊN sau "Nếu", mà đó thường là hệ từ của chính vế hỏi — "Nếu mưa to dự báo dầu EX-03 hôm qua / hôm nay là
+  bao nhiêu?", "Nếu trời mưa dự báo EX-03 hôm qua dùng bao nhiêu dầu là hợp lý?", "Nếu mai mưa to dự báo EX-03 dùng bao nhiêu dầu là đủ?" trả số không
+  nhãn (ở `a692525` cả bốn hỏi lại kèm "Trợ lý chưa dự báo").
+- KHOÁ (nhánh `vnext/l2d-khoa-s4`, quyết định của điều phối): rút "là" — `condition_close_markers: [thì]`; giữ nguyên `askedCue`, `consequent` của vòng 3.
+  Bốn câu trên thành test ghim có nhãn (`TestS4CS02KhoaLaHeTuCuaVeHoi`). Hai câu "là" của soát vòng 2 ("Hễ EX-03 dùng hết dầu là nhắc tôi, cảm ơn em.",
+  "Nếu EX-03 dùng quá 4000 L dầu là báo động giúp em, được không?") vẫn có nhãn nhờ `consequent`. **S4CS-02 KHOÁ sau vòng 3 theo luật "khoá sau 3 vòng"
+  của repo; phần còn lại là nợ có mã ở bảng dưới, không sửa thêm luật.**
+Test ghim: `tenants/construction/s4cs02_test.go`; đột biến: `scripts/dot-bien/n45-y-dinh-s4.sh` (X3, X4, S189–S212; S213 bỏ lúc khoá). H6 (bộ chấm độc lập của
+vòng này) **chưa chạy**: BLOCKED vì tệp ca H6 không có trên máy thi công.
+
+Nợ còn mở khi KHOÁ S4CS-02 (đo bằng pipeline thật, pack + seed thật, "hôm nay" của bộ test = 19/10/2026). Cột "chiều sai": **an toàn** = hỏi lại
+(hỏi thừa hay nhãn sai), không trả số; **LỌT** = trả số mà im lặng bỏ yêu cầu chưa hỗ trợ.
+
+| Mã | Câu | Kết cục | Chiều sai | Có từ khi nào |
+|---|---|---|---|---|
+| S4CS-02-N1 | "Không cần tính tiền, EX-03 hôm nay dùng bao nhiêu dầu?"; "Không có cảnh báo gì, EX-03 hôm nay dùng bao nhiêu dầu?" | hỏi lại kèm nhãn tiền / cảnh báo: dấu bỏ qua / phủ định không LIỀN trước cụm. "không tính" / "chưa tính" là cụm của pack thêm cho ca ghim S4BS-05 (vá theo danh sách, soát vòng 2 F3) | an toàn | vòng 2 (trước đó trả số) |
+| S4CS-02-N2 | "Tổ ghi nhận 3782 L dầu cho EX-03 hôm nay thì kho xuất bao nhiêu?" | hỏi lại kèm nhãn "chưa ghi số liệu": chủ ngữ MỘT chữ qua ngưỡng "đứng đầu" ≤ 1 chữ (dùng chung với mệnh đề ngữ cảnh S4AS-04) | an toàn | vòng 1 (trước L2 trả kho xuất 3.850 L) |
+| S4CS-02-N3 | "EX-03 hôm nay dùng bao nhiêu dầu nếu dự báo mưa?" (không dấu phẩy) | hỏi lại kèm nhãn dự báo: từ nối điều kiện GIỮA mệnh đề không mở vế điều kiện (X4) | an toàn | trước L2 |
+| S4CS-02-N4 | "Nếu dự báo mưa EX-03 hôm nay dùng bao nhiêu dầu?" (không từ đóng vế, không phẩy) | hỏi lại kèm nhãn dự báo: câu một mệnh đề, không có ranh giới vế | an toàn | vòng 1 (trước L2 trả số) |
+| S4CS-02-N5 | "EX-03 hôm nay ghi nhận tiêu thụ 3782 L dầu bao nhiêu?" | hỏi lại kèm nhãn "chưa ghi số liệu": giá trị đã nêu + cụm hỏi lượng cùng vế, trước cụm không phải tên nguồn của pack (luật an toàn vòng 3) | an toàn | vòng 3 (vòng 2 trả 3.782 L) |
+| S4CS-02-N6 | "Anh ơi ghi nhận giúp em EX-03 hôm nay dùng 3782 L dầu, kho xuất bao nhiêu?" | trả kho xuất 3.850 L, im lặng bỏ lệnh ghi: lệnh ở mệnh đề ngữ cảnh mà cụm không đứng đầu bị coi là lời của nguồn (S4AS-04). Bản "… thì kho xuất bao nhiêu?" hỏi lại hoà ý định, không nhãn ghi | **LỌT** (bản dấu phẩy) | trước L2 |
+| S4CS-02-N8 | "Hễ EX-03 dùng hết dầu là nhắc tôi, EX-03 hôm nay dùng bao nhiêu dầu?"; "Nếu EX-03 dùng quá 4000 L dầu là báo động giúp em, đúng không?" | trả 3.782 L không nhãn: "là" không đóng vế điều kiện (đã rút), mệnh đề sau có nội dung số liệu / cụm xác nhận nên cả mệnh đề điều kiện thành giả thiết. Test `TestS4CS02NoN8LaDongVeDieuKien` giữ kỳ vọng đúng, Skip có mục trong `scripts/cong/skip-cho-phep.txt` | **LỌT** | trước L2 (`3f1bf7e` cũng trả 3.782 L) |
+| S4CS-02-N9 | "Đồng hồ ghi nhận 3782 L dầu cho EX-03 hôm qua vậy kho xuất bao nhiêu?" | hỏi lại kèm nhãn "chưa ghi số liệu" (hỏi thừa, cùng lớp N2 / N5): "vậy" không phải từ đóng vế nên cụm hỏi lượng cùng vế với lệnh nêu giá trị | an toàn | vòng 3 (`a692525` trả kho xuất) |
+
+Đã đóng ở vòng 3: 4 câu lời nhờ + 2 câu "là" / mệnh đề lịch sự của soát vòng 2 (test `TestS4CS02Vong3LoiNhoVaMenhDeLichSu`; sau khi rút "là" vẫn có nhãn).
+Đóng lúc khoá (rút "là"): N7 cũ ("Nếu kết quả là cảnh báo đỏ, EX-03 …" lại trả số như `a692525`, cụm cảnh báo ở vế điều kiện); "Nếu EX-03 dùng quá 4000 L dầu
+cảnh báo em là được." người soát thấy nhãn sai ("chưa ghi" thay "chưa cảnh báo") ở `d0efb3e`, nay ra đúng "Trợ lý chưa đưa cảnh báo". "Nếu dự báo mưa thì EX-03
+hôm nay dùng bao nhiêu dầu?" trả số (đóng từ vòng 2). Câu "đã đóng ở vòng 2" về "EX-03 hôm nay ghi nhận tiêu thụ 3782 L dầu bao nhiêu?" của ghi chú trước
+không còn đúng: nay là N5.

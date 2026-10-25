@@ -1,5 +1,8 @@
 # 01 — Bản đồ nghiệp vụ (tenant `xyz-sports`)
 
+> **DOCS_ONLY** (nhãn 24/10/2026): tenant này mới có tài liệu ở `docs/tenants/sports/` và bộ ca `tenants/sports/evals/cases.yaml`;
+> **chưa có pack** nên chưa chạy được trên `cmd/eais`. Chữ "tenant tham chiếu" dưới đây là vai trò dự kiến, chưa phải hiện trạng (ADR-0015 mục 5).
+
 > **XYZ Sports Data JSC** là công ty **hư cấu**; mọi giải, đội, cầu thủ, provider trong tài liệu cũng hư cấu. Mọi con số (khách hàng, thời gian, mục tiêu KPI) là **giả lập hoặc mục tiêu thiết kế**, chưa đo. Chỉ dữ liệu thông tin thể thao: **không có tính năng cá cược**; câu hỏi về kèo, tỉ lệ cược, dự đoán kết quả đi route `REJECT`.
 
 Tenant `xyz-sports` (mã `SPT`) là tenant tham chiếu thứ hai của EAIS, dùng để **tấn công** kiến trúc: dữ liệu thời gian thực nhiều nguồn, thứ tự sự kiện, nhận dạng thực thể, sửa muộn, cache, độ trễ. Tài liệu này dựng nghiệp vụ **trước** khi nói tới AI.

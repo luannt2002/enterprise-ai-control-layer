@@ -6,6 +6,41 @@ Trạng thái chi tiết và bằng chứng nằm ở `docs/STATUS.md`.
 
 ## [Chưa phát hành]
 
+### 24/10/2026 — vNext thi công (nhánh `vnext/tach-2410`, CHƯA gộp main)
+
+Theo GO 24/10 (phương án B′). Bảng từng lát, số đo và sổ nợ: `docs/bao-cao/2026-10-24-vnext-thi-cong.md`. **MVP CHƯA RA**; H6 chưa chạy.
+
+- **L1 cổng trước** (ADR-0014): cổng kiến trúc quét mọi thư mục, cổng từ miền, `so-than` so thân test, danh sách SKIP cho phép (F-011,
+  F-014, F-025, F-034).
+- **L2 S4CS-02:** sửa hẹp + hai vòng sửa + KHOÁ (F-001); nợ N1–N9 ở ADR-0010 (N6, N8 LỌT có từ trước).
+- **L3 tài liệu:** mục riêng ngay dưới.
+- **R-01:** kho báo cáo 0a hết chết khoá 40P01 (F-002).
+- **L4:** `Policy` ra `core/policy`; provider theo giao thức `messages`, endpoint / header / giá trị G7 từ `.env`; cổng tên hãng trong mã
+  (F-015, F-031, F-035). Giá trị provider cũ mang tên hãng bị từ chối; `EAIS_MODEL_BASE_URL` bắt buộc — `docs/ops/README.md` mục 4.
+- **Gia cố PG:** `Ready` đóng khi RLS bị gỡ, migration nhận diện bằng checksum, migration 0010 chặn tenant rỗng (F-010, F-036, F-037,
+  ADR-0017 — có đính chính về 0010 gặp dữ liệu bẩn).
+- **L6 ranh giới RAG** (F-017, F-018, F-019, F-022, F-023, F-024, F-028); F-021 chờ quyết.
+- **Q11, Q11b:** quyền và phạm vi / ACL từ CÙNG một vai, cả đường số liệu S5 (Q-P1-10 = A, suy diễn của điều phối).
+- **L5, L5b:** Fuel xuống case study, pack thứ hai `examples/02-sme-minimal`, từ miền ra lexicon pack, migration 0011 `facts.note` (F-004,
+  F-005, F-007, F-008, F-009, F-029 một phần, F-030).
+- **Dọn mã:** log không ghi chữ của bên gọi, hết tên hãng còn sót trong mã, CLI / log nạp nói số bản bị giữ.
+
+### 24/10/2026 — vNext lát L3: định nghĩa sản phẩm, giấy phép MIT, sự thật tài liệu
+
+Chủ dự án GO báo cáo audit vNext (phương án B′; `docs/CHO-QUYET-DINH.md` mục 0, dòng "vNext"). Lát này chỉ đổi tài liệu, `LICENSE` và
+danh sách cho phép của cổng danh tính; không đổi hành vi mã.
+
+- **Giấy phép:** `LICENSE` MIT (D-OP-3).
+- **ADR-0013:** sản phẩm là "EAIS — Enterprise AI Integration Reference Architecture" (lõi kiểm soát + module tuỳ chọn QUERY, RAG + ví dụ /
+  case study; Fuel là case study). Viết tắt EAIS và mọi định danh chạy, kể cả đường dẫn module, không đổi. Thay phần định nghĩa của D-RM-01,
+  REQ-MND-016 (ghi SUPERSEDED-BY, câu cũ giữ), ràng buộc "chỉ QUERY tới G7" của ADR-0001. Dòng thời gian tên: `docs/history/NAME-EVOLUTION.md`.
+- **ADR-0015** (ranh giới module, luật "≥ 2 miền mới vào lõi" đo bằng `git diff --stat`, cây đích chưa dời) và **ADR-0016** (lõi cấp bộ lọc
+  quyền đọc tài liệu, RAG chỉ áp).
+- **Sự thật tài liệu:** nhãn STALE cho `docs/01-architecture.md` (F-033); ghi chú trạng thái cuối ADR-0001 / 0006 / 0010 / 0012 (F-038, D14);
+  số RAG trong README gắn nhãn đường đo (F-020); câu CI thành "định nghĩa, chưa chạy trên GitHub" (D4); dữ liệu "giả lập hoặc văn bản công
+  khai" (D13); ghi chú thứ tự ở `docs/ROADMAP-RAG.md` (D8); nhãn mốc ở `docs/ROADMAP-DAY-DU.md` (D7, D9); Sports gắn DOCS_ONLY (D5).
+- Báo cáo audit chép vào `docs/bao-cao/2026-10-24-vnext-audit/` (đường dẫn máy, tên tệp nội bộ, tên hãng thay bằng mô tả trung tính).
+
 ### 23/10/2026 — D-OP-9 (a') nhóm nghìn; H6 đóng băng; K1, K2, R2-03, flock đã gộp
 
 Trên dữ liệu giả lập, chưa có người nghiệp vụ duyệt (D-RM-03). **MVP CHƯA RA.**

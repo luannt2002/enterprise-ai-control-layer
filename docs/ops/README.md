@@ -66,10 +66,12 @@ go run ./tenants/construction/win/g7run -data /tmp/win               # G7: khôn
 |---|---|---|
 | `EAIS_PG_ADMIN_DSN` | DSN vai quản trị (migrate) | máy dev: `trust` + loopback, không mật khẩu |
 | `EAIS_PG_DSN` | DSN vai ứng dụng `eais_app` (không bỏ qua RLS) | như trên |
-| `EAIS_MODEL_PROVIDER` | `""` / `extractive` = model giả tất định; `anthropic` = API kiểu Messages | |
+| `EAIS_MODEL_PROVIDER` | **giao thức**, không phải tên hãng: `""` / `extractive` = model giả tất định; `messages` = API kiểu Messages; `chat_completions` = API kiểu chat completions | Từ lát L4 (24/10, F-015): giá trị cũ mang tên hãng bị từ chối lúc khởi động ("provider model … chưa được hỗ trợ"), không lặng lẽ về model giả — đổi thành `messages` |
 | `EAIS_MODEL` | tên model | bắt buộc với model thật — không có mặc định |
 | `EAIS_MODEL_API_KEY` | khoá API | **không bao giờ ghi vào repo hay log** |
-| `EAIS_MODEL_BASE_URL` | endpoint, cho dịch vụ tương thích | trống = endpoint chính thức. Chỉ nhận `https://` hoặc `http://` tới loopback; client không theo chuyển hướng (khoá không đi theo, `d4b80be`). `g7run` so endpoint theo nghĩa (`:443`, chữ hoa, dấu chấm cuối vẫn là API chính thức); endpoint khác là CHẠY KHÔ, nhưng mọi endpoint không phải loopback (cả proxy) vẫn qua kiểm trước khi tiêu tiền (`246eabb`) |
+| `EAIS_MODEL_BASE_URL` | endpoint của dịch vụ | **Bắt buộc** với model thật (từ L4: không còn endpoint mặc định; trống = lỗi cấu hình). Chỉ nhận `https://` hoặc `http://` tới loopback; client không theo chuyển hướng (khoá không đi theo, `d4b80be`). `g7run` so endpoint với `EAIS_G7_ENDPOINT` theo nghĩa (`:443`, chữ hoa, dấu chấm cuối vẫn là endpoint đó); endpoint khác là CHẠY KHÔ, nhưng mọi endpoint không phải loopback (cả proxy) vẫn qua kiểm trước khi tiêu tiền (`246eabb`) |
+| `EAIS_MODEL_HEADERS` | header bổ sung mỗi yêu cầu, dạng `tên=giá trị;tên=giá trị` | chỉ giao thức `messages`. Header phiên bản API mà dịch vụ đòi đặt ở đây — trước L4 mã tự gửi một giá trị cố định (xem `git show 3f1bf7e:intelligence/models/messages.go`, dòng 256), nay không. Không nhận `content-type` / `x-api-key`; lỗi chỉ nêu số thứ tự mục, không in giá trị |
+| `EAIS_G7_MODEL`, `EAIS_G7_ENDPOINT`, `EAIS_G7_PRICES` | giá trị của hợp đồng G7 cho `g7run`: model §4, endpoint chính thức §4, bảng giá `model=vào/ra;…` (USD / triệu token) | chưa đặt thì không lượt nào thành bằng chứng G7; model không có giá thì lượt tốn tiền bị từ chối. Chi tiết: `docs/g7/CHI-PHI-G7.md` mục 8 |
 | `EAIS_MODEL_MAX_TOKENS` | trần token đầu ra | trống = 1024; giá trị hỏng là lỗi cấu hình, không lặng lẽ về 1024 |
 | `EAIS_MODEL_THINKING` | kiểu thinking gửi cho nhà cung cấp | hợp đồng G7 §4: `between_tools` |
 | `EAIS_MODEL_EFFORT` | `output_config.effort` | hợp đồng G7 §4: `medium` |

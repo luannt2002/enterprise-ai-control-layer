@@ -107,7 +107,7 @@ func (s *Store) Facts(ctx context.Context, metric string, entityIDs []string, fr
 	var out []sourceoftruth.Fact
 	err = s.inTenant(ctx, tenant, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, entity_id, occurred_on, value::text, unit, approx, source_type, source_ref, raw, observed_at, reported_by
+			SELECT id, entity_id, occurred_on, value::text, unit, approx, source_type, source_ref, raw, observed_at, reported_by, coalesce(note, '')
 			FROM facts
 			WHERE metric = $1 AND (coalesce(cardinality($2::text[]), 0) = 0 OR entity_id = ANY($2))
 			  AND occurred_on BETWEEN $3::date AND $4::date
@@ -121,7 +121,7 @@ func (s *Store) Facts(ctx context.Context, metric string, entityIDs []string, fr
 			var on time.Time
 			var observed *time.Time
 			if err := rows.Scan(&f.ID, &f.EntityID, &on, &f.Value.Number, &f.Value.Unit, &f.Value.Approx,
-				&f.Source.SourceType, &f.Source.SourceRef, &f.Source.Raw, &observed, &f.Source.ReportedBy); err != nil {
+				&f.Source.SourceType, &f.Source.SourceRef, &f.Source.Raw, &observed, &f.Source.ReportedBy, &f.Source.Note); err != nil {
 				return err
 			}
 			// ngày của fact là 00:00 theo múi giờ của tenant — cùng múi với khoảng hỏi

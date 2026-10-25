@@ -21,6 +21,8 @@ type Observation struct {
 	Raw        string // nguyên văn
 	ObservedAt time.Time
 	ReportedBy string
+	// Note: suy luận đã áp khi nạp ("đơn hàng kế thừa từ tin trước của Lan cùng ngày"); rỗng = số đọc thẳng từ nguồn (F-008).
+	Note string
 }
 
 // Fact là một lần đo đã gắn chỉ số ngữ nghĩa, thực thể và ngày.

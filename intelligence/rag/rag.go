@@ -86,8 +86,8 @@ type MemoryIndex struct {
 	MinScore float64
 	// Now cho ngày HỎI (giờ của tenant) để xét hiệu lực, khi ngữ cảnh không mang ngày của lượt; nil = time.Now.
 	Now func() time.Time
-	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ router.Policy.InScope), khi ngữ cảnh không mang luật
-	// của lượt; nil = thuộc tính "entity_scope" của principal giao với keys.
+	// InScope báo người hỏi được đọc tài liệu có phạm vi keys không (ví dụ policy.Policy.InScope), khi ngữ cảnh không mang luật
+	// của lượt; nil = tài liệu có phạm vi đóng với mọi người — chỉ mục không tự đoán luật phạm vi của policy (F-031, Q11).
 	InScope func(pr contracts.Principal, keys []string) bool
 	// Semantic, nếu khác nil, bật truy hồi lai (từ khoá + vector, xếp lại, ngưỡng "biết im" theo điểm); nil = chỉ từ khoá.
 	Semantic *Semantic
@@ -375,7 +375,8 @@ func columnName(c string) string { return strings.Join(strings.Fields(normalizat
 // phạm vi bản mới (không phạm vi = mọi người): người đọc được bản mới thì đọc được mốc, nên lý do giữ không lộ gì.
 // Nới rộng phạm vi mà không có mốc bao trùm thì không so được (giới hạn đã biết). Nháp, tài liệu không phiên bản: bỏ.
 // shortcut: cổng chạy lại mỗi lần nạp, không nhớ bản nào đã công bố; nhập một bản cũ hơn, sửa một bản cũ, hay làm
-// luật cổng chặt hơn đều có thể hạ một bản đang công bố. Khi nạp vào Postgres (U6) phải lưu trạng thái công bố.
+// luật cổng chặt hơn đều có thể hạ một bản đang công bố. Kho PG bù cho bản không đổi nội dung (KeepPublished, F-018); bản đang
+// công bố mà bị SỬA thành không đạt thì vẫn bị thay bằng bản chờ soát.
 func qualityGate(docs []Document) {
 	idx := make([]int, len(docs))
 	for i := range idx {
@@ -394,16 +395,25 @@ func qualityGate(docs []Document) {
 	mocs := map[string][]moc{} // mã → các bản đã công bố đạt kiểm, theo thứ tự bản
 	for _, i := range idx {
 		d := &docs[i]
+		// Thân không có chữ (tệp rỗng, PDF scan chưa có lớp chữ — F-023): không đoạn nào vào chỉ mục, tài liệu biến mất mà không ai biết.
+		// Giữ lại kèm lý do, cả tài liệu không phiên bản (nguồn files không khai bản).
+		// shortcut: luật "0 chữ cái", chưa đo độ phủ chữ theo trang; PDF scan lẫn vài chữ rác vẫn lọt — đo theo trang khi có adapter OCR.
+		if (d.Status == "" || d.Status == StatusApproved) && !strings.ContainsFunc(d.Body, unicode.IsLetter) {
+			d.Status, d.Hold = StatusNeedsReview, "thân tài liệu không có chữ (tệp rỗng hoặc PDF scan chưa có lớp chữ)"
+			continue
+		}
 		if d.Version == 0 || (d.Status != StatusApproved && d.Status != StatusSuperseded) {
 			continue
 		}
 		cols := map[string]int{}
 		var bad []string
 		last := -1
+		inTable := map[int]bool{} // dòng thuộc một bảng parseBody nhận (header, phân cách, hàng)
 		for _, it := range parseBody(d.Body) {
 			if !it.table {
 				continue
 			}
+			inTable[it.hseq], inTable[it.hseq+1], inTable[it.seq] = true, true, true
 			h := cells(it.header)
 			if it.hseq != last { // đếm cột một lần mỗi bảng, không theo số hàng
 				for _, c := range h {
@@ -434,6 +444,17 @@ func qualityGate(docs []Document) {
 		if len(bad) > 0 {
 			why = append(why, fmt.Sprintf("bảng không đủ ô / số (%d chỗ): %s", len(bad), strings.Join(bad[:min(3, len(bad))], "; ")))
 		}
+		// Dòng "|" ngoài mọi bảng: bảng mất dòng phân cách / header — parseBody coi là dòng thường, hàng số đứng một mình không tên cột
+		// (CON-T-005). Bản đầu tiên chưa có mốc để so cột nên chỉ luật này bắt được (F-024).
+		var orphan []string
+		for n, l := range strings.Split(d.Body, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(l), "|") && !inTable[n] {
+				orphan = append(orphan, fmt.Sprintf("#%d", n))
+			}
+		}
+		if len(orphan) > 0 {
+			why = append(why, fmt.Sprintf("dòng bắt đầu bằng \"|\" không thuộc bảng nào — mất dòng phân cách / header (%d dòng): %s", len(orphan), strings.Join(orphan[:min(5, len(orphan))], ", ")))
+		}
 		var lost, stale []string
 		for c, n := range base {
 			if cols[c] < n && !slices.ContainsFunc(d.RemovedColumns, func(r string) bool { return columnName(r) == c }) {
@@ -459,6 +480,26 @@ func qualityGate(docs []Document) {
 			d.Status, d.Hold = StatusNeedsReview, strings.Join(why, "; ")
 		}
 		// Bản đã thay thế không đạt kiểm: không giữ (đã không còn phục vụ) nhưng không làm mốc.
+	}
+}
+
+// KeepPublished bù chỗ cổng chất lượng không nhớ trạng thái (F-018): thêm một bản cũ hơn làm mốc, hay luật cổng chặt hơn, sẽ hạ một bản
+// ĐANG phục vụ xuống chờ soát mà nội dung bản đó không đổi. Bản cổng vừa giữ (chờ soát, Hold khác rỗng) trở lại đã duyệt khi published —
+// các bản kho đang có — chứa ĐÚNG bản đó (cùng mã, bản, tiêu đề, thân) đã duyệt và không bị giữ. Sửa docs tại chỗ. Nội dung đổi mà không
+// đạt thì vẫn bị giữ: bản mới không đạt không được công bố.
+// shortcut: bản bị giữ thay chỗ bản cũ cùng mã@bản (kho giữ một dòng mỗi mã@bản) — "giữ bản cũ phục vụ" khi sửa nội dung cần lưu hai dòng.
+func KeepPublished(docs, published []Document) {
+	key := func(d *Document) string { return fmt.Sprintf("%s@%d\x00%s\x00%s", d.ID, d.Version, d.Title, d.Body) }
+	live := map[string]bool{}
+	for i := range published {
+		if p := &published[i]; p.Status == StatusApproved && p.Hold == "" {
+			live[key(p)] = true
+		}
+	}
+	for i := range docs {
+		if d := &docs[i]; d.Status == StatusNeedsReview && d.Hold != "" && live[key(d)] {
+			d.Status, d.Hold = StatusApproved, ""
+		}
 	}
 }
 
@@ -525,7 +566,7 @@ func allowed(d *Document, pr contracts.Principal) bool {
 
 // visible: người hỏi được đọc tài liệu (vai trong ACL, và phạm vi nếu tài liệu khai). Tài liệu không thấy
 // thì coi như không tồn tại. Tài liệu có phạm vi: ACL và phạm vi phải thoả bởi CÙNG một vai — vai không được đọc
-// tài liệu (vd accountant, scope "all" cho số liệu) không cho vai khác mượn phạm vi của nó.
+// tài liệu (vd accountant, scope "all" cho số liệu) không cho vai khác mượn phạm vi của nó. Không có luật phạm vi thì đóng.
 func (ix *MemoryIndex) visible(d *Document, pr contracts.Principal) bool {
 	if len(d.Scope) == 0 {
 		return allowed(d, pr)
@@ -538,13 +579,6 @@ func (ix *MemoryIndex) visible(d *Document, pr contracts.Principal) bool {
 		one.Roles = []string{r}
 		if ix.InScope != nil && ix.InScope(one, d.Scope) {
 			return true
-		}
-		if ix.InScope == nil {
-			for _, k := range strings.Split(pr.Attributes["entity_scope"], ",") {
-				if k = strings.TrimSpace(k); k != "" && slices.Contains(d.Scope, k) {
-					return true
-				}
-			}
 		}
 	}
 	return false

@@ -137,13 +137,11 @@ func rateWordAt(raw string, pos int) bool {
 	return we > ws && slices.ContainsFunc(rateWords, func(w string) bool { return wordIs(raw, ws, we, w) })
 }
 
-// labelBefore: danh từ nhãn đứng NGAY TRƯỚC con số ("phiếu 912", "ca 2", "đội 3", "xe số 7", "khối 2", "L 5") — con số là mã / số thứ tự của nhãn, không phải
-// lượng. Không có "xe", "chuyến", "lượt": chúng cũng là danh từ ĐẾM của số đứng trước ("mỗi ngày 3-4 chuyến 4000 L" — 4000 không phải nhãn của "chuyến"); không có
-// "kho": "xuất kho 3850", "phiếu kho 3850" là từ khoá số liệu của pack đứng trước CON SỐ được hỏi.
-var labelBefore = []string{"phiếu", "số", "mã", "ca", "đội", "tổ", "lô", "đợt", "thứ", "khu", "trạm", "khối", "lít", "l"}
-
-// unitLabels: các từ của labelBefore cũng là ĐƠN VỊ ("khối 2", "L 5" là nhãn; nhưng "3850 L 19 tháng 10": L là đơn vị của 3850, không phải nhãn của 19).
-var unitLabels = []string{"khối", "lít", "l"}
+// labelBefore: danh từ nhãn CHỨC NĂNG đứng NGAY TRƯỚC con số ("phiếu 912", "ca 2", "đội 3", "xe số 7") — con số là mã / số thứ tự của nhãn, không phải
+// lượng; danh từ nhãn của ngành ("khối 2", "L 5") do pack khai (Lexicon.LabelNouns, F-030). Không có "xe", "chuyến", "lượt": chúng cũng là danh từ ĐẾM của
+// số đứng trước ("mỗi ngày 3-4 chuyến 4000 L" — 4000 không phải nhãn của "chuyến"); không có "kho": "xuất kho 3850", "phiếu kho 3850" là từ khoá số liệu
+// của pack đứng trước CON SỐ được hỏi.
+var labelBefore = []string{"phiếu", "số", "mã", "ca", "đội", "tổ", "lô", "đợt", "thứ", "khu", "trạm"}
 
 // digitBefore báo ngay trước vị trí pos (chỉ cách khoảng đệm) là một chữ số.
 func digitBefore(raw string, pos int) bool {
@@ -158,20 +156,22 @@ func digitBefore(raw string, pos int) bool {
 	return false
 }
 
-// countAfter: danh từ đứng NGAY SAU con số ("2 máy", "3 lần", "1 xe", "3-4 chuyến") — con số đếm các thứ đó, không phải lượng.
-var countAfter = []string{"lần", "máy", "xe", "chuyến", "đội", "tổ", "đợt", "lượt", "phiếu", "phút", "giây", "thiết bị", "dự án", "vị trí"}
+// countAfter: danh từ đếm CHỨC NĂNG đứng NGAY SAU con số ("3 lần", "2 lượt", "5 phút") — con số đếm các thứ đó, không phải lượng. Danh từ đếm của ngành
+// ("2 máy", "3-4 chuyến") do pack khai (Lexicon.CountNouns, F-030).
+var countAfter = []string{"lần", "đội", "tổ", "đợt", "lượt", "phiếu", "phút", "giây", "vị trí"}
 
 // LabelContext báo con số ở [start, end) của raw là một NHÃN, SỐ ĐẾM hay TẦN SUẤT vô hại cho câu xác nhận một lượng: đứng ngay sau một danh từ nhãn
-// ("phiếu 912", "ca 2", "xe số 7"), ngay trước một danh từ đếm ("2 máy", "3 lần", "3-4 chuyến": phần "-N" của một khoảng được bỏ qua), hoặc đứng sau
-// "mỗi ngày", "hàng tuần"… ("mỗi ngày 3 chuyến"). Các danh sách đóng và ngắn: thiếu một từ thì con số đó vẫn được coi là một con số xác nhận (hướng an
-// toàn — luồng hỏi lại, không phán quyết nhầm).
-func LabelContext(raw string, start, end int) bool {
+// ("phiếu 912", "ca 2", "xe số 7"; của pack: "khối 2"), ngay trước một danh từ đếm ("3 lần"; của pack: "2 máy", "3-4 chuyến": phần "-N" của một khoảng
+// được bỏ qua), hoặc đứng sau "mỗi ngày", "hàng tuần"… ("mỗi ngày 3 chuyến"). Danh từ nhãn của pack cũng là đơn vị thì đứng sau một chữ số nó là đơn vị
+// của số đó ("3850 L 19 tháng 10": 19 không phải nhãn của L). Các danh sách đóng và ngắn: thiếu một từ thì con số đó vẫn được coi là một con số xác
+// nhận (hướng an toàn — luồng hỏi lại, không phán quyết nhầm). Engine rỗng (zero value) = pack không khai danh từ nào: chỉ từ chức năng.
+func (e *Engine) LabelContext(raw string, start, end int) bool {
 	if start < 0 || end > len(raw) || start >= end {
 		return false
 	}
 	if ws, we := wordBefore(raw, start); we > ws {
-		if slices.ContainsFunc(labelBefore, func(w string) bool { return wordIs(raw, ws, we, w) }) &&
-			!(slices.ContainsFunc(unitLabels, func(w string) bool { return wordIs(raw, ws, we, w) }) && digitBefore(raw, ws)) {
+		is := func(w string) bool { return wordIs(raw, ws, we, w) }
+		if (slices.ContainsFunc(labelBefore, is) || slices.ContainsFunc(e.labels, is)) && !(slices.ContainsFunc(e.unitLabels, is) && digitBefore(raw, ws)) {
 			return true
 		}
 		// "mỗi ngày 3", "hàng tuần 2": số đứng sau một từ chỉ kỳ mà trước nó là từ chỉ tần suất là số lần, không phải mốc
@@ -187,12 +187,8 @@ func LabelContext(raw string, start, end int) bool {
 			rest = strings.TrimLeft(rest[ne:], " ")
 		}
 	}
-	for _, w := range countAfter {
-		if _, ok := matchAliasAt(rest, 0, w, false); ok {
-			return true
-		}
-	}
-	return false
+	counted := func(w string) bool { _, ok := matchAliasAt(rest, 0, w, false); return ok }
+	return slices.ContainsFunc(countAfter, counted) || slices.ContainsFunc(e.counts, counted)
 }
 
 // wordIs báo đoạn [ws, we) của raw đúng là từ word, theo cùng luật dấu với mọi so khớp (gõ không dấu vẫn khớp; có dấu thì phải đúng dấu).
@@ -259,7 +255,7 @@ func numberAfter(raw string, pos int) (ns, ne int) {
 // đọc vì thiếu chữ "ngày" ("19-10", "19-10-26": "10-12 giờ", "3-4 chuyến" cũng có dạng đó nên không đọc im lặng): trả chữ của cả cụm và số span nó chiếm.
 // Không phải khi dính vào mã đứng trước ("TK-01-02"), là phần giữa hay phần đầu của một dãy dài hơn ba phần ("19-10-2026-1"), khi ngày > 31 hay tháng > 12, hoặc khi số cuối đứng trước một
 // danh từ đếm ("10-12 xe": số đếm, không phải ngày).
-func DashDateAt(raw string, spans []contracts.Span, i int) (text string, n int) {
+func (e *Engine) DashDateAt(raw string, spans []contracts.Span, i int) (text string, n int) {
 	first := spans[i]
 	if first.Kind != contracts.ValueNumber || !smallNumberIn(first.Raw, 1, 31) || gluedBefore(raw, first.Start) {
 		return "", 0
@@ -279,7 +275,7 @@ func DashDateAt(raw string, spans []contracts.Span, i int) (text string, n int) 
 		last, parts = nx, parts+1
 	}
 	// số ĐẦU là số hiệu sau từ nhãn ("phiếu 12-10", "ca 2-3"): không phải một ngày (soát R, R-A14)
-	if parts < 2 || LabelContext(raw, last.Start, last.End) || isDigitAt(raw, last.End) {
+	if parts < 2 || e.LabelContext(raw, last.Start, last.End) || isDigitAt(raw, last.End) {
 		return "", 0
 	}
 	if next, w := utf8.DecodeRuneInString(raw[last.End:]); (next == '-' || next == '–') && isDigitAt(raw, last.End+w) {

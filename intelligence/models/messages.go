@@ -11,17 +11,22 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 )
 
-// Messages là gateway tới một API kiểu Messages (Anthropic, hoặc dịch vụ tương thích cùng giao
-// thức qua BaseURL). Model, khoá, endpoint, tham số đến từ cấu hình — không hard code (CLAUDE.md §30).
+// ProtocolMessages là giá trị EAIS_MODEL_PROVIDER chọn Messages: POST {base}/v1/messages {model, max_tokens, system, messages[]}.
+const ProtocolMessages = "messages"
+
+// Messages là gateway tới một API kiểu Messages (giao thức ProtocolMessages, endpoint qua BaseURL). Model, khoá, endpoint, header
+// phiên bản, tham số đến từ cấu hình — không hard code (CLAUDE.md §30).
 // Model chỉ được trả lời từ bằng chứng đưa vào, và phải trả về id các bằng chứng đã dùng — cổng S9
 // (Bound) chặn câu không gắn được bằng chứng.
 //
@@ -30,11 +35,13 @@ import (
 // (g7run -smoke), không phải dò lúc chạy: tự bỏ tham số khi gặp 400 sẽ âm thầm đổi điều kiện giữa
 // benchmark.
 type Messages struct {
-	Provider  string // nhãn nhà cung cấp trong nhãn lỗi, ví dụ "anthropic"
-	BaseURL   string // ví dụ https://api.anthropic.com
+	Provider  string // nhãn trong nhãn lỗi: giá trị EAIS_MODEL_PROVIDER, ví dụ ProtocolMessages
+	BaseURL   string // bắt buộc, không có giá trị mặc định
 	APIKey    string
 	Model     string
 	MaxTokens int
+	// Headers: header bổ sung gửi kèm mỗi yêu cầu (ví dụ phiên bản API mà dịch vụ đòi), từ EAIS_MODEL_HEADERS.
+	Headers http.Header
 	// Temperature: nil = không gửi (mặc định của API). Chỉ đặt cho model đã thử khói là nhận.
 	Temperature *float64
 	// Thinking: "" = không gửi trường thinking; khác rỗng = {"type": Thinking}, ví dụ "between_tools".
@@ -252,8 +259,12 @@ func (m *Messages) send(ctx context.Context, client *http.Client, body []byte, a
 		redactURL(err)
 		return nil, false, contracts.Label(contracts.FaultCode, err)
 	}
+	for k, vs := range m.Headers {
+		for _, v := range vs {
+			hreq.Header.Add(k, v)
+		}
+	}
 	hreq.Header.Set("content-type", "application/json")
-	hreq.Header.Set("anthropic-version", "2023-06-01")
 	hreq.Header.Set("x-api-key", m.APIKey)
 	resp, err := client.Do(hreq)
 	if err != nil {
@@ -318,8 +329,8 @@ func (m *Messages) Reset() {
 
 // Config là cấu hình gateway model của một lần chạy — đọc ở tầng khởi động, không hard code.
 type Config struct {
-	Provider    string // "" hoặc "extractive" = model giả tất định; "anthropic" = API kiểu Messages; ProtocolChat = API kiểu chat completions
-	BaseURL     string // trống với "anthropic" = endpoint chính thức của nhà cung cấp; ProtocolChat bắt buộc
+	Provider    string // "" hoặc "extractive" = model giả tất định; ProtocolMessages = API kiểu Messages; ProtocolChat = API kiểu chat completions
+	BaseURL     string // bắt buộc với model thật — không có endpoint mặc định
 	APIKey      string
 	Model       string // bắt buộc với model thật — không có model mặc định
 	MaxTokens   int    // trống = 1024
@@ -327,6 +338,7 @@ type Config struct {
 	Thinking    string // "" = không gửi; một trong ThinkingTypes
 	Effort      string // "" = không gửi; một trong EffortLevels
 	MaxRetries  int    // số lần thử lại khi lỗi tạm; < 0 là lỗi cấu hình
+	Headers     string // "" = không gửi thêm; "tên=giá trị;tên=giá trị" (parseHeaders) — chỉ giao thức Messages
 }
 
 // ThinkingTypes và EffortLevels là các giá trị client chịu gửi (tài liệu nhà cung cấp, tra 20/10/2026).
@@ -380,14 +392,14 @@ func EndpointForLog(raw string) string {
 
 // ConfigFromEnv đọc cấu hình từ EAIS_MODEL_PROVIDER, EAIS_MODEL, EAIS_MODEL_BASE_URL,
 // EAIS_MODEL_API_KEY, EAIS_MODEL_MAX_TOKENS, EAIS_MODEL_TEMPERATURE, EAIS_MODEL_THINKING,
-// EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2). Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
+// EAIS_MODEL_EFFORT, EAIS_MODEL_MAX_RETRIES (trống = 2), EAIS_MODEL_HEADERS. Khoá chỉ nằm trong bộ nhớ, không in ra đâu.
 
 func ConfigFromEnv() Config {
 	c := Config{
 		Provider: modelEnv("PROVIDER"), Model: modelEnv(""),
 		BaseURL: modelEnv("BASE_URL"), APIKey: modelEnv("API_KEY"),
 		Temperature: modelEnv("TEMPERATURE"), Thinking: modelEnv("THINKING"),
-		Effort: modelEnv("EFFORT"), MaxRetries: 2,
+		Effort: modelEnv("EFFORT"), MaxRetries: 2, Headers: modelEnv("HEADERS"),
 	}
 	if v := modelEnv("MAX_TOKENS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -427,15 +439,17 @@ func New(c Config) (Gateway, error) {
 	switch c.Provider {
 	case "", "extractive":
 		return &Extractive{}, nil
-	case "anthropic":
-		if c.Model == "" || c.APIKey == "" {
-			return nil, contracts.Errorf(contracts.FaultCode, "provider anthropic cần EAIS_MODEL và EAIS_MODEL_API_KEY")
+	case ProtocolMessages:
+		// Không có endpoint mặc định (như ProtocolChat): giao thức là của nhiều dịch vụ, chọn endpoint là việc của người chạy.
+		if c.Model == "" || c.APIKey == "" || c.BaseURL == "" {
+			return nil, contracts.Errorf(contracts.FaultCode, "provider "+ProtocolMessages+" cần EAIS_MODEL, EAIS_MODEL_API_KEY và EAIS_MODEL_BASE_URL")
+		}
+		headers, err := parseHeaders(c.Headers)
+		if err != nil {
+			return nil, err
 		}
 		m := &Messages{Provider: c.Provider, BaseURL: c.BaseURL, APIKey: c.APIKey, Model: c.Model, MaxTokens: c.MaxTokens,
-			Thinking: c.Thinking, Effort: c.Effort, MaxRetries: c.MaxRetries}
-		if m.BaseURL == "" {
-			m.BaseURL = "https://api.anthropic.com"
-		}
+			Thinking: c.Thinking, Effort: c.Effort, MaxRetries: c.MaxRetries, Headers: headers}
 		if !secureEndpoint(m.BaseURL) {
 			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback (máy chủ giả khi chạy khô), không kèm thông tin xác thực trong URL", EndpointForLog(m.BaseURL)))
 		}
@@ -467,8 +481,8 @@ func New(c Config) (Gateway, error) {
 		if c.Model == "" || c.APIKey == "" || c.BaseURL == "" {
 			return nil, contracts.Errorf(contracts.FaultCode, "provider "+ProtocolChat+" cần EAIS_MODEL, EAIS_MODEL_API_KEY và EAIS_MODEL_BASE_URL")
 		}
-		if c.Thinking != "" || c.Effort != "" {
-			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_THINKING / EAIS_MODEL_EFFORT chỉ dùng cho giao thức Messages")
+		if c.Thinking != "" || c.Effort != "" || c.Headers != "" {
+			return nil, contracts.Errorf(contracts.FaultCode, "EAIS_MODEL_THINKING / EAIS_MODEL_EFFORT / EAIS_MODEL_HEADERS chỉ dùng cho giao thức Messages")
 		}
 		if !secureEndpoint(c.BaseURL) {
 			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_BASE_URL %q: khoá chỉ được gửi qua https, hoặc http tới loopback, không kèm thông tin xác thực trong URL", EndpointForLog(c.BaseURL)))
@@ -493,4 +507,30 @@ func New(c Config) (Gateway, error) {
 		return m, nil
 	}
 	return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("provider model %q chưa được hỗ trợ", c.Provider))
+}
+
+// headerName: tên header chỉ gồm chữ, số, "-" (đủ cho header phiên bản; chặn khoảng trắng, ":" và xuống dòng).
+var headerName = regexp.MustCompile(`^[A-Za-z0-9-]+$`)
+
+// parseHeaders đọc EAIS_MODEL_HEADERS: các mục "tên=giá trị" cách nhau bằng ";" (mục rỗng bỏ qua; giá trị có thể chứa "="). Giá trị
+// không được có ký tự điều khiển (CR / LF tách header); content-type và x-api-key do gateway đặt, không nhận ở đây. Lỗi chỉ nêu số thứ
+// tự mục, không in giá trị (có thể là bí mật).
+func parseHeaders(raw string) (http.Header, error) {
+	var h http.Header
+	for i, part := range strings.Split(raw, ";") {
+		if strings.TrimSpace(part) == "" {
+			continue
+		}
+		name, value, ok := strings.Cut(part, "=")
+		name, value = strings.TrimSpace(name), strings.TrimSpace(value)
+		if !ok || !headerName.MatchString(name) || strings.ContainsFunc(value, unicode.IsControl) ||
+			strings.EqualFold(name, "content-type") || strings.EqualFold(name, "x-api-key") {
+			return nil, contracts.Errorf(contracts.FaultCode, fmt.Sprintf("EAIS_MODEL_HEADERS mục thứ %d: phải là tên=giá trị (tên chỉ chữ, số, -; không phải content-type / x-api-key; giá trị không xuống dòng)", i+1))
+		}
+		if h == nil {
+			h = http.Header{}
+		}
+		h.Add(name, value)
+	}
+	return h, nil
 }

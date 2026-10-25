@@ -23,6 +23,7 @@ const (
 	ReasonOutOfRange      = "out_of_range"
 	ReasonUnitDimension   = "unit_dimension"
 	ReasonUnparseable     = "unparseable"
+	ReasonDuplicate       = "duplicate" // khoá bản ghi (tệp + record_id) trùng một bản ghi đã gặp
 )
 
 // FileSpec là một tệp của một nguồn.
@@ -46,15 +47,32 @@ type SourceSpec struct {
 	// các mã đó làm bí danh thêm.
 	EntityNamespace string `yaml:"entity_namespace"`
 	FreeText        bool   `yaml:"free_text"` // thực thể + lượng trích từ chữ
-	// CarryEntity: tin không nhắc thiết bị thì kế thừa thiết bị của tin ngay trước CÙNG người gửi
+	// CarryEntity: tin không nhắc thực thể thì kế thừa thực thể của tin ngay trước CÙNG người gửi
 	// trong CÙNG ngày — luật tất định, có ghi dấu trong quan sát.
 	CarryEntity bool `yaml:"carry_entity"`
 }
 
+// EntityList là MỘT mảng của entities_file: mỗi phần tử là một thực thể loại Type, có id, name, aliases, source_ids (mã theo
+// nguồn) và — khi ParentField khai — trường mang id thực thể cha. Lược đồ danh mục là của pack, không của bộ nạp (F-004).
+type EntityList struct {
+	List        string `yaml:"list"`         // khoá của mảng trong entities_file
+	Type        string `yaml:"type"`         // loại thực thể của mọi phần tử
+	ParentField string `yaml:"parent_field"` // trường mang id thực thể cha; rỗng = không có cha
+}
+
+// FreeTextEntity là loại thực thể mà nguồn chữ tự do nhận dạng, kèm tên gọi của loại đó trong lý do cách ly và ghi chú.
+type FreeTextEntity struct {
+	Type  string `yaml:"type"`
+	Label string `yaml:"label"`
+}
+
 // SourceMap là toàn bộ ánh xạ nguồn của một pack.
 type SourceMap struct {
-	EntitiesFile string       `yaml:"entities_file"`
-	Sources      []SourceSpec `yaml:"sources"`
+	EntitiesFile string `yaml:"entities_file"`
+	// EntityLists: lược đồ danh mục, nạp theo đúng thứ tự khai.
+	EntityLists    []EntityList   `yaml:"entity_lists"`
+	FreeTextEntity FreeTextEntity `yaml:"free_text_entity"`
+	Sources        []SourceSpec   `yaml:"sources"`
 }
 
 var formats = map[string]bool{"csv": true, "xlsx": true, "json": true, "jsonl": true, "pdf_lines": true}
@@ -76,6 +94,20 @@ func LoadSources(path string, rt *tenant.Runtime) (SourceMap, error) {
 	if sm.EntitiesFile == "" {
 		fail("thiếu entities_file")
 	}
+	if len(sm.EntityLists) == 0 {
+		fail("thiếu entity_lists (lược đồ danh mục của %s)", sm.EntitiesFile)
+	}
+	types, lists := map[string]bool{}, map[string]bool{}
+	for _, l := range sm.EntityLists {
+		if l.List == "" || l.Type == "" {
+			fail("entity_lists: mỗi mảng cần list và type (gặp list %q, type %q)", l.List, l.Type)
+		}
+		if lists[l.List] {
+			fail("entity_lists: mảng %s khai hai lần", l.List)
+		}
+		lists[l.List], types[l.Type] = true, true
+	}
+	freeText := false
 	for _, s := range sm.Sources {
 		def, ok := rt.Metrics.Metric(s.Metric)
 		if !ok {
@@ -107,6 +139,7 @@ func LoadSources(path string, rt *tenant.Runtime) (SourceMap, error) {
 			}
 			pdfOnly = pdfOnly && f.Format == "pdf_lines"
 		}
+		freeText = freeText || pdfOnly || s.FreeText
 		need := []string{"record_id", "entity", "date", "quantity"}
 		switch {
 		case pdfOnly: // số dòng là record_id, ngày lấy từ tên tệp, chữ là cả dòng
@@ -122,6 +155,11 @@ func LoadSources(path string, rt *tenant.Runtime) (SourceMap, error) {
 		if !s.FreeText && !pdfOnly && s.EntityNamespace == "" {
 			fail("nguồn có cấu trúc %s phải khai entity_namespace", s.Type)
 		}
+	}
+	if fe := sm.FreeTextEntity; freeText && (fe.Type == "" || fe.Label == "") {
+		fail("có nguồn chữ tự do nhưng free_text_entity thiếu type hoặc label")
+	} else if freeText && !types[fe.Type] {
+		fail("free_text_entity: loại %q chưa khai trong entity_lists", fe.Type)
 	}
 	if len(errs) > 0 {
 		return sm, fmt.Errorf("%s không hợp lệ:\n  - %s", path, strings.Join(errs, "\n  - "))

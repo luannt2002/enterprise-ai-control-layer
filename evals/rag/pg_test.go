@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/evals"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/rag"
 	"github.com/luannt2002/enterprise-ai-control-layer/platform/pgstore"
@@ -82,8 +83,8 @@ func TestCaTriThucQuaPG(t *testing.T) {
 }
 
 // Phạm vi tài liệu qua PG: bộ ca chưa có ca chặn phạm vi trong CÙNG tenant (CON-T-071 là chéo tenant), nên đột biến "PG không
-// lưu phạm vi" sống sót qua phép so ở trên. Tài liệu của PRJ-A: người phạm vi PRJ-B không thấy gì, PRJ-A thấy; luật phạm vi của
-// policy trong ngữ cảnh (vai scope "all") thắng thuộc tính trần.
+// lưu phạm vi" sống sót qua phép so ở trên. Tài liệu của PRJ-A, luật phạm vi theo thuộc tính: người phạm vi PRJ-B không thấy gì, PRJ-A
+// thấy; luật trong ngữ cảnh (vai scope "all") thắng thuộc tính trần; không luật nào thì tài liệu có phạm vi đóng (chỉ mục không tự đoán, Q11).
 func TestPhamViQuaPG(t *testing.T) {
 	admin, app := pgstore.EnvDSN()
 	if admin == "" || app == "" {
@@ -115,11 +116,15 @@ func TestPhamViQuaPG(t *testing.T) {
 		}
 		return len(ev)
 	}
-	if n := hoi("PRJ-B", nil); n != 0 {
+	theoThuocTinh := policy.Policy{}.InScope // không vai nào scope "all": chỉ thuộc tính entity_scope
+	if n := hoi("PRJ-B", theoThuocTinh); n != 0 {
 		t.Errorf("phạm vi PRJ-B thấy %d đoạn của tài liệu PRJ-A", n)
 	}
-	if n := hoi("PRJ-A", nil); n == 0 {
+	if n := hoi("PRJ-A", theoThuocTinh); n == 0 {
 		t.Error("phạm vi PRJ-A phải thấy tài liệu của PRJ-A")
+	}
+	if n := hoi("PRJ-A", nil); n != 0 {
+		t.Errorf("không luật phạm vi mà thấy %d đoạn của tài liệu có phạm vi", n)
 	}
 	if n := hoi("PRJ-B", func(contracts.Principal, []string) bool { return true }); n == 0 {
 		t.Error("luật phạm vi trong ngữ cảnh cho phép mà vẫn không thấy")

@@ -1,0 +1,20 @@
+# Hai chỉ số số theo ngày của MỘT đơn hàng: lượng xuất kho (phiếu xuất) và doanh thu ghi nhận (sổ bán hàng). Hỏi theo khách hàng thì
+# gom mọi đơn của khách đó.
+metrics:
+  - id: so_thung_xuat
+    label: Số thùng xuất kho
+    unit: thùng
+    entity_types: [don_hang]
+    min: "0"
+    max: "100000"
+    sources:
+      - {type: phieu_xuat, authority: 1, label: phiếu xuất kho}
+
+  - id: doanh_thu_ghi_nhan
+    label: Doanh thu ghi nhận
+    unit: VND
+    entity_types: [don_hang]
+    min: "0"
+    max: "10000000000"
+    sources:
+      - {type: so_ban_hang, authority: 1, label: sổ bán hàng}

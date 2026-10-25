@@ -214,7 +214,7 @@
   applies_to: [docs]
   phase: MVP
   verification: {kind: test, ref: "kiểm văn bản: câu định nghĩa xuất hiện nguyên văn ở README/01-architecture; tìm chuỗi cấm 'RAG Platform' làm tên dự án"}
-  note: null
+  note: "SUPERSEDED-BY ADR-0013 (24/10/2026): tên hiển thị và định nghĩa sản phẩm đổi thành 'EAIS — Enterprise AI Integration Reference Architecture' (kiến trúc tham chiếu: lõi kiểm soát + module tuỳ chọn + ví dụ / case study). Câu trong statement không còn là yêu cầu; giữ nguyên văn làm lịch sử."
 - id: REQ-MND-017
   area: MND
   statement: "Định nghĩa vận hành của EAIS trong tài liệu: Enterprise AI Engineering không chủ yếu là làm model thông minh hơn mà là xây hệ thống kiểm soát model được thấy dữ liệu gì, hiểu ngữ cảnh nào, được quyết định gì, được hành động gì và chứng minh đầu ra/hành động đáng tin; EAIS = Software + Data + AI + Control, không phải 'AI = tất cả'; không train một model mới mà xây hệ thống quanh model."

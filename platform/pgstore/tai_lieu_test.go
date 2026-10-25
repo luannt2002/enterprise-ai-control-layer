@@ -137,3 +137,43 @@ func TestChiMucGiuSanKhongCu(t *testing.T) {
 		t.Errorf("tiến trình khác nạp mà chỉ mục giữ sẵn vẫn trả nội dung cũ: %q", got)
 	}
 }
+
+// Nạp CHỈ tài liệu (F-019): LoadDocuments thay tài liệu của tenant mà danh mục và fact còn nguyên — module RAG công bố tài liệu không
+// được xoá dữ liệu nghiệp vụ. Load cũ vẫn thay cả bốn bảng (nạp tài liệu bằng Load thì mất fact, như trước).
+func TestNapTaiLieuGiuFact(t *testing.T) {
+	s, _, _ := open(t)
+	tenant := uniq("nap-tai-lieu")
+	ctx := contracts.WithTenant(context.Background(), tenant)
+	t.Cleanup(func() { _ = s.Load(ctx, nil, nil, nil) })
+	seed(t, s, tenant, "Máy xúc EX-03", "3850", "")
+	moi := []rag.Document{{ID: "SOP-MOI", Title: "Quy trình nghiệm thu", ACL: []string{"director"}, Body: "1. Lập biên bản nghiệm thu."}}
+	if err := s.LoadDocuments(ctx, pgstore.LoadInfo{}, moi); err != nil {
+		t.Fatal(err)
+	}
+	fs, err := s.Facts(ctx, "issued_fuel", nil, day, day)
+	if err != nil || len(fs) != 1 || fs[0].Value.Number != "3850" {
+		t.Errorf("nạp chỉ tài liệu làm đổi fact: %+v %v (muốn đúng một fact 3850)", fs, err)
+	}
+	if es, err := s.Entities(ctx); err != nil || len(es) != 1 || len(es[0].Aliases) != 1 {
+		t.Errorf("nạp chỉ tài liệu làm đổi danh mục: %+v %v", es, err)
+	}
+	pr := contracts.Principal{ID: "u", TenantID: tenant, Roles: []string{"director"}}
+	if ev, err := s.Retrieve(ctx, pr, "biên bản nghiệm thu", 3); err != nil || len(ev) == 0 || ev[0].Source.DocumentID != "SOP-MOI" {
+		t.Errorf("tài liệu mới không được nạp: %+v %v", ev, err)
+	}
+	if ev, err := s.Retrieve(ctx, pr, "quy trình xử lý chênh lệch nhiên liệu", 3); err != nil || len(ev) != 0 {
+		t.Errorf("tài liệu cũ phải bị thay: %+v %v", ev, err)
+	}
+	if rec, err := s.LatestLoad(ctx); err != nil || rec.DataVersion != "" {
+		t.Errorf("nạp chỉ tài liệu không kèm phiên bản: sổ nạp phải có dòng không ghi nhận, được %+v %v", rec, err)
+	}
+	if err := s.LoadDocuments(ctx, pgstore.LoadInfo{LoadID: "x", DataVersion: "sai"}, moi); contracts.FaultOf(err) != contracts.FaultInput {
+		t.Errorf("phiên bản sai dạng phải bị từ chối như LoadWithVersion: %v", err)
+	}
+	if err := s.Load(ctx, nil, nil, moi); err != nil {
+		t.Fatal(err)
+	}
+	if fs, err := s.Facts(ctx, "issued_fuel", nil, day, day); err != nil || len(fs) != 0 {
+		t.Errorf("Load vẫn phải thay cả fact (hành vi cũ): %+v %v", fs, err)
+	}
+}

@@ -1,0 +1,6 @@
+{
+  "QT-NGHI-PHEP": ["nhan-vien", "quan-ly", "quan-tri"],
+  "QT-MUA-SAM": ["nhan-vien", "quan-ly", "quan-tri"],
+  "QT-LAM-THEM": ["nhan-vien", "quan-ly", "quan-tri"],
+  "QT-BAO-MAT": ["quan-tri"]
+}

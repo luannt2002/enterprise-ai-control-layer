@@ -28,7 +28,11 @@ const maxSettleRounds = 64
 func (c *opctx) settle() error {
 	for round := 0; round < maxSettleRounds; round++ {
 		slots := c.sortedSlots()
-		if err := c.ensureLocks(slots); err != nil { // mọi ô sẽ đọc được khoá một lượt, theo thứ tự khoá tăng dần
+		refs := make([]lockRef, len(slots))
+		for i, s := range slots {
+			refs[i] = lockRef{slot: s}
+		}
+		if err := c.ensureLocks(refs); err != nil { // mọi ô sẽ đọc được khoá một lượt, theo thứ tự khoá tăng dần
 			return err
 		}
 		changed := false

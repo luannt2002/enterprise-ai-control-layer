@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/decimal"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/core/tenant"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/entityresolution"
 	"github.com/luannt2002/enterprise-ai-control-layer/data/normalization"
@@ -135,7 +136,9 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	cls, err := traces.Measure(tr, "intent", func() (intent.Result, error) {
 		r := a.RT.Intents.Classify(in, res, now)
 		if f := a.Deps.IntentFallback; f != nil {
-			return a.fallbackIntent(ctx, now, pr, in, r, f)
+			// dò chỉ mục chỉ bằng vai có capability của ý định tri thức, như lượt tri thức (Q11)
+			def, _ := a.RT.Intents.Def(f.Intent())
+			return a.fallbackIntent(ctx, now, a.RT.Policy.Holding(pr, def.Capability), in, r, f)
 		}
 		return r, nil
 	})
@@ -207,12 +210,14 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	vars := map[string]string{"reason": plan.Reason}
 	var ci clarifyInfo // cách dựng danh sách ứng viên của câu hỏi lại (chỉ để giải thích vết)
+	// Phạm vi dữ liệu của câu hỏi lại và của vết chỉ do vai đọc được số liệu thoả (Q11): vai phạm vi rộng mà không có quyền đọc không cho mượn phạm vi
+	reader := a.RT.Policy.Holding(pr, policy.CapMetricsRead)
 
 	// Từ đây chỉ dùng plan.Intent: ý định SAU khi router đã kiểm quyền và gỡ mơ hồ.
 	switch plan.Route {
 	case contracts.RouteClarification:
 		asked := append(slices.Clone(cls.Candidates), cls.Unclear.Entities...)
-		visible, hidden := a.visibleCandidates(ctx, pr, asked)
+		visible, hidden := a.visibleCandidates(ctx, reader, asked)
 		ci = clarifyInfo{used: true, before: asked, shown: visible, hidden: hidden}
 		if rival || doubt {
 			// hỏi lại về CON SỐ hay MỐC THỜI GIAN: thực thể đã rõ (router đã gỡ bí danh mơ hồ), nên không kể ra máy ứng viên nào
@@ -246,14 +251,15 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 		// được câu trả lời thì không nối thêm tài liệu vào.
 		if plan.Route == contracts.RouteHybrid && resp.Outcome == contracts.OutcomeResolved {
 			kdef, _ := a.RT.Intents.Def(cls.Knowledge)
-			if err := a.answerKnowledge(ctx, tr, now, pr, in, kdef.Template, &resp, true, &why); err != nil {
+			if err := a.answerKnowledge(ctx, tr, now, a.RT.Policy.Holding(pr, kdef.Capability), in, kdef.Template, &resp, true, &why); err != nil {
 				return Outcome{}, err
 			}
 		} else if plan.Route == contracts.RouteHybrid {
 			a.noteHybridSkipped(&why, resp.Outcome)
 		}
 	case contracts.RouteRAG:
-		if err := a.answerKnowledge(ctx, tr, now, pr, in, plan.Template, &resp, false, &why); err != nil {
+		def, _ := a.RT.Intents.Def(plan.Intent.Name)
+		if err := a.answerKnowledge(ctx, tr, now, a.RT.Policy.Holding(pr, def.Capability), in, plan.Template, &resp, false, &why); err != nil {
 			return Outcome{}, err
 		}
 	default:
@@ -263,12 +269,12 @@ func (a *Ask) Handle(ctx context.Context, pr contracts.Principal, req contracts.
 	}
 	// Vết do chính người hỏi đọc lại: với người không toàn quyền, khoá / tên thực thể ngoài phạm vi của họ được che ở MỘT chỗ cho mọi bề mặt —
 	// mọi dòng giải thích và Decision.Entities / Slots (C9, scope_redact.go). Che TRƯỚC Compact: cắt dòng có thể cắt dở một khoá. Dựng ngay sau switch (trước khối giải thích) vì draftLedger.settle cần nó.
-	red := a.newScopeRedactor(ctx, pr, req.Text, entityRefs(res, cls, ci, routed, plan)...)
+	red := a.newScopeRedactor(ctx, reader, req.Text, entityRefs(res, cls, ci, routed, plan)...)
 	if !a.noWhy {
 		why.Normalize = explainNormalize(in)
 		// tên và loại thực thể chỉ kể cho người có phạm vi dữ liệu không hạn chế (vai phạm vi "all"): vết do chính người hỏi đọc không được lộ
 		// chúng cho thực thể ngoài phạm vi, và không tra danh mục thêm lần nào để biết thực thể nào ngoài phạm vi
-		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(pr, nil))
+		why.Resolve = explainResolve(in, res, routed.Narrowed, ci, a.RT.Policy.InScope(reader, nil))
 		why.Intent = explainIntent(cls, ci)
 		why.Route = a.explainRoute(routed, plan)
 		led.settle(&why, red) // S8: dòng bản nháp ở dạng cuối — che phạm vi TRƯỚC rồi mới cắt đoạn đầu (V8AS-02)
@@ -604,7 +610,8 @@ func (a *Ask) answerMetric(ctx context.Context, tr *traces.Trace, now time.Time,
 	return nil
 }
 
-// answerKnowledge chạy S6–S9 cho câu hỏi tri thức: truy xuất đoạn tài liệu người hỏi được đọc, cho
+// answerKnowledge chạy S6–S9 cho câu hỏi tri thức: truy xuất đoạn tài liệu người hỏi được đọc (pr chỉ mang các vai có capability của
+// ý định tri thức — Policy.Holding: ACL / phạm vi tài liệu không được thoả bằng vai không có quyền đọc, Q11), cho
 // model diễn đạt, rồi kiểm — claim gắn bằng chứng, số có trong bằng chứng, không lượng nghiệp vụ
 // nào lấy từ tài liệu. hybrid = phần quy trình nối sau câu số liệu đã RESOLVED: phần này hỏng thì
 // chỉ bỏ phần này kèm ghi chú, không làm hỏng phần số liệu đã kiểm.
@@ -1015,7 +1022,7 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 		if slices.ContainsFunc(names, func(m mention) bool { return sp.Start < m.end && sp.End > m.start }) {
 			continue
 		}
-		if text, n := normalization.DashDateAt(in.Raw, in.Spans, i); n > 1 {
+		if text, n := a.RT.Normalizer.DashDateAt(in.Raw, in.Spans, i); n > 1 {
 			// "19-10", "19-10-26": ngày viết dd-mm mà bộ chuẩn hoá không đọc khi thiếu chữ "ngày" — kỳ của câu có thể khác kỳ họ nói
 			if !slices.Contains(cs.doubts, text) {
 				cs.doubts = append(cs.doubts, text)
@@ -1044,7 +1051,7 @@ func (a *Ask) claimNumbers(in contracts.NormalizedInput, names []mention, def so
 				}
 				continue
 			}
-			if normalization.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {
+			if a.RT.Normalizer.LabelContext(in.Raw, sp.Start, sp.End) || dashTail(in.Raw, labelEnd, sp.Start) {
 				labelEnd = sp.End
 				continue
 			}

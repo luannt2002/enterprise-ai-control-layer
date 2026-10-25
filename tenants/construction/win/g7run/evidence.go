@@ -25,14 +25,6 @@ import (
 // luận G7. Mọi đường dẫn trong bằng chứng là tương đối hoặc chỉ tên tệp; không ghi tên máy, người dùng,
 // khoá. Khoá nằm ở header HTTP, không bao giờ ở thân yêu cầu.
 
-// priceTable là giá USD / triệu token (vào, ra), tra trang Pricing chính thức ngày 20/10/2026
-// (docs/g7/CHI-PHI-G7.md mục 5). Model không có trong bảng thì chi phí ghi "CHƯA CÓ GIÁ".
-var priceTable = map[string][2]float64{
-	"claude-sonnet-5-5": {2, 10},
-	"claude-haiku-5-5":  {0.10, 0.50},
-	"claude-opus-5-5":   {4, 20},
-}
-
 // modelCall là một lần gửi HTTP tới model (models.MessagesTrace).
 type modelCall struct {
 	Attempt      int             `json:"attempt"`
@@ -359,7 +351,8 @@ type costRow struct {
 }
 
 func costs(recs []askRecord, model string, systems []string) []costRow {
-	price, priced := priceTable[model]
+	table, _ := priceTable() // bảng sai đã bị run() chặn trước lời gọi model đầu tiên
+	price, priced := table[model]
 	rows := map[string]*costRow{}
 	for _, s := range systems {
 		rows[s] = &costRow{System: s, Priced: priced}
@@ -535,9 +528,10 @@ func newManifest(cfg config, mc models.Config, gw models.Gateway, fake bool, sys
 		OS: runtime.GOOS + "/" + runtime.GOARCH, NumCPU: runtime.NumCPU(), FakeModel: fake,
 		Provider: mc.Provider, Model: mc.Model, SystemPromptSH: textSHA256(models.SystemPrompt()),
 		K: cfg.k, TopK: cfg.topK, Systems: systems, GateSystems: gateSystems, Cases: cases,
-		Files: map[string]string{}, PriceTable: priceTable, BudgetUSD: cfg.budget,
+		Files: map[string]string{}, BudgetUSD: cfg.budget,
 		ModelParams: map[string]any{},
 	}
+	m.PriceTable, _ = priceTable() // bảng sai đã bị run() chặn
 	if bg, ok := gw.(*budgetGateway); ok {
 		gw = bg.inner
 	}

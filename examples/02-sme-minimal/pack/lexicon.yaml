@@ -1,0 +1,15 @@
+# Đơn vị, thuật ngữ và mã của một nhà phân phối nhỏ (giả lập). Lõi không biết "thùng" hay "doanh thu" là gì cho tới khi đọc tệp này.
+units:
+  - {unit: thùng, kind: quantity, dimension: case, to_base: "1", aliases: [thùng, thung]}
+  - {unit: VND, kind: money, dimension: currency, to_base: "1", aliases: [đ, đồng, vnđ, vnd]}
+
+multipliers:
+  - {factor: "1000", aliases: [k, nghìn]}
+  - {factor: "1000000", aliases: [tr, triệu]}
+
+terms:
+  - {term: hang, label: hàng, aliases: [hàng, hàng hoá, hàng hóa], default_unit: thùng}
+  - {term: doanh_thu, label: doanh thu, aliases: [doanh thu], default_unit: VND}
+
+codes:
+  - {type: don_hang, pattern: '(?i)DH-?(?P<n>\d{3})', format: 'DH-{n}', upper: true}

@@ -124,7 +124,7 @@ func TestRetrievePhamViKhongLo(t *testing.T) {
 	b := dinhMuc("SOP-NL-ĐM-01", 3, StatusApproved, "2026-03-01", "", "18")
 	a.Scope, b.Scope = []string{"PRJ-B"}, []string{"PRJ-B"}
 	ix := NewMemoryIndex("a", []Document{a, b})
-	ix.Now = ngay("2026-10-19")
+	ix.Now, ix.InScope = ngay("2026-10-19"), theoThuocTinh
 	pA := principal("a", "site_supervisor")
 	pA.Attributes = map[string]string{"entity_scope": "PRJ-A"}
 	ev, err := ix.Retrieve(context.Background(), pA, cauDinhMuc, 3)
@@ -280,14 +280,14 @@ func TestRetrievePhamViTheoTungBan(t *testing.T) {
 	pA := principal("a", "site_supervisor")
 	pA.Attributes = map[string]string{"entity_scope": "PRJ-A"}
 	ix := NewMemoryIndex("a", []Document{v2, v3})
-	ix.Now = ngay("2026-10-19")
+	ix.Now, ix.InScope = ngay("2026-10-19"), theoThuocTinh
 	ev, err := ix.Retrieve(context.Background(), pA, cauDinhMuc, 3)
 	if err != nil || len(ev) == 0 || ev[0].Source.DocumentVersion != 2 {
 		t.Errorf("chỉ thấy v2: muốn đoạn v2, không xung đột; được %v / %v", ev, err)
 	}
 	v2.EffectiveTo = "2026-03-01"
 	ix = NewMemoryIndex("a", []Document{v2, v3})
-	ix.Now = ngay("2026-10-19")
+	ix.Now, ix.InScope = ngay("2026-10-19"), theoThuocTinh
 	_, err = ix.Retrieve(context.Background(), pA, cauDinhMuc, 3)
 	var n *VersionNotice
 	if !errors.As(err, &n) || n.Kind != NoticeNoEffective || versionsOf(n) != "2" {

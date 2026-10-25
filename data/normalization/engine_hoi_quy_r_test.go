@@ -193,6 +193,7 @@ func indexOf(s, sub string) int {
 
 // LabelContext — nhãn / số đếm / tần suất vô hại cho câu xác nhận một lượng; mọi thứ khác vẫn là con số.
 func TestLabelContext(t *testing.T) {
+	e := mustEngine(t)
 	for _, c := range []struct {
 		in, num string
 		want    bool
@@ -208,7 +209,7 @@ func TestLabelContext(t *testing.T) {
 		if c.in == "mỗi ngày 3-4 chuyến" && c.num == "4" {
 			start = indexOf(c.in, "-4") + 1
 		}
-		if got := LabelContext(c.in, start, start+len(c.num)); got != c.want {
+		if got := e.LabelContext(c.in, start, start+len(c.num)); got != c.want {
 			t.Errorf("LabelContext(%q, %q) = %v, muốn %v", c.in, c.num, got, c.want)
 		}
 	}
@@ -242,7 +243,7 @@ func TestDashDateAt(t *testing.T) {
 		var got string
 		var n int
 		for i := range in.Spans {
-			if text, k := DashDateAt(in.Raw, in.Spans, i); k > 0 {
+			if text, k := e.DashDateAt(in.Raw, in.Spans, i); k > 0 {
 				got, n = text, k
 				break
 			}
@@ -278,14 +279,14 @@ func TestQualifierVaDashDateKhongPanicTrenChuoiNgauNhien(t *testing.T) {
 					t.Fatalf("%q: mốc %+v không nằm trong chuỗi", in.Raw, q)
 				}
 			}
-			LabelContext(in.Raw, sp.Start, sp.End)
-			if text, k := DashDateAt(in.Raw, in.Spans, i); k > 0 && (text == "" || !strings.Contains(in.Raw, text) || i+k > len(in.Spans)) {
+			e.LabelContext(in.Raw, sp.Start, sp.End)
+			if text, k := e.DashDateAt(in.Raw, in.Spans, i); k > 0 && (text == "" || !strings.Contains(in.Raw, text) || i+k > len(in.Spans)) {
 				t.Fatalf("%q: DashDateAt = %q (%d span) không khớp chuỗi", in.Raw, text, k)
 			}
 		}
 		// vị trí ngoài khoảng hợp lệ trả false thay vì panic
 		PeriodQualifier(in.Raw, -1, 2)
 		PeriodQualifier(in.Raw, 0, len(in.Raw)+5)
-		LabelContext(in.Raw, len(in.Raw), len(in.Raw))
+		e.LabelContext(in.Raw, len(in.Raw), len(in.Raw))
 	}
 }

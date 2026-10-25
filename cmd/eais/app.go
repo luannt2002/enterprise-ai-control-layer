@@ -324,7 +324,13 @@ type ingestReport struct {
 	Observations  int    `json:"observations"`
 	Quarantined   int    `json:"quarantined"`
 	NewQuarantine int    `json:"quarantine_new"` // bản ghi cách ly GHI MỚI; 0 khi nạp lại cùng mã
-	ElapsedMs     int64  `json:"elapsed_ms"`
+	// Held: số bản tài liệu cổng chất lượng giữ lại (chờ soát, KHÔNG được công bố ở lần nạp này); Holds: "mã@vN: lý do" của từng bản (F-018).
+	Held  int      `json:"held"`
+	Holds []string `json:"holds,omitempty"`
+	// KeptPublished: "mã@vN: lý do của cổng" — bản cổng muốn giữ lại nhưng kho ĐANG công bố đúng nội dung đó, nên giữ nguyên công bố
+	// (pgstore Load, rag.KeepPublished): cảnh báo cho người nạp, không phải lỗi.
+	KeptPublished []string `json:"kept_published,omitempty"`
+	ElapsedMs     int64    `json:"elapsed_ms"`
 }
 
 // ingest nạp thư mục dữ liệu <dataRoot>/<tenant> của tenant mà pack này phục vụ: nguồn → quan sát + cách ly; lưu bản ghi cách ly
@@ -370,8 +376,30 @@ func (a *app) ingest(ctx context.Context) (ingestReport, error) {
 	if rep.NewQuarantine, err = a.st.SaveQuarantine(tctx, rep.LoadID, recs); err != nil {
 		return rep, err
 	}
+	gate := make([]string, len(docs)) // lý do giữ của cổng TRƯỚC khi nạp: kho PG trả lại đã duyệt bản đang công bố đúng nội dung đó
+	for i, d := range docs {
+		gate[i] = d.Hold
+	}
 	if err := a.loadInto(tctx, pgstore.LoadInfo{LoadID: rep.LoadID, DataVersion: before}, directory, res.Facts(), docs); err != nil {
 		return rep, err
+	}
+	// Bản bị cổng chất lượng giữ lại vẫn được nạp (chờ soát, không phục vụ): lần nạp thành công nhưng phải nói ra, không thì tài liệu
+	// biến mất khỏi câu trả lời mà không ai biết (F-018).
+	for i, d := range docs {
+		switch at := fmt.Sprintf("%s@v%d: ", d.ID, d.Version); {
+		case d.Hold != "":
+			rep.Holds = append(rep.Holds, at+d.Hold)
+		case gate[i] != "":
+			rep.KeptPublished = append(rep.KeptPublished, at+gate[i])
+		}
+	}
+	if rep.Held = len(rep.Holds); rep.Held > 0 {
+		a.log.Warn("cổng chất lượng giữ lại tài liệu: các bản này KHÔNG được công bố", "tenant", tenantID, "load_id", rep.LoadID,
+			"held", rep.Held, "holds", strings.Join(rep.Holds, " | "))
+	}
+	if len(rep.KeptPublished) > 0 {
+		a.log.Warn("cổng chất lượng không đạt nhưng kho đang công bố đúng nội dung này: giữ nguyên công bố", "tenant", tenantID,
+			"load_id", rep.LoadID, "kept_published", strings.Join(rep.KeptPublished, " | "))
 	}
 	a.setAsk(before)
 	rep.ElapsedMs = time.Since(t0).Milliseconds()

@@ -79,9 +79,12 @@ mpy() {
 }
 
 # mm: như m nhưng chạy trên một database VỪA DỰNG LẠI, cho đột biến migration mà test dùng database dùng chung (migration chỉ áp MỘT lần mỗi database: trên database đã
-# migrate bằng bản gốc thì bản đột biến không được áp và đột biến sống giả). Các test tạo database tạm của chính chúng (bộ chạy ca, TestPGTicketMigration0004ChayLai)
-# không cần mm. Tên database = tên trong EAIS_PG_ADMIN_DSN + _dotbien, từ chối nếu trùng tên database trong một trong hai DSN. Với mutate.sh bản mới (có --nen):
-# chạy nền MỘT lần trên database đó rồi dựng lại, để mutate.sh không áp migration GỐC trước đột biến.
+# migrate bằng bản gốc thì bản đột biến không được áp và đột biến sống giả). MỌI đột biến sửa tệp migration đi qua mm, kể cả khi test phải đỏ tự tạo database tạm
+# (bộ chạy ca, TestPGTicketMigration0004ChayLai): từ khi migration mang checksum (F-036, ADR-0017), trên database dùng chung đã migrate bằng bản gốc thì MỌI test mở
+# database đó đỏ ở bước migrate ("nội dung tệp đã đổi") — đo 24/10 với M2 / M4 / M16 chạy bằng m: 67 / 72 / 75 test đỏ, phần lớn ngoài bộ chạy ca. Mẫu "phải
+# thấy" chỉ khớp bộ chạy ca nên kết cục vẫn đúng, nhưng danh sách đỏ thành nhiễu và mẫu nào rộng hơn sẽ đếm "bị bắt" giả.
+# Tên database = tên trong EAIS_PG_ADMIN_DSN + _dotbien, từ chối nếu trùng tên database trong một trong hai DSN.
+# Với mutate.sh bản mới (có --nen): chạy nền MỘT lần trên database đó rồi dựng lại, để mutate.sh không áp migration GỐC trước đột biến.
 db_of() { printf '%s' "$1" | sed -E 's#^[a-z]+://[^/]*/([^/?]*).*#\1#'; }
 dsn_db() { printf '%s' "$1" | sed -E 's#^([a-z]+://[^/]*)/[^/?]*#\1/'"$2"'#'; }
 DB_MM="$(db_of "$EAIS_PG_ADMIN_DSN")_dotbien"
@@ -116,13 +119,13 @@ m M1 'bỏ bước tra sổ lệnh (C4b): lần tra không bao giờ thấy dòn
 	'led, found, err := r.p.d.Store.FindLedger(ctx, r.caller.ID, r.req.CommandID)' \
 	'led, found, err := LedgerRecord{}, false, error(nil)' \
 	"A01_[^ ]*/results" "A21_[^ ]*/results"
-m M2 'bỏ khoá chính (tenant, người gọi, command_id) của sổ lệnh' $M \
+mm M2 'bỏ khoá chính (tenant, người gọi, command_id) của sổ lệnh' $M \
 	'  PRIMARY KEY (tenant_id, caller_id, command_id),' '  CHECK (true),' \
 	"$PG/A02b_[^ ]*/(results|tickets_open|ledger_rows)"
 m M3 'bỏ so fingerprint ở C4b' $P \
 	'case led.Fingerprint != r.fp:' 'case false:' \
 	"A03_[^ ]*/results"
-m M4 'bỏ chỉ mục duy nhất nghiệp vụ (chỉ còn chỉ mục thường)' $M \
+mm M4 'bỏ chỉ mục duy nhất nghiệp vụ (chỉ còn chỉ mục thường)' $M \
 	'CREATE UNIQUE INDEX IF NOT EXISTS discrepancy_tickets_open_key' 'CREATE INDEX IF NOT EXISTS discrepancy_tickets_open_key' \
 	"$PG/A04b_[^ ]*/(results|tickets_open)"
 # M5 theo đúng chữ của §11.2: đặt tra sổ lệnh SAU luật "không trùng". Ở mã hiện tại (K1v2, e1ce950) R5 tra LẠI sổ lệnh khi thấy phiếu OPEN (cửa sổ C4b–R5, §6.3 hàng 3), nên
@@ -223,7 +226,7 @@ m M21 'bỏ kiểm R5 ở C5 (còn chỉ mục duy nhất và §6.4): lần th�
 mm M15 'cấp UPDATE, DELETE cho eais_app trên ba bảng (A26: quyền SQL, ngoài khuôn §12.1)' $M \
 	"EXECUTE format('GRANT SELECT, INSERT ON %I TO eais_app', t);" "EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON %I TO eais_app', t);" \
 	"TestPGTicketQuyenChiThemVaDoc"
-m M16 'thêm khoá ngoại từ phiếu tới entities (Load xoá và nạp lại danh mục)' $M \
+mm M16 'thêm khoá ngoại từ phiếu tới entities (Load xoá và nạp lại danh mục)' $M \
 	"  CHECK (status = 'OPEN')," $'  CHECK (status = \'OPEN\'),\n  FOREIGN KEY (tenant_id, entity_id) REFERENCES entities (tenant_id, id),' \
 	"$PG/A18_[^ ]*/chay"
 m M17 'nối gói lệnh tới gateway model (A24: cổng import)' $P \

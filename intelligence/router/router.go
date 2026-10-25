@@ -6,54 +6,31 @@
 package router
 
 import (
-	"fmt"
 	"maps"
 	"slices"
 	"strings"
 
 	"github.com/luannt2002/enterprise-ai-control-layer/core/contracts"
+	"github.com/luannt2002/enterprise-ai-control-layer/core/policy"
 	"github.com/luannt2002/enterprise-ai-control-layer/intelligence/intent"
 )
 
-// RoleDef là một vai nghiệp vụ trong pack (policy.yaml).
-type RoleDef struct {
-	Capabilities []string `yaml:"capabilities"`
-	// Scope: "all" = xem mọi thực thể; "attribute" = chỉ thực thể có khoá nằm trong thuộc
-	// tính entity_scope của principal. Không có giá trị mặc định nào mở toang.
-	Scope string `yaml:"scope"`
-}
-
-// Policy là chính sách vai → capability + phạm vi dữ liệu.
-type Policy struct {
-	Roles map[string]RoleDef `yaml:"roles"`
-}
-
-// Validate kiểm chính sách.
-func (p Policy) Validate() error {
-	var errs []string
-	if len(p.Roles) == 0 {
-		errs = append(errs, "policy không có vai nào")
-	}
-	for name, r := range p.Roles {
-		if r.Scope != "all" && r.Scope != "attribute" {
-			errs = append(errs, fmt.Sprintf("vai %s: scope phải là all hoặc attribute, đang là %q", name, r.Scope))
-		}
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("policy không hợp lệ:\n  - %s", strings.Join(errs, "\n  - "))
-	}
-	return nil
-}
+// Policy, RoleDef là bí danh của core/policy: ranh giới quyền đã ra lõi (F-031); giữ tên cũ để nơi gọi qua router không vỡ.
+type (
+	Policy  = policy.Policy
+	RoleDef = policy.RoleDef
+)
 
 // narrow gỡ bí danh mơ hồ bằng NGỮ CẢNH đã có trong câu và trong danh tính — luật tất định:
 //
-//	(a) khe thực thể đã điền bằng một DỰ ÁN mà câu còn nhắc một thiết bị mơ hồ ("máy 07 của dự
-//	    án A"): giữ ứng viên thuộc dự án đó; đúng 1 thì câu hỏi là về thiết bị ấy, 0 hoặc > 1
-//	    thì hỏi lại — không lặng lẽ trả lời cho cả dự án;
+//	(a) khe thực thể đã điền bằng một thực thể thuộc KIỂU CHA do pack khai (parent) mà câu còn nhắc
+//	    một thực thể mơ hồ ("máy 07 của dự án A"): giữ ứng viên thuộc thực thể cha đó; đúng 1 thì câu
+//	    hỏi là về ứng viên ấy, 0 hoặc > 1 thì hỏi lại — không lặng lẽ trả lời cho cả thực thể cha.
+//	    Pack không khai kiểu cha thì không gỡ theo cha;
 //	(b) khe còn thiếu: giữ ứng viên nằm trong phạm vi dữ liệu của người hỏi; đúng 1 thì chọn
 //	    (người hỏi không thể muốn thiết bị mình không được xem). Vai phạm vi "all" thì mọi ứng
 //	    viên đều trong phạm vi nên vẫn phải hỏi lại.
-func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, lineage func(contracts.EntityRef) []string) (contracts.Intent, contracts.Narrowing) {
+func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Policy, parent ParentType, lineage func(contracts.EntityRef) []string) (contracts.Intent, contracts.Narrowing) {
 	it := cls.Intent
 	if len(cls.Candidates) == 0 {
 		return it, contracts.Narrowing{}
@@ -72,10 +49,10 @@ func narrow(cls intent.Result, def intent.Def, pr contracts.Principal, pol Polic
 	nar := contracts.Narrowing{Slot: slot, Before: keysOf(cls.Candidates)}
 	var keep []contracts.EntityRef
 	if cur, ok := it.Slots[slot]; ok && cur.Entity != nil {
-		if cur.Entity.Type != "project" {
+		if parent.Type == "" || cur.Entity.Type != parent.Type {
 			return it, contracts.Narrowing{}
 		}
-		nar.By = contracts.NarrowByProject
+		nar.By, nar.ByLabel = parent.Type, parent.Label
 		for _, c := range cls.Candidates {
 			for _, k := range lineage(c) {
 				if k == cur.Entity.Key {
@@ -141,48 +118,18 @@ func terminalOutcome(r contracts.RouteKind) contracts.Outcome {
 	return ""
 }
 
-// Allows báo principal có capability không (qua bất kỳ vai nào của họ). Đóng mặc định:
-// capability rỗng không cấp quyền cho ai.
-func (p Policy) Allows(pr contracts.Principal, capability string) bool {
-	if capability == "" {
-		return false
-	}
-	for _, role := range pr.Roles {
-		for _, c := range p.Roles[role].Capabilities {
-			if c == capability {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// InScope báo principal có được xem một thực thể không. lineage là khoá của thực thể và mọi
-// tổ tiên của nó: được giao dự án PRJ-A thì xem được máy thuộc PRJ-A.
-func (p Policy) InScope(pr contracts.Principal, lineage []string) bool {
-	for _, role := range pr.Roles {
-		if p.Roles[role].Scope == "all" {
-			return true
-		}
-	}
-	for _, k := range strings.Split(pr.Attributes["entity_scope"], ",") {
-		k = strings.TrimSpace(k)
-		if k == "" {
-			continue
-		}
-		for _, key := range lineage {
-			if key == k {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // Settings là phần cấu hình router của pack (nằm cùng intents.yaml).
 type Settings struct {
 	UnmatchedRoute    string `yaml:"unmatched_route"`
 	UnmatchedTemplate string `yaml:"unmatched_template"`
+	// NarrowParent: kiểu thực thể CHA dùng để gỡ bí danh mơ hồ theo ngữ cảnh (xem narrow); rỗng = chỉ gỡ theo phạm vi dữ liệu.
+	NarrowParent ParentType `yaml:"narrow_parent"`
+}
+
+// ParentType là một kiểu thực thể cha của pack: tên kiểu (Entity.Type) và tên gọi của nó trong lời giải thích ("dự án").
+type ParentType struct {
+	Type  string `yaml:"type"`
+	Label string `yaml:"label"`
 }
 
 // Route quyết kế hoạch cho một lượt hỏi. lineage trả khoá thực thể + tổ tiên (từ danh mục).
@@ -215,7 +162,12 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 	case check("hỏi lại nghĩa số liệu", contracts.RouteClarification, len(cls.NeedMeaning) > 0, orNone(strings.Join(cls.NeedMeaning, ", "), "không rơi vào trường hợp có thực thể và thuật ngữ mà không từ khoá nào khớp")):
 		// thực thể ngoài phạm vi dữ liệu của người hỏi: nghĩa nào cũng bị từ chối, nên từ chối ngay, không hỏi lại
 		for _, e := range cls.Mentioned {
-			out := !pol.InScope(pr, lineage(e))
+			keys := lineage(e)
+			// phạm vi của mỗi nghĩa do chính vai có capability của nghĩa đó thoả (Q11): ngoài phạm vi ở MỌI nghĩa mới từ chối
+			out := !slices.ContainsFunc(cls.NeedMeaning, func(m string) bool {
+				d, _ := set.Def(m)
+				return pol.InScope(pol.Holding(pr, d.Capability), keys)
+			})
 			if check("phạm vi dữ liệu (câu hỏi nghĩa số liệu)", contracts.RouteReject, out, e.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")) {
 				return contracts.RoutePlan{
 					Route: contracts.RouteReject, Template: "forbidden", Outcome: contracts.OutcomePermissionDenied,
@@ -244,8 +196,15 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		}
 	}
 	def, _ := set.Def(cls.Intent.Name)
+	// Quyền và phạm vi do CÙNG một vai thoả (Q11): gỡ mơ hồ theo phạm vi và bậc phạm vi dữ liệu chỉ xét vai có capability của ý định (và của
+	// vế so sánh) — vai phạm vi rộng mà không có quyền đọc không cho vai khác mượn phạm vi. Bậc capability bên dưới vẫn xét mọi vai.
+	held := pol.Holding(pr, def.Capability)
+	if cls.Compare != "" {
+		cdef, _ := set.Def(cls.Compare)
+		held = pol.Holding(held, cdef.Capability)
+	}
 	var it contracts.Intent
-	it, narrowed = narrow(cls, def, pr, pol, lineage)
+	it, narrowed = narrow(cls, def, held, pol, st.NarrowParent, lineage)
 	plan = contracts.RoutePlan{Intent: it}
 	cls.Intent = plan.Intent
 
@@ -284,7 +243,7 @@ func Route(set *intent.Set, cls intent.Result, in contracts.NormalizedInput, pr 
 		if s.Entity == nil {
 			continue
 		}
-		out := !pol.InScope(pr, lineage(*s.Entity))
+		out := !pol.InScope(held, lineage(*s.Entity))
 		if check("phạm vi dữ liệu", contracts.RouteReject, out, s.Entity.Key+": "+pick(out, "ngoài phạm vi", "trong phạm vi")+" của người hỏi") {
 			plan.Route, plan.Template, plan.Outcome = contracts.RouteReject, "forbidden", contracts.OutcomePermissionDenied
 			plan.Reason = "thực thể " + s.Entity.Key + " ngoài phạm vi dữ liệu của người hỏi"

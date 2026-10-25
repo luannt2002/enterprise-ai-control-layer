@@ -1,5 +1,7 @@
 # Báo cáo thi công vNext 24/10/2026 tối — đã làm gì theo lát, số đo, sổ nợ bền, câu chờ quyết
 
+> **25/10/2026: đã gộp vào main** (merge `b1d160c`, `--no-ff`). Số đo ở mục 2 đo trên nhánh; cây main sau gộp giống hệt cây nhánh.
+
 > **Viết cho:** chủ dự án và phiên BUILD.
 >
 > **Quyết định:** GO 24/10 của chủ dự án cho báo cáo audit vNext (`docs/CHO-QUYET-DINH.md` mục 0, dòng "vNext"): phương án B′ — cổng

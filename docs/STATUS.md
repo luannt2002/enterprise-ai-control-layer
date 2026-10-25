@@ -1,6 +1,7 @@
 # STATUS — trạng thái EAIS
 
-> **Cập nhật 24/10/2026 khuya — vNext: nhánh `vnext/tach-2410` (CHƯA gộp main)**, báo cáo `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.
+> **Cập nhật 25/10/2026 — vNext ĐÃ GỘP vào main** (merge `b1d160c`, lời chủ dự án 25/10 ở `docs/CHO-QUYET-DINH.md` dòng "vNext → main").
+> Dòng dưới là chữ của 24/10 khuya, giữ làm lịch sử: **Cập nhật 24/10/2026 khuya — vNext: nhánh `vnext/tach-2410` (CHƯA gộp main)**, báo cáo `docs/bao-cao/2026-10-24-vnext-thi-cong.md`.
 > Khối "vNext" ngay dưới mô tả nhánh đó; main vẫn là `3f1bf7e`. Mọi chữ từ dòng "Cập nhật: 24/10/2026 tối — TÍCH HỢP" trở xuống giữ nguyên làm lịch sử,
 > trừ lệnh chạy G7 ở bảng WIN (sửa theo cấu hình của lát L4).
 >
